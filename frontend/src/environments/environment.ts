@@ -3,8 +3,8 @@ export const environment = {
   apiUrl: '/api',
   /**
    * Modo demostración: muestra en el login botones para entrar como Estudiante, Docente o Administrador
-   * sin backend. Sirve para presentar las pantallas mientras se implementa el Sprint 1.
-   * Ponlo en false cuando el inicio de sesión real esté listo.
+   * sin backend (sesión simulada, solo en memoria). Desactivado: el flujo normal usa la API real.
+   * Actívalo únicamente para presentar pantallas sin backend.
    */
-  modoDemo: true,
+  modoDemo: false,
 };

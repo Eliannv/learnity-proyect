@@ -23,6 +23,12 @@ export const routes: Routes = [
     title: 'Recuperar contraseña · Learnity',
     loadComponent: () => import('./pages/auth/recuperar/recuperar').then((m) => m.Recuperar),
   },
+  {
+    // Enlace del correo: /restablecer-contrasena#token=… (sin guard: funciona con o sin sesión abierta).
+    path: 'restablecer-contrasena',
+    title: 'Crear nueva contraseña · Learnity',
+    loadComponent: () => import('./pages/auth/restablecer/restablecer').then((m) => m.Restablecer),
+  },
 
   // ── Sitio: Visitante y vista Estudiante
   {

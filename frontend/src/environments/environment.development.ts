@@ -1,4 +1,4 @@
 export const environment = {
   apiUrl: '/api',
-  modoDemo: true,
+  modoDemo: false,
 };

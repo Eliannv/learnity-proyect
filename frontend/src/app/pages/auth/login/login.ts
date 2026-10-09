@@ -20,6 +20,8 @@ export class Login {
   private readonly ruta = inject(ActivatedRoute);
 
   protected readonly modoDemo = environment.modoDemo;
+  /** /login?expirada=1: la sesión se cerró (venció, se cerró en otro equipo o cambió la contraseña). */
+  protected readonly sesionExpirada = this.ruta.snapshot.queryParamMap.has('expirada');
   protected readonly verContrasena = signal(false);
   protected readonly enviando = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -34,7 +36,7 @@ export class Login {
     return control.invalid && (control.touched || control.dirty);
   }
 
-  /** RF-02 · Inicio de sesión real contra la API (lo completa el Sprint 1 en el backend). */
+  /** RF-02 · Inicio de sesión contra la API. */
   protected async iniciarSesion() {
     this.error.set(null);
     if (this.form.invalid) {
@@ -48,6 +50,7 @@ export class Login {
       await this.irAlInicio();
     } catch (error) {
       this.error.set(mensajeDeError(error, 'El inicio de sesión'));
+      this.form.controls.contrasena.reset();
     } finally {
       this.enviando.set(false);
     }
@@ -59,8 +62,10 @@ export class Login {
     await this.irAlInicio();
   }
 
+  /** Vuelve a la página que pidió el login; solo rutas internas (evita redirecciones a otros sitios). */
   private async irAlInicio() {
     const volver = this.ruta.snapshot.queryParamMap.get('volver');
-    await this.router.navigateByUrl(volver ?? this.auth.rutaInicio());
+    const interna = volver && volver.startsWith('/') && !volver.startsWith('//') ? volver : null;
+    await this.router.navigateByUrl(interna ?? this.auth.rutaInicio());
   }
 }

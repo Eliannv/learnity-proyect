@@ -3,7 +3,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
+import { PerfilService, fechaCorta } from '../../../core/auth/perfil.service';
 import { Avatar } from '../../../shared/ui/avatar';
+import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../shared/validadores/contrasena';
+import { erroresPorCampo, mensajeDeError } from '../../auth/mensaje-error';
 
 type Pestana = 'perfil' | 'foto' | 'contrasena' | 'cuenta';
 
@@ -36,6 +39,7 @@ function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
 })
 export class AjustesPerfil implements OnDestroy {
   protected readonly auth = inject(AuthService);
+  private readonly perfiles = inject(PerfilService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
   protected readonly pestanas: { id: Pestana; texto: string }[] = [
@@ -49,42 +53,74 @@ export class AjustesPerfil implements OnDestroy {
   protected readonly roles = computed(() =>
     this.auth.roles().map((r) => ({ nombre: NOMBRES_ROL[r], descripcion: DESCRIPCION_ROL[r] })),
   );
+  protected readonly activaDesde = signal('');
 
   // ------------------------------------------------------------ Perfil
   protected readonly form = this.fb.group({
     nombres: [this.auth.usuario()?.nombres ?? '', [Validators.required, Validators.maxLength(80)]],
     apellidos: [this.auth.usuario()?.apellidos ?? '', [Validators.required, Validators.maxLength(80)]],
-    especialidad: [this.auth.esDocente() ? 'Programación y desarrollo web' : '', [Validators.maxLength(100)]],
-    ciudad: ['Machala', [Validators.maxLength(60)]],
-    biografia: [
-      this.auth.esDocente() ? 'Ingeniero de software con 8 años de experiencia. Enseño programación desde 2018.' : '',
-      [Validators.maxLength(300)],
-    ],
+    ciudad: ['', [Validators.maxLength(60)]],
+    biografia: ['', [Validators.maxLength(300)]],
   });
   /** Para la vista previa y los contadores en vivo. */
   protected readonly valores = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
-  protected readonly perfilGuardado = signal(false);
+  protected readonly guardandoPerfil = signal(false);
+  protected readonly perfilMensaje = signal<string | null>(null);
+  protected readonly perfilError = signal<string | null>(null);
 
-  /** Sprint 1: PUT /api/perfil */
-  protected guardarPerfil() {
+  constructor() {
+    void this.cargar();
+  }
+
+  private async cargar() {
+    try {
+      const perfil = await this.perfiles.obtener();
+      this.form.reset({
+        nombres: perfil.nombres,
+        apellidos: perfil.apellidos,
+        ciudad: perfil.ciudad ?? '',
+        biografia: perfil.biografia ?? '',
+      });
+      this.activaDesde.set(fechaCorta(perfil.creadoEn));
+    } catch (error) {
+      this.perfilError.set(mensajeDeError(error, 'La carga del perfil'));
+    }
+  }
+
+  /** RF-04 · PUT /api/perfil */
+  protected async guardarPerfil() {
+    this.perfilMensaje.set(null);
+    this.perfilError.set(null);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.form.markAsPristine();
-    this.perfilGuardado.set(true);
+    const v = this.form.getRawValue();
+    this.guardandoPerfil.set(true);
+    try {
+      await this.perfiles.actualizar({
+        nombres: v.nombres,
+        apellidos: v.apellidos,
+        ciudad: v.ciudad.trim() || null,
+        biografia: v.biografia.trim() || null,
+      });
+      this.form.markAsPristine();
+      this.perfilMensaje.set('Tu perfil se guardó.');
+    } catch (error) {
+      this.perfilError.set(mensajeDeError(error, 'El guardado del perfil'));
+    } finally {
+      this.guardandoPerfil.set(false);
+    }
   }
 
-  // ------------------------------------------------------------ Foto
+  // ------------------------------------------------------------ Foto (la subida de archivos llega con el módulo Contenido)
   protected readonly fotoVista = signal<string | null>(null);
   protected readonly fotoError = signal('');
-  protected readonly fotoGuardada = signal(false);
 
   protected elegirFoto(evento: Event) {
     const entrada = evento.target as HTMLInputElement;
     const archivo = entrada.files?.[0];
     entrada.value = '';
-    this.fotoGuardada.set(false);
     if (!archivo) return;
     if (!TIPOS_FOTO.includes(archivo.type)) {
       this.fotoError.set(`«${archivo.name}» no es JPG, PNG ni WEBP.`);
@@ -102,7 +138,6 @@ export class AjustesPerfil implements OnDestroy {
   protected quitarFoto() {
     this.liberarVista();
     this.fotoVista.set(null);
-    this.fotoGuardada.set(false);
   }
 
   private liberarVista() {
@@ -111,25 +146,43 @@ export class AjustesPerfil implements OnDestroy {
   }
 
   // ------------------------------------------------------------ Contraseña
+  protected readonly ayudaContrasena = AYUDA_CONTRASENA;
+  protected readonly mensajeContrasena = mensajeContrasena;
   protected readonly formContrasena = this.fb.group(
     {
       actual: ['', [Validators.required]],
-      nueva: ['', [Validators.required, Validators.minLength(8)]],
+      nueva: ['', [Validators.required, politicaContrasena]],
       confirmar: ['', [Validators.required]],
     },
     { validators: contrasenasIguales },
   );
   protected readonly verContrasenas = signal(false);
-  protected readonly contrasenaGuardada = signal(false);
+  protected readonly guardandoContrasena = signal(false);
+  protected readonly contrasenaMensaje = signal<string | null>(null);
+  protected readonly contrasenaError = signal<string | null>(null);
 
-  /** Sprint 1: PUT /api/perfil/contrasena */
-  protected cambiarContrasena() {
+  /** RF-04 · PUT /api/perfil/contrasena (la API cierra las sesiones de los demás dispositivos). */
+  protected async cambiarContrasena() {
+    this.contrasenaMensaje.set(null);
+    this.contrasenaError.set(null);
     if (this.formContrasena.invalid) {
       this.formContrasena.markAllAsTouched();
       return;
     }
-    this.formContrasena.reset();
-    this.contrasenaGuardada.set(true);
+    const { actual, nueva } = this.formContrasena.getRawValue();
+    this.guardandoContrasena.set(true);
+    try {
+      this.contrasenaMensaje.set(await this.perfiles.cambiarContrasena(actual, nueva));
+      this.formContrasena.reset();
+    } catch (error) {
+      const porCampo = erroresPorCampo(error);
+      if (porCampo['actual']) this.formContrasena.controls.actual.setErrors({ servidor: porCampo['actual'] });
+      if (porCampo['nueva']) this.formContrasena.controls.nueva.setErrors({ servidor: porCampo['nueva'] });
+      if (!porCampo['actual'] && !porCampo['nueva']) this.contrasenaError.set(mensajeDeError(error, 'El cambio de contraseña'));
+      this.formContrasena.markAllAsTouched();
+    } finally {
+      this.guardandoContrasena.set(false);
+    }
   }
 
   protected invalido(control: AbstractControl): boolean {

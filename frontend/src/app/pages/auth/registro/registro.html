@@ -50,15 +50,20 @@
           [class.invalido]="invalido('contrasena')"
           [type]="verContrasena() ? 'text' : 'password'"
           formControlName="contrasena"
-          placeholder="Crea una contraseña (mín. 8 caracteres)"
+          placeholder="Una frase de al menos 15 caracteres"
           autocomplete="new-password"
+          aria-describedby="ayuda-contrasena"
         />
         <button type="button" class="accion-control" (click)="verContrasena.set(!verContrasena())" aria-label="Mostrar u ocultar contraseña">
           <lucide-icon [name]="verContrasena() ? 'eye' : 'eye-off'" [size]="20" />
         </button>
       </div>
       @if (invalido('contrasena')) {
-        <span class="error-campo">La contraseña debe tener al menos 8 caracteres.</span>
+        <span class="error-campo" role="alert">{{ mensajeContrasena(form.controls.contrasena.errors) }}</span>
+      } @else {
+        <span class="ayuda" id="ayuda-contrasena">
+          {{ ayudaContrasena }} ({{ caracteresDe(form.controls.contrasena.value) }}/15)
+        </span>
       }
     </div>
 

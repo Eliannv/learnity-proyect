@@ -2,12 +2,12 @@
 // Learnity · Plataforma de cursos en línea
 // Modelo de base de datos · PostgreSQL 17
 // Pegar en https://dbdiagram.io  (Import > DBML)
-// Equivale a learnity_esquema.sql
+// Equivale a learnity_esquema.sql + 015_sesiones_y_recuperacion.sql
 // =====================================================================
 
 Project learnity {
   database_type: 'PostgreSQL'
-  Note: '19 tablas agrupadas por módulo: Identidad, Cursos, Contenido, Aprendizaje y Evaluaciones.'
+  Note: '21 tablas agrupadas por módulo: Identidad, Cursos, Contenido, Aprendizaje y Evaluaciones.'
 }
 
 // ---------------------------------------------------------------------
@@ -220,7 +220,35 @@ Table respuesta {
   }
 }
 
-TableGroup identidad { persona usuario rol usuario_rol solicitud_docente docente }
+// ---------------------------------------------------------------------
+// Módulo Identidad · sesiones y recuperación (script 015, Sprint 1)
+// ---------------------------------------------------------------------
+Table sesion {
+  id_sesion          bigint      [pk, increment]
+  id_usuario         integer     [not null, ref: > usuario.id_usuario]
+  familia            uuid        [not null, note: 'Tokens rotados de una misma sesión']
+  token_hash         char(64)    [not null, unique, note: 'SHA-256 del refresh token (nunca en claro)']
+  iniciada_en        timestamptz [not null]
+  creado_en          timestamptz [not null, default: `now()`]
+  expira_en          timestamptz [not null]
+  reemplazado_en     timestamptz [note: 'Rotado por un token nuevo']
+  revocado_en        timestamptz
+  motivo_revocacion  varchar(20) [note: "CIERRE, REUTILIZACION, CAMBIO_CONTRASENA, RESTABLECIMIENTO, CUENTA_INACTIVA"]
+  ip                 varchar(45)
+  agente             varchar(200)
+}
+
+Table token_recuperacion {
+  id_token    bigint      [pk, increment]
+  id_usuario  integer     [not null, ref: > usuario.id_usuario]
+  token_hash  char(64)    [not null, unique, note: 'SHA-256 del enlace (nunca en claro)']
+  creado_en   timestamptz [not null, default: `now()`]
+  expira_en   timestamptz [not null, note: 'Máximo 30 minutos']
+  usado_en    timestamptz [note: 'Un solo uso']
+  ip          varchar(45)
+}
+
+TableGroup identidad { persona usuario rol usuario_rol solicitud_docente docente sesion token_recuperacion }
 TableGroup cursos { categoria curso modulo leccion }
 TableGroup contenido { archivo recurso_adjunto }
 TableGroup aprendizaje { inscripcion progreso_leccion }

@@ -3,8 +3,9 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
+import { AYUDA_CONTRASENA, caracteresDe, mensajeContrasena, politicaContrasena } from '../../../shared/validadores/contrasena';
 import { MarcoAcceso } from '../marco-acceso';
-import { mensajeDeError } from '../mensaje-error';
+import { erroresPorCampo, mensajeDeError } from '../mensaje-error';
 
 function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
   const { contrasena, confirmar } = grupo.value as { contrasena: string; confirmar: string };
@@ -21,6 +22,9 @@ export class Registro {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  protected readonly ayudaContrasena = AYUDA_CONTRASENA;
+  protected readonly mensajeContrasena = mensajeContrasena;
+  protected readonly caracteresDe = caracteresDe;
   protected readonly verContrasena = signal(false);
   protected readonly enviando = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -30,8 +34,8 @@ export class Registro {
     {
       nombres: ['', [Validators.required, Validators.maxLength(80)]],
       apellidos: ['', [Validators.required, Validators.maxLength(80)]],
-      correo: ['', [Validators.required, Validators.email]],
-      contrasena: ['', [Validators.required, Validators.minLength(8)]],
+      correo: ['', [Validators.required, Validators.email, Validators.maxLength(120)]],
+      contrasena: ['', [Validators.required, politicaContrasena]],
       confirmar: ['', [Validators.required]],
     },
     { validators: contrasenasIguales },
@@ -53,9 +57,16 @@ export class Registro {
     try {
       const { nombres, apellidos, correo, contrasena } = this.form.getRawValue();
       await this.auth.registrar({ nombres, apellidos, correo, contrasena });
-      await this.router.navigateByUrl('/mi-aprendizaje');
+      await this.router.navigateByUrl(this.auth.rutaInicio());
     } catch (error) {
-      this.error.set(mensajeDeError(error, 'El registro'));
+      // Si la API rechaza la contraseña (filtrada, común, basada en el nombre), el error va junto al campo.
+      const porCampo = erroresPorCampo(error);
+      if (porCampo['contrasena']) {
+        this.form.controls.contrasena.setErrors({ servidor: porCampo['contrasena'] });
+        this.form.controls.contrasena.markAsTouched();
+      } else {
+        this.error.set(mensajeDeError(error, 'El registro'));
+      }
     } finally {
       this.enviando.set(false);
     }

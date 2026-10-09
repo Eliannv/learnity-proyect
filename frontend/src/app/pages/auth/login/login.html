@@ -57,10 +57,19 @@
 
     <a class="olvido" routerLink="/recuperar-contrasena">¿Olvidaste tu contraseña?</a>
 
+    @if (sesionExpirada && !error()) {
+      <div class="aviso" role="status">
+        <lucide-icon name="info" [size]="18" />
+        <span>Tu sesión terminó. Inicia sesión de nuevo para continuar donde estabas.</span>
+      </div>
+    }
     @if (error()) {
       <div class="aviso error" role="alert">
         <lucide-icon name="circle-alert" [size]="18" />
-        <span>{{ error() }}</span>
+        <span>
+          {{ error() }}
+          <small class="bloque">Tras 5 intentos fallidos, el acceso a la cuenta se pausa 15 minutos.</small>
+        </span>
       </div>
     }
 
@@ -74,7 +83,8 @@
 
   @if (modoDemo) {
     <section class="demo" aria-label="Accesos de demostración">
-      <strong>Accesos de demostración</strong>      
+      <strong>Accesos de demostración</strong>
+      <p>Sesiones simuladas sin backend, solo para presentar pantallas.</p>
       <div class="botones">
         <button type="button" (click)="entrarDemo('ESTUDIANTE')">Estudiante <small>Rosa Vera</small></button>
         <button type="button" (click)="entrarDemo('DOCENTE')">Docente <small>Carlos Mendoza</small></button>

@@ -36,15 +36,6 @@
               <span class="error-campo">Escribe tus apellidos.</span>
             }
           </div>
-          @if (auth.esDocente()) {
-            <div class="campo">
-              <label class="etiqueta" for="especialidad">Especialidad</label>
-              <div class="con-contador">
-                <input id="especialidad" class="control" formControlName="especialidad" maxlength="100" placeholder="Ej.: Programación web" />
-                <span class="contador-texto" aria-hidden="true">{{ 100 - (valores().especialidad?.length ?? 0) }}</span>
-              </div>
-            </div>
-          }
           <div class="campo">
             <label class="etiqueta" for="biografia">Biografía</label>
             <textarea id="biografia" class="control" formControlName="biografia" maxlength="300" placeholder="Cuéntanos algo sobre ti"></textarea>
@@ -77,7 +68,7 @@
                 <app-avatar [texto]="auth.iniciales()" [tamano]="48" />
                 <div>
                   <strong>{{ valores().nombres }} {{ valores().apellidos }}</strong>
-                  <small>{{ valores().especialidad || 'Sin especialidad' }}</small>
+                  <small>Docente en Learnity</small>
                 </div>
               </div>
               <p>{{ valores().biografia || 'Aún no escribes tu biografía.' }}</p>
@@ -92,11 +83,19 @@
       </div>
 
       <div class="pie">
-        <button type="submit" class="btn btn-primario btn-lg" [disabled]="form.pristine">Guardar</button>
-        @if (perfilGuardado()) {
-          <div class="aviso" role="status">
-            <lucide-icon name="info" [size]="18" />
-            <span>Modo demostración: el guardado se conecta con la API en el Sprint 1 (PUT /api/perfil).</span>
+        <button type="submit" class="btn btn-primario btn-lg" [disabled]="form.pristine || guardandoPerfil()">
+          {{ guardandoPerfil() ? 'Guardando…' : 'Guardar' }}
+        </button>
+        @if (perfilMensaje()) {
+          <div class="aviso exito" role="status">
+            <lucide-icon name="circle-check" [size]="18" />
+            <span>{{ perfilMensaje() }}</span>
+          </div>
+        }
+        @if (perfilError()) {
+          <div class="aviso error" role="alert">
+            <lucide-icon name="circle-alert" [size]="18" />
+            <span>{{ perfilError() }}</span>
           </div>
         }
       </div>
@@ -115,7 +114,8 @@
       </div>
       <div class="foto-acciones">
         <h2>Tu foto de perfil</h2>
-        <p class="texto-suave">JPG, PNG o WEBP de hasta 500 KB. Se ve en tu menú de la cuenta; si eres docente, también en tus cursos.</p>
+        <p class="texto-suave">JPG, PNG o WEBP de hasta 500 KB. Se ve en tu menú de la cuenta; si eres docente, también en tus cursos.
+          Puedes ver la vista previa; guardar la foto estará disponible muy pronto.</p>
         <div class="fila botones">
           <label class="btn btn-contorno">
             <lucide-icon name="camera" [size]="18" /> Elegir imagen
@@ -131,13 +131,7 @@
             <span>{{ fotoError() }}</span>
           </div>
         }
-        <button type="button" class="btn btn-primario btn-lg guardar-foto" [disabled]="!fotoVista()" (click)="fotoGuardada.set(true)">Guardar foto</button>
-        @if (fotoGuardada()) {
-          <div class="aviso" role="status">
-            <lucide-icon name="info" [size]="18" />
-            <span>Modo demostración: la foto se guarda cuando se conecte la API del perfil.</span>
-          </div>
-        }
+        <button type="button" class="btn btn-primario btn-lg guardar-foto" disabled>Guardar foto</button>
       </div>
     </section>
   }
@@ -149,13 +143,17 @@
         <label class="etiqueta" for="actual">Contraseña actual</label>
         <input id="actual" class="control" [type]="verContrasenas() ? 'text' : 'password'" formControlName="actual" autocomplete="current-password" [class.invalido]="invalido(formContrasena.controls.actual)" />
         @if (invalido(formContrasena.controls.actual)) {
-          <span class="error-campo">Escribe tu contraseña actual.</span>
+          <span class="error-campo" role="alert">{{ formContrasena.controls.actual.errors?.['servidor'] ?? 'Escribe tu contraseña actual.' }}</span>
         }
       </div>
       <div class="campo">
         <label class="etiqueta" for="nueva">Nueva contraseña</label>
         <input id="nueva" class="control" [type]="verContrasenas() ? 'text' : 'password'" formControlName="nueva" autocomplete="new-password" [class.invalido]="invalido(formContrasena.controls.nueva)" />
-        <span [class]="invalido(formContrasena.controls.nueva) ? 'error-campo' : 'ayuda'">Mínimo 8 caracteres.</span>
+        @if (invalido(formContrasena.controls.nueva)) {
+          <span class="error-campo" role="alert">{{ mensajeContrasena(formContrasena.controls.nueva.errors) }}</span>
+        } @else {
+          <span class="ayuda">{{ ayudaContrasena }}</span>
+        }
       </div>
       <div class="campo">
         <label class="etiqueta" for="confirmar">Repite la nueva contraseña</label>
@@ -176,11 +174,19 @@
         Mostrar contraseñas
       </label>
       <div class="pie">
-        <button type="submit" class="btn btn-primario btn-lg">Cambiar contraseña</button>
-        @if (contrasenaGuardada()) {
-          <div class="aviso" role="status">
-            <lucide-icon name="info" [size]="18" />
-            <span>Modo demostración: se conecta con la API en el Sprint 1 (PUT /api/perfil/contrasena).</span>
+        <button type="submit" class="btn btn-primario btn-lg" [disabled]="guardandoContrasena()">
+          {{ guardandoContrasena() ? 'Guardando…' : 'Cambiar contraseña' }}
+        </button>
+        @if (contrasenaMensaje()) {
+          <div class="aviso exito" role="status">
+            <lucide-icon name="circle-check" [size]="18" />
+            <span>{{ contrasenaMensaje() }}</span>
+          </div>
+        }
+        @if (contrasenaError()) {
+          <div class="aviso error" role="alert">
+            <lucide-icon name="circle-alert" [size]="18" />
+            <span>{{ contrasenaError() }}</span>
           </div>
         }
       </div>
@@ -209,7 +215,7 @@
 
       <div class="bloque">
         <h2>Sesión</h2>
-        <p class="texto-suave">Cuenta activa desde el 08 feb 2026. Cierra la sesión si usas una computadora compartida.</p>
+        <p class="texto-suave">Cuenta activa{{ activaDesde() ? ' desde el ' + activaDesde() : '' }}. Cierra la sesión si usas una computadora compartida.</p>
         <button type="button" class="btn btn-peligro salir" (click)="auth.cerrarSesion()">
           <lucide-icon name="log-out" [size]="18" /> Cerrar sesión
         </button>

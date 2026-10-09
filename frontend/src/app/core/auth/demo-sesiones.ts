@@ -4,11 +4,12 @@ import type { Rol, Sesion } from './sesion.model';
  * MODO DEMOSTRACIÓN (environment.modoDemo).
  * Sesiones simuladas con las mismas cuentas que crea `npm run db:seed` en el backend.
  * Permiten recorrer las pantallas por rol antes de que el login real esté terminado.
- * Cuando el Sprint 1 esté listo, pon modoDemo en false: este archivo deja de usarse.
+ * Con modoDemo en false (valor por defecto) este archivo no se usa.
  */
 export const SESIONES_DEMO: Record<Rol, Sesion> = {
   ESTUDIANTE: {
-    token: 'demo',
+    accessToken: 'demo',
+    expiraEn: '2099-01-01T00:00:00.000Z',
     demo: true,
     usuario: {
       idUsuario: 3,
@@ -21,7 +22,8 @@ export const SESIONES_DEMO: Record<Rol, Sesion> = {
     },
   },
   DOCENTE: {
-    token: 'demo',
+    accessToken: 'demo',
+    expiraEn: '2099-01-01T00:00:00.000Z',
     demo: true,
     usuario: {
       idUsuario: 2,
@@ -34,7 +36,8 @@ export const SESIONES_DEMO: Record<Rol, Sesion> = {
     },
   },
   ADMIN: {
-    token: 'demo',
+    accessToken: 'demo',
+    expiraEn: '2099-01-01T00:00:00.000Z',
     demo: true,
     usuario: {
       idUsuario: 1,

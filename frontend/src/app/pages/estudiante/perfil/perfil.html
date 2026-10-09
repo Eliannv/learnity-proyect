@@ -41,26 +41,53 @@
       <div class="fila-doble">
         <div class="campo">
           <label class="etiqueta" for="actual">Contraseña actual</label>
-          <input id="actual" class="control" type="password" formControlName="contrasenaActual" placeholder="••••••••" autocomplete="current-password" />
+          <input
+            id="actual"
+            class="control"
+            type="password"
+            formControlName="contrasenaActual"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            [class.invalido]="invalido('contrasenaActual') || (form.hasError('faltaActual') && form.controls.contrasenaNueva.touched)"
+          />
+          @if (form.controls.contrasenaActual.errors?.['servidor']; as msg) {
+            <span class="error-campo" role="alert">{{ msg }}</span>
+          } @else if (form.hasError('faltaActual') && form.controls.contrasenaNueva.touched) {
+            <span class="error-campo">Escribe tu contraseña actual para cambiarla.</span>
+          }
         </div>
         <div class="campo">
           <label class="etiqueta" for="nueva">Nueva contraseña</label>
-          <input id="nueva" class="control" type="password" formControlName="contrasenaNueva" placeholder="Mínimo 8 caracteres…" autocomplete="new-password" />
+          <input
+            id="nueva"
+            class="control"
+            type="password"
+            formControlName="contrasenaNueva"
+            placeholder="Mínimo 15 caracteres"
+            autocomplete="new-password"
+            [class.invalido]="invalido('contrasenaNueva') || (form.hasError('faltaNueva') && form.controls.contrasenaActual.touched)"
+          />
+          @if (invalido('contrasenaNueva')) {
+            <span class="error-campo" role="alert">{{ mensajeContrasena(form.controls.contrasenaNueva.errors) }}</span>
+          } @else if (form.hasError('faltaNueva') && form.controls.contrasenaActual.touched) {
+            <span class="error-campo">Escribe la contraseña nueva.</span>
+          }
         </div>
       </div>
+      <span class="ayuda">Déjalas en blanco si no quieres cambiarla. {{ ayudaContrasena }} Al cambiarla cerramos tus sesiones en otros dispositivos.</span>
     </div>
 
     <aside class="lateral">
       <section class="tarjeta-suave foto">
         <span class="eyebrow">Foto de perfil</span>
         <app-avatar [texto]="auth.iniciales()" [tamano]="96" />
-        <button type="button" class="btn btn-contorno">Subir foto</button>
-        <p class="ayuda">JPG, PNG o WEBP, hasta 500 KB. Tu foto solo la ves tú; no aparece en el catálogo.</p>
+        <button type="button" class="btn btn-contorno" disabled>Subir foto</button>
+        <p class="ayuda">Muy pronto: JPG, PNG o WEBP, hasta 500 KB. Tu foto solo la ves tú; no aparece en el catálogo.</p>
       </section>
 
       <section class="tarjeta cuenta">
         <span class="eyebrow">Tu cuenta</span>
-        <strong>Estudiante · activa desde el 08 feb 2026</strong>
+        <strong>Estudiante{{ activaDesde() ? ' · activa desde el ' + activaDesde() : '' }}</strong>
         <p class="texto-suave">Nadie más puede ver qué cursos tomas ni tu avance.</p>
         <button type="button" class="btn btn-contorno btn-bloque" (click)="auth.cerrarSesion()">Cerrar sesión</button>
       </section>
@@ -78,14 +105,22 @@
     </aside>
 
     <div class="pie">
-      @if (guardado()) {
-        <div class="aviso" role="status">
-          <lucide-icon name="info" [size]="18" />
-          <span>Modo demostración: el guardado se conecta con la API en el Sprint 1 (PUT /api/perfil).</span>
+      @if (mensaje()) {
+        <div class="aviso exito" role="status">
+          <lucide-icon name="circle-check" [size]="18" />
+          <span>{{ mensaje() }}</span>
+        </div>
+      }
+      @if (error()) {
+        <div class="aviso error" role="alert">
+          <lucide-icon name="circle-alert" [size]="18" />
+          <span>{{ error() }}</span>
         </div>
       }
       <a class="btn btn-texto btn-lg" routerLink="/mi-aprendizaje">Cancelar</a>
-      <button type="submit" class="btn btn-primario btn-lg">Guardar cambios</button>
+      <button type="submit" class="btn btn-primario btn-lg" [disabled]="cargando() || guardando()">
+        {{ guardando() ? 'Guardando…' : 'Guardar cambios' }}
+      </button>
     </div>
   </form>
 </div>

@@ -1,12 +1,15 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './shared/config/env.js';
 import { consultar } from './shared/database/pool.js';
+import { registrarVerificadorSesion } from './shared/auth/middlewares.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-errores.js';
 import { openApi } from './shared/http/openapi.js';
 import { identidadRoutes } from './modules/identidad/identidad.routes.js';
+import { identidadService } from './modules/identidad/identidad.service.js';
 import { cursosRoutes } from './modules/cursos/cursos.routes.js';
 import { contenidoRoutes } from './modules/contenido/contenido.routes.js';
 import { aprendizajeRoutes } from './modules/aprendizaje/aprendizaje.routes.js';
@@ -16,9 +19,17 @@ import { administracionRoutes } from './modules/administracion/administracion.ro
 export function crearApp() {
   const app = express();
 
+  // Detrás de un proxy inverso, req.ip debe ser la IP del cliente (límite por IP y auditoría).
+  app.set('trust proxy', env.TRUST_PROXY);
+  app.disable('x-powered-by');
+
   app.use(helmet());
-  app.use(cors({ origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()) }));
+  app.use(cors({ origin: env.ORIGENES, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
+  app.use(cookieParser());
+
+  // `autenticar` (shared) pregunta a Identidad si la sesión del access token sigue vigente.
+  registrarVerificadorSesion((usuario) => identidadService.sesionVigente(usuario));
 
   // Comprobación rápida: ¿el servidor responde y llega a PostgreSQL?
   app.get('/api/salud', async (_req, res) => {

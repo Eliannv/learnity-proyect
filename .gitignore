@@ -7,9 +7,13 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.test.example
 
 # Archivos subidos por los docentes (videos, PDF, PowerPoint)
 backend/uploads/
+
+# Buzón local de correos de desarrollo (contiene enlaces de recuperación vigentes)
+backend/.buzon/
 
 # Sistema y editores
 .DS_Store

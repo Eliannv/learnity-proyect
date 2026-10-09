@@ -1,5 +1,14 @@
+import { randomUUID } from 'node:crypto';
+import { env } from '../../shared/config/env.js';
+import { enTransaccion } from '../../shared/database/pool.js';
+import { enviarCorreo } from '../../shared/correo/correo.js';
+import { cifrarContrasena, compararContrasena, hashSenuelo, requiereRecifrar } from '../../shared/auth/contrasena.js';
+import { firmarAccessToken } from '../../shared/auth/jwt.js';
+import { esTokenOpaco, generarTokenOpaco, hashToken } from '../../shared/auth/tokens.js';
+import type { Rol, UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
-import type { UsuarioSesion } from '../../shared/auth/tipos.js';
+import { ocultarCorreo, registrarEvento } from '../../shared/log/registro.js';
+import { correoContrasenaCambiada, correoRecuperacion } from './identidad.correos.js';
 import type {
   ActualizarPerfilDto,
   CambiarContrasenaDto,
@@ -8,88 +17,365 @@ import type {
   RegistroDto,
   RestablecerDto,
 } from './identidad.esquemas.js';
-import type { Perfil } from './identidad.repository.js';
+import { type CuentaConRoles, type Perfil, identidadRepository as repo } from './identidad.repository.js';
+import { exigirContrasenaSegura } from './politica-contrasena.js';
 
-// Capa service: reglas del negocio del módulo Identidad.
-// ─────────────────────────────────────────────────────────────────────────────
-// SPRINT 1 · pendiente de implementar. Ya están listos para usar:
-//   - identidadRepository (identidad.repository.ts): consultas a la base, probadas.
-//   - enTransaccion (shared/database/pool.ts)
-//   - cifrarContrasena / compararContrasena (shared/auth/contrasena.ts)
-//   - firmarToken (shared/auth/jwt.ts)
-// Cada método indica los pasos esperados. Mientras tanto responde 501.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Respuesta de registro e inicio de sesión. El frontend ya espera exactamente esta forma. */
-export interface RespuestaSesion {
-  token: string;
-  usuario: {
-    idUsuario: number;
-    idPersona: number;
-    nombres: string;
-    apellidos: string;
-    correo: string;
-    fotoUrl: string | null;
-    roles: UsuarioSesion['roles'];
-  };
-}
+// Capa service: reglas del negocio del módulo Identidad (RF-01, RF-02, RF-04, RF-06).
 
 /** Inicios de sesión fallidos seguidos antes del bloqueo temporal. */
 export const MAX_INTENTOS = 5;
 /** Minutos de bloqueo temporal. */
 export const MINUTOS_BLOQUEO = 15;
+/** Correos de recuperación por cuenta y hora (evita llenar el buzón de alguien). */
+const MAX_RECUPERACIONES_HORA = 3;
+/** Si dos pestañas refrescan a la vez, la segunda recibe 409 y reintenta en vez de cerrar la sesión. */
+const GRACIA_ROTACION_MS = 20_000;
+
+const MENSAJE_CREDENCIALES = 'Correo o contraseña incorrectos.';
+const MENSAJE_RECUPERACION = 'Si el correo está registrado, te enviamos un enlace para crear una nueva contraseña.';
+const MENSAJE_ENLACE_INVALIDO = 'El enlace no es válido o ya venció. Solicita uno nuevo.';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** IP y navegador de la petición: solo para auditoría. */
+export interface Contexto {
+  ip?: string;
+  agente?: string;
+}
+
+export interface UsuarioPublico {
+  idUsuario: number;
+  idPersona: number;
+  nombres: string;
+  apellidos: string;
+  correo: string;
+  fotoUrl: string | null;
+  roles: Rol[];
+}
+
+/** Lo que produce un inicio de sesión. El controller pone el refresh token en la cookie, nunca en el cuerpo. */
+export interface SesionEmitida {
+  accessToken: string;
+  accessExpiraEn: Date;
+  refreshToken: string;
+  refreshExpiraEn: Date;
+  usuario: UsuarioPublico;
+}
+
+const diasEnMs = (dias: number) => dias * 86_400_000;
+
+function usuarioPublico(c: CuentaConRoles): UsuarioPublico {
+  return {
+    idUsuario: c.idUsuario,
+    idPersona: c.idPersona,
+    nombres: c.nombres,
+    apellidos: c.apellidos,
+    correo: c.correo,
+    fotoUrl: c.fotoUrl,
+    roles: c.roles,
+  };
+}
+
+function emitirAccess(cuenta: CuentaConRoles, familia: string) {
+  return firmarAccessToken({
+    idUsuario: cuenta.idUsuario,
+    idPersona: cuenta.idPersona,
+    correo: cuenta.correo,
+    roles: cuenta.roles,
+    sid: familia,
+  });
+}
+
+/** Abre una sesión nueva (familia nueva) y devuelve sus tokens. */
+async function abrirSesion(cuenta: CuentaConRoles, ctx: Contexto): Promise<SesionEmitida> {
+  const familia = randomUUID();
+  const ahora = new Date();
+  const refreshToken = generarTokenOpaco();
+  const refreshExpiraEn = new Date(ahora.getTime() + diasEnMs(env.REFRESH_DIAS));
+  await repo.crearSesion({
+    idUsuario: cuenta.idUsuario,
+    familia,
+    tokenHash: hashToken(refreshToken),
+    iniciadaEn: ahora,
+    expiraEn: refreshExpiraEn,
+    ip: ctx.ip,
+    agente: ctx.agente,
+  });
+  const access = emitirAccess(cuenta, familia);
+  return { accessToken: access.token, accessExpiraEn: access.expiraEn, refreshToken, refreshExpiraEn, usuario: usuarioPublico(cuenta) };
+}
+
+/** Tareas en segundo plano (envío de correos): la respuesta HTTP no las espera. */
+const tareas = new Set<Promise<void>>();
+function enSegundoPlano(nombre: string, trabajo: () => Promise<void>): void {
+  const tarea = trabajo()
+    .catch((error: unknown) => registrarEvento(`${nombre}_fallo`, { motivo: (error as Error).message }, 'error'))
+    .finally(() => tareas.delete(tarea));
+  tareas.add(tarea);
+}
+
+function avisarCambioContrasena(cuenta: CuentaConRoles): void {
+  enSegundoPlano('aviso_contrasena', () =>
+    enviarCorreo(
+      correoContrasenaCambiada({
+        para: cuenta.correo,
+        nombres: cuenta.nombres,
+        enlaceRecuperar: `${env.FRONTEND_URL}/recuperar-contrasena`,
+      }),
+    ),
+  );
+}
 
 export const identidadService = {
-  /**
-   * RF-01 · Registro.
-   * 1. Si identidadRepository.existeCorreo(correo) → AppError.conflicto('Ese correo ya está registrado.').
-   * 2. contrasenaHash = await cifrarContrasena(contrasena).
-   * 3. En enTransaccion: identidadRepository.crearCuentaEstudiante(cliente, {...}).
-   * 4. Devolver RespuestaSesion (roles: ['ESTUDIANTE']) con firmarToken(...).
-   */
-  async registrar(_datos: RegistroDto): Promise<RespuestaSesion> {
-    throw AppError.pendiente('Registro');
+  /** RF-01 · Registro: toda cuenta nueva es Estudiante (RN-01) y entra con sesión abierta. */
+  async registrar(datos: RegistroDto, ctx: Contexto): Promise<SesionEmitida> {
+    await exigirContrasenaSegura(datos.contrasena, datos);
+    if (await repo.existeCorreo(datos.correo)) {
+      throw AppError.conflicto('Ese correo ya está registrado. Inicia sesión o recupera tu contraseña.');
+    }
+    const contrasenaHash = await cifrarContrasena(datos.contrasena);
+    let idUsuario: number;
+    try {
+      ({ idUsuario } = await enTransaccion((cliente) =>
+        repo.crearCuentaEstudiante(cliente, {
+          nombres: datos.nombres,
+          apellidos: datos.apellidos,
+          correo: datos.correo,
+          contrasenaHash,
+        }),
+      ));
+    } catch (error) {
+      // Dos registros simultáneos con el mismo correo: lo resuelve la restricción UNIQUE.
+      if ((error as { code?: string }).code === '23505') throw AppError.conflicto('Ese correo ya está registrado.');
+      throw error;
+    }
+    const cuenta = (await repo.buscarCuentaPorId(idUsuario))!;
+    registrarEvento('registro', { idUsuario, ip: ctx.ip });
+    return abrirSesion(cuenta, ctx);
   },
 
   /**
-   * RF-02 · Inicio de sesión con bloqueo temporal.
-   * 1. cuenta = identidadRepository.buscarCuentaPorCorreo(correo). Si no existe → 401 genérico
-   *    ('Correo o contraseña incorrectos'), sin revelar si el correo existe.
-   * 2. Si cuenta.estado === 'INACTIVO' → AppError.sinPermiso('Tu cuenta está desactivada.').
-   * 3. Si cuenta.bloqueadoHasta > ahora → AppError(423, 'Cuenta bloqueada temporalmente…').
-   * 4. Si !compararContrasena(...) → registrarIntentoFallido(idUsuario, MAX_INTENTOS, ahora + MINUTOS_BLOQUEO) y 401.
-   * 5. registrarAccesoCorrecto(idUsuario) y devolver RespuestaSesion con firmarToken({ idUsuario, idPersona, correo, roles }).
+   * RF-02 · Inicio de sesión. Mensaje genérico para correo inexistente, contraseña errónea o cuenta bloqueada;
+   * tras MAX_INTENTOS fallos seguidos, la cuenta se bloquea MINUTOS_BLOQUEO minutos (el límite por IP va en routes).
    */
-  async iniciarSesion(_datos: LoginDto): Promise<RespuestaSesion> {
-    throw AppError.pendiente('Inicio de sesión');
+  async iniciarSesion(datos: LoginDto, ctx: Contexto): Promise<SesionEmitida> {
+    const cuenta = await repo.buscarCuentaPorCorreo(datos.correo);
+    if (!cuenta) {
+      await compararContrasena(datos.contrasena, await hashSenuelo); // mismo tiempo de respuesta
+      registrarEvento('login_fallido', { motivo: 'correo_desconocido', correo: ocultarCorreo(datos.correo), ip: ctx.ip }, 'aviso');
+      throw AppError.noAutenticado(MENSAJE_CREDENCIALES, 'CREDENCIALES_INVALIDAS');
+    }
+
+    if (cuenta.bloqueadoHasta && cuenta.bloqueadoHasta > new Date()) {
+      await compararContrasena(datos.contrasena, await hashSenuelo);
+      registrarEvento('login_fallido', { motivo: 'cuenta_bloqueada', idUsuario: cuenta.idUsuario, ip: ctx.ip }, 'aviso');
+      throw AppError.noAutenticado(MENSAJE_CREDENCIALES, 'CREDENCIALES_INVALIDAS');
+    }
+
+    if (!(await compararContrasena(datos.contrasena, cuenta.contrasenaHash))) {
+      const hasta = new Date(Date.now() + MINUTOS_BLOQUEO * 60_000);
+      const bloqueada = await repo.registrarIntentoFallido(cuenta.idUsuario, MAX_INTENTOS, hasta);
+      registrarEvento('login_fallido', { motivo: 'contrasena', idUsuario: cuenta.idUsuario, ip: ctx.ip }, 'aviso');
+      if (bloqueada) registrarEvento('cuenta_bloqueada', { idUsuario: cuenta.idUsuario, minutos: MINUTOS_BLOQUEO, ip: ctx.ip }, 'aviso');
+      throw AppError.noAutenticado(MENSAJE_CREDENCIALES, 'CREDENCIALES_INVALIDAS');
+    }
+
+    // Solo quien conoce la contraseña llega a saber que la cuenta está desactivada.
+    if (cuenta.estado === 'INACTIVO') {
+      registrarEvento('login_fallido', { motivo: 'cuenta_inactiva', idUsuario: cuenta.idUsuario, ip: ctx.ip }, 'aviso');
+      throw AppError.sinPermiso('Tu cuenta está desactivada. Comunícate con la administración de Learnity.', 'CUENTA_INACTIVA');
+    }
+
+    await repo.registrarAccesoCorrecto(cuenta.idUsuario);
+    if (requiereRecifrar(cuenta.contrasenaHash)) {
+      await repo.actualizarContrasena(cuenta.idUsuario, await cifrarContrasena(datos.contrasena));
+    }
+    if (Math.random() < 0.02) enSegundoPlano('limpieza_sesiones', () => repo.limpiarVencidos());
+    registrarEvento('login', { idUsuario: cuenta.idUsuario, ip: ctx.ip });
+    return abrirSesion(cuenta, ctx);
   },
 
   /**
-   * RF-06 · Recuperar contraseña (enlace por correo).
-   * 1. Si el correo existe, firmar un token corto (ej. 30 min) con el idUsuario y enviarlo por correo.
-   * 2. Responder SIEMPRE el mismo mensaje, exista o no el correo.
+   * Rotación del refresh token: el token presentado se marca como reemplazado y se emite otro en la misma familia.
+   * Presentar un token ya reemplazado (fuera del margen de pestañas simultáneas) indica robo: se revoca la familia.
    */
-  async solicitarRecuperacion(_datos: RecuperarDto): Promise<{ mensaje: string }> {
-    throw AppError.pendiente('Recuperar contraseña');
+  async refrescarSesion(refreshToken: string | undefined, ctx: Contexto): Promise<SesionEmitida> {
+    const sinSesion = () => AppError.noAutenticado('No hay una sesión activa.', 'SESION_INVALIDA');
+    if (!esTokenOpaco(refreshToken)) throw sinSesion();
+
+    const fila = await repo.buscarSesionPorHash(hashToken(refreshToken));
+    if (!fila || fila.revocadoEn) throw sinSesion();
+
+    if (fila.reemplazadoEn) {
+      if (Date.now() - fila.reemplazadoEn.getTime() < GRACIA_ROTACION_MS) {
+        throw AppError.conflicto('La sesión se está renovando en otra pestaña. Reintenta.', 'REFRESCO_CONCURRENTE');
+      }
+      await repo.revocarFamilia(fila.familia, 'REUTILIZACION');
+      registrarEvento('refresh_reutilizado', { idUsuario: fila.idUsuario, ip: ctx.ip }, 'aviso');
+      throw sinSesion();
+    }
+
+    const ahora = Date.now();
+    const limite = Math.min(ahora + diasEnMs(env.REFRESH_DIAS), fila.iniciadaEn.getTime() + diasEnMs(env.SESION_MAX_DIAS));
+    if (fila.expiraEn.getTime() <= ahora || limite <= ahora) throw sinSesion();
+
+    const cuenta = await repo.buscarCuentaPorId(fila.idUsuario);
+    if (!cuenta || cuenta.estado !== 'ACTIVO') {
+      await repo.revocarFamilia(fila.familia, 'CUENTA_INACTIVA');
+      throw sinSesion();
+    }
+
+    const nuevo = generarTokenOpaco();
+    const refreshExpiraEn = new Date(limite);
+    const rotado = await enTransaccion(async (cliente) => {
+      if (!(await repo.marcarReemplazada(fila.idSesion, cliente))) return false;
+      await repo.crearSesion(
+        {
+          idUsuario: cuenta.idUsuario,
+          familia: fila.familia,
+          tokenHash: hashToken(nuevo),
+          iniciadaEn: fila.iniciadaEn,
+          expiraEn: refreshExpiraEn,
+          ip: ctx.ip,
+          agente: ctx.agente,
+        },
+        cliente,
+      );
+      return true;
+    });
+    if (!rotado) throw AppError.conflicto('La sesión se está renovando en otra pestaña. Reintenta.', 'REFRESCO_CONCURRENTE');
+
+    // Los roles se leen de la base en cada renovación: un rol nuevo (p. ej. Docente) aplica sin volver a entrar.
+    const access = emitirAccess(cuenta, fila.familia);
+    return { accessToken: access.token, accessExpiraEn: access.expiraEn, refreshToken: nuevo, refreshExpiraEn, usuario: usuarioPublico(cuenta) };
   },
 
-  /** RF-06 · Verificar el token del enlace y guardar la nueva contraseña con cifrarContrasena. */
-  async restablecerContrasena(_datos: RestablecerDto): Promise<{ mensaje: string }> {
-    throw AppError.pendiente('Restablecer contraseña');
+  /** Cierre de sesión real: revoca la familia del refresh token. Sin cookie, no hay nada que cerrar. */
+  async cerrarSesion(refreshToken: string | undefined, ctx: Contexto): Promise<void> {
+    if (!esTokenOpaco(refreshToken)) return;
+    const fila = await repo.buscarSesionPorHash(hashToken(refreshToken));
+    if (!fila) return;
+    await repo.revocarFamilia(fila.familia, 'CIERRE');
+    registrarEvento('logout', { idUsuario: fila.idUsuario, ip: ctx.ip });
   },
 
-  /** RF-04 · Perfil del usuario autenticado: identidadRepository.obtenerPerfil(idUsuario). */
-  async obtenerPerfil(_usuario: UsuarioSesion): Promise<Perfil> {
-    throw AppError.pendiente('Ver perfil');
+  /** Lo usa `autenticar` en cada petición: el access token deja de valer si su sesión se revocó. */
+  async sesionVigente(usuario: UsuarioSesion): Promise<boolean> {
+    return UUID.test(usuario.sid) && repo.sesionVigente(usuario.sid, usuario.idUsuario);
   },
 
-  /** RF-04 · Actualizar nombres, apellidos, ciudad y biografía: identidadRepository.actualizarPersona. */
-  async actualizarPerfil(_usuario: UsuarioSesion, _datos: ActualizarPerfilDto): Promise<Perfil> {
-    throw AppError.pendiente('Editar perfil');
+  /**
+   * RF-06 · Recuperar contraseña. Responde siempre lo mismo y al instante, exista o no el correo:
+   * la búsqueda y el envío ocurren en segundo plano, así el tiempo de respuesta tampoco delata la cuenta.
+   */
+  async solicitarRecuperacion(datos: RecuperarDto, ctx: Contexto): Promise<{ mensaje: string }> {
+    enSegundoPlano('recuperacion', async () => {
+      const cuenta = await repo.buscarCuentaPorCorreo(datos.correo);
+      if (!cuenta || cuenta.estado !== 'ACTIVO') {
+        registrarEvento('recuperacion_sin_cuenta', { correo: ocultarCorreo(datos.correo), ip: ctx.ip });
+        return;
+      }
+      const token = generarTokenOpaco();
+      const creado = await enTransaccion(async (cliente) => {
+        const haceUnaHora = new Date(Date.now() - 3_600_000);
+        if ((await repo.contarTokensRecuperacionDesde(cliente, cuenta.idUsuario, haceUnaHora)) >= MAX_RECUPERACIONES_HORA) {
+          return false;
+        }
+        await repo.reemplazarTokenRecuperacion(cliente, {
+          idUsuario: cuenta.idUsuario,
+          tokenHash: hashToken(token),
+          expiraEn: new Date(Date.now() + env.RECUPERACION_MINUTOS * 60_000),
+          ip: ctx.ip,
+        });
+        return true;
+      });
+      if (!creado) {
+        registrarEvento('recuperacion_limitada', { idUsuario: cuenta.idUsuario, ip: ctx.ip }, 'aviso');
+        return;
+      }
+      // El token va en el fragmento (#): el navegador no lo envía a ningún servidor ni en el Referer.
+      await enviarCorreo(
+        correoRecuperacion({
+          para: cuenta.correo,
+          nombres: cuenta.nombres,
+          enlace: `${env.FRONTEND_URL}/restablecer-contrasena#token=${token}`,
+          minutos: env.RECUPERACION_MINUTOS,
+        }),
+      );
+      registrarEvento('recuperacion_enviada', { idUsuario: cuenta.idUsuario, ip: ctx.ip });
+    });
+    return { mensaje: MENSAJE_RECUPERACION };
   },
 
-  /** RF-04 · Cambiar contraseña: comparar la actual y guardar la nueva cifrada. */
-  async cambiarContrasena(_usuario: UsuarioSesion, _datos: CambiarContrasenaDto): Promise<{ mensaje: string }> {
-    throw AppError.pendiente('Cambiar contraseña');
+  /** RF-06 · Nueva contraseña con el enlace: un solo uso, con vencimiento, y cierra todas las sesiones anteriores. */
+  async restablecerContrasena(datos: RestablecerDto, ctx: Contexto): Promise<{ mensaje: string }> {
+    const invalido = () => AppError.solicitudInvalida(MENSAJE_ENLACE_INVALIDO, [{ campo: 'token', mensaje: MENSAJE_ENLACE_INVALIDO }]);
+    if (!esTokenOpaco(datos.token)) throw invalido();
+    const vigente = await repo.buscarTokenRecuperacionVigente(hashToken(datos.token));
+    if (!vigente) {
+      registrarEvento('restablecer_rechazado', { ip: ctx.ip }, 'aviso');
+      throw invalido();
+    }
+    const cuenta = await repo.buscarCuentaPorId(vigente.idUsuario);
+    if (!cuenta || cuenta.estado !== 'ACTIVO') throw invalido();
+
+    await exigirContrasenaSegura(datos.contrasena, cuenta);
+    const contrasenaHash = await cifrarContrasena(datos.contrasena);
+
+    const revocadas = await enTransaccion(async (cliente) => {
+      if (!(await repo.consumirTokenRecuperacion(cliente, vigente.idToken))) return null;
+      await repo.actualizarContrasena(cuenta.idUsuario, contrasenaHash, cliente);
+      await repo.invalidarTokensRecuperacion(cuenta.idUsuario, cliente);
+      return repo.revocarSesionesUsuario(cuenta.idUsuario, 'RESTABLECIMIENTO', null, cliente);
+    });
+    if (revocadas === null) throw invalido(); // otra petición usó el enlace primero
+
+    registrarEvento('contrasena_restablecida', { idUsuario: cuenta.idUsuario, sesionesCerradas: revocadas, ip: ctx.ip });
+    avisarCambioContrasena(cuenta);
+    return { mensaje: 'Tu contraseña se actualizó. Inicia sesión con la nueva contraseña.' };
+  },
+
+  /** RF-04 · Perfil del usuario autenticado. */
+  async obtenerPerfil(usuario: UsuarioSesion): Promise<Perfil> {
+    const perfil = await repo.obtenerPerfil(usuario.idUsuario);
+    if (!perfil) throw AppError.noEncontrado('La cuenta no existe.');
+    return perfil;
+  },
+
+  /** RF-04 · Actualizar nombres, apellidos, ciudad y biografía (el correo no se cambia aquí). */
+  async actualizarPerfil(usuario: UsuarioSesion, datos: ActualizarPerfilDto): Promise<Perfil> {
+    await repo.actualizarPersona(usuario.idPersona, datos);
+    registrarEvento('perfil_actualizado', { idUsuario: usuario.idUsuario });
+    return this.obtenerPerfil(usuario);
+  },
+
+  /** RF-04 · Cambiar contraseña: exige la actual, aplica la política y cierra las demás sesiones. */
+  async cambiarContrasena(usuario: UsuarioSesion, datos: CambiarContrasenaDto, ctx: Contexto): Promise<{ mensaje: string }> {
+    const cuenta = await repo.buscarCuentaPorId(usuario.idUsuario);
+    if (!cuenta) throw AppError.noAutenticado();
+    if (!(await compararContrasena(datos.actual, cuenta.contrasenaHash))) {
+      registrarEvento('cambio_contrasena_fallido', { idUsuario: cuenta.idUsuario, ip: ctx.ip }, 'aviso');
+      const mensaje = 'La contraseña actual no es correcta.';
+      throw AppError.solicitudInvalida(mensaje, [{ campo: 'actual', mensaje }]);
+    }
+    if (datos.actual === datos.nueva) {
+      const mensaje = 'La nueva contraseña debe ser distinta de la actual.';
+      throw AppError.solicitudInvalida(mensaje, [{ campo: 'nueva', mensaje }]);
+    }
+    await exigirContrasenaSegura(datos.nueva, cuenta);
+
+    const contrasenaHash = await cifrarContrasena(datos.nueva);
+    const revocadas = await enTransaccion(async (cliente) => {
+      await repo.actualizarContrasena(cuenta.idUsuario, contrasenaHash, cliente);
+      await repo.invalidarTokensRecuperacion(cuenta.idUsuario, cliente);
+      return repo.revocarSesionesUsuario(cuenta.idUsuario, 'CAMBIO_CONTRASENA', usuario.sid, cliente);
+    });
+    registrarEvento('contrasena_cambiada', { idUsuario: cuenta.idUsuario, sesionesCerradas: revocadas, ip: ctx.ip });
+    avisarCambioContrasena(cuenta);
+    return { mensaje: 'Tu contraseña se actualizó. Cerramos tus sesiones en otros dispositivos.' };
+  },
+
+  /** Para pruebas y para el cierre ordenado: espera los correos en curso. */
+  async esperarTareas(): Promise<void> {
+    await Promise.all([...tareas]);
   },
 };
