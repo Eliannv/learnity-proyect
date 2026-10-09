@@ -1,20 +1,24 @@
 <ng-template #filtros>
   <h3 class="filtro-titulo">Categoría</h3>
   <div class="opciones">
-    @for (c of categorias; track c) {
+    @for (c of categorias(); track c.id) {
       <label class="casilla">
-        <input type="checkbox" [checked]="seleccion().includes(c)" (change)="alternar('categoria', c)" />
-        {{ c }} <span class="total">{{ totales[c] }}</span>
+        <input type="checkbox" [checked]="seleccion().includes(c.nombre)" (change)="alternar('categoria', c.nombre)" />
+        {{ c.nombre }}
       </label>
+    }
+    @if (categoriasError()) {
+      <p class="texto-suave">No se pudieron cargar las categorías.</p>
+      <button type="button" class="btn btn-contorno btn-sm" (click)="reintentar()">Reintentar</button>
     }
   </div>
   <hr class="separador" />
   <h3 class="filtro-titulo">Nivel</h3>
   <div class="opciones">
-    @for (n of niveles; track n) {
+    @for (n of niveles; track n.valor) {
       <label class="casilla">
-        <input type="checkbox" [checked]="nivelesSel().includes(n)" (change)="alternar('nivel', n)" />
-        {{ n }}
+        <input type="checkbox" [checked]="nivelesSel().includes(n.valor)" (change)="alternar('nivel', n.valor)" />
+        {{ n.texto }}
       </label>
     }
   </div>
@@ -37,7 +41,7 @@
       <span class="texto-suave">{{ resumen() }}</span>
       <label class="ordenar">
         <span class="texto-suave">Ordenar por</span>
-        <select class="control" [value]="orden()" (change)="orden.set($any($event.target).value)">
+        <select class="control" [value]="orden()" (change)="cambiarOrden($any($event.target).value)">
           <option value="recientes">Más recientes</option>
           <option value="populares">Más populares</option>
           <option value="az">Título A–Z</option>
@@ -49,7 +53,7 @@
       <button type="button" class="btn btn-suave btn-sm" (click)="filtrosMovil.set(true)">
         <lucide-icon name="sliders-horizontal" [size]="16" /> Filtrar
       </button>
-      <select class="control control-sm" [value]="orden()" (change)="orden.set($any($event.target).value)" aria-label="Ordenar">
+      <select class="control control-sm" [value]="orden()" (change)="cambiarOrden($any($event.target).value)" aria-label="Ordenar">
         <option value="recientes">Más recientes</option>
         <option value="populares">Más populares</option>
         <option value="az">Título A–Z</option>
@@ -66,22 +70,32 @@
       </div>
     }
 
-    @if (cursos().length) {
+    @if (cargando()) {
+      <div class="vacio" role="status"><p>Cargando cursos…</p></div>
+    } @else if (error()) {
+      <div class="vacio" role="alert">
+        <p>No se pudo cargar el catálogo. Comprueba tu conexión e inténtalo de nuevo.</p>
+        <button type="button" class="btn btn-contorno" (click)="reintentar()">Reintentar</button>
+      </div>
+    } @else if (cursos().length) {
       <div class="grid">
         @for (c of cursos(); track c.id) {
           <app-tarjeta-curso
             [titulo]="c.titulo"
-            [categoria]="c.categoria"
-            [nuevo]="!!c.nuevo"
+            [categoria]="c.categoria.nombre"
             [meta]="c.docente + ' · ' + c.minutos + ' min · ' + c.lecciones + ' lecciones'"
-            [tono]="c.tono"
+            [tono]="c.categoria.id % 3 === 0 ? 3 : c.categoria.id % 3 === 1 ? 1 : 2"
             [enlace]="'/cursos/' + c.id"
           />
         }
       </div>
-      <div class="mas">
-        <button type="button" class="btn btn-contorno btn-lg">Ver más cursos</button>
-      </div>
+      @if (totalPaginas() > 1) {
+        <nav class="mas" aria-label="Páginas del catálogo">
+          <button type="button" class="btn btn-contorno" [disabled]="pagina() <= 1" (click)="cambiarPagina(pagina() - 1)">Anterior</button>
+          <span>Página {{ pagina() }} de {{ totalPaginas() }}</span>
+          <button type="button" class="btn btn-contorno" [disabled]="pagina() >= totalPaginas()" (click)="cambiarPagina(pagina() + 1)">Siguiente</button>
+        </nav>
+      }
     } @else {
       <div class="vacio">
         <lucide-icon name="search" [size]="28" />

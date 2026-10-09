@@ -13,8 +13,9 @@
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.verificar.json",
     "db:seed": "tsx src/database/seed.ts",
+    "db:seed-publico": "tsx scripts/sembrar-catalogo.ts",
     "db:probar": "tsx scripts/probar-repositorio.ts",
-    "test": "tsx --env-file=.env.test --test --test-concurrency=1 test/identidad.test.ts",
+    "test": "tsx --env-file=.env.test --test --test-concurrency=1 test/identidad.test.ts test/cursos-publicos.test.ts",
     "correo:autorizar": "tsx scripts/autorizar-gmail.ts",
     "correo:probar": "tsx scripts/probar-correo.ts",
     "crear-modulo": "node scripts/crear-modulos.mjs"

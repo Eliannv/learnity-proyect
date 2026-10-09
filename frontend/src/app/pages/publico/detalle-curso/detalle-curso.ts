@@ -1,48 +1,86 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, input, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { AuthService } from '../../../core/auth/auth.service';
-import { CURSOS, DETALLE_PYTHON, TEMARIO_PYTHON, iconoLeccion } from '../../../data/datos-demo';
+import { CursosPublicosService, type DetalleCursoPublico, type TipoLeccionPublica } from '../cursos-publicos.service';
 import { Avatar } from '../../../shared/ui/avatar';
-import { Modal } from '../../../shared/ui/modal';
+import { PortadaCurso } from '../../../shared/ui/portada-curso';
 
 @Component({
   selector: 'app-detalle-curso',
-  imports: [NgTemplateOutlet, RouterLink, LucideAngularModule, Avatar, Modal],
+  imports: [NgTemplateOutlet, RouterLink, LucideAngularModule, Avatar, PortadaCurso],
   templateUrl: './detalle-curso.html',
   styleUrl: './detalle-curso.scss',
 })
 export class DetalleCurso {
-  private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
+  private readonly api = inject(CursosPublicosService);
+  private solicitud = 0;
 
-  /** :id de la ruta /cursos/:id */
   readonly id = input.required<string>();
 
-  // Demostración: todos los cursos muestran el temario de "Introducción a Python".
-  protected readonly curso = computed(() => CURSOS.find((c) => c.id === this.id()) ?? CURSOS[0]!);
-  protected readonly temario = TEMARIO_PYTHON;
-  protected readonly detalle = DETALLE_PYTHON;
-  protected readonly icono = iconoLeccion;
-  protected readonly abiertos = signal<number[]>([1]);
-  protected readonly confirmar = signal(false);
+  protected readonly curso = signal<DetalleCursoPublico | null>(null);
+  protected readonly cargando = signal(true);
+  protected readonly noEncontrado = signal(false);
+  protected readonly error = signal(false);
+  protected readonly reintento = signal(0);
+  protected readonly abiertos = signal<number[]>([]);
+  protected readonly tono = computed<1 | 2 | 3>(() => {
+    const id = this.curso()?.categoria.id ?? 1;
+    return id % 3 === 0 ? 3 : id % 3 === 1 ? 1 : 2;
+  });
 
-  protected alternar(numero: number) {
-    this.abiertos.update((a) => (a.includes(numero) ? a.filter((n) => n !== numero) : [...a, numero]));
+  constructor() {
+    effect(() => {
+      const id = this.id();
+      this.reintento();
+      void this.cargar(id);
+    });
   }
 
-  /** Visitante → login (vuelve aquí después). Con sesión → confirmar inscripción. */
-  protected inscribirme() {
-    if (!this.auth.autenticado()) {
-      void this.router.navigate(['/login'], { queryParams: { volver: `/cursos/${this.id()}` } });
-      return;
+  private async cargar(id: string) {
+    const actual = ++this.solicitud;
+    this.cargando.set(true);
+    this.error.set(false);
+    this.noEncontrado.set(false);
+    this.curso.set(null);
+    this.abiertos.set([]);
+    try {
+      const curso = await this.api.detalle(id);
+      if (actual !== this.solicitud) return;
+      if (!curso) {
+        this.noEncontrado.set(true);
+      } else {
+        this.curso.set(curso);
+        this.abiertos.set(curso.temario.length ? [curso.temario[0]!.id] : []);
+      }
+    } catch (error) {
+      if (actual !== this.solicitud) return;
+      if (error instanceof HttpErrorResponse && error.status === 404) this.noEncontrado.set(true);
+      else this.error.set(true);
+    } finally {
+      if (actual === this.solicitud) this.cargando.set(false);
     }
-    this.confirmar.set(true);
   }
 
-  protected confirmarInscripcion() {
-    this.confirmar.set(false);
-    void this.router.navigateByUrl('/mi-aprendizaje');
+  protected reintentar() {
+    this.reintento.update((n) => n + 1);
   }
+
+  protected alternar(id: number) {
+    this.abiertos.update((a) => a.includes(id) ? a.filter((n) => n !== id) : [...a, id]);
+  }
+
+  protected icono(tipo: TipoLeccionPublica): string {
+    switch (tipo) {
+      case 'VIDEO': return 'play';
+      case 'DOCUMENTO': return 'file-text';
+      case 'EVALUACION': return 'list-checks';
+    }
+  }
+
+  protected nombreNivel(nivel: DetalleCursoPublico['nivel']): string {
+    return nivel.charAt(0) + nivel.slice(1).toLowerCase();
+  }
+
 }

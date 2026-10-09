@@ -85,13 +85,29 @@ const conCookies = (schema: unknown, descripcion = 'Sesión abierta') => ({
 const limite = json(error, 'Demasiadas peticiones desde esta IP (encabezado Retry-After)');
 const origen = json(error, 'Origen no permitido (ORIGEN_NO_PERMITIDO)');
 
+const categoriaPublica = {
+  type: 'object', required: ['id', 'nombre'],
+  properties: { id: { type: 'integer' }, nombre: { type: 'string' } },
+};
+const cursoPublico = {
+  type: 'object',
+  properties: {
+    id: { type: 'integer' }, titulo: { type: 'string' }, subtitulo: { type: 'string', nullable: true },
+    categoria: categoriaPublica, docente: { type: 'string' },
+    nivel: { type: 'string', enum: ['PRINCIPIANTE', 'INTERMEDIO', 'AVANZADO'] },
+    portadaUrl: { type: 'string', nullable: true }, modulos: { type: 'integer' },
+    lecciones: { type: 'integer' }, minutos: { type: 'integer' },
+    publicadoEn: { type: 'string', format: 'date-time' }, estado: { type: 'string', enum: ['PUBLICADO'] },
+  },
+};
+
 export const openApi = {
   openapi: '3.0.3',
   info: {
     title: 'Learnity API',
-    version: '0.2.0',
+    version: '0.3.0',
     description: [
-      'API REST del monolito modular en capas. Sprint 1: módulo Identidad.',
+      'API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: lecturas públicas de Cursos.',
       '',
       '**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie',
       '`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.',
@@ -115,6 +131,56 @@ export const openApi = {
   paths: {
     '/salud': {
       get: { tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL', responses: { 200: json({ type: 'object' }) } },
+    },
+    '/categorias': {
+      get: {
+        tags: ['Cursos'], summary: 'Categorías activas ordenadas por nombre',
+        responses: { 200: json({ type: 'array', items: categoriaPublica }) },
+      },
+    },
+    '/cursos': {
+      get: {
+        tags: ['Cursos'], summary: 'Catálogo público: solo cursos publicados',
+        description: 'Los valores repetidos de categoría o nivel se combinan con OR dentro del grupo y AND entre grupos. La búsqueda consulta título, subtítulo y descripción. El total solo cuenta publicados.',
+        parameters: [
+          { in: 'query', name: 'q', schema: { type: 'string', maxLength: 100 } },
+          { in: 'query', name: 'categoria', description: 'Nombre exacto; repetible.', schema: { type: 'array', items: { type: 'string' } }, style: 'form', explode: true },
+          { in: 'query', name: 'nivel', description: 'Repetible.', schema: { type: 'array', items: { type: 'string', enum: ['PRINCIPIANTE', 'INTERMEDIO', 'AVANZADO'] } }, style: 'form', explode: true },
+          { in: 'query', name: 'orden', schema: { type: 'string', enum: ['recientes', 'populares', 'az'], default: 'recientes' } },
+          { in: 'query', name: 'pagina', schema: { type: 'integer', minimum: 1, maximum: 10000, default: 1 } },
+          { in: 'query', name: 'limite', schema: { type: 'integer', minimum: 1, maximum: 50, default: 9 } },
+        ],
+        responses: {
+          200: json({ type: 'object', properties: {
+            items: { type: 'array', items: cursoPublico }, pagina: { type: 'integer' },
+            limite: { type: 'integer' }, total: { type: 'integer' }, totalPaginas: { type: 'integer' },
+          } }),
+          400: json(error, 'Filtros o paginación inválidos'),
+        },
+      },
+    },
+    '/cursos/{id}': {
+      get: {
+        tags: ['Cursos'], summary: 'Detalle público de un curso publicado',
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer', minimum: 1 } }],
+        responses: {
+          200: json({ type: 'object', properties: {
+            ...cursoPublico.properties,
+            descripcion: { type: 'string' }, docenteBio: { type: 'string', nullable: true },
+            objetivos: { type: 'array', items: { type: 'string' } },
+            requisitos: { type: 'array', items: { type: 'string' } },
+            temario: { type: 'array', items: { type: 'object', properties: {
+              id: { type: 'integer' }, orden: { type: 'integer' }, titulo: { type: 'string' },
+              lecciones: { type: 'array', items: { type: 'object', properties: {
+                id: { type: 'integer' }, orden: { type: 'integer' }, titulo: { type: 'string' },
+                tipo: { type: 'string', enum: ['VIDEO', 'DOCUMENTO', 'EVALUACION'] }, minutos: { type: 'integer' },
+              } } },
+            } } },
+          } }),
+          400: json(error, 'ID inválido'),
+          404: json(error, 'El ID no existe o el curso no está publicado'),
+        },
+      },
     },
     '/auth/registro': {
       post: {

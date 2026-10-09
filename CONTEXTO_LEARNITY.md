@@ -1,6 +1,6 @@
 # Contexto de Learnity
 
-Actualizado: 8 de octubre de 2026.
+Actualizado: 9 de octubre de 2026.
 
 ## Fuentes del proyecto
 
@@ -26,11 +26,11 @@ En desarrollo, Angular sirve en `localhost:4200`, redirige `/api` a Express en `
 |---|---|
 | Base de datos | `database/learnity_esquema.sql` y modelo DBML disponibles. La conexión a un servidor PostgreSQL en ejecución no se verificó en esta revisión. |
 | Backend común | Aplicación Express, pool `pg`, JWT, bcrypt, validación con Zod, manejo de errores y OpenAPI presentes. |
-| Identidad | Rutas, controlador, esquema y repositorio presentes. Los métodos de `identidad.service.ts` responden 501 hasta implementar el Sprint 1. |
+| Identidad | Registro, login, sesión con refresh rotatorio, perfil y recuperación implementados. El README informa 22 pruebas de integración. Falta comprobar Gmail con una cuenta emisora y un buzón reales. |
 | Otros módulos | Carpetas y archivos de las cuatro capas creados. Sus rutas y servicios todavía están vacíos o documentan endpoints previstos. |
-| Frontend | Rutas y pantallas Angular para visitante, estudiante, docente y administrador presentes. Muchas pantallas consumen `data/datos-demo.ts`; `modoDemo` está activado. |
+| Frontend | Rutas y pantallas Angular para visitante, estudiante, docente y administrador presentes. La identidad usa API real y `modoDemo` está desactivado; muchas pantallas de cursos y paneles aún consumen `data/datos-demo.ts`. |
 | Prototipo | Diseño `.pen` y visor HTML con pantallas exportadas; sirven como referencia visual, no como evidencia de integración funcional. |
-| Archivos y correo | La carga, validación, entrega segura de archivos y envío de recuperación por correo están previstos, no implementados. |
+| Archivos y correo | La recuperación tiene transporte de buzón local y código de Gmail API; falta probar el envío Gmail real. La carga, validación y entrega segura de archivos siguen pendientes. |
 
 ## Reglas que deben guiar la implementación
 
@@ -43,4 +43,4 @@ En desarrollo, Angular sirve en `localhost:4200`, redirige `/api` a Express en `
 
 ## Siguiente paso de implementación
 
-Completar `backend/src/modules/identidad/identidad.service.ts` usando el repositorio existente: registro transaccional, login con bloqueo, perfil y cambio de contraseña. Verificar el contrato HTTP con pruebas útiles y desactivar `modoDemo` solo cuando la autenticación real y la persistencia de sesión funcionen de extremo a extremo. La recuperación por correo requiere definir un mecanismo de envío antes de dar RF-06 por terminada.
+Cerrar la prueba de envío Gmail del Sprint 1. Después ejecutar el [Sprint 2](SPRINT_2_LEARNITY.md): cursos, catálogo, subida mínima de PDF y revisión administrativa. Las pantallas de cursos deben reemplazar los datos del prototipo por llamadas a la API.

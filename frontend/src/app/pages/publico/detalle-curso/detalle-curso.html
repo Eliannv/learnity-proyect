@@ -1,89 +1,103 @@
-<div class="contenedor detalle">
-  <article class="principal">
-    <nav class="migas" aria-label="Ruta">
-      <a routerLink="/">Inicio</a>
-      <lucide-icon name="chevron-right" [size]="16" />
-      <a routerLink="/cursos" [queryParams]="{ categoria: curso().categoria }">{{ curso().categoria }}</a>
-      <lucide-icon name="chevron-right" [size]="16" />
-      <span>{{ curso().titulo }}</span>
-    </nav>
+@if (cargando()) {
+  <div class="contenedor estado-detalle" role="status">Cargando curso…</div>
+} @else if (error()) {
+  <div class="contenedor estado-detalle" role="alert">
+    <h1>No se pudo cargar el curso</h1>
+    <p>Comprueba tu conexión e inténtalo de nuevo.</p>
+    <button type="button" class="btn btn-contorno" (click)="reintentar()">Reintentar</button>
+  </div>
+} @else if (noEncontrado()) {
+  <div class="contenedor estado-detalle">
+    <h1>Curso no disponible</h1>
+    <p>El curso no existe o todavía no está publicado.</p>
+    <a class="btn btn-contorno" routerLink="/cursos">Volver al catálogo</a>
+  </div>
+} @else if (curso(); as c) {
+  <div class="contenedor detalle">
+    <article class="principal">
+      <nav class="migas" aria-label="Ruta">
+        <a routerLink="/">Inicio</a>
+        <lucide-icon name="chevron-right" [size]="16" />
+        <a routerLink="/cursos" [queryParams]="{ categoria: c.categoria.nombre }">{{ c.categoria.nombre }}</a>
+        <lucide-icon name="chevron-right" [size]="16" />
+        <span>{{ c.titulo }}</span>
+      </nav>
 
-    <span class="chip">{{ curso().categoria }}</span>
-    <h1 class="titulo-curso">{{ curso().titulo }}</h1>
-    <p class="meta">
-      {{ curso().docente }} · {{ curso().minutos }} min · {{ curso().modulos }} módulos · {{ curso().lecciones }} lecciones · nivel
-      {{ curso().nivel.toLowerCase() }}
-    </p>
-    <p class="descripcion">{{ detalle.descripcion }}</p>
+      <span class="chip">{{ c.categoria.nombre }}</span>
+      <h1 class="titulo-curso">{{ c.titulo }}</h1>
+      @if (c.subtitulo) { <p class="descripcion">{{ c.subtitulo }}</p> }
+      <p class="meta">
+        {{ c.docente }} · {{ c.minutos }} min · {{ c.modulos }} módulos · {{ c.lecciones }} lecciones · nivel
+        {{ nombreNivel(c.nivel).toLowerCase() }}
+      </p>
+      <p class="descripcion">{{ c.descripcion }}</p>
 
-    <!-- En teléfono, la tarjeta de inscripción va antes del temario -->
-    <ng-container *ngTemplateOutlet="tarjetaInscripcion; context: { movil: true }" />
+      <ng-container *ngTemplateOutlet="tarjetaInscripcion; context: { movil: true }" />
 
-    <div class="cabecera-temario">
-      <h2>Contenido del curso</h2>
-      <span class="texto-suave">{{ curso().modulos }} módulos · {{ curso().minutos }} min · 1 evaluación por módulo</span>
-    </div>
+      <div class="cabecera-temario">
+        <h2>Contenido del curso</h2>
+        <span class="texto-suave">{{ c.modulos }} módulos · {{ c.lecciones }} lecciones · {{ c.minutos }} min</span>
+      </div>
 
-    <div class="temario">
-      @for (m of temario; track m.numero) {
-        <section class="modulo" [class.abierto]="abiertos().includes(m.numero)">
-          <button type="button" class="cabecera-modulo" (click)="alternar(m.numero)" [attr.aria-expanded]="abiertos().includes(m.numero)">
-            <lucide-icon [name]="abiertos().includes(m.numero) ? 'chevron-down' : 'chevron-right'" [size]="20" />
-            <strong>{{ m.numero }}. {{ m.titulo }}</strong>
-            <span class="texto-suave">{{ m.resumen }}</span>
-          </button>
-          @if (abiertos().includes(m.numero)) {
-            <ul>
-              @for (l of m.lecciones; track l.id) {
-                <li>
-                  <lucide-icon [name]="l.tipo === 'VIDEO' ? 'play' : icono(l.tipo)" [size]="20" />
-                  <span>{{ l.titulo }}</span>
-                  <span class="texto-suave">{{ l.detalle }}</span>
-                </li>
-              }
-            </ul>
-          }
+      <div class="temario">
+        @for (m of c.temario; track m.id) {
+          <section class="modulo" [class.abierto]="abiertos().includes(m.id)">
+            <button type="button" class="cabecera-modulo" (click)="alternar(m.id)" [attr.aria-expanded]="abiertos().includes(m.id)">
+              <lucide-icon [name]="abiertos().includes(m.id) ? 'chevron-down' : 'chevron-right'" [size]="20" />
+              <strong>{{ m.orden }}. {{ m.titulo }}</strong>
+              <span class="texto-suave">{{ m.lecciones.length }} lecciones</span>
+            </button>
+            @if (abiertos().includes(m.id)) {
+              <ul>
+                @for (l of m.lecciones; track l.id) {
+                  <li>
+                    <lucide-icon [name]="icono(l.tipo)" [size]="20" />
+                    <span>{{ l.titulo }}</span>
+                    <span class="texto-suave">{{ l.tipo === 'DOCUMENTO' ? 'PDF' : l.tipo === 'EVALUACION' ? 'Evaluación' : l.minutos + ' min' }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        } @empty {
+          <p class="temario-vacio">El temario todavía no está disponible.</p>
+        }
+      </div>
+
+      @if (c.objetivos.length) {
+        <section class="lista-informacion">
+          <h2>Lo que aprenderás</h2>
+          <ul>@for (objetivo of c.objetivos; track objetivo) { <li>{{ objetivo }}</li> }</ul>
         </section>
       }
-    </div>
 
-    <hr class="separador" />
+      <hr class="separador" />
 
-    <div class="docente">
-      <app-avatar texto="C" [tamano]="64" [solido]="true" />
-      <div>
-        <strong>{{ curso().docente }} · docente</strong>
-        <p class="texto-suave">{{ detalle.docenteBio }}</p>
+      <div class="docente">
+        <app-avatar [texto]="c.docente.charAt(0)" [tamano]="64" [solido]="true" />
+        <div>
+          <strong>{{ c.docente }} · docente</strong>
+          @if (c.docenteBio) { <p class="texto-suave">{{ c.docenteBio }}</p> }
+        </div>
       </div>
-    </div>
-  </article>
+    </article>
 
-  <aside class="oculto-movil">
-    <ng-container *ngTemplateOutlet="tarjetaInscripcion; context: { movil: false }" />
-  </aside>
-</div>
-
-<ng-template #tarjetaInscripcion let-movil="movil">
-  <div class="tarjeta-inscripcion" [class.solo-movil]="movil">
-    <div class="portada" [class]="'portada tono-' + curso().tono"></div>
-    <p>Curso gratuito. Sin requisitos previos.</p>
-    <button type="button" class="btn btn-acento btn-lg btn-bloque" (click)="inscribirme()">Inscribirme</button>
-    <hr class="separador" />
-    <ul>
-      @for (i of detalle.incluye; track i.texto) {
-        <li><lucide-icon [name]="i.icono" [size]="20" /> {{ i.texto }}</li>
-      }
-    </ul>
+    <aside class="oculto-movil">
+      <ng-container *ngTemplateOutlet="tarjetaInscripcion; context: { movil: false }" />
+    </aside>
   </div>
-</ng-template>
 
-@if (confirmar()) {
-  <app-modal titulo="¿Inscribirte a este curso?" [ancho]="480" (cerrar)="confirmar.set(false)">
-    <p class="resumen-modal">{{ curso().titulo }} · {{ curso().modulos }} módulos · {{ curso().minutos }} min.</p>
-    <p class="texto-suave">Curso gratuito, sin requisitos previos. Aparecerá en «Mi aprendizaje» y solo tú ves tu avance.</p>
-    <div class="acciones-modal">
-      <button type="button" class="btn btn-contorno" (click)="confirmar.set(false)">Cancelar</button>
-      <button type="button" class="btn btn-acento" (click)="confirmarInscripcion()">Sí, inscribirme</button>
+  <ng-template #tarjetaInscripcion let-movil="movil">
+    <div class="tarjeta-inscripcion" [class.solo-movil]="movil">
+      <div class="portada"><app-portada-curso [categoria]="c.categoria.nombre" [tono]="tono()" [imagen]="c.portadaUrl" /></div>
+      <p>Curso gratuito.</p>
+      <button type="button" class="btn btn-acento btn-lg btn-bloque" disabled>Inscripciones próximamente</button>
+      @if (c.requisitos.length) {
+        <hr class="separador" />
+        <strong>Requisitos</strong>
+        <ul>@for (requisito of c.requisitos; track requisito) { <li><lucide-icon name="check" [size]="20" /> {{ requisito }}</li> }</ul>
+      }
     </div>
-  </app-modal>
+  </ng-template>
+
 }

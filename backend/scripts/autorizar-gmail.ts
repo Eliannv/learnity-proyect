@@ -3,6 +3,8 @@
 // Requisitos (ver README, sección Correo): GMAIL_CLIENT_ID y GMAIL_CLIENT_SECRET de un cliente OAuth
 // de tipo "App de escritorio" en Google Cloud, con la Gmail API habilitada.
 // El token nunca se imprime: se escribe directamente en .env (que no se sube a Git).
+// En un servidor sin navegador (VM por SSH), usa un puerto fijo y reenvíalo desde tu PC:
+//   ssh -L 8765:127.0.0.1:8765 usuario@vm   y luego   npm run correo:autorizar -- --puerto 8765
 import 'dotenv/config';
 import { createHash, randomBytes } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -16,6 +18,13 @@ const clientSecret = process.env['GMAIL_CLIENT_SECRET']?.trim();
 
 if (!clientId || !clientSecret) {
   console.error('Faltan GMAIL_CLIENT_ID y GMAIL_CLIENT_SECRET en backend/.env. Revisa la guía del README.');
+  process.exit(1);
+}
+
+const indicePuerto = process.argv.indexOf('--puerto');
+const puerto = indicePuerto > 0 ? Number(process.argv[indicePuerto + 1]) : 0;
+if (indicePuerto > 0 && (!Number.isInteger(puerto) || puerto < 1024 || puerto > 65535)) {
+  console.error('--puerto debe ser un número entre 1024 y 65535.');
   process.exit(1);
 }
 
@@ -40,7 +49,8 @@ const codigo = await new Promise<{ code: string; redirect: string }>((resolver, 
     if (ok) resolver({ code, redirect });
     else rechazar(new Error(error ?? 'respuesta inválida (state no coincide)'));
   });
-  servidor.listen(0, '127.0.0.1', () => {
+  servidor.on('error', rechazar);
+  servidor.listen(puerto, '127.0.0.1', () => {
     const redirect = `http://127.0.0.1:${(servidor.address() as AddressInfo).port}/oauth2callback`;
     const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     url.search = new URLSearchParams({

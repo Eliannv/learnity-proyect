@@ -117,6 +117,8 @@ una cuenta Gmail creada solo para Learnity). Los estudiantes no autorizan nada: 
    *secreto* en `backend/.env` (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`) y la cuenta emisora en `GMAIL_REMITENTE`.
 4. Ejecuta `npm run correo:autorizar`, abre el enlace que muestra e inicia sesión **con la cuenta emisora**.
    El script guarda `GMAIL_REFRESH_TOKEN` directamente en `.env` (no lo imprime).
+   Si el backend está en un servidor o VM sin navegador, conéctate con `ssh -L 8765:127.0.0.1:8765 usuario@servidor`,
+   ejecuta allí `npm run correo:autorizar -- --puerto 8765` y abre el enlace en el navegador de tu PC.
 5. Cambia `CORREO_TRANSPORTE=gmail` y prueba: `npm run correo:probar -- tu-buzon-de-prueba@gmail.com`.
 6. Prueba el flujo completo: registra una cuenta con el buzón de prueba, usa "¿Olvidaste tu contraseña?"
    y abre el enlace que llega.
@@ -177,17 +179,48 @@ cubren registro, política de contraseña, login y bloqueo, límite por IP, perf
 rotación y reutilización del refresh token, CSRF y origen, cierre de sesión, cambio de contraseña,
 recuperación (un solo uso, vencimiento, invalidación, límite por hora) y logs sin secretos.
 
-**Pendiente para cerrar el Sprint 1:** configurar la cuenta emisora de Gmail (sección 7) y probar el envío
-real con un buzón de prueba. Hasta entonces la recuperación funciona con el buzón local.
+**Pendiente para cerrar el Sprint 1:** el equipo informó que Gmail API confirmó un envío real; falta
+comprobar la recepción y el enlace en el buzón. El buzón local sigue disponible para pruebas.
 
-## 11. Comandos útiles
+## 11. Sprint 2 · API pública y catálogo
+
+Están implementados `GET /api/categorias`, `GET /api/cursos` y `GET /api/cursos/:id` con PostgreSQL.
+El contrato de filtros, paginación y JSON está en
+[`CONTRATO_API_PUBLICA_SPRINT_2.md`](CONTRATO_API_PUBLICA_SPRINT_2.md).
+Para comprobar las pantallas mientras se desarrolla el editor, ejecuta en `backend`:
+
+```bash
+npm run db:seed-publico    # crea 3 cursos PUBLICADO y 1 BORRADOR sintéticos; se puede repetir
+npm run dev
+```
+
+Después abre `http://localhost:4200/cursos`. Esos cursos llevan `[Prueba Sprint 2]` en el título y
+**solo sirven para verificar el catálogo**: no fueron creados ni aprobados mediante el flujo docente/Admin.
+La prueba automatizada `test/cursos-publicos.test.ts` necesita una base separada `learnity_test`
+configurada en `.env.test`, según [`database/README.md`](database/README.md), cuando se ejecuta con
+`npm test`. Se verificaron sus 6 casos también contra la base local usando datos temporales que se
+eliminan al terminar. Para repetir **solo esa prueba** en PowerShell desde `backend`:
+
+```powershell
+$env:NODE_ENV='test'
+$env:LEARNITY_PRUEBA_LOCAL='true'
+npx tsx --env-file=.env --test test/cursos-publicos.test.ts
+```
+
+Las tareas restantes de los tres compañeros están en
+[`INTEGRANTE_2_BACKEND_CURSOS_SPRINT_2.md`](INTEGRANTE_2_BACKEND_CURSOS_SPRINT_2.md),
+[`INTEGRANTE_3_ADMIN_PDF_SPRINT_2.md`](INTEGRANTE_3_ADMIN_PDF_SPRINT_2.md) y
+[`INTEGRANTE_4_ANGULAR_DOCENTE_ADMIN_SPRINT_2.md`](INTEGRANTE_4_ANGULAR_DOCENTE_ADMIN_SPRINT_2.md).
+
+## 12. Comandos útiles
 
 | Dónde | Comando | Qué hace |
 |---|---|---|
 | backend | `npm run dev` | API con recarga automática |
 | backend | `npm run build` / `npm start` | Compilar y ejecutar en producción |
 | backend | `npm run typecheck` | Revisar tipos (código, scripts y pruebas) |
-| backend | `npm test` | Pruebas de integración de Identidad (lee `.env.test`) |
+| backend | `npm test` | Pruebas de integración de Identidad y Cursos públicos (lee `.env.test`) |
+| backend | `npm run db:seed-publico` | Cursos sintéticos para probar catálogo y detalle local |
 | backend | `npm run correo:autorizar` | Autorizar una vez la cuenta emisora de Gmail |
 | backend | `npm run correo:probar -- correo@ejemplo.com` | Enviar un correo de prueba |
 | frontend | `npm start` | App en modo desarrollo |

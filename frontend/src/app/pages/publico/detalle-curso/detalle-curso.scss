@@ -7,6 +7,24 @@
   padding-bottom: 48px;
 }
 
+.estado-detalle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding-top: 48px;
+  padding-bottom: 64px;
+}
+
+.temario-vacio {
+  padding: 20px;
+}
+
+.lista-informacion {
+  h2 { font-size: 24px; margin-bottom: 12px; }
+  li { margin-bottom: 8px; }
+}
+
 .principal {
   display: flex;
   flex-direction: column;

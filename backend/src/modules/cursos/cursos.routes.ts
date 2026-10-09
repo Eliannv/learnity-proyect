@@ -1,6 +1,6 @@
 import { Router } from 'express';
+import { cursosController } from './cursos.controller.js';
 // import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
-// import { cursosController } from './cursos.controller.js';
 
 // Módulo Cursos · Cursos, módulos, lecciones, categorías y catálogo.
 // Rutas previstas (se implementan en su sprint):
@@ -13,3 +13,6 @@ import { Router } from 'express';
 //   POST /cursos/:id/enviar-revision
 //   GET /categorias
 export const cursosRoutes = Router();
+cursosRoutes.get('/categorias', cursosController.categorias);
+cursosRoutes.get('/cursos', cursosController.catalogo);
+cursosRoutes.get('/cursos/:id', cursosController.detalle);
