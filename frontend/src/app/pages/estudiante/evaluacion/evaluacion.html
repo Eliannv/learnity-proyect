@@ -1,0 +1,62 @@
+<div class="contenedor pagina">
+  <section class="tarjeta evaluacion">
+    <header>
+      <h1>Evaluación · módulo 2</h1>
+      <span class="texto-suave">Pregunta 5 de 5</span>
+    </header>
+
+    @if (calificada()) {
+      <div class="resultado" [class.reprobado]="!aprobado()" role="status">
+        <lucide-icon [name]="aprobado() ? 'circle-check' : 'circle-alert'" [size]="28" />
+        <div>
+          @if (aprobado()) {
+            <strong>Aprobaste con {{ aciertos() }} de 5</strong>
+            <p>El módulo quedó marcado como completado. Puedes volver a intentarlo cuando quieras.</p>
+          } @else {
+            <strong>Obtuviste {{ aciertos() }} de 5</strong>
+            <p>Necesitas al menos 60 % (3 de 5) para aprobar. Puedes reintentar sin límite.</p>
+          }
+        </div>
+      </div>
+    }
+
+    <h2 class="enunciado">{{ pregunta.enunciado }}</h2>
+
+    <div class="opciones" role="radiogroup" [attr.aria-label]="pregunta.enunciado">
+      @for (o of pregunta.opciones; track o.letra) {
+        <button
+          type="button"
+          role="radio"
+          class="opcion"
+          [class]="'opcion ' + (estado(o.letra) ?? '')"
+          [attr.aria-checked]="elegida() === o.letra"
+          [disabled]="calificada()"
+          (click)="elegir(o.letra)"
+        >
+          <span class="letra">{{ o.letra }}</span>
+          <span class="texto">{{ o.texto }}</span>
+          @if (estado(o.letra) === 'correcta') {
+            <lucide-icon name="check" [size]="22" />
+          }
+          @if (estado(o.letra) === 'incorrecta') {
+            <lucide-icon name="x" [size]="22" />
+          }
+        </button>
+      }
+    </div>
+
+    <hr class="separador" />
+
+    <div class="acciones">
+      @if (calificada()) {
+        <button type="button" class="btn btn-contorno btn-lg" (click)="reintentar()">Reintentar la evaluación</button>
+        @if (aprobado()) {
+          <a class="btn btn-acento btn-lg" [routerLink]="'/aprender/' + cursoId() + '/condicionales'">Continuar al módulo 3</a>
+        }
+      } @else {
+        <a class="btn btn-contorno btn-lg" [routerLink]="'/aprender/' + cursoId() + '/presentacion-del-tema'">Volver a la lección</a>
+        <button type="button" class="btn btn-primario btn-lg" [disabled]="!elegida()" (click)="calificar()">Enviar respuestas</button>
+      }
+    </div>
+  </section>
+</div>

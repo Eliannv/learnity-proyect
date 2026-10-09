@@ -1,0 +1,55 @@
+<aside class="riel oculto-movil">
+  <div class="riel-interior">
+    <a class="riel-marca" [routerLink]="config().inicio" [attr.aria-label]="'Inicio del panel ' + config().etiqueta">
+      <span class="riel-icono"><app-logo [claro]="true" [tamano]="22" [soloIcono]="true" /></span>
+      <span class="riel-texto">Learnity <small>{{ config().etiqueta }}</small></span>
+    </a>
+
+    <nav aria-label="Menú del panel">
+      @for (item of config().items; track item.ruta) {
+        <a [routerLink]="item.ruta" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: item.exacto ?? false }">
+          <span class="riel-icono">
+            <lucide-icon [name]="item.icono" [size]="22" />
+            @if (item.destacado) {
+              <span class="aviso-punto" aria-hidden="true"></span>
+            }
+          </span>
+          <span class="riel-texto">{{ item.etiqueta }}</span>
+          @if (item.contador) {
+            <span [class]="item.destacado ? 'contador' : 'numero'">{{ item.contador }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <a class="riel-vista" routerLink="/">
+      <span class="riel-icono"><lucide-icon name="arrow-left-right" [size]="22" /></span>
+      <span class="riel-texto">Vista estudiante</span>
+    </a>
+  </div>
+</aside>
+
+<div class="marco">
+  <header class="barra-superior">
+    <a class="marca-movil solo-movil" [routerLink]="config().inicio">
+      <app-logo [tamano]="22" [etiqueta]="config().etiqueta" />
+    </a>
+    <span class="seccion oculto-movil">
+      <strong>{{ config().etiqueta }}</strong>
+      @if (seccion()) {
+        <lucide-icon name="chevron-right" [size]="16" />
+        {{ seccion() }}
+      }
+    </span>
+    <a class="vista-estudiante" routerLink="/">Vista estudiante</a>
+    <app-menu-cuenta />
+  </header>
+
+  <main class="contenido">
+    <router-outlet />
+  </main>
+
+  <app-footer-sitio [autenticado]="true" [rutaPerfil]="rutaPerfil()" class="oculto-movil" />
+</div>
+
+<app-tab-bar [items]="config().tabs" />

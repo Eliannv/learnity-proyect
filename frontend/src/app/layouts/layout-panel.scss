@@ -1,0 +1,228 @@
+:host {
+  --ancho-riel: 64px;
+  --ancho-riel-abierto: 264px;
+  display: flex;
+  min-height: 100dvh;
+}
+
+/* ---------------------------------------------------------------- riel lateral
+   Ocupa 64px. Al pasar el mouse o enfocar un enlace con el teclado se despliega
+   sobre el contenido (sin moverlo). Se anima con clip-path, no con el ancho. */
+.riel {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  flex-shrink: 0;
+  width: var(--ancho-riel);
+  height: 100dvh;
+}
+
+.riel-interior {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--ancho-riel-abierto);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+  background: var(--tinta-900);
+  color: #cbd5e1;
+  clip-path: inset(0 calc(var(--ancho-riel-abierto) - var(--ancho-riel)) 0 0);
+  transition:
+    clip-path 0.2s ease-out,
+    box-shadow 0.2s;
+
+  &:hover,
+  &:focus-within {
+    clip-path: inset(0 -48px 0 0);
+    box-shadow: 12px 0 32px rgb(15 23 42 / 28%);
+    .riel-texto,
+    .contador,
+    .numero {
+      opacity: 1;
+    }
+  }
+}
+
+.riel-marca {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  margin-bottom: 16px;
+  color: var(--blanco);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+
+  small {
+    margin-left: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--azul-300);
+  }
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+nav a,
+.riel-vista {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding-right: 16px;
+  color: #cbd5e1;
+  font-size: 14px;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--tinta-800);
+    color: var(--blanco);
+  }
+}
+
+nav a.activo {
+  background: var(--tinta-800);
+  color: var(--blanco);
+  font-weight: 600;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--azul-600);
+  }
+  .riel-icono {
+    color: var(--azul-300);
+  }
+}
+
+.riel-icono {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--ancho-riel);
+}
+
+.aviso-punto {
+  position: absolute;
+  top: -2px;
+  right: 16px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ambar-500);
+  box-shadow: 0 0 0 2px var(--tinta-900);
+}
+
+.riel-texto {
+  flex: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.contador,
+.numero {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.numero {
+  font-size: 13px;
+  color: var(--gris-400);
+}
+
+.riel-vista {
+  margin-top: auto;
+  border-top: 1px solid var(--tinta-800);
+  padding-top: 4px;
+}
+
+/* ---------------------------------------------------------------- marco */
+.marco {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.barra-superior {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: var(--alto-header);
+  padding: 0 32px;
+  background: var(--blanco);
+  border-bottom: 1px solid var(--gris-200);
+}
+
+.seccion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gris-500);
+  font-size: 15px;
+
+  strong {
+    color: var(--tinta-900);
+  }
+}
+
+.vista-estudiante {
+  margin-left: auto;
+  padding: 10px 12px;
+  border-radius: var(--radio);
+  color: var(--tinta-900);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--azul-050);
+    color: var(--azul-700);
+  }
+}
+
+.contenido {
+  flex: 1;
+  padding: 32px 32px 48px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .riel-interior,
+  .riel-texto,
+  .contador,
+  .numero {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  :host {
+    padding-bottom: var(--alto-tabbar);
+  }
+  .barra-superior {
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .marca-movil {
+    display: inline-flex;
+  }
+  .contenido {
+    padding: 20px 16px 32px;
+  }
+}

@@ -1,0 +1,190 @@
+.detalle {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 32px;
+  align-items: start;
+  padding-top: 32px;
+  padding-bottom: 48px;
+}
+
+.principal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.titulo-curso {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.meta {
+  color: var(--gris-500);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.descripcion {
+  font-size: 16px;
+}
+
+.cabecera-temario {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  h2 {
+    font-size: 24px;
+    font-weight: 600;
+  }
+  span {
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
+
+.temario {
+  width: 100%;
+  border: 1px solid var(--azul-200);
+  border-radius: var(--radio-md);
+  overflow: hidden;
+}
+
+.modulo + .modulo {
+  border-top: 1px solid var(--azul-200);
+}
+
+.cabecera-modulo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 0;
+  background: var(--azul-050);
+  text-align: left;
+
+  strong {
+    flex: 1;
+    font-size: 17px;
+    font-weight: 600;
+  }
+  span {
+    font-size: 14px;
+  }
+}
+
+.modulo ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--blanco);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px 12px 52px;
+    border-top: 1px solid var(--gris-200);
+    lucide-icon {
+      color: var(--gris-500);
+    }
+    span:first-of-type {
+      flex: 1;
+    }
+    .texto-suave {
+      font-size: 14px;
+    }
+  }
+}
+
+.docente {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  strong {
+    font-size: 17px;
+    font-weight: 600;
+  }
+}
+
+aside {
+  position: sticky;
+  top: calc(var(--alto-header) + 24px);
+}
+
+.tarjeta-inscripcion {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  padding: 24px;
+  border: 1px solid var(--azul-200);
+  border-radius: var(--radio-md);
+  background: var(--azul-050);
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    lucide-icon {
+      color: var(--azul-700);
+    }
+  }
+}
+
+.portada {
+  display: block;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radio-sm);
+}
+.tono-1 {
+  background: var(--azul-300);
+}
+.tono-2 {
+  background: var(--azul-200);
+}
+.tono-3 {
+  background: var(--blanco);
+}
+
+.resumen-modal {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.acciones-modal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .detalle {
+    grid-template-columns: 1fr;
+    padding-top: 16px;
+  }
+  .titulo-curso {
+    font-size: 28px;
+  }
+  .modulo ul li {
+    padding-left: 20px;
+  }
+  .docente {
+    align-items: flex-start;
+  }
+}

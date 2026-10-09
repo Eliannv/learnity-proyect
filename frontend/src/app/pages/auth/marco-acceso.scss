@@ -1,0 +1,198 @@
+.fondo {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f5f8ff 0%, #eef3ff 60%, #e8efff 100%);
+}
+
+.burbuja {
+  position: absolute;
+  border-radius: 50%;
+  background: #dfe8fd;
+  pointer-events: none;
+}
+.b1 {
+  width: 420px;
+  height: 420px;
+  top: -140px;
+  left: -120px;
+}
+.b2 {
+  width: 380px;
+  height: 380px;
+  right: -120px;
+  bottom: -160px;
+}
+.b3 {
+  width: 260px;
+  height: 260px;
+  left: 30%;
+  bottom: 40px;
+  opacity: 0.6;
+}
+
+.tarjeta-acceso {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  max-width: 1040px;
+  min-height: 620px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--blanco);
+  box-shadow: 0 30px 80px rgb(37 99 235 / 12%);
+}
+
+.presentacion {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+  padding: 56px;
+  background: #f5f8ff;
+
+  h1 {
+    font-size: 44px;
+    line-height: 1.12;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    span {
+      color: var(--azul-700);
+    }
+  }
+}
+
+.descripcion {
+  color: var(--gris-500);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.ventajas {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  div {
+    display: flex;
+    flex-direction: column;
+  }
+  strong {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  span:not(.icono) {
+    font-size: 13px;
+    color: var(--gris-500);
+  }
+}
+
+.icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radio);
+
+  &.azul {
+    background: var(--azul-100);
+    color: var(--azul-700);
+  }
+  &.morado {
+    background: var(--morado-100);
+    color: var(--morado-600);
+  }
+  &.verde {
+    background: var(--verde-100);
+    color: var(--verde-600);
+  }
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 72px;
+}
+
+.volver {
+  position: absolute;
+  top: 20px;
+  left: 16px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--tinta-900);
+}
+
+.logo-movil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 28px;
+  color: var(--tinta-900);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+
+  svg {
+    width: 52px;
+    height: 52px;
+    fill: var(--azul-700);
+  }
+}
+
+@media (max-width: 900px) {
+  .fondo {
+    place-items: start center;
+    padding: 72px 24px 32px;
+    background: #f5f8ff;
+  }
+  .b1 {
+    width: 300px;
+    height: 300px;
+    top: -150px;
+    left: auto;
+    right: -110px;
+  }
+  .b2 {
+    width: 280px;
+    height: 280px;
+    left: -140px;
+    right: auto;
+    bottom: -140px;
+  }
+  .b3 {
+    display: none;
+  }
+  .tarjeta-acceso {
+    display: block;
+    min-height: 0;
+    max-width: 440px;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .formulario {
+    padding: 0;
+  }
+}

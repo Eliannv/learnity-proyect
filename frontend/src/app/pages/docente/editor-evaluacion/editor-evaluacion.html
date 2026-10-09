@@ -1,0 +1,55 @@
+<nav class="migas" aria-label="Ruta">
+  <a [routerLink]="'/docente/cursos/' + id() + '/editar'">Introducción a Python</a>
+  <lucide-icon name="chevron-right" [size]="16" />
+  <a [routerLink]="'/docente/cursos/' + id() + '/editar'">Módulo 2 · Variables y datos</a>
+  <lucide-icon name="chevron-right" [size]="16" />
+  <span>Evaluación</span>
+</nav>
+
+<header class="cabecera">
+  <div>
+    <h1 class="titulo-pagina">Evaluación del módulo 2</h1>
+    <p class="subtitulo">Entre 5 y 10 preguntas de opción múltiple, con 4 opciones y una respuesta correcta. Se aprueba con 60 %.</p>
+  </div>
+  <span class="contador-preguntas" [class.fuera]="total() < 5 || total() > 10">{{ total() }} de 10 preguntas</span>
+</header>
+
+<section class="pregunta-activa">
+  <div class="cabecera-pregunta">
+    <strong>Pregunta {{ total() }}</strong>
+    <button type="button" class="icono-btn" aria-label="Duplicar pregunta"><lucide-icon name="copy" [size]="20" /></button>
+    <button type="button" class="icono-btn" aria-label="Eliminar pregunta"><lucide-icon name="trash-2" [size]="20" /></button>
+  </div>
+  <input class="control enunciado" [(ngModel)]="enunciado" placeholder="Escribe la pregunta…" aria-label="Enunciado de la pregunta" />
+
+  @for (o of opciones; track $index; let i = $index) {
+    <label class="opcion" [class.correcta]="correcta() === i">
+      <input type="radio" name="correcta" [checked]="correcta() === i" (change)="correcta.set(i)" [attr.aria-label]="'Marcar opción ' + (i + 1) + ' como correcta'" />
+      <input class="texto-opcion" [(ngModel)]="opciones[i]" [placeholder]="'Opción ' + (i + 1)" />
+      @if (correcta() === i) {
+        <span class="etiqueta-correcta">Respuesta correcta</span>
+      }
+    </label>
+  }
+</section>
+
+<ol class="lista-preguntas tarjeta">
+  @for (p of guardadas(); track $index; let i = $index) {
+    <li>
+      <span class="numero">{{ i + 1 }}.</span>
+      <span class="texto">{{ p }}</span>
+      <button type="button" class="enlace">Editar</button>
+      <button type="button" class="enlace quitar" (click)="eliminar(i)" aria-label="Eliminar pregunta">
+        <lucide-icon name="trash-2" [size]="16" />
+      </button>
+    </li>
+  }
+</ol>
+
+<footer class="pie">
+  <button type="button" class="enlace" (click)="agregarPregunta()" [disabled]="total() >= 10">+ Agregar pregunta</button>
+  <div class="botones">
+    <a class="btn btn-suave btn-lg" [routerLink]="'/docente/cursos/' + id() + '/editar'">Cancelar</a>
+    <button type="button" class="btn btn-primario btn-lg" [disabled]="total() < 5">Guardar evaluación</button>
+  </div>
+</footer>

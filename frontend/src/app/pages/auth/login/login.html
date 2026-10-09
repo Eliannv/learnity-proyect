@@ -1,0 +1,85 @@
+<app-marco-acceso
+  tituloAntes="Tu espacio para"
+  tituloResaltado="aprender"
+  descripcion="Accede a cursos organizados en módulos, con videos cortos, documentos y evaluaciones. Aprende a tu ritmo y, cuando estés listo, también enseña."
+>
+  <div class="encabezado">
+    <h2>Bienvenido de nuevo</h2>
+    <p>Inicia sesión para continuar en Learnity</p>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="iniciarSesion()" novalidate>
+    <div class="campo">
+      <label class="etiqueta" for="correo">Correo electrónico</label>
+      <div class="control-icono">
+        <lucide-icon name="mail" [size]="20" />
+        <input
+          id="correo"
+          class="control"
+          [class.invalido]="invalido('correo')"
+          type="email"
+          formControlName="correo"
+          placeholder="tucorreo@ejemplo.com"
+          autocomplete="email"
+        />
+      </div>
+      @if (invalido('correo')) {
+        <span class="error-campo">Ingresa un correo válido.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label class="etiqueta" for="contrasena">Contraseña</label>
+      <div class="control-icono">
+        <lucide-icon name="lock" [size]="20" />
+        <input
+          id="contrasena"
+          class="control"
+          [class.invalido]="invalido('contrasena')"
+          [type]="verContrasena() ? 'text' : 'password'"
+          formControlName="contrasena"
+          placeholder="Ingresa tu contraseña"
+          autocomplete="current-password"
+        />
+        <button
+          type="button"
+          class="accion-control"
+          (click)="verContrasena.set(!verContrasena())"
+          [attr.aria-label]="verContrasena() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+        >
+          <lucide-icon [name]="verContrasena() ? 'eye' : 'eye-off'" [size]="20" />
+        </button>
+      </div>
+      @if (invalido('contrasena')) {
+        <span class="error-campo">Ingresa tu contraseña.</span>
+      }
+    </div>
+
+    <a class="olvido" routerLink="/recuperar-contrasena">¿Olvidaste tu contraseña?</a>
+
+    @if (error()) {
+      <div class="aviso error" role="alert">
+        <lucide-icon name="circle-alert" [size]="18" />
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <button type="submit" class="btn btn-primario btn-lg btn-bloque" [disabled]="enviando()">
+      {{ enviando() ? 'Ingresando…' : 'Iniciar sesión' }}
+      <lucide-icon name="arrow-right" [size]="20" />
+    </button>
+  </form>
+
+  <p class="pie">¿No tienes una cuenta?<a routerLink="/registro">Regístrate</a></p>
+
+  @if (modoDemo) {
+    <section class="demo" aria-label="Accesos de demostración">
+      <strong>Accesos de demostración</strong>      
+      <div class="botones">
+        <button type="button" (click)="entrarDemo('ESTUDIANTE')">Estudiante <small>Rosa Vera</small></button>
+        <button type="button" (click)="entrarDemo('DOCENTE')">Docente <small>Carlos Mendoza</small></button>
+        <button type="button" (click)="entrarDemo('ADMIN')">Administrador <small>Ana Torres</small></button>
+      </div>
+    </section>
+  }
+</app-marco-acceso>

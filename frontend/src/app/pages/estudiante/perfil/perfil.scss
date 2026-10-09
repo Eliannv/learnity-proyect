@@ -1,0 +1,139 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 28px;
+  padding-bottom: 48px;
+}
+
+.distribucion {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 32px;
+  align-items: start;
+}
+
+.datos {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fila-doble {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+input[readonly] {
+  background: var(--gris-100);
+  color: var(--gris-500);
+}
+
+.lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.foto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  border: 1px solid var(--azul-200);
+}
+
+.cuenta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px;
+  strong {
+    font-size: 17px;
+    font-weight: 500;
+  }
+  p {
+    font-size: 14px;
+  }
+}
+
+.ensenar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid var(--azul-200);
+  strong {
+    font-size: 18px;
+  }
+  p {
+    font-size: 14px;
+  }
+}
+
+.icono {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radio);
+  background: var(--azul-700);
+  color: var(--blanco);
+}
+
+.pie {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--gris-200);
+
+  .aviso {
+    flex: 1;
+    min-width: 260px;
+  }
+}
+
+.intro {
+  margin-bottom: 16px;
+}
+
+.form-solicitud {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.acciones-modal {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .pagina {
+    padding-top: 16px;
+  }
+  .distribucion {
+    grid-template-columns: 1fr;
+  }
+  .lateral {
+    order: -1;
+  }
+  .fila-doble {
+    grid-template-columns: 1fr;
+  }
+  .pie .btn {
+    flex: 1;
+  }
+  .acciones-modal .btn {
+    flex: 1;
+  }
+}

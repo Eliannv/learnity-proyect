@@ -1,0 +1,103 @@
+<ng-template #filtros>
+  <h3 class="filtro-titulo">Categoría</h3>
+  <div class="opciones">
+    @for (c of categorias; track c) {
+      <label class="casilla">
+        <input type="checkbox" [checked]="seleccion().includes(c)" (change)="alternar('categoria', c)" />
+        {{ c }} <span class="total">{{ totales[c] }}</span>
+      </label>
+    }
+  </div>
+  <hr class="separador" />
+  <h3 class="filtro-titulo">Nivel</h3>
+  <div class="opciones">
+    @for (n of niveles; track n) {
+      <label class="casilla">
+        <input type="checkbox" [checked]="nivelesSel().includes(n)" (change)="alternar('nivel', n)" />
+        {{ n }}
+      </label>
+    }
+  </div>
+</ng-template>
+
+<!-- Buscador (solo teléfono; en escritorio está en el header) -->
+<app-buscador-movil [valor]="q() ?? ''" />
+
+<div class="contenedor catalogo">
+  <aside class="lateral oculto-movil">
+    <span class="eyebrow">Filtrar</span>
+    <ng-container [ngTemplateOutlet]="filtros" />
+    <button type="button" class="btn btn-contorno btn-bloque" (click)="limpiar()">Limpiar filtros</button>
+  </aside>
+
+  <section class="resultados">
+    <h1 class="titulo-pagina">Catálogo de cursos</h1>
+
+    <div class="barra-resultados oculto-movil">
+      <span class="texto-suave">{{ resumen() }}</span>
+      <label class="ordenar">
+        <span class="texto-suave">Ordenar por</span>
+        <select class="control" [value]="orden()" (change)="orden.set($any($event.target).value)">
+          <option value="recientes">Más recientes</option>
+          <option value="populares">Más populares</option>
+          <option value="az">Título A–Z</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="barra-movil solo-movil">
+      <button type="button" class="btn btn-suave btn-sm" (click)="filtrosMovil.set(true)">
+        <lucide-icon name="sliders-horizontal" [size]="16" /> Filtrar
+      </button>
+      <select class="control control-sm" [value]="orden()" (change)="orden.set($any($event.target).value)" aria-label="Ordenar">
+        <option value="recientes">Más recientes</option>
+        <option value="populares">Más populares</option>
+        <option value="az">Título A–Z</option>
+      </select>
+    </div>
+
+    @if (seleccion().length) {
+      <div class="chips-activos">
+        @for (c of seleccion(); track c) {
+          <button type="button" class="chip-filtro activo" (click)="alternar('categoria', c)">
+            {{ c }} <lucide-icon name="x" [size]="14" />
+          </button>
+        }
+      </div>
+    }
+
+    @if (cursos().length) {
+      <div class="grid">
+        @for (c of cursos(); track c.id) {
+          <app-tarjeta-curso
+            [titulo]="c.titulo"
+            [categoria]="c.categoria"
+            [nuevo]="!!c.nuevo"
+            [meta]="c.docente + ' · ' + c.minutos + ' min · ' + c.lecciones + ' lecciones'"
+            [tono]="c.tono"
+            [enlace]="'/cursos/' + c.id"
+          />
+        }
+      </div>
+      <div class="mas">
+        <button type="button" class="btn btn-contorno btn-lg">Ver más cursos</button>
+      </div>
+    } @else {
+      <div class="vacio">
+        <lucide-icon name="search" [size]="28" />
+        <p>No hay cursos con esos filtros.</p>
+        <button type="button" class="btn btn-contorno" (click)="limpiar()">Limpiar filtros</button>
+      </div>
+    }
+  </section>
+</div>
+
+@if (filtrosMovil()) {
+  <app-modal titulo="Filtrar cursos" (cerrar)="filtrosMovil.set(false)">
+    <ng-container [ngTemplateOutlet]="filtros" />
+    <div class="acciones-modal">
+      <button type="button" class="btn btn-contorno" (click)="limpiar()">Limpiar filtros</button>
+      <button type="button" class="btn btn-primario" (click)="filtrosMovil.set(false)">Aplicar</button>
+    </div>
+  </app-modal>
+}

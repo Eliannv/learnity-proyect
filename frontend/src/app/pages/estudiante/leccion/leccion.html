@@ -1,0 +1,130 @@
+<div class="contenedor pagina">
+  <nav class="migas" aria-label="Ruta">
+    <a routerLink="/mi-aprendizaje">Mi aprendizaje</a>
+    <lucide-icon name="chevron-right" [size]="16" />
+    <a [routerLink]="'/cursos/' + curso().id">{{ curso().titulo }}</a>
+    <lucide-icon name="chevron-right" [size]="16" />
+    <span>{{ leccion().titulo }}</span>
+  </nav>
+
+  <div class="distribucion">
+    <section class="principal">
+      @if (esVideo()) {
+        <!-- Reproductor de video HTML5 (en el Sprint 3 se reemplaza por <video> con el archivo real) -->
+        <div class="reproductor">
+          <button type="button" class="play" (click)="reproduciendo.set(!reproduciendo())" [attr.aria-label]="reproduciendo() ? 'Pausar' : 'Reproducir'">
+            <lucide-icon [name]="reproduciendo() ? 'circle-pause' : 'circle-play'" [size]="64" [strokeWidth]="1.6" />
+          </button>
+          <div class="controles">
+            <div class="linea"><span></span></div>
+            <span>01:25 / 02:40</span>
+          </div>
+        </div>
+      } @else {
+        <div class="visor">
+          <div class="barra-visor">
+            <lucide-icon name="file-text" [size]="20" />
+            <span class="archivo">tipos-de-datos-python.pdf</span>
+            <span class="num-pagina oculto-movil">Página 1 de 6</span>
+            <button type="button" (click)="cambiarZoom(-10)" aria-label="Alejar"><lucide-icon name="zoom-out" [size]="20" /></button>
+            <button type="button" (click)="cambiarZoom(10)" aria-label="Acercar"><lucide-icon name="zoom-in" [size]="20" /></button>
+            <button type="button" aria-label="Descargar"><lucide-icon name="download" [size]="20" /></button>
+          </div>
+          <div class="area-documento">
+            <div class="hoja" [style.transform]="'scale(' + zoom() / 100 + ')'">
+              <h3>Tipos de datos en Python</h3>
+              <span class="linea-texto l1"></span>
+              <span class="linea-texto l2"></span>
+              <span class="linea-texto l1"></span>
+              <span class="linea-texto l3"></span>
+              <h4>1. Números enteros y decimales</h4>
+              <span class="linea-texto l1"></span>
+              <span class="linea-texto l2"></span>
+              <span class="linea-texto l4"></span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="titulo-leccion">
+        <h1>{{ leccion().titulo }}</h1>
+        <span class="texto-suave">{{ posicion() }}</span>
+      </div>
+      <p class="descripcion">{{ descripcion() }}</p>
+
+      <div class="acciones">
+        <a class="btn btn-contorno btn-lg" [routerLink]="'/aprender/' + cursoId() + '/presentacion-del-tema'">Documento de apoyo</a>
+        <button type="button" class="btn btn-lg" [class]="vista() ? 'btn btn-lg btn-suave' : 'btn btn-lg btn-primario'" (click)="vista.set(!vista())">
+          @if (vista()) {
+            <lucide-icon name="check" [size]="18" /> Vista
+          } @else {
+            Marcar como vista
+          }
+        </button>
+      </div>
+
+      @if (!esVideo()) {
+        <h2 class="subtitulo-recursos">Recursos de la lección</h2>
+        <ul class="recursos">
+          @for (r of recursos; track r.nombre) {
+            <li>
+              <span class="icono-recurso" [class.ppt]="r.tipo === 'ppt'">
+                <lucide-icon [name]="r.tipo === 'ppt' ? 'presentation' : 'file-text'" [size]="20" />
+              </span>
+              <div>
+                <strong>{{ r.nombre }}</strong>
+                <span class="texto-suave">{{ r.detalle }}</span>
+              </div>
+              <button type="button" class="btn btn-suave btn-sm"><lucide-icon name="download" [size]="16" /> Descargar</button>
+            </li>
+          }
+        </ul>
+      }
+
+      <hr class="separador" />
+
+      <nav class="navegacion" aria-label="Lecciones">
+        @if (anterior(); as a) {
+          <a class="btn btn-contorno btn-lg" [routerLink]="ruta(a)"><lucide-icon name="arrow-left" [size]="18" /> Anterior: {{ a.titulo }}</a>
+        } @else {
+          <span></span>
+        }
+        @if (siguiente(); as s) {
+          <a class="btn btn-acento btn-lg" [routerLink]="ruta(s)">
+            Siguiente: {{ s.tipo === 'EVALUACION' ? 'evaluación' : s.titulo }} <lucide-icon name="arrow-right" [size]="18" />
+          </a>
+        }
+      </nav>
+    </section>
+
+    <aside class="temario-lateral">
+      <span class="eyebrow">Contenido del curso</span>
+      <app-barra-progreso [valor]="45" />
+      <span class="texto-suave progreso-texto">45% completado · 5 de 11 lecciones</span>
+
+      <div class="modulos">
+        @for (m of temario; track m.numero) {
+          <section class="modulo">
+            <button type="button" class="cabecera-modulo" [class.completado]="m.completado" (click)="alternar(m.numero)">
+              <lucide-icon [name]="m.completado ? 'check' : abiertos().includes(m.numero) ? 'chevron-down' : 'chevron-right'" [size]="20" />
+              <span>{{ m.numero }}. {{ m.titulo }}</span>
+            </button>
+            @if (abiertos().includes(m.numero)) {
+              <ul>
+                @for (l of m.lecciones; track l.id) {
+                  <li>
+                    <a [routerLink]="ruta(l)" [class.actual]="l.id === leccion().id">
+                      <lucide-icon [name]="icono(l.tipo)" [size]="18" />
+                      <span>{{ l.titulo }}</span>
+                      <small>{{ l.tipo === 'EVALUACION' ? '5 preg.' : l.detalle }}</small>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+      </div>
+    </aside>
+  </div>
+</div>

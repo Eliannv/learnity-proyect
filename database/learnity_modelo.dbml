@@ -1,0 +1,227 @@
+// =====================================================================
+// Learnity · Plataforma de cursos en línea
+// Modelo de base de datos · PostgreSQL 17
+// Pegar en https://dbdiagram.io  (Import > DBML)
+// Equivale a learnity_esquema.sql
+// =====================================================================
+
+Project learnity {
+  database_type: 'PostgreSQL'
+  Note: '19 tablas agrupadas por módulo: Identidad, Cursos, Contenido, Aprendizaje y Evaluaciones.'
+}
+
+// ---------------------------------------------------------------------
+// Módulo Identidad
+// ---------------------------------------------------------------------
+Table persona {
+  id_persona  integer      [pk, increment]
+  nombres     varchar(80)  [not null]
+  apellidos   varchar(80)  [not null]
+  ciudad      varchar(60)
+  biografia   text
+  foto_url    varchar(255) [note: 'JPG, PNG o WEBP de máximo 500 KB']
+  creado_en   timestamptz  [not null, default: `now()`]
+}
+
+Table usuario {
+  id_usuario         integer      [pk, increment]
+  id_persona         integer      [not null, unique, ref: - persona.id_persona]
+  correo             varchar(120) [not null, unique]
+  contrasena_hash    varchar(60)  [not null, note: 'bcrypt']
+  estado             varchar(10)  [not null, default: 'ACTIVO', note: "CHECK IN ('ACTIVO','INACTIVO')"]
+  intentos_fallidos  smallint     [not null, default: 0]
+  bloqueado_hasta    timestamptz
+  ultimo_acceso      timestamptz
+}
+
+Table rol {
+  id_rol  smallint    [pk, increment]
+  nombre  varchar(20) [not null, unique, note: "CHECK IN ('ESTUDIANTE','DOCENTE','ADMIN')"]
+}
+
+Table usuario_rol {
+  id_usuario    integer     [not null, ref: > usuario.id_usuario]
+  id_rol        smallint    [not null, ref: > rol.id_rol]
+  asignado_por  integer     [ref: > persona.id_persona, note: 'Administrador que otorgó el rol']
+  asignado_en   timestamptz [not null, default: `now()`]
+  indexes {
+    (id_usuario, id_rol) [pk]
+  }
+}
+
+Table solicitud_docente {
+  id_solicitud  integer      [pk, increment]
+  id_persona    integer      [not null, ref: > persona.id_persona]
+  especialidad  varchar(100) [not null]
+  motivo        text         [not null, note: 'CHECK mínimo 50 caracteres']
+  estado        varchar(10)  [not null, default: 'PENDIENTE', note: "CHECK IN ('PENDIENTE','APROBADA','RECHAZADA')"]
+  observacion   varchar(300)
+  revisada_por  integer      [ref: > persona.id_persona, note: 'Administrador']
+  enviada_en    timestamptz  [not null, default: `now()`]
+  revisada_en   timestamptz
+}
+
+Table docente {
+  id_docente    integer      [pk, increment]
+  id_persona    integer      [not null, unique, ref: - persona.id_persona]
+  especialidad  varchar(100) [not null]
+  estado        varchar(10)  [not null, default: 'ACTIVO', note: "CHECK IN ('ACTIVO','INACTIVO')"]
+  aprobado_en   timestamptz  [not null, default: `now()`]
+}
+
+// ---------------------------------------------------------------------
+// Módulo Cursos
+// ---------------------------------------------------------------------
+Table categoria {
+  id_categoria  integer      [pk, increment]
+  nombre        varchar(80)  [not null, unique]
+  descripcion   varchar(300)
+  activa        boolean      [not null, default: true]
+  creada_por    integer      [not null, ref: > persona.id_persona, note: 'Administrador que la creó']
+  creado_en     timestamptz  [not null, default: `now()`]
+}
+
+Table curso {
+  id_curso        integer      [pk, increment]
+  id_docente      integer      [not null, ref: > docente.id_docente]
+  id_categoria    integer      [not null, ref: > categoria.id_categoria]
+  titulo          varchar(150) [not null]
+  subtitulo       varchar(200)
+  descripcion     text
+  nivel           varchar(12)  [not null, default: 'PRINCIPIANTE', note: "CHECK IN ('PRINCIPIANTE','INTERMEDIO','AVANZADO')"]
+  portada_url     varchar(255) [note: 'JPG, PNG o WEBP de máximo 1 MB, 16:9']
+  objetivos       "text[]"     [not null, default: '{}', note: 'Mínimo 3 para enviar a revisión']
+  requisitos      "text[]"     [not null, default: '{}']
+  estado          varchar(12)  [not null, default: 'BORRADOR', note: "CHECK IN ('BORRADOR','EN_REVISION','PUBLICADO','RECHAZADO','ARCHIVADO')"]
+  motivo_rechazo  varchar(300) [note: 'Obligatorio si estado = RECHAZADO']
+  revisado_por    integer      [ref: > persona.id_persona, note: 'Administrador']
+  publicado_en    timestamptz
+  creado_en       timestamptz  [not null, default: `now()`]
+}
+
+Table modulo {
+  id_modulo  integer      [pk, increment]
+  id_curso   integer      [not null, ref: > curso.id_curso]
+  titulo     varchar(150) [not null]
+  orden      smallint     [not null, note: 'CHECK 1 a 10']
+  indexes {
+    (id_curso, orden) [unique]
+  }
+}
+
+Table leccion {
+  id_leccion    integer      [pk, increment]
+  id_modulo     integer      [not null, ref: > modulo.id_modulo]
+  id_archivo    integer      [unique, ref: - archivo.id_archivo, note: 'Vacío si tipo = EVALUACION']
+  titulo        varchar(150) [not null]
+  tipo          varchar(10)  [not null, note: "CHECK IN ('VIDEO','DOCUMENTO','EVALUACION')"]
+  orden         smallint     [not null, note: 'CHECK 1 a 12']
+  vista_previa  boolean      [not null, default: false]
+  indexes {
+    (id_modulo, orden) [unique]
+  }
+}
+
+// ---------------------------------------------------------------------
+// Módulo Contenido
+// ---------------------------------------------------------------------
+Table archivo {
+  id_archivo       integer      [pk, increment]
+  id_curso         integer      [not null, ref: > curso.id_curso, note: 'Suma máxima de 150 MB por curso']
+  tipo             varchar(5)   [not null, note: "CHECK IN ('VIDEO','PDF','PPT')"]
+  nombre_original  varchar(200) [not null]
+  ruta             varchar(255) [not null, unique]
+  tamano_bytes     integer      [not null, note: 'VIDEO ≤ 5 MB; PDF y PPT ≤ 10 MB']
+  alto_px          smallint     [note: 'Solo video, ≤ 480']
+  duracion_seg     integer
+}
+
+Table recurso_adjunto {
+  id_recurso  integer      [pk, increment]
+  id_leccion  integer      [not null, ref: > leccion.id_leccion, note: 'Máximo 3 por lección']
+  id_archivo  integer      [not null, unique, ref: - archivo.id_archivo]
+  titulo      varchar(150) [not null]
+}
+
+// ---------------------------------------------------------------------
+// Módulo Aprendizaje
+// ---------------------------------------------------------------------
+Table inscripcion {
+  id_inscripcion     integer     [pk, increment]
+  id_persona         integer     [not null, ref: > persona.id_persona]
+  id_curso           integer     [not null, ref: > curso.id_curso]
+  estado             varchar(10) [not null, default: 'ACTIVA', note: "CHECK IN ('ACTIVA','COMPLETADA')"]
+  progreso_pct       smallint    [not null, default: 0, note: 'CHECK 0 a 100']
+  id_ultima_leccion  integer     [ref: > leccion.id_leccion]
+  inscrito_en        timestamptz [not null, default: `now()`]
+  completado_en      timestamptz
+  indexes {
+    (id_persona, id_curso) [unique]
+  }
+}
+
+Table progreso_leccion {
+  id_progreso      integer [pk, increment]
+  id_inscripcion   integer [not null, ref: > inscripcion.id_inscripcion]
+  id_leccion       integer [not null, ref: > leccion.id_leccion]
+  segundos_vistos  integer [not null, default: 0]
+  completada       boolean [not null, default: false]
+  indexes {
+    (id_inscripcion, id_leccion) [unique]
+  }
+}
+
+// ---------------------------------------------------------------------
+// Módulo Evaluaciones
+// ---------------------------------------------------------------------
+Table evaluacion {
+  id_evaluacion          integer  [pk, increment]
+  id_leccion             integer  [not null, unique, ref: - leccion.id_leccion]
+  porcentaje_aprobacion  smallint [not null, default: 60]
+}
+
+Table pregunta {
+  id_pregunta    integer      [pk, increment]
+  id_evaluacion  integer      [not null, ref: > evaluacion.id_evaluacion]
+  enunciado      varchar(300) [not null]
+  orden          smallint     [not null, note: 'CHECK 1 a 10']
+  indexes {
+    (id_evaluacion, orden) [unique]
+  }
+}
+
+Table opcion {
+  id_opcion    integer      [pk, increment]
+  id_pregunta  integer      [not null, ref: > pregunta.id_pregunta]
+  letra        char(1)      [not null, note: "CHECK IN ('A','B','C','D')"]
+  texto        varchar(200) [not null]
+  es_correcta  boolean      [not null, default: false, note: 'Solo una correcta por pregunta']
+  indexes {
+    (id_pregunta, letra) [unique]
+  }
+}
+
+Table intento_evaluacion {
+  id_intento      integer      [pk, increment]
+  id_inscripcion  integer      [not null, ref: > inscripcion.id_inscripcion]
+  id_evaluacion   integer      [not null, ref: > evaluacion.id_evaluacion]
+  puntaje         numeric(5,2) [not null, note: 'CHECK 0 a 100']
+  aprobado        boolean      [not null]
+  realizado_en    timestamptz  [not null, default: `now()`]
+}
+
+Table respuesta {
+  id_respuesta  integer [pk, increment]
+  id_intento    integer [not null, ref: > intento_evaluacion.id_intento]
+  id_pregunta   integer [not null, ref: > pregunta.id_pregunta]
+  id_opcion     integer [not null, ref: > opcion.id_opcion]
+  indexes {
+    (id_intento, id_pregunta) [unique]
+  }
+}
+
+TableGroup identidad { persona usuario rol usuario_rol solicitud_docente docente }
+TableGroup cursos { categoria curso modulo leccion }
+TableGroup contenido { archivo recurso_adjunto }
+TableGroup aprendizaje { inscripcion progreso_leccion }
+TableGroup evaluaciones { evaluacion pregunta opcion intento_evaluacion respuesta }

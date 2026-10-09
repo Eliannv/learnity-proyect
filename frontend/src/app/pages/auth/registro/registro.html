@@ -1,0 +1,98 @@
+<app-marco-acceso
+  tituloAntes="Crea tu cuenta y comienza a"
+  tituloResaltado="aprender"
+  descripcion="Únete a una comunidad educativa en línea donde estudiantes y docentes comparten conocimiento y crean nuevas oportunidades."
+>
+  <div class="encabezado">
+    <h2>Crea una nueva cuenta</h2>
+    <p>Completa tus datos para comenzar en Learnity</p>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="registrar()" novalidate>
+    <div class="fila-doble">
+      <div class="campo">
+        <label class="etiqueta" for="nombres">Nombres</label>
+        <div class="control-icono">
+          <lucide-icon name="user" [size]="20" />
+          <input id="nombres" class="control" [class.invalido]="invalido('nombres')" formControlName="nombres" placeholder="Ej.: Rosa" autocomplete="given-name" />
+        </div>
+        @if (invalido('nombres')) {
+          <span class="error-campo">Ingresa tus nombres.</span>
+        }
+      </div>
+      <div class="campo">
+        <label class="etiqueta" for="apellidos">Apellidos</label>
+        <input id="apellidos" class="control" [class.invalido]="invalido('apellidos')" formControlName="apellidos" placeholder="Ej.: Vera Chávez" autocomplete="family-name" />
+        @if (invalido('apellidos')) {
+          <span class="error-campo">Ingresa tus apellidos.</span>
+        }
+      </div>
+    </div>
+
+    <div class="campo">
+      <label class="etiqueta" for="correo">Correo electrónico</label>
+      <div class="control-icono">
+        <lucide-icon name="mail" [size]="20" />
+        <input id="correo" class="control" [class.invalido]="invalido('correo')" type="email" formControlName="correo" placeholder="tucorreo@ejemplo.com" autocomplete="email" />
+      </div>
+      @if (invalido('correo')) {
+        <span class="error-campo">Ingresa un correo válido.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label class="etiqueta" for="contrasena">Contraseña</label>
+      <div class="control-icono">
+        <lucide-icon name="lock" [size]="20" />
+        <input
+          id="contrasena"
+          class="control"
+          [class.invalido]="invalido('contrasena')"
+          [type]="verContrasena() ? 'text' : 'password'"
+          formControlName="contrasena"
+          placeholder="Crea una contraseña (mín. 8 caracteres)"
+          autocomplete="new-password"
+        />
+        <button type="button" class="accion-control" (click)="verContrasena.set(!verContrasena())" aria-label="Mostrar u ocultar contraseña">
+          <lucide-icon [name]="verContrasena() ? 'eye' : 'eye-off'" [size]="20" />
+        </button>
+      </div>
+      @if (invalido('contrasena')) {
+        <span class="error-campo">La contraseña debe tener al menos 8 caracteres.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label class="etiqueta" for="confirmar">Confirmar contraseña</label>
+      <div class="control-icono">
+        <lucide-icon name="lock" [size]="20" />
+        <input
+          id="confirmar"
+          class="control"
+          [class.invalido]="form.hasError('noCoinciden') && form.controls.confirmar.touched"
+          [type]="verContrasena() ? 'text' : 'password'"
+          formControlName="confirmar"
+          placeholder="Confirma tu contraseña"
+          autocomplete="new-password"
+        />
+      </div>
+      @if (form.hasError('noCoinciden') && form.controls.confirmar.touched) {
+        <span class="error-campo">Las contraseñas no coinciden.</span>
+      }
+    </div>
+
+    @if (error()) {
+      <div class="aviso error" role="alert">
+        <lucide-icon name="circle-alert" [size]="18" />
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <button type="submit" class="btn btn-primario btn-lg btn-bloque" [disabled]="enviando()">
+      {{ enviando() ? 'Creando cuenta…' : 'Crear cuenta' }}
+      <lucide-icon name="arrow-right" [size]="20" />
+    </button>
+  </form>
+
+  <p class="pie">¿Ya tienes una cuenta?<a routerLink="/login">Inicia sesión</a></p>
+</app-marco-acceso>
