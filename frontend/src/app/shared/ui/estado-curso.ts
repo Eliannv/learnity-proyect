@@ -1,5 +1,12 @@
-import { Component, computed, input } from '@angular/core';
-import type { EstadoCurso } from '../../data/datos-demo';
+import {
+  Component,
+  computed,
+  input,
+} from '@angular/core';
+
+import type {
+  EstadoCurso,
+} from '../../core/cursos/gestion-cursos.model';
 
 const TEXTO: Record<EstadoCurso, string> = {
   BORRADOR: 'Borrador',
@@ -17,13 +24,19 @@ const CLASE: Record<EstadoCurso, string> = {
   ARCHIVADO: 'estado-borrador',
 };
 
-/** Etiqueta del estado de un curso (BORRADOR → EN_REVISION → PUBLICADO / RECHAZADO → ARCHIVADO). */
 @Component({
   selector: 'app-estado-curso',
-  template: `<span class="estado" [class]="clase()">{{ texto() }}</span>`,
+  templateUrl: './estado-curso.html',
+  styleUrl: './estado-curso.scss',
 })
 export class EstadoCursoBadge {
   readonly estado = input.required<EstadoCurso>();
-  protected readonly texto = computed(() => TEXTO[this.estado()]);
-  protected readonly clase = computed(() => `estado ${CLASE[this.estado()]}`);
+
+  protected readonly texto = computed(
+    () => TEXTO[this.estado()],
+  );
+
+  protected readonly clase = computed(
+    () => `estado ${CLASE[this.estado()]}`,
+  );
 }

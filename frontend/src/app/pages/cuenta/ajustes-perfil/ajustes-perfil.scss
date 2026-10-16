@@ -1,7 +1,7 @@
 :host {
   display: flex;
   flex-direction: column;
-  max-width: 1080px;
+  max-width: 840px;
   margin: 0 auto;
   width: 100%;
 }
@@ -16,7 +16,7 @@
 .pestanas {
   display: flex;
   gap: 24px;
-  margin-top: 28px;
+  margin-top: 20px;
   border-bottom: 1px solid var(--gris-200);
   overflow-x: auto;
   scrollbar-width: none;
@@ -44,19 +44,27 @@
 }
 
 .panel {
-  padding-top: 28px;
+  padding-top: 20px;
 }
 
 .columnas {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 32px;
+  gap: 24px;
 }
 
 .columna {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
+}
+
+/* Nombres, apellidos y ciudad conservan un ancho cómodo y proporcional. */
+#nombres,
+#apellidos,
+#ciudad {
+  max-width: 320px;
 }
 
 input[readonly] {
@@ -81,7 +89,7 @@ input[readonly] {
 }
 
 textarea.control {
-  min-height: 140px;
+  min-height: 112px;
 }
 
 .vista-docente {
@@ -112,7 +120,7 @@ textarea.control {
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  margin-top: 32px;
+  margin-top: 24px;
 
   .aviso {
     flex: 1;
@@ -257,5 +265,13 @@ textarea.control {
   }
   .foto-acciones {
     align-items: center;
+  }
+}
+
+@media (max-width: 600px) {
+  #nombres,
+  #apellidos,
+  #ciudad {
+    max-width: none;
   }
 }

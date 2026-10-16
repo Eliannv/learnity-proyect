@@ -29,6 +29,7 @@ const esquema = z
     DB_USER: z.string().min(1),
     DB_PASSWORD: z.string().min(1),
     DB_SSL: booleano('false'),
+    PDF_DIR: z.string().trim().min(1).default('uploads/pdf'),
 
     JWT_SECRET: z.string().min(32, 'JWT_SECRET debe tener al menos 32 caracteres aleatorios'),
     /** Vida del access token (JWT que el navegador guarda solo en memoria). */

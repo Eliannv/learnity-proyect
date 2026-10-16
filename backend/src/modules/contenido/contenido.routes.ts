@@ -1,11 +1,32 @@
 import { Router } from 'express';
-// import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
-// import { contenidoController } from './contenido.controller.js';
 
-// Módulo Contenido · Archivos multimedia: videos, PDF y PowerPoint.
-// Rutas previstas (se implementan en su sprint):
-//   POST /lecciones/:id/archivo (Multer + FFmpeg: MP4 <= 5 MB y 480p
-//   PDF/PPT <= 10 MB)
-//   POST /lecciones/:id/adjuntos (máximo 3)
-//   GET /archivos/:id (solo usuarios autorizados)
+import {
+  autenticar,
+  autorizar,
+} from '../../shared/auth/middlewares.js';
+
+import {
+  contenidoController as controller,
+} from './contenido.controller.js';
+
+import {
+  recibirPdf,
+} from './contenido.multipart.js';
+
 export const contenidoRoutes = Router();
+
+contenidoRoutes.post(
+  '/lecciones/:id/archivo',
+  autenticar,
+  autorizar('DOCENTE'),
+  controller.autorizarCarga,
+  recibirPdf,
+  controller.subir,
+);
+
+contenidoRoutes.get(
+  '/archivos/:id',
+  autenticar,
+  autorizar('DOCENTE', 'ADMIN'),
+  controller.descargar,
+);

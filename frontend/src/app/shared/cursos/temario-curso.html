@@ -1,0 +1,206 @@
+<section class="pagina">
+    <div class="cabecera">
+        <h2>
+            Contenido · {{ curso().modulos.length }} de 10 módulos
+        </h2>
+
+        @if (editable()) {
+        <button type="button" class="btn btn-contorno" [disabled]="
+          deshabilitado() ||
+          hayFormulario() ||
+          curso().modulos.length >= 10
+        " (click)="abrirModulo()">
+        Agregar módulo
+      </button> }
+    </div>
+
+    @if (p.error()) {
+    <p class="mensaje error" role="alert">
+        {{ p.error() }}
+    </p>
+
+    @if (p.requiereRecarga()) {
+    <button type="button" class="btn btn-contorno" (click)="recargar.emit()">
+        Actualizar curso
+      </button> } } @if (p.exito()) {
+    <p class="mensaje exito" role="status">
+        {{ p.exito() }}
+    </p>
+    } @if (modulo; as m) {
+    <form #fm="ngForm" class="tarjeta bloque" (ngSubmit)="guardarModulo()">
+        <h3>
+            {{ m.id === null ? 'Nuevo módulo' : 'Editar módulo' }}
+        </h3>
+
+        <fieldset class="rejilla" [disabled]="deshabilitado()">
+            <label class="campo">
+          Título (obligatorio, máximo 150 caracteres)
+
+          <input
+            class="control"
+            name="titulo"
+            [(ngModel)]="m.titulo"
+            required
+            maxlength="150"
+          />
+
+          <small class="error-campo">
+            {{ p.campos()['titulo'] }}
+          </small>
+        </label>
+
+            <label class="campo">
+          Orden (1 a 10, sin repetir)
+
+          <input
+            class="control"
+            name="orden"
+            type="number"
+            [(ngModel)]="m.orden"
+            required
+            min="1"
+            max="10"
+            step="1"
+          />
+
+          <small class="error-campo">
+            {{ p.campos()['orden'] }}
+          </small>
+        </label>
+        </fieldset>
+
+        <div class="acciones">
+            <button type="submit" class="btn btn-primario" [disabled]="fm.invalid || deshabilitado()">
+          Guardar módulo
+        </button>
+
+            <button type="button" class="btn btn-contorno" [disabled]="deshabilitado()" (click)="cerrarFormulario()">
+          Cancelar
+        </button>
+        </div>
+    </form>
+    } @if (leccion; as l) {
+    <form #fl="ngForm" class="tarjeta bloque" (ngSubmit)="guardarLeccion()">
+        <h3>
+            {{ l.id === null ? 'Nueva lección PDF' : 'Editar lección' }}
+        </h3>
+
+        <fieldset class="rejilla" [disabled]="deshabilitado()">
+            <label class="campo">
+          Título (obligatorio, máximo 150 caracteres)
+
+          <input
+            class="control"
+            name="titulo"
+            [(ngModel)]="l.titulo"
+            required
+            maxlength="150"
+          />
+
+          <small class="error-campo">
+            {{ p.campos()['titulo'] }}
+          </small>
+        </label>
+
+            <label class="campo">
+          Orden (1 a 12, sin repetir)
+
+          <input
+            class="control"
+            name="orden"
+            type="number"
+            [(ngModel)]="l.orden"
+            required
+            min="1"
+            max="12"
+            step="1"
+          />
+
+          <small class="error-campo">
+            {{ p.campos()['orden'] }}
+          </small>
+        </label>
+        </fieldset>
+
+        <p>
+            Primero guarda la lección; después podrás subir su PDF.
+        </p>
+
+        <small class="error-campo">
+        {{ p.campos()['tipo'] }}
+      </small>
+
+        <div class="acciones">
+            <button type="submit" class="btn btn-primario" [disabled]="fl.invalid || deshabilitado()">
+          Guardar lección
+        </button>
+
+            <button type="button" class="btn btn-contorno" [disabled]="deshabilitado()" (click)="cerrarFormulario()">
+          Cancelar
+        </button>
+        </div>
+    </form>
+    } @for (m of curso().modulos; track m.id) {
+    <details class="modulo" open>
+        <summary>
+            {{ m.orden }}. {{ m.titulo }} · {{ m.lecciones.length }} de 12 lecciones
+        </summary>
+
+        @if (editable()) {
+        <div class="acciones">
+            <button type="button" class="btn btn-contorno" [disabled]="deshabilitado() || hayFormulario()" (click)="abrirModulo(m)">
+            Editar módulo
+          </button>
+
+            <button type="button" class="btn btn-contorno" [disabled]="deshabilitado() || hayFormulario()" (click)="eliminar('modulos', m.id)">
+            Eliminar módulo
+          </button>
+
+            <button type="button" class="btn btn-contorno" [disabled]="
+              deshabilitado() ||
+              hayFormulario() ||
+              m.lecciones.length >= 12
+            " (click)="abrirLeccion(m)">
+            Agregar lección PDF
+          </button>
+        </div>
+        }
+
+        <ol class="lista">
+            @for (l of m.lecciones; track l.id) {
+            <li class="fila">
+                <h3>
+                    {{ l.orden }}. {{ l.titulo }}
+                    <small>({{ l.tipo }})</small>
+                </h3>
+
+                @if (l.tipo === 'DOCUMENTO') {
+                <app-pdf-leccion [leccion]="l" [editable]="editable()" [bloqueado]="deshabilitado() || hayFormulario()" (ocupado)="cambiarOcupado($event)" (actualizado)="actualizado.emit($event)" (recargar)="recargar.emit()" /> @if (editable()) {
+                <div class="acciones">
+                    <button type="button" class="btn btn-contorno" [disabled]="deshabilitado() || hayFormulario()" (click)="abrirLeccion(m, l)">
+                    Editar lección
+                  </button>
+
+                    <button type="button" class="btn btn-contorno" [disabled]="deshabilitado() || hayFormulario()" (click)="eliminar('lecciones', l.id)">
+                    Eliminar lección
+                  </button>
+                </div>
+                } } @else {
+                <p>
+                    La gestión de este tipo de lección corresponde a un sprint posterior.
+                </p>
+                }
+            </li>
+            } @empty {
+            <li>
+                Agrega al menos una lección a este módulo.
+            </li>
+            }
+        </ol>
+    </details>
+    } @empty {
+    <p class="mensaje">
+        Agrega el primer módulo para organizar tu curso.
+    </p>
+    }
+</section>

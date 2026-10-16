@@ -1,5 +1,9 @@
 // Contrato de la API (OpenAPI 3). Se ve en http://localhost:3000/api/docs
 // Cada sprint agrega aquí las rutas que implementa.
+import {
+  esquemasIntegrante3,
+  rutasIntegrante3,
+} from './openapi-integrante3.js';
 
 const usuarioSesion = {
   type: 'object',
@@ -122,6 +126,7 @@ export const openApi = {
   },
   servers: [{ url: '/api' }],
   components: {
+    schemas: esquemasIntegrante3,
     securitySchemes: {
       bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       cookieRefresh: { type: 'apiKey', in: 'cookie', name: 'learnity_rt' },
@@ -129,6 +134,7 @@ export const openApi = {
     },
   },
   paths: {
+    ...rutasIntegrante3,
     '/salud': {
       get: { tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL', responses: { 200: json({ type: 'object' }) } },
     },
