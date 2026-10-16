@@ -1,0 +1,186 @@
+:host {
+    display: block;
+    min-width: 0;
+}
+
+.pagina {
+    display: grid;
+    gap: 20px;
+    max-width: 1050px;
+    margin: 0 auto;
+}
+
+.cabecera,
+.acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.cabecera {
+    justify-content: space-between;
+}
+
+.bloque {
+    padding: 22px;
+    display: grid;
+    gap: 16px;
+}
+
+.rejilla {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.campo {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+}
+
+.campo label,
+label.campo {
+    font-weight: 600;
+}
+
+.campo small,
+small {
+    font-weight: 400;
+    color: var(--gris-500);
+}
+
+.campo .error-campo,
+.error-campo {
+    color: #a32020;
+}
+
+.control {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+textarea.control {
+    min-height: 110px;
+    resize: vertical;
+}
+
+fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+
+fieldset:disabled {
+    opacity: 0.8;
+}
+
+.mensaje {
+    padding: 14px;
+    border-radius: 8px;
+    background: var(--azul-050);
+    overflow-wrap: anywhere;
+}
+
+.mensaje.error {
+    background: #fff1f1;
+    color: #8b2020;
+    border: 1px solid #e4abab;
+}
+
+.mensaje.exito {
+    background: #edf9ee;
+    color: #205c2c;
+}
+
+.lista {
+    display: grid;
+    gap: 14px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.fila {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--gris-200);
+    border-radius: 8px;
+}
+
+.filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filtros [aria-pressed='true'] {
+    background: var(--tinta-900);
+    color: white;
+}
+
+.modulo {
+    padding: 16px;
+    border: 1px solid var(--gris-200);
+    border-radius: 8px;
+}
+
+.modulo summary {
+    cursor: pointer;
+    padding: 8px 0;
+    font-weight: 700;
+}
+
+.modulo .lista {
+    margin: 14px 0;
+}
+
+.pdf {
+    display: grid;
+    gap: 8px;
+}
+
+progress {
+    max-width: 100%;
+    width: 300px;
+}
+
+.portada {
+    width: min(100%, 440px);
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.multilinea {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    scroll-margin-top: 90px;
+}
+
+:focus-visible {
+    outline: 3px solid var(--azul-600);
+    outline-offset: 3px;
+}
+
+@media (max-width: 650px) {
+    .rejilla {
+        grid-template-columns: 1fr;
+    }
+    .bloque {
+        padding: 16px;
+    }
+    .acciones>.btn {
+        flex: 1 1 auto;
+    }
+}

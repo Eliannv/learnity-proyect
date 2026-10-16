@@ -1,127 +1,317 @@
-import { Component, OnInit, computed, input, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { LucideAngularModule } from 'lucide-angular';
-import { CATEGORIAS, MODULOS_EDITOR, VERIFICACION_ENVIO, iconoLeccion } from '../../../data/datos-demo';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
+
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+
+import { Router, RouterLink } from '@angular/router';
+
+import { GestionCursosApi } from '../../../core/cursos/gestion-cursos.api';
+
+import {
+  CursoDetalle,
+  NivelCurso,
+  esEditable,
+} from '../../../core/cursos/gestion-cursos.model';
+
+import {
+  CategoriaPublica,
+  CursosPublicosService,
+} from '../../publico/cursos-publicos.service';
+
 import { EstadoCursoBadge } from '../../../shared/ui/estado-curso';
-import { Modal } from '../../../shared/ui/modal';
+import { Peticion } from '../../../shared/cursos/peticion';
+import { TemarioCurso } from '../../../shared/cursos/temario-curso';
 
-type TipoSubida = 'VIDEO' | 'PDF' | 'PPT';
-
-interface ArchivoRevisado {
-  nombre: string;
-  detalle: string;
-  errores: string[];
-}
-
-/** Límites de la plataforma (RN-08). */
-const LIMITES: Record<TipoSubida, { bytes: number; texto: string; acepta: string; titulo: string }> = {
-  VIDEO: { bytes: 5 * 1024 * 1024, texto: 'MP4 (H.264) · máximo 5 MB · resolución máxima 480p', acepta: 'video/mp4', titulo: 'Subir video de la lección' },
-  PDF: { bytes: 10 * 1024 * 1024, texto: 'PDF · máximo 10 MB', acepta: 'application/pdf,.pdf', titulo: 'Subir documento PDF' },
-  PPT: { bytes: 10 * 1024 * 1024, texto: 'PowerPoint (.ppt o .pptx) · máximo 10 MB', acepta: '.ppt,.pptx', titulo: 'Subir presentación PowerPoint' },
-};
-
-const EJEMPLO_RECHAZADO: ArchivoRevisado = {
-  nombre: 'clase-variables.mp4',
-  detalle: '7,2 MB · 1280 × 720 · 3:10',
-  errores: ['El video pesa 7,2 MB y el máximo permitido es 5 MB.', 'La resolución es 720p y la máxima permitida es 480p.'],
-};
+const lineas = (texto: string) =>
+  texto
+    .split(/\r?\n/)
+    .map((linea) => linea.trim())
+    .filter(Boolean);
 
 @Component({
   selector: 'app-editor-curso',
-  imports: [FormsModule, RouterLink, LucideAngularModule, EstadoCursoBadge, Modal],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    EstadoCursoBadge,
+    TemarioCurso,
+  ],
   templateUrl: './editor-curso.html',
   styleUrl: './editor-curso.scss',
 })
-export class EditorCurso implements OnInit {
-  /** :id de /docente/cursos/:id/editar ("nuevo" para crear un curso). */
+export class EditorCurso {
   readonly id = input.required<string>();
 
-  protected readonly esNuevo = computed(() => this.id() === 'nuevo');
-  protected readonly categorias = CATEGORIAS;
-  protected readonly verificacion = VERIFICACION_ENVIO;
-  protected readonly icono = iconoLeccion;
-  protected readonly modulos = computed(() => (this.esNuevo() ? [] : MODULOS_EDITOR));
-  protected readonly abiertos = signal<number[]>([0, 1]);
+  private readonly api = inject(GestionCursosApi);
+  private readonly publicos = inject(CursosPublicosService);
+  private readonly router = inject(Router);
+  private readonly fb = inject(FormBuilder).nonNullable;
 
-  protected titulo = 'JavaScript para la web';
-  protected descripcion =
-    'Aprende los fundamentos de Python paso a paso, con videos cortos, documentos de apoyo y evaluaciones por módulo.';
-  protected categoria = 'Programación';
-  protected nivel = 'Principiante';
+  protected readonly carga = new Peticion();
+  protected readonly p = new Peticion();
 
-  // ---- subida de archivos (validación en el navegador, como en el diagrama de secuencia 9.3)
-  protected readonly subida = signal<TipoSubida | null>(null);
-  protected readonly archivo = signal<ArchivoRevisado | null>(null);
-  protected readonly limite = computed(() => (this.subida() ? LIMITES[this.subida()!] : null));
+  protected readonly curso = signal<CursoDetalle | null>(null);
+  protected readonly categorias = signal<CategoriaPublica[]>([]);
 
-  ngOnInit() {
-    if (this.esNuevo()) {
-      this.titulo = '';
-      this.descripcion = '';
-    }
+  protected readonly sucio = signal(false);
+  protected readonly contenidoOcupado = signal(false);
+  protected readonly formularioContenido = signal(false);
+
+  protected readonly editable = computed(
+    () =>
+      !this.curso() ||
+      esEditable(this.curso()!.estado),
+  );
+
+  protected readonly bloqueado = computed(
+    () =>
+      this.p.ocupada() ||
+      this.contenidoOcupado() ||
+      this.p.requiereRecarga(),
+  );
+
+  protected readonly form = this.fb.group({
+    titulo: [
+      '',
+      [
+        Validators.required,
+        Validators.maxLength(150),
+        Validators.pattern(/\S/),
+      ],
+    ],
+
+    subtitulo: [
+      '',
+      Validators.maxLength(200),
+    ],
+
+    descripcion: [
+      '',
+      Validators.maxLength(10000),
+    ],
+
+    categoriaId: [
+      0,
+      [
+        Validators.required,
+        Validators.min(1),
+      ],
+    ],
+
+    nivel: [
+      'PRINCIPIANTE' as NivelCurso,
+      Validators.required,
+    ],
+
+    portadaUrl: [
+      '',
+      Validators.maxLength(255),
+    ],
+
+    objetivos: [''],
+    requisitos: [''],
+  });
+
+  private version = 0;
+
+  constructor() {
+    effect(() => {
+      const id = this.id();
+
+      untracked(() => {
+        void this.cargar(id);
+      });
+    });
   }
 
-  protected alternar(i: number) {
-    this.abiertos.update((a) => (a.includes(i) ? a.filter((n) => n !== i) : [...a, i]));
-  }
+  protected async cargar(
+    id = this.id(),
+  ): Promise<void> {
+    const version = ++this.version;
 
-  protected abrirSubida(tipo: TipoSubida, mostrarEjemplo = false) {
-    this.subida.set(tipo);
-    this.archivo.set(mostrarEjemplo ? EJEMPLO_RECHAZADO : null);
-  }
+    this.curso.set(null);
+    this.categorias.set([]);
 
-  protected cerrarSubida() {
-    this.subida.set(null);
-    this.archivo.set(null);
-  }
+    this.carga.limpiar();
+    this.p.limpiar();
 
-  protected async revisarArchivo(evento: Event) {
-    const entrada = evento.target as HTMLInputElement;
-    const archivo = entrada.files?.[0];
-    entrada.value = '';
-    const tipo = this.subida();
-    if (!archivo || !tipo) return;
+    this.carga.ocupada.set(true);
 
-    const limite = LIMITES[tipo];
-    const errores: string[] = [];
-    const mb = (archivo.size / 1024 / 1024).toFixed(1).replace('.', ',');
-    const partes = [`${mb} MB`];
+    this.contenidoOcupado.set(false);
+    this.formularioContenido.set(false);
 
-    const extension = archivo.name.split('.').pop()?.toLowerCase() ?? '';
-    const extensionValida = tipo === 'VIDEO' ? extension === 'mp4' : tipo === 'PDF' ? extension === 'pdf' : ['ppt', 'pptx'].includes(extension);
-    if (!extensionValida) errores.push(`El formato .${extension} no está permitido. Usa ${limite.texto.split(' · ')[0]}.`);
-    if (archivo.size > limite.bytes) {
-      errores.push(`El archivo pesa ${mb} MB y el máximo permitido es ${limite.bytes / 1024 / 1024} MB.`);
-    }
+    try {
+      if (
+        id !== 'nuevo' &&
+        !/^[1-9]\d*$/.test(id)
+      ) {
+        throw new Error('ID inválido');
+      }
 
-    if (tipo === 'VIDEO' && extensionValida) {
-      const meta = await leerVideo(archivo);
-      if (meta) {
-        partes.push(`${meta.ancho} × ${meta.alto}`, meta.duracion);
-        if (meta.alto > 480) errores.push(`La resolución es ${meta.alto}p y la máxima permitida es 480p.`);
+      const [categorias, curso] = await Promise.all([
+        this.publicos.categorias(),
+
+        id === 'nuevo'
+          ? Promise.resolve(null)
+          : this.api.detalleDocente(Number(id)),
+      ]);
+
+      if (version !== this.version) return;
+
+      this.categorias.set(categorias);
+      this.aplicar(curso);
+    } catch (error) {
+      if (version === this.version) {
+        this.carga.fallar(error);
+      }
+    } finally {
+      if (version === this.version) {
+        this.carga.ocupada.set(false);
       }
     }
-
-    this.archivo.set({ nombre: archivo.name, detalle: partes.join(' · '), errores });
   }
-}
 
-/** Lee ancho, alto y duración de un video sin subirlo. */
-function leerVideo(archivo: File): Promise<{ ancho: number; alto: number; duracion: string } | null> {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(archivo);
-    const video = document.createElement('video');
-    video.preload = 'metadata';
-    video.onloadedmetadata = () => {
-      const s = Math.round(video.duration);
-      resolve({ ancho: video.videoWidth, alto: video.videoHeight, duracion: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` });
-      URL.revokeObjectURL(url);
+  protected aplicar(
+    curso: CursoDetalle | null,
+  ): void {
+    this.curso.set(curso);
+
+    this.form.reset({
+      titulo: curso?.titulo ?? '',
+      subtitulo: curso?.subtitulo ?? '',
+      descripcion: curso?.descripcion ?? '',
+      categoriaId: curso?.categoriaId ?? 0,
+      nivel: curso?.nivel ?? 'PRINCIPIANTE',
+      portadaUrl: curso?.portadaUrl ?? '',
+      objetivos: curso?.objetivos.join('\n') ?? '',
+      requisitos: curso?.requisitos.join('\n') ?? '',
+    });
+
+    this.sucio.set(false);
+
+    if (curso && !esEditable(curso.estado)) {
+      this.form.disable();
+    } else {
+      this.form.enable();
+    }
+  }
+
+  protected errorCampo(
+    nombre: keyof typeof this.form.controls,
+  ): string {
+    const control = this.form.controls[nombre];
+
+    return (
+      this.p.campo(nombre) ||
+      (
+        control.touched && control.invalid
+          ? 'Revisa este campo y su longitud permitida.'
+          : ''
+      )
+    );
+  }
+
+  protected async guardar(): Promise<void> {
+    this.form.markAllAsTouched();
+
+    if (
+      this.form.invalid ||
+      !this.editable() ||
+      this.bloqueado() ||
+      this.formularioContenido()
+    ) {
+      return;
+    }
+
+    const valor = this.form.getRawValue();
+
+    const objetivos = lineas(valor.objetivos);
+    const requisitos = lineas(valor.requisitos);
+
+    const listasInvalidas = [
+      objetivos,
+      requisitos,
+    ].some(
+      (lista) =>
+        lista.length > 10 ||
+        lista.some((texto) => texto.length > 200),
+    );
+
+    if (listasInvalidas) {
+      this.p.error.set(
+        'Usa como máximo 10 objetivos y 10 requisitos, de hasta 200 caracteres cada uno.',
+      );
+
+      return;
+    }
+
+    const datos = {
+      ...valor,
+      titulo: valor.titulo.trim(),
+      subtitulo: valor.subtitulo.trim(),
+      descripcion: valor.descripcion.trim(),
+      portadaUrl: valor.portadaUrl.trim(),
+      objetivos,
+      requisitos,
     };
-    video.onerror = () => {
-      resolve(null);
-      URL.revokeObjectURL(url);
-    };
-    video.src = url;
-  });
+
+    const ruta = this.id();
+
+    await this.p.ejecutar(
+      () =>
+        this.api.guardarCurso(
+          this.curso()?.id ?? null,
+          datos,
+        ),
+
+      (curso) => {
+        if (this.id() !== ruta) return;
+
+        this.aplicar(curso);
+
+        if (ruta === 'nuevo') {
+          void this.router.navigate(
+            ['/docente/cursos', curso.id, 'editar'],
+            { replaceUrl: true },
+          );
+        }
+      },
+
+      'Curso guardado.',
+    );
+  }
+
+  protected async enviar(): Promise<void> {
+    const curso = this.curso();
+
+    if (
+      !curso ||
+      !this.editable() ||
+      this.bloqueado() ||
+      this.sucio() ||
+      this.formularioContenido() ||
+      !curso.validacion.completo
+    ) {
+      return;
+    }
+
+    await this.p.ejecutar(
+      () => this.api.enviarRevision(curso.id),
+
+      (respuesta) => this.aplicar(respuesta),
+
+      'Curso enviado a revisión.',
+    );
+  }
 }

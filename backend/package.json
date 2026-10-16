@@ -1,47 +1,54 @@
 {
-  "name": "learnity-backend",
-  "version": "0.1.0",
-  "private": true,
-  "description": "API REST de Learnity: monolito modular en capas (routes → controller → service → repository).",
-  "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
-  "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
-    "typecheck": "tsc -p tsconfig.verificar.json",
-    "db:seed": "tsx src/database/seed.ts",
-    "db:seed-publico": "tsx scripts/sembrar-catalogo.ts",
-    "db:probar": "tsx scripts/probar-repositorio.ts",
-    "test": "tsx --env-file=.env.test --test --test-concurrency=1 test/identidad.test.ts test/cursos-publicos.test.ts",
-    "correo:autorizar": "tsx scripts/autorizar-gmail.ts",
-    "correo:probar": "tsx scripts/probar-correo.ts",
-    "crear-modulo": "node scripts/crear-modulos.mjs"
-  },
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6",
-    "dotenv": "^18.0.6",
-    "express": "^5.2.1",
-    "helmet": "^8.3.0",
-    "jsonwebtoken": "^9.0.3",
-    "pg": "^8.23.1",
-    "swagger-ui-express": "^5.0.1",
-    "zod": "^4.6.5"
-  },
-  "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^22.20.5",
-    "@types/pg": "^8.23.1",
-    "@types/swagger-ui-express": "^4.1.8",
-    "tsx": "^4.23.15",
-    "typescript": "~5.9"
-  }
+    "name": "learnity-backend",
+    "version": "0.1.0",
+    "private": true,
+    "description": "API REST de Learnity: monolito modular en capas (routes → controller → service → repository).",
+    "type": "module",
+    "engines": {
+        "node": ">=22"
+    },
+    "scripts": {
+        "dev": "tsx watch src/server.ts",
+        "build": "tsc -p tsconfig.json",
+        "start": "node dist/server.js",
+        "typecheck": "tsc -p tsconfig.verificar.json",
+        "db:seed": "tsx src/database/seed.ts",
+        "db:seed-publico": "tsx scripts/sembrar-catalogo.ts",
+        "db:probar": "tsx scripts/probar-repositorio.ts",
+        "test": "npm run test:local",
+        "correo:autorizar": "tsx scripts/autorizar-gmail.ts",
+        "correo:probar": "tsx scripts/probar-correo.ts",
+        "crear-modulo": "node scripts/crear-modulos.mjs",
+        "archivos:limpiar": "tsx scripts/limpiar-pdf.ts",
+        "test:pdf": "tsx --test test/pdf-validacion.test.ts",
+        "test:integrante3": "tsx --env-file=.env.test --test --test-concurrency=1 test/pdf-validacion.test.ts test/administracion-contenido.test.ts",
+        "test:local": "tsx --env-file=.env.test --test --test-concurrency=1 --test-skip-pattern=\"Have I Been Pwned\" test/identidad.test.ts test/cursos-publicos.test.ts test/pdf-validacion.test.ts test/administracion-contenido.test.ts"
+    },
+    "dependencies": {
+        "bcrypt": "^6.0.0",
+        "cookie-parser": "^1.4.7",
+        "cors": "^2.8.6",
+        "dotenv": "^18.0.6",
+        "express": "^5.2.1",
+        "helmet": "^8.3.0",
+        "jsonwebtoken": "^9.0.3",
+        "multer": "2.4.0",
+        "pdf-lib": "1.17.1",
+        "pg": "^8.23.1",
+        "swagger-ui-express": "^5.0.1",
+        "zod": "^4.6.5"
+    },
+    "devDependencies": {
+        "@types/bcrypt": "^6.0.0",
+        "@types/cookie-parser": "^1.4.10",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.6",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/multer": "2.0.0",
+        "@types/node": "^22.20.5",
+        "@types/pg": "^8.23.1",
+        "@types/swagger-ui-express": "^4.1.8",
+        "tsx": "^4.23.15",
+        "typescript": "~5.9"
+    }
 }

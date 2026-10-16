@@ -1,172 +1,285 @@
-<div class="distribucion">
-  <section class="principal">
-    <nav class="migas" aria-label="Ruta">
-      <a routerLink="/docente/cursos">Mis cursos</a>
-      <lucide-icon name="chevron-right" [size]="16" />
-      <span>{{ esNuevo() ? 'Nuevo curso' : titulo }}</span>
-    </nav>
+<div class="pagina">
+    <a routerLink="/docente/cursos">
+    ← Mis cursos
+  </a>
 
-    <div class="titulo">
-      <h1 class="titulo-pagina">{{ esNuevo() ? 'Crear curso' : 'Editar curso' }}</h1>
-      <app-estado-curso estado="BORRADOR" />
-    </div>
+    <header class="cabecera">
+        <h1 class="titulo-pagina">
+            {{ id() === 'nuevo' ? 'Crear curso' : 'Contenido del curso' }}
+        </h1>
 
-    <div class="campo">
-      <label class="etiqueta" for="titulo">Título del curso</label>
-      <input id="titulo" class="control" [(ngModel)]="titulo" placeholder="Ej.: Introducción a Python" />
-      <span class="ayuda">Nombra la habilidad que enseña, no el problema que aborda.</span>
-    </div>
+        @if (curso(); as c) {
+        <app-estado-curso [estado]="c.estado" /> }
+    </header>
 
-    <div class="campo">
-      <label class="etiqueta" for="descripcion">Descripción</label>
-      <textarea id="descripcion" class="control" [(ngModel)]="descripcion" placeholder="¿Qué aprenderá el estudiante?"></textarea>
-    </div>
-
-    <div class="fila-doble">
-      <div class="campo">
-        <label class="etiqueta" for="categoria">Categoría</label>
-        <select id="categoria" class="control" [(ngModel)]="categoria">
-          @for (c of categorias; track c) {
-            <option [value]="c">{{ c }}</option>
-          }
-        </select>
-      </div>
-      <div class="campo">
-        <label class="etiqueta" for="nivel">Nivel</label>
-        <select id="nivel" class="control" [(ngModel)]="nivel">
-          <option>Principiante</option>
-          <option>Intermedio</option>
-          <option>Avanzado</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="cabecera-contenido">
-      <h2>Contenido del curso</h2>
-      <span class="texto-suave">
-        @if (esNuevo()) {
-          0 módulos · 0 lecciones · 0 MB de 150 MB
-        } @else {
-          2 módulos · 5 lecciones · 38 MB de 150 MB
-        }
-      </span>
-    </div>
-
-    @for (m of modulos(); track m.titulo; let i = $index) {
-      <section class="modulo">
-        <button type="button" class="cabecera-modulo" (click)="alternar(i)" [attr.aria-expanded]="abiertos().includes(i)">
-          <lucide-icon name="grip-vertical" [size]="18" class="asa" />
-          <strong>{{ m.titulo }}</strong>
-          <span class="texto-suave">{{ m.minutos }}</span>
-          <lucide-icon [name]="abiertos().includes(i) ? 'chevron-up' : 'chevron-down'" [size]="20" />
-        </button>
-        @if (abiertos().includes(i)) {
-          <ul>
-            @for (l of m.lecciones; track l.titulo) {
-              <li>
-                <lucide-icon [name]="icono(l.tipo)" [size]="20" class="tipo" />
-                <span class="nombre">{{ l.titulo }}</span>
-                <span class="texto-suave detalle">{{ l.detalle }}</span>
-                @if (l.tipo === 'EVALUACION') {
-                  <a class="btn btn-contorno" [routerLink]="'/docente/cursos/' + id() + '/evaluacion'">Editar</a>
-                } @else if (l.tipo === 'VIDEO') {
-                  <button type="button" class="btn btn-contorno" (click)="abrirSubida('VIDEO')">Editar</button>
-                } @else {
-                  <button type="button" class="btn btn-contorno" (click)="abrirSubida(l.tipo === 'PRESENTACION' ? 'PPT' : 'PDF')">Editar</button>
-                }
-              </li>
-            }
-          </ul>
-          @if (m.sinEvaluacion) {
-            <div class="pie-modulo alerta">
-              <lucide-icon name="circle-alert" [size]="18" />
-              <span>Añade una evaluación antes de enviar el curso a revisión.</span>
-              <a class="btn btn-contorno" [routerLink]="'/docente/cursos/' + id() + '/evaluacion'">+ Evaluación</a>
-            </div>
-          } @else {
-            <div class="pie-modulo">
-              <button type="button" class="btn btn-contorno" (click)="abrirSubida('VIDEO', true)">+ Video</button>
-              <button type="button" class="btn btn-contorno" (click)="abrirSubida('PDF')">+ PDF</button>
-              <button type="button" class="btn btn-contorno" (click)="abrirSubida('PPT')">+ PowerPoint</button>
-              <a class="btn btn-contorno" [routerLink]="'/docente/cursos/' + id() + '/evaluacion'">+ Evaluación</a>
-            </div>
-          }
-        }
-      </section>
-    } @empty {
-      <div class="vacio">
-        <lucide-icon name="book-open" [size]="28" />
-        <p>Tu curso aún no tiene módulos. Agrega el primero (de 1 a 10 módulos).</p>
-      </div>
-    }
-
-    <button type="button" class="btn btn-contorno btn-lg btn-bloque">Agregar módulo</button>
-
-    <div class="pie">
-      <span class="texto-suave guardado">Guardado automático · 18 mar 2026, 16:42</span>
-      <div class="botones">
-        <a class="btn btn-texto btn-lg" routerLink="/docente/cursos">Descartar cambios</a>
-        <button type="button" class="btn btn-contorno btn-lg">Guardar borrador</button>
-        <button type="button" class="btn btn-primario btn-lg" disabled title="Completa la lista de la derecha para enviarlo">Enviar a revisión</button>
-      </div>
-    </div>
-  </section>
-
-  <aside class="verificacion tarjeta-suave">
-    <span class="eyebrow">Antes de enviar a revisión</span>
-    <ul>
-      @for (v of verificacion; track v.texto) {
-        <li [class.ok]="v.ok">
-          <lucide-icon [name]="v.ok ? 'circle-check' : 'circle-alert'" [size]="20" />
-          <span>{{ v.texto }}</span>
-        </li>
-      }
-    </ul>
-    <hr class="separador" />
-    <p class="texto-suave nota">
-      Al enviar, el curso pasa a «En revisión» y queda bloqueado hasta que Administración lo publique o lo devuelva con un motivo.
+    @if (carga.ocupada()) {
+    <p class="mensaje" role="status">
+        Cargando editor…
     </p>
-  </aside>
-</div>
+    } @else if (carga.error()) {
+    <div class="mensaje error" role="alert">
+        <p>{{ carga.error() }}</p>
 
-@if (subida() && limite(); as lim) {
-  <app-modal [titulo]="lim.titulo" [ancho]="620" (cerrar)="cerrarSubida()">
-    <label class="zona-subida">
-      <input type="file" class="visualmente-oculto" [accept]="lim.acepta" (change)="revisarArchivo($event)" #selector />
-      <lucide-icon name="upload" [size]="30" />
-      <strong>Arrastra tu archivo o selecciona uno</strong>
-      <span class="texto-suave">{{ lim.texto }}</span>
-    </label>
-
-    @if (archivo(); as a) {
-      <div class="resultado" [class.error]="a.errores.length" [class.ok]="!a.errores.length">
-        <div class="resultado-cabecera">
-          <lucide-icon [name]="subida() === 'VIDEO' ? 'video' : 'file-text'" [size]="22" />
-          <div>
-            <strong>{{ a.nombre }}</strong>
-            <span>{{ a.detalle }}</span>
-          </div>
-          <span class="estado-subida">{{ a.errores.length ? 'No se subió' : 'Cumple los límites' }}</span>
-        </div>
-        @for (e of a.errores; track e) {
-          <p class="linea-error"><lucide-icon name="circle-x" [size]="18" /> {{ e }}</p>
-        }
-        @if (!a.errores.length) {
-          <p class="linea-ok"><lucide-icon name="circle-check" [size]="18" /> Listo. La subida al servidor se habilita en el Sprint 2.</p>
-        }
-      </div>
-    }
-
-    @if (subida() === 'VIDEO') {
-      <div class="aviso consejo">
-        <lucide-icon name="lightbulb" [size]="18" />
-        <span>Reduce tu video a 480p con HandBrake (perfil “Fast 480p30”) o divide la clase en lecciones más cortas de 2 a 3 minutos.</span>
-      </div>
-    }
-
-    <div class="acciones-modal">
-      <button type="button" class="btn btn-suave" (click)="cerrarSubida()">Cancelar</button>
-      <button type="button" class="btn btn-primario" (click)="selector.click()">{{ archivo() ? 'Elegir otro archivo' : 'Elegir archivo' }}</button>
+        <button type="button" class="btn btn-contorno" (click)="cargar()">
+        Reintentar
+      </button>
     </div>
-  </app-modal>
-}
+    } @else { @if (!editable()) {
+    <p class="mensaje">
+        Este curso no permite cambios en su estado actual.
+    </p>
+    } @if (curso()?.motivoRechazo; as motivo) {
+    <p class="mensaje error">
+        <strong>Motivo del rechazo:</strong> {{ motivo }}
+    </p>
+    } @if (p.error()) {
+    <p class="mensaje error" role="alert">
+        {{ p.error() }}
+    </p>
+    } @if (p.exito()) {
+    <p class="mensaje exito" role="status">
+        {{ p.exito() }}
+    </p>
+    } @if (p.requiereRecarga()) {
+    <button type="button" class="btn btn-contorno" (click)="cargar()">
+        Actualizar curso
+      </button> }
+
+    <form class="tarjeta bloque" [formGroup]="form" (ngSubmit)="guardar()" (input)="sucio.set(true)" (change)="sucio.set(true)">
+        <h2>1. Datos del curso</h2>
+
+        <p>
+            Para crear el borrador necesitas título, categoría y nivel. Completa los demás datos antes de enviarlo.
+        </p>
+
+        <fieldset class="pagina" [disabled]="
+          !editable() ||
+          bloqueado() ||
+          formularioContenido()
+        ">
+            <label class="campo">
+          Título (máximo 150 caracteres)
+
+          <input
+            class="control"
+            formControlName="titulo"
+            maxlength="150"
+          />
+
+          <small class="error-campo">
+            {{ errorCampo('titulo') }}
+          </small>
+        </label>
+
+            <label class="campo">
+          Subtítulo (máximo 200 caracteres)
+
+          <input
+            class="control"
+            formControlName="subtitulo"
+            maxlength="200"
+          />
+
+          <small class="error-campo">
+            {{ errorCampo('subtitulo') }}
+          </small>
+        </label>
+
+            <label class="campo">
+          Descripción (máximo 10 000 caracteres)
+
+          <textarea
+            class="control"
+            formControlName="descripcion"
+            maxlength="10000"
+          ></textarea>
+
+          <small class="error-campo">
+            {{ errorCampo('descripcion') }}
+          </small>
+        </label>
+
+            <div class="rejilla">
+                <label class="campo">
+            Categoría
+
+            <select
+              class="control"
+              formControlName="categoriaId"
+            >
+              <option [ngValue]="0">
+                Selecciona una categoría
+              </option>
+
+              @if (curso(); as c) {
+                <option [ngValue]="c.categoriaId">
+                  {{ c.categoriaNombre }}
+                </option>
+              }
+
+              @for (c of categorias(); track c.id) {
+                @if (c.id !== curso()?.categoriaId) {
+                  <option [ngValue]="c.id">
+                    {{ c.nombre }}
+                  </option>
+                }
+              }
+            </select>
+
+            <small class="error-campo">
+              {{ errorCampo('categoriaId') }}
+            </small>
+          </label>
+
+                <label class="campo">
+            Nivel
+
+            <select
+              class="control"
+              formControlName="nivel"
+            >
+              <option value="PRINCIPIANTE">
+                Principiante
+              </option>
+
+              <option value="INTERMEDIO">
+                Intermedio
+              </option>
+
+              <option value="AVANZADO">
+                Avanzado
+              </option>
+            </select>
+
+            <small class="error-campo">
+              {{ errorCampo('nivel') }}
+            </small>
+          </label>
+            </div>
+
+            <label class="campo">
+          URL de portada
+
+          <input
+            class="control"
+            formControlName="portadaUrl"
+            maxlength="255"
+            placeholder="https://… o /img/portada.jpg"
+          />
+
+          <small>
+            Usa una imagen horizontal de 16:9 disponible
+            para los visitantes.
+          </small>
+
+          <small class="error-campo">
+            {{ errorCampo('portadaUrl') }}
+          </small>
+        </label>
+
+            <div class="rejilla">
+                <label class="campo">
+            Objetivos: uno por línea,
+            al menos 3 para revisión
+
+            <textarea
+              class="control"
+              formControlName="objetivos"
+            ></textarea>
+
+            <small>
+              Hasta 10 objetivos de 200 caracteres cada uno.
+            </small>
+
+            <small class="error-campo">
+              {{ errorCampo('objetivos') }}
+            </small>
+          </label>
+
+                <label class="campo">
+            Requisitos: uno por línea (opcional)
+
+            <textarea
+              class="control"
+              formControlName="requisitos"
+            ></textarea>
+
+            <small>
+              Hasta 10 requisitos de 200 caracteres cada uno.
+            </small>
+
+            <small class="error-campo">
+              {{ errorCampo('requisitos') }}
+            </small>
+          </label>
+            </div>
+        </fieldset>
+
+        @if (editable()) {
+        <button type="submit" class="btn btn-primario" [disabled]="
+            form.invalid ||
+            bloqueado() ||
+            formularioContenido()
+          ">
+          {{
+            p.ocupada()
+              ? 'Guardando…'
+              : curso()
+                ? 'Guardar cambios'
+                : 'Crear borrador'
+          }}
+        </button> }
+    </form>
+
+    @if (curso(); as c) {
+    <section class="tarjeta bloque">
+        <h2>2. Módulos, lecciones y PDF</h2>
+
+        @if (sucio()) {
+        <p class="mensaje">
+            Guarda los datos del curso antes de modificar su contenido o enviarlo a revisión.
+        </p>
+        }
+
+        <app-temario-curso [curso]="c" [editable]="editable()" [bloqueado]="
+            p.ocupada() ||
+            sucio() ||
+            p.requiereRecarga()
+          " (actualizado)="aplicar($event)" (ocupado)="contenidoOcupado.set($event)" (formularioAbierto)="formularioContenido.set($event)" (recargar)="cargar()" />
+    </section>
+
+    @if (editable()) {
+    <section class="tarjeta bloque">
+        <h2>3. Enviar a revisión</h2>
+
+        @if (c.validacion.completo) {
+        <p>
+            Los datos guardados cumplen la verificación del servidor. Al enviar, dejarás de poder editar.
+        </p>
+        } @else {
+        <p>
+            Antes de enviar, completa lo siguiente:
+        </p>
+
+        <ul>
+            @for ( problema of c.validacion.problemas; track $index ) {
+            <li>{{ problema.mensaje }}</li>
+            }
+        </ul>
+        }
+
+        <button type="button" class="btn btn-acento" [disabled]="
+              bloqueado() ||
+              sucio() ||
+              formularioContenido() ||
+              !c.validacion.completo
+            " (click)="enviar()">
+            Enviar a revisión
+          </button>
+    </section>
+    } } @else {
+    <p class="mensaje">
+        Crea el borrador para empezar a agregar módulos y lecciones.
+    </p>
+    } }
+</div>
