@@ -1,6 +1,12 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import { AppError } from '../../shared/http/app-error.js';
 import { cursosService } from './cursos.service.js';
+import {
+  datosCursoSchema,
+  datosLeccionSchema,
+  datosModuloSchema,
+} from './cursos-gestion.esquemas.js';
 
 const repetible = <T extends z.ZodType>(elemento: T) => z.union([elemento, z.array(elemento).min(1).max(20)])
   .transform((valor) => Array.isArray(valor) ? valor : [valor]);
@@ -17,6 +23,282 @@ const filtros = z.strictObject({
 const idCurso = z.coerce.number().int().positive().safe();
 
 export const cursosController = {
+  async crearCurso(req: Request, res: Response) {
+    const usuario = req.usuario;
+
+    if (!usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const validacion = datosCursoSchema.safeParse(
+      req.body,
+    );
+
+    if (!validacion.success) {
+      throw AppError.solicitudInvalida(
+        'Revisa los datos enviados.',
+        validacion.error.issues.map((issue) => ({
+          campo: issue.path.join('.'),
+          mensaje: issue.message,
+        })),
+      );
+    }
+
+    const curso = await cursosService.crearCurso(
+      validacion.data,
+      usuario,
+    );
+
+    res.status(201).json(curso);
+  },
+
+  async crearModulo(req: Request, res: Response) {
+    const id = idCurso.parse(req.params['id']);
+
+    const usuario = req.usuario;
+
+    if (!usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const validacion = datosModuloSchema.safeParse(
+      req.body,
+    );
+
+    if (!validacion.success) {
+      throw AppError.solicitudInvalida(
+        'Revisa los datos del módulo.',
+        validacion.error.issues.map((issue) => ({
+          campo: issue.path.join('.'),
+          mensaje: issue.message,
+        })),
+      );
+    }
+
+    const curso = await cursosService.crearModulo(
+      id,
+      validacion.data,
+      usuario,
+    );
+
+    res.status(201).json(curso);
+  },
+
+  async crearLeccion(req: Request, res: Response) {
+    const id = idCurso.parse(req.params['id']);
+
+    if (!req.usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const validacion = datosLeccionSchema.safeParse(
+      req.body,
+    );
+
+    if (!validacion.success) {
+      throw AppError.solicitudInvalida(
+        'Revisa los datos de la lección.',
+        validacion.error.issues.map(issue => ({
+          campo: issue.path.join('.'),
+          mensaje: issue.message,
+        })),
+      );
+    }
+
+    const curso = await cursosService.crearLeccion(
+      id,
+      validacion.data,
+      req.usuario,
+    );
+
+    res.status(201).json(curso);
+  },
+
+  async actualizarLeccion(
+    req: Request,
+    res: Response,
+  ) {
+    const id = idCurso.parse(req.params['id']);
+
+    if (!req.usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const validacion = datosLeccionSchema.safeParse(
+      req.body,
+    );
+
+    if (!validacion.success) {
+      throw AppError.solicitudInvalida(
+        'Revisa los datos de la lección.',
+        validacion.error.issues.map(issue => ({
+          campo: issue.path.join('.'),
+          mensaje: issue.message,
+        })),
+      );
+    }
+
+    const curso = await cursosService.actualizarLeccion(
+      id,
+      validacion.data,
+      req.usuario,
+    );
+
+    res.status(200).json(curso);
+  },
+
+  async eliminarLeccion(
+    req: Request,
+    res: Response,
+  ) {
+    const id = idCurso.parse(req.params['id']);
+
+    if (!req.usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const curso = await cursosService.eliminarLeccion(
+      id,
+      req.usuario,
+    );
+
+    res.status(200).json(curso);
+  },
+
+  async eliminarModulo(
+    req: Request,
+    res: Response,
+  ) {
+    const id = idCurso.parse(req.params['id']);
+
+    if (!req.usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const curso = await cursosService.eliminarModulo(
+      id,
+      req.usuario,
+    );
+
+    res.status(200).json(curso);
+  },
+
+  async actualizarModulo(
+    req: Request,
+    res: Response,
+  ) {
+    const id = idCurso.parse(req.params['id']);
+
+    if (!req.usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const resultado = datosModuloSchema.safeParse(
+      req.body,
+    );
+
+    if (!resultado.success) {
+      throw AppError.solicitudInvalida(
+        'Revisa los datos del módulo.',
+        resultado.error.issues.map(issue => ({
+          campo: issue.path.join('.'),
+          mensaje: issue.message,
+        })),
+      );
+    }
+
+    const curso = await cursosService.actualizarModulo(
+      id,
+      resultado.data,
+      req.usuario,
+    );
+
+    res.status(200).json(curso);
+  },
+
+  async actualizarMiCurso(
+    req: Request,
+    res: Response,
+  ) {
+    const id = idCurso.parse(req.params['id']);
+
+    const usuario = req.usuario;
+
+    if (!usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const validacion = datosCursoSchema.safeParse(
+      req.body,
+    );
+
+    if (!validacion.success) {
+      throw AppError.solicitudInvalida(
+        'Revisa los datos enviados.',
+        validacion.error.issues.map((issue) => ({
+          campo: issue.path.join('.'),
+          mensaje: issue.message,
+        })),
+      );
+    }
+
+    const curso =
+      await cursosService.actualizarMiCurso(
+        id,
+        validacion.data,
+        usuario,
+      );
+
+    res.status(200).json(curso);
+  },
+
+  async enviarCursoARevision(
+    req: Request,
+    res: Response,
+  ) {
+    const id = idCurso.parse(req.params['id']);
+
+    if (!req.usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const resultado =
+      await cursosService.enviarCursoARevision(
+        id,
+        req.usuario,
+      );
+
+    res.status(200).json(resultado);
+  },
+
+  async listarMisCursos(req: Request, res: Response) {
+    const usuario = req.usuario;
+
+    if (!usuario) {
+      throw new Error('La ruta requiere autenticación.');
+    }
+
+    const resultado =
+      await cursosService.listarMisCursos(usuario);
+
+    res.status(200).json(resultado);
+  },
+
+  async obtenerMiCurso(req: Request, res: Response) {
+    const id = idCurso.parse(req.params['id']);
+
+    const usuario = req.usuario;
+
+    if (!usuario) {
+      throw AppError.noAutenticado();
+    }
+
+    const resultado =
+      await cursosService.obtenerMiCurso(id, usuario);
+
+    res.status(200).json(resultado);
+  },
+
   async categorias(_req: Request, res: Response) {
     res.json(await cursosService.categoriasPublicas());
   },

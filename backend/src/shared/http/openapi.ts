@@ -4,6 +4,10 @@ import {
   esquemasIntegrante3,
   rutasIntegrante3,
 } from './openapi-integrante3.js';
+import {
+  esquemasIntegrante2,
+  rutasIntegrante2,
+} from './openapi-integrante2.js';
 
 const usuarioSesion = {
   type: 'object',
@@ -126,7 +130,10 @@ export const openApi = {
   },
   servers: [{ url: '/api' }],
   components: {
-    schemas: esquemasIntegrante3,
+    schemas: {
+      ...esquemasIntegrante3,
+      ...esquemasIntegrante2,
+    },
     securitySchemes: {
       bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       cookieRefresh: { type: 'apiKey', in: 'cookie', name: 'learnity_rt' },
@@ -135,6 +142,7 @@ export const openApi = {
   },
   paths: {
     ...rutasIntegrante3,
+    ...rutasIntegrante2,
     '/salud': {
       get: { tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL', responses: { 200: json({ type: 'object' }) } },
     },
@@ -145,6 +153,7 @@ export const openApi = {
       },
     },
     '/cursos': {
+      ...rutasIntegrante2['/cursos'],
       get: {
         tags: ['Cursos'], summary: 'Catálogo público: solo cursos publicados',
         description: 'Los valores repetidos de categoría o nivel se combinan con OR dentro del grupo y AND entre grupos. La búsqueda consulta título, subtítulo y descripción. El total solo cuenta publicados.',
@@ -166,6 +175,7 @@ export const openApi = {
       },
     },
     '/cursos/{id}': {
+      ...rutasIntegrante2['/cursos/{id}'],
       get: {
         tags: ['Cursos'], summary: 'Detalle público de un curso publicado',
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer', minimum: 1 } }],
