@@ -1,4 +1,3 @@
-
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
@@ -24,6 +23,9 @@ const { pool } = await import(
 );
 const { firmarAccessToken } = await import(
   '../src/shared/auth/jwt.js'
+);
+const { cursosIntegracionRepository } = await import(
+  '../src/modules/cursos/cursos-integracion.repository.js'
 );
 
 const marca = 'melissa_' + randomUUID().slice(0, 8);
@@ -346,5 +348,224 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
     );
 
     assert.equal(rows[0]!.estado, 'BORRADOR');
+  });
+
+  it('rechaza IDs inválidos de cursos, módulos y lecciones con 400', async () => {
+    const idsInvalidos = [
+      '0',
+      '-1',
+      '1.5',
+      'abc',
+      '2147483648',
+      '9007199254740991',
+    ];
+
+    for (const id of idsInvalidos) {
+      const respuestas = [
+        await pedir(`/api/docente/cursos/${id}`, docente),
+        await pedir(
+          `/api/modulos/${id}`,
+          docente,
+          'PUT',
+          { titulo: 'Módulo inválido', orden: 1 },
+        ),
+        await pedir(
+          `/api/lecciones/${id}`,
+          docente,
+          'PUT',
+          { titulo: 'Lección inválida', orden: 1, tipo: 'DOCUMENTO' },
+        ),
+      ];
+
+      for (const respuesta of respuestas) {
+        assert.equal(respuesta.status, 400, `ID recibido: ${id}`);
+        assert.equal(respuesta.json.error.codigo, 'SOLICITUD_INVALIDA');
+      }
+    }
+  });
+
+  it('acepta el límite INTEGER como ID válido y responde 404 si no existe', async () => {
+    const id = 2147483647;
+    const existente = await pool.query(
+      'SELECT 1 FROM curso WHERE id_curso = $1',
+      [id],
+    );
+
+    assert.equal(existente.rowCount, 0, 'La base de pruebas debe tener libre el ID máximo.');
+
+    const respuesta = await pedir(`/api/docente/cursos/${id}`, docente);
+
+    assert.equal(respuesta.status, 404);
+    assert.equal(respuesta.json.error.codigo, 'NO_ENCONTRADO');
+  });
+
+  it('permite conservar el orden de un módulo y rechaza el de otro módulo', async () => {
+    const idCurso = await crearCurso();
+    const primero = await pedir(
+      `/api/cursos/${idCurso}/modulos`,
+      docente,
+      'POST',
+      { titulo: 'Primer módulo', orden: 1 },
+    );
+    assert.equal(primero.status, 201);
+    const idModulo = primero.json.modulos[0].id as number;
+
+    const segundo = await pedir(
+      `/api/cursos/${idCurso}/modulos`,
+      docente,
+      'POST',
+      { titulo: 'Segundo módulo', orden: 2 },
+    );
+    assert.equal(segundo.status, 201);
+
+    const actualizado = await pedir(
+      `/api/modulos/${idModulo}`,
+      docente,
+      'PUT',
+      { titulo: 'Primer módulo corregido', orden: 1 },
+    );
+    assert.equal(actualizado.status, 200);
+    assert.equal(actualizado.json.modulos[0].titulo, 'Primer módulo corregido');
+
+    const duplicado = await pedir(
+      `/api/modulos/${idModulo}`,
+      docente,
+      'PUT',
+      { titulo: 'Este cambio debe fallar', orden: 2 },
+    );
+    assert.equal(duplicado.status, 400);
+    assert.equal(duplicado.json.error.detalles[0].campo, 'orden');
+
+    const guardado = await pedir(`/api/docente/cursos/${idCurso}`, docente);
+    assert.equal(guardado.status, 200);
+    assert.equal(guardado.json.modulos[0].titulo, 'Primer módulo corregido');
+    assert.equal(guardado.json.modulos[0].orden, 1);
+  });
+
+  it('permite conservar el orden de una lección y rechaza el de otra lección', async () => {
+    const idCurso = await crearCurso();
+    const modulo = await pedir(
+      `/api/cursos/${idCurso}/modulos`,
+      docente,
+      'POST',
+      { titulo: 'Módulo de lecciones', orden: 1 },
+    );
+    assert.equal(modulo.status, 201);
+    const idModulo = modulo.json.modulos[0].id as number;
+
+    const primera = await pedir(
+      `/api/modulos/${idModulo}/lecciones`,
+      docente,
+      'POST',
+      { titulo: 'Primera lección', orden: 1, tipo: 'DOCUMENTO' },
+    );
+    assert.equal(primera.status, 201);
+    const idLeccion = primera.json.modulos[0].lecciones[0].id as number;
+
+    const segunda = await pedir(
+      `/api/modulos/${idModulo}/lecciones`,
+      docente,
+      'POST',
+      { titulo: 'Segunda lección', orden: 2, tipo: 'DOCUMENTO' },
+    );
+    assert.equal(segunda.status, 201);
+
+    const actualizada = await pedir(
+      `/api/lecciones/${idLeccion}`,
+      docente,
+      'PUT',
+      { titulo: 'Primera lección corregida', orden: 1, tipo: 'DOCUMENTO' },
+    );
+    assert.equal(actualizada.status, 200);
+    assert.equal(actualizada.json.modulos[0].lecciones[0].titulo, 'Primera lección corregida');
+
+    const duplicada = await pedir(
+      `/api/lecciones/${idLeccion}`,
+      docente,
+      'PUT',
+      { titulo: 'Este cambio debe fallar', orden: 2, tipo: 'DOCUMENTO' },
+    );
+    assert.equal(duplicada.status, 400);
+    assert.equal(duplicada.json.error.detalles[0].campo, 'orden');
+
+    const guardado = await pedir(`/api/docente/cursos/${idCurso}`, docente);
+    assert.equal(guardado.status, 200);
+    assert.equal(guardado.json.modulos[0].lecciones[0].titulo, 'Primera lección corregida');
+    assert.equal(guardado.json.modulos[0].lecciones[0].orden, 1);
+  });
+
+  it('responde 404 al editar un módulo eliminado entre la búsqueda y el bloqueo', async () => {
+    const idCurso = await crearCurso();
+    const creado = await pedir(
+      `/api/cursos/${idCurso}/modulos`,
+      docente,
+      'POST',
+      { titulo: 'Módulo concurrente', orden: 1 },
+    );
+    assert.equal(creado.status, 201);
+    const idModulo = creado.json.modulos[0].id as number;
+
+    const buscarOriginal = cursosIntegracionRepository.buscarModulo;
+    let avisarEntrada!: () => void;
+    let fallarEntrada!: (error: Error) => void;
+    let continuar!: () => void;
+    let interceptado = false;
+    let pendiente: ReturnType<typeof pedir> | undefined;
+
+    const entrada = new Promise<void>((resolve, reject) => {
+      avisarEntrada = resolve;
+      fallarEntrada = reject;
+    });
+    const pausa = new Promise<void>(resolve => {
+      continuar = resolve;
+    });
+    const limite = setTimeout(() => {
+      fallarEntrada(new Error('La edición no llegó al punto de concurrencia.'));
+    }, 10000);
+    limite.unref();
+
+    cursosIntegracionRepository.buscarModulo = async (cliente, id) => {
+      const resultado = await buscarOriginal(cliente, id);
+
+      if (id === idModulo && !interceptado) {
+        interceptado = true;
+        avisarEntrada();
+        await pausa;
+      }
+
+      return resultado;
+    };
+
+    try {
+      pendiente = pedir(
+        `/api/modulos/${idModulo}`,
+        docente,
+        'PUT',
+        { titulo: 'Edición que llegó tarde', orden: 1 },
+      );
+
+      await entrada;
+      clearTimeout(limite);
+
+      const eliminado = await pedir(`/api/modulos/${idModulo}`, docente, 'DELETE');
+      assert.equal(eliminado.status, 200);
+      assert.deepEqual(eliminado.json.modulos, []);
+
+      continuar();
+      const actualizado = await pendiente;
+      assert.equal(actualizado.status, 404);
+      assert.equal(actualizado.json.error.codigo, 'NO_ENCONTRADO');
+
+      const guardado = await pedir(`/api/docente/cursos/${idCurso}`, docente);
+      assert.equal(guardado.status, 200);
+      assert.deepEqual(guardado.json.modulos, []);
+    } finally {
+      clearTimeout(limite);
+      continuar();
+      if (pendiente) {
+        await pendiente.catch(() => undefined);
+      }
+      cursosIntegracionRepository.buscarModulo = buscarOriginal;
+    }
   });
 });

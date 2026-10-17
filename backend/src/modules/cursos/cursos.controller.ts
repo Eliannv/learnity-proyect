@@ -20,7 +20,7 @@ const filtros = z.strictObject({
   limite: z.coerce.number().int().min(1).max(50).default(9),
 });
 
-const idCurso = z.coerce.number().int().positive().safe();
+const idCurso = z.coerce.number().int().min(1).max(2147483647);
 
 export const cursosController = {
   async crearCurso(req: Request, res: Response) {

@@ -225,6 +225,26 @@ export const cursosIntegracionRepository = {
     return rows[0]?.total ?? 0;
   },
 
+  async ordenModuloOcupado(
+  cliente: PoolClient,
+  idCurso: number,
+  orden: number,
+  idModuloExcluir: number | null = null,
+): Promise<boolean> {
+  const { rows } = await cliente.query(
+    `
+      SELECT 1
+      FROM modulo
+      WHERE id_curso = $1
+        AND orden = $2
+        AND ($3::integer IS NULL OR id_modulo <> $3)
+    `,
+    [idCurso, orden, idModuloExcluir],
+  );
+
+  return rows.length > 0;
+},
+
   async crearModulo(
     cliente: PoolClient,
     idCurso: number,
@@ -272,18 +292,25 @@ export const cursosIntegracionRepository = {
   },
 
   async actualizarModulo(
-    cliente: PoolClient,
-    idModulo: number,
-    titulo: string,
-    orden: number,
-  ): Promise<void> {
-    await cliente.query(
-      `UPDATE modulo
-       SET titulo = $2, orden = $3
-       WHERE id_modulo = $1`,
-      [idModulo, titulo, orden],
-    );
-  },
+  cliente: PoolClient,
+  idModulo: number,
+  idCurso: number,
+  titulo: string,
+  orden: number,
+): Promise<boolean> {
+  const resultado = await cliente.query(
+    `
+      UPDATE modulo
+      SET titulo = $3,
+          orden = $4
+      WHERE id_modulo = $1
+        AND id_curso = $2
+    `,
+    [idModulo, idCurso, titulo, orden],
+  );
+
+  return resultado.rowCount === 1;
+},
 
   async pdfDeModulo(
     cliente: PoolClient,
@@ -352,18 +379,24 @@ export const cursosIntegracionRepository = {
   },
 
   async ordenLeccionOcupado(
-    cliente: PoolClient,
-    idModulo: number,
-    orden: number,
-  ): Promise<boolean> {
-    const { rows } = await cliente.query(
-      `SELECT 1 FROM leccion
-       WHERE id_modulo = $1 AND orden = $2`,
-      [idModulo, orden],
-    );
+  cliente: PoolClient,
+  idModulo: number,
+  orden: number,
+  idLeccionExcluir: number | null = null,
+): Promise<boolean> {
+  const { rows } = await cliente.query(
+    `
+      SELECT 1
+      FROM leccion
+      WHERE id_modulo = $1
+        AND orden = $2
+        AND ($3::integer IS NULL OR id_leccion <> $3)
+    `,
+    [idModulo, orden, idLeccionExcluir],
+  );
 
-    return rows.length > 0;
-  },
+  return rows.length > 0;
+},
 
   async crearLeccion(
     cliente: PoolClient,

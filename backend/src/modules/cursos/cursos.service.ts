@@ -271,7 +271,7 @@ export const cursosService = {
     });
   },
 
-  async crearModulo(
+    async crearModulo(
     idCurso: number,
     datos: DatosModulo,
     usuario: UsuarioSesion,
@@ -330,17 +330,14 @@ export const cursosService = {
         );
       }
 
-      const { rows } = await cliente.query(
-        `
-          SELECT 1
-          FROM modulo
-          WHERE id_curso = $1
-            AND orden = $2
-        `,
-        [idCurso, datos.orden],
-      );
+      const ocupado =
+        await cursosIntegracionRepository.ordenModuloOcupado(
+          cliente,
+          idCurso,
+          datos.orden,
+        );
 
-      if (rows.length > 0) {
+      if (ocupado) {
         throw AppError.solicitudInvalida(
           'El orden del módulo ya está ocupado.',
           [{
@@ -364,90 +361,112 @@ export const cursosService = {
   },
 
   async actualizarModulo(
-    idModulo: number,
-    datos: DatosModulo,
-    usuario: UsuarioSesion,
-  ) {
-    if (!usuario.roles.includes('DOCENTE')) {
-      throw AppError.sinPermiso();
-    }
+  idModulo: number,
+  datos: DatosModulo,
+  usuario: UsuarioSesion,
+) {
+  if (!usuario.roles.includes('DOCENTE')) {
+    throw AppError.sinPermiso();
+  }
 
-    return enTransaccion(async (cliente) => {
-      const modulo =
-        await cursosIntegracionRepository.buscarModulo(
-          cliente,
-          idModulo,
-        );
-
-      if (!modulo) {
-        throw AppError.noEncontrado(
-          'Módulo no disponible.',
-        );
-      }
-
-      const base =
-        await cursosIntegracionRepository.base(
-          cliente,
-          modulo.idCurso,
-          true,
-        );
-
-      if (!base) {
-        throw AppError.noEncontrado(
-          'Curso no disponible.',
-        );
-      }
-
-      if (
-        base.idPersonaDocente !== usuario.idPersona ||
-        !base.docenteActivo
-      ) {
-        throw AppError.sinPermiso(
-          'No puedes modificar este módulo.',
-        );
-      }
-
-      if (
-        base.estado !== 'BORRADOR' &&
-        base.estado !== 'RECHAZADO'
-      ) {
-        throw AppError.conflicto(
-          'El curso está bloqueado.',
-          'CURSO_BLOQUEADO',
-        );
-      }
-
-      const { rows } = await cliente.query(
-        `SELECT 1 FROM modulo
-         WHERE id_curso = $1
-           AND orden = $2
-           AND id_modulo <> $3`,
-        [modulo.idCurso, datos.orden, idModulo],
+  return enTransaccion(async (cliente) => {
+    const modulo =
+      await cursosIntegracionRepository.buscarModulo(
+        cliente,
+        idModulo,
       );
 
-      if (rows.length) {
-        throw AppError.solicitudInvalida(
-          'El orden del módulo ya está ocupado.',
-          [{
-            campo: 'orden',
-            mensaje: 'Selecciona otro orden.',
-          }],
-        );
-      }
+    if (!modulo) {
+      throw AppError.noEncontrado(
+        'Módulo no disponible.',
+      );
+    }
 
+    const base =
+      await cursosIntegracionRepository.base(
+        cliente,
+        modulo.idCurso,
+        true,
+      );
+
+    if (!base) {
+      throw AppError.noEncontrado(
+        'Curso no disponible.',
+      );
+    }
+
+    if (
+      base.idPersonaDocente !== usuario.idPersona ||
+      !base.docenteActivo
+    ) {
+      throw AppError.sinPermiso(
+        'No puedes modificar este módulo.',
+      );
+    }
+
+    if (
+      base.estado !== 'BORRADOR' &&
+      base.estado !== 'RECHAZADO'
+    ) {
+      throw AppError.conflicto(
+        'El curso está bloqueado.',
+        'CURSO_BLOQUEADO',
+      );
+    }
+
+    // La búsqueda inicial solo localiza el curso que debemos bloquear.
+    // Repetimos la lectura con el bloqueo adquirido por si lo eliminaron.
+    const moduloActual =
+      await cursosIntegracionRepository.buscarModulo(
+        cliente,
+        idModulo,
+      );
+
+    if (!moduloActual || moduloActual.idCurso !== base.id) {
+      throw AppError.noEncontrado(
+        'Módulo no disponible.',
+      );
+    }
+
+    const ocupado =
+      await cursosIntegracionRepository.ordenModuloOcupado(
+        cliente,
+        base.id,
+        datos.orden,
+        idModulo,
+      );
+
+    if (ocupado) {
+      throw AppError.solicitudInvalida(
+        'El orden del módulo ya está ocupado.',
+        [{
+          campo: 'orden',
+          mensaje: 'Selecciona otro orden.',
+        }],
+      );
+    }
+
+    const actualizado =
       await cursosIntegracionRepository.actualizarModulo(
         cliente,
         idModulo,
+        base.id,
         datos.titulo,
         datos.orden,
       );
 
-      return cursosService.detallePrivado(
-        cliente,
-        modulo.idCurso,
+    if (!actualizado) {
+      throw AppError.noEncontrado(
+        'Módulo no disponible.',
       );
-    });
-  },
+    }
+
+    return cursosService.detallePrivado(
+      cliente,
+      modulo.idCurso,
+    );
+  });
+},
 
   async crearLeccion(
     idModulo: number,
@@ -550,111 +569,104 @@ export const cursosService = {
   },
 
   async actualizarLeccion(
-    idLeccion: number,
-    datos: DatosLeccion,
-    usuario: UsuarioSesion,
-  ) {
-    if (!usuario.roles.includes('DOCENTE')) {
-      throw AppError.sinPermiso();
+  idLeccion: number,
+  datos: DatosLeccion,
+  usuario: UsuarioSesion,
+) {
+  if (!usuario.roles.includes('DOCENTE')) {
+    throw AppError.sinPermiso();
+  }
+
+  return enTransaccion(async cliente => {
+    const leccion =
+      await cursosIntegracionRepository.buscarLeccionParaEditar(
+        cliente,
+        idLeccion,
+      );
+
+    if (!leccion) {
+      throw AppError.noEncontrado(
+        'Lección no disponible.',
+      );
     }
 
-    return enTransaccion(async cliente => {
-      const leccion =
-        await cursosIntegracionRepository.buscarLeccionParaEditar(
-          cliente,
-          idLeccion,
-        );
-
-      if (!leccion) {
-        throw AppError.noEncontrado(
-          'Lección no disponible.',
-        );
-      }
-
-      // Bloquear el curso, igual que las demás escrituras.
-      const base =
-        await cursosIntegracionRepository.base(
-          cliente,
-          leccion.idCurso,
-          true,
-        );
-
-      if (!base) {
-        throw AppError.noEncontrado(
-          'Curso no disponible.',
-        );
-      }
-
-      if (
-        base.idPersonaDocente !== usuario.idPersona ||
-        !base.docenteActivo
-      ) {
-        throw AppError.sinPermiso(
-          'No puedes modificar esta lección.',
-        );
-      }
-
-      if (
-        base.estado !== 'BORRADOR' &&
-        base.estado !== 'RECHAZADO'
-      ) {
-        throw AppError.conflicto(
-          'El curso no permite modificaciones.',
-          'CURSO_BLOQUEADO',
-        );
-      }
-
-      if (leccion.tipo !== 'DOCUMENTO') {
-        throw AppError.solicitudInvalida(
-          'En este sprint solo se editan lecciones DOCUMENTO.',
-        );
-      }
-
-      const { rows } = await cliente.query(
-        `
-          SELECT 1
-          FROM leccion
-          WHERE id_modulo = $1
-            AND orden = $2
-            AND id_leccion <> $3
-        `,
-        [
-          leccion.idModulo,
-          datos.orden,
-          idLeccion,
-        ],
-      );
-
-      if (rows.length > 0) {
-        throw AppError.solicitudInvalida(
-          'El orden de la lección ya está ocupado.',
-          [{
-            campo: 'orden',
-            mensaje: 'Selecciona otro orden.',
-          }],
-        );
-      }
-
-      const actualizado =
-        await cursosIntegracionRepository.actualizarLeccion(
-          cliente,
-          idLeccion,
-          leccion.idModulo,
-          datos,
-        );
-
-      if (!actualizado) {
-        throw AppError.noEncontrado(
-          'Lección no disponible.',
-        );
-      }
-
-      return cursosService.detallePrivado(
+    // Bloquear el curso, igual que las demás escrituras.
+    const base =
+      await cursosIntegracionRepository.base(
         cliente,
         leccion.idCurso,
+        true,
       );
-    });
-  },
+
+    if (!base) {
+      throw AppError.noEncontrado(
+        'Curso no disponible.',
+      );
+    }
+
+    if (
+      base.idPersonaDocente !== usuario.idPersona ||
+      !base.docenteActivo
+    ) {
+      throw AppError.sinPermiso(
+        'No puedes modificar esta lección.',
+      );
+    }
+
+    if (
+      base.estado !== 'BORRADOR' &&
+      base.estado !== 'RECHAZADO'
+    ) {
+      throw AppError.conflicto(
+        'El curso no permite modificaciones.',
+        'CURSO_BLOQUEADO',
+      );
+    }
+
+    if (leccion.tipo !== 'DOCUMENTO') {
+      throw AppError.solicitudInvalida(
+        'En este sprint solo se editan lecciones DOCUMENTO.',
+      );
+    }
+
+    const ocupado =
+      await cursosIntegracionRepository.ordenLeccionOcupado(
+        cliente,
+        leccion.idModulo,
+        datos.orden,
+        idLeccion,
+      );
+
+    if (ocupado) {
+      throw AppError.solicitudInvalida(
+        'El orden de la lección ya está ocupado.',
+        [{
+          campo: 'orden',
+          mensaje: 'Selecciona otro orden.',
+        }],
+      );
+    }
+
+    const actualizado =
+      await cursosIntegracionRepository.actualizarLeccion(
+        cliente,
+        idLeccion,
+        leccion.idModulo,
+        datos,
+      );
+
+    if (!actualizado) {
+      throw AppError.noEncontrado(
+        'Lección no disponible.',
+      );
+    }
+
+    return cursosService.detallePrivado(
+      cliente,
+      leccion.idCurso,
+    );
+  });
+},
 
   async eliminarLeccion(
     idLeccion: number,
