@@ -4,7 +4,9 @@ Plataforma web de cursos en línea, organizados en módulos y lecciones. El alca
 
 La entrega actual integra la gestión privada de cursos del integrante 2, la revisión administrativa y los PDF privados del integrante 3 y el frontend docente y administrativo del integrante 4 para ese recorrido.
 
-La gestión administrativa de usuarios y las solicitudes para convertirse en docente continúan como prototipos con datos de ejemplo. Su integración con el backend está pendiente.
+La solicitud para convertirse en docente y su aprobación o rechazo por el administrador también funcionan con PostgreSQL.
+
+La gestión administrativa de usuarios continúa como prototipo con datos de ejemplo. Su integración con el backend está pendiente.
 
 **Arquitectura:** monolito modular en capas · API REST con Node.js, Express 5 y TypeScript · frontend Angular 21 · PostgreSQL 17.
 
@@ -267,7 +269,7 @@ Con esta configuración utilizan la API real:
 
 Para presentar el acceso simulado por rol puede activarse `modoDemo: true`. Las sesiones simuladas viven en memoria y se pierden al recargar.
 
-Algunas pantallas continúan utilizando `frontend/src/app/data/datos-demo.ts`, incluso con el modo demostración desactivado. Es el caso de la gestión administrativa de usuarios y las solicitudes para convertirse en docente.
+Algunas pantallas continúan utilizando `frontend/src/app/data/datos-demo.ts`, incluso con el modo demostración desactivado. Es el caso de la gestión administrativa de usuarios.
 
 El estado de estas funciones está detallado en la sección 16.
 
@@ -308,7 +310,7 @@ npm run crear-modulo -- nombre "descripción"
 | `contenido`      | PDF privado implementado; otros formatos previstos para siguientes entregas                             |
 | `aprendizaje`    | Inscripciones y progreso previstos para Sprint 3                                                        |
 | `evaluaciones`   | Preguntas, intentos y notas previstos para Sprint 4                                                     |
-| `administracion` | Revisión de cursos implementada; gestión de usuarios y solicitudes de docente pendientes de integración |
+| `administracion` | Revisión de cursos y solicitudes de docente implementadas; gestión de usuarios pendiente de integración |
 
 ## 10. Sprint 1: estado
 
@@ -877,17 +879,22 @@ El estado actual de las cuentas y las pantallas administrativas es:
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Registro de estudiantes                              | Implementado mediante la API y PostgreSQL                                                          |
 | Inicio de sesión, perfil y recuperación              | Implementados mediante la API                                                                      |
-| Solicitud del estudiante para convertirse en docente | Formulario visual; pendiente de guardar la solicitud mediante el backend                           |
-| Revisión administrativa de solicitudes de docente    | Utiliza solicitudes de ejemplo; pendiente de integración con PostgreSQL                            |
+| Solicitud del estudiante para convertirse en docente | Implementada mediante la API y PostgreSQL                                                          |
+| Revisión administrativa de solicitudes de docente    | Implementada mediante la API y PostgreSQL                                                          |
 | Gestión administrativa de usuarios                   | Utiliza usuarios de ejemplo; pendiente de consultar y modificar las cuentas reales mediante la API |
 | Revisión administrativa de cursos                    | Implementada e integrada con PostgreSQL                                                            |
 
 El registro de una cuenta nueva guarda al estudiante en PostgreSQL. Sin embargo, esa cuenta todavía no aparece en la pantalla administrativa de usuarios porque la pantalla utiliza los datos de ejemplo de `datos-demo.ts`.
 
-El formulario para solicitar convertirse en docente actualmente valida sus campos y cambia el estado visual de la pantalla. La solicitud todavía no se envía ni se guarda mediante una operación del backend.
+### Solicitudes para ser docente
 
-Las decisiones y los cambios de estado de las pantallas de usuarios y solicitudes del prototipo no modifican las cuentas reales en PostgreSQL.
+1. El estudiante abre **Mi perfil → Solicitar ser docente** (o el enlace "Enseña en Learnity"), escribe su especialidad y su motivación (50 caracteres o más) y la envía (`POST /api/solicitudes-docente`). Su perfil muestra el estado: *En revisión*, *No fue aprobada* (con la observación del administrador) o el acceso a su panel.
+2. El administrador la ve en **Panel de administración → Solicitudes de docente**, en la pestaña *Pendientes* (`GET /api/admin/solicitudes`).
+3. Al **aprobar** (`PUT /api/admin/solicitudes/:id`), la cuenta recibe el rol Docente, conserva el de Estudiante y se crea su perfil docente. Al **rechazar**, la observación es obligatoria y el estudiante puede enviar una nueva solicitud.
+4. El estudiante ve su panel de docente al recargar la página o en la siguiente renovación automática de la sesión (máximo 15 minutos), sin volver a iniciar sesión.
 
-Estas funciones están pendientes de implementación e integración. La validación completada en esta entrega corresponde al recorrido de gestión y revisión de cursos y PDF.
+Reglas: una sola solicitud pendiente por cuenta, una cuenta que ya es docente no puede solicitar, un administrador no decide su propia solicitud y dos administradores no pueden decidir la misma a la vez. Límite: 10 envíos por hora por IP. Pruebas: `backend/test/solicitudes-docente.test.ts`.
+
+Las decisiones de la pantalla de usuarios del prototipo no modifican las cuentas reales en PostgreSQL. La validación completada en esta entrega corresponde a la gestión y revisión de cursos y PDF y a las solicitudes de docente.
 
 También permanecen previstos para siguientes entregas los demás formatos de contenido, el aprendizaje del estudiante, las evaluaciones y los certificados según el alcance del proyecto.

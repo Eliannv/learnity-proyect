@@ -86,6 +86,35 @@ input[readonly] {
   }
 }
 
+.estado-solicitud {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  &.pendiente {
+    background: var(--ambar-100);
+    color: var(--ambar-800);
+  }
+  &.rechazada {
+    background: var(--rojo-050);
+    color: var(--rojo-700);
+  }
+}
+
+.observacion {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--rojo-700);
+  border-radius: 0 var(--radio) var(--radio) 0;
+  background: var(--blanco);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
 .icono {
   display: grid;
   place-items: center;

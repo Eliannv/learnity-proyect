@@ -10,14 +10,14 @@
             </p>
         </div>
 
-        @if (!admin()) {
-        <a class="btn btn-acento" routerLink="/docente/cursos/nuevo/editar">
-        Nuevo curso
-      </a> }
-
-        <button type="button" class="btn btn-contorno" [disabled]="p.ocupada()" (click)="cargar()">
-      Actualizar
-    </button>
+        <div class="acciones">
+            <button type="button" class="btn btn-contorno" [disabled]="p.ocupada()" (click)="cargar()">
+          Actualizar
+        </button> @if (!admin()) {
+            <a class="btn btn-acento" routerLink="/docente/cursos/nuevo/editar">
+          Nuevo curso
+        </a> }
+        </div>
     </header>
 
     @if (!admin()) {
@@ -50,7 +50,7 @@
             </div>
 
             <p>
-                {{ c.modulos }} módulos @if (admin()) { · {{ c.docente }} }
+                {{ c.modulos }} {{ c.modulos === 1 ? 'módulo' : 'módulos' }} @if (admin()) { · {{ c.docente }} }
             </p>
 
             @if ( c.estado === 'RECHAZADO' && c.motivoRechazo ) {

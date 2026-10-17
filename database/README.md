@@ -7,7 +7,8 @@ La base **no** se crea con Prisma ni con el backend: se crea con los scripts SQL
 |---|---|
 | `learnity_esquema.sql` | Las 19 tablas, restricciones e índices del modelo inicial. |
 | `015_sesiones_y_recuperacion.sql` | Sprint 1: tablas `sesion` (refresh tokens) y `token_recuperacion` (enlaces de recuperación). |
-| `learnity_modelo.dbml` | El modelo completo (21 tablas) para ver el diagrama en https://dbdiagram.io (Import → DBML). |
+| `016_limpieza_pdf.sql` | Sprint 2: tabla `archivo_borrado_pendiente` (PDF retirados que el backend borra del disco después). |
+| `learnity_modelo.dbml` | El modelo completo (22 tablas) para ver el diagrama en https://dbdiagram.io (Import → DBML). |
 
 ## Cuentas de PostgreSQL
 
@@ -36,9 +37,14 @@ El script se puede repetir sin problema (`IF NOT EXISTS`). Si falta, el backend 
 Las tablas nunca guardan tokens en claro: solo su hash SHA-256. De vez en cuando, al iniciar
 sesión, el backend borra las filas vencidas hace más de 30 días.
 
+### Aplicar el script 016 (obligatorio para el Sprint 2)
+
+Igual que el 015: con la cuenta dueña de las tablas, abre `016_limpieza_pdf.sql` en el Query Tool y ejecútalo.
+Crea `archivo_borrado_pendiente` y da permisos a `learnity_app`. Sin esta tabla falla eliminar lecciones con PDF.
+
 ### Base para las pruebas automáticas (opcional)
 
 `npm test` (backend) necesita una base aparte, por ejemplo `learnity_test`, creada igual que la de
-desarrollo (`learnity_esquema.sql` + `015_…`) y con los mismos permisos para `learnity_app`.
+desarrollo (`learnity_esquema.sql` + `015_…` + `016_…`) y con los mismos permisos para `learnity_app`.
 Las pruebas solo crean y borran cuentas del dominio `@pruebas.test`. Configúrala en `backend/.env.test`
 (ver `backend/.env.test.example`).

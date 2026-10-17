@@ -15,7 +15,7 @@ export interface DatosPerfil {
 const fecha = new Intl.DateTimeFormat('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
 
 /** "08 feb 2026" para "activa desde…". */
-export function fechaCorta(iso: string | undefined): string {
+export function fechaCorta(iso: string | null | undefined): string {
   return iso ? fecha.format(new Date(iso)).replace('.', '') : '';
 }
 

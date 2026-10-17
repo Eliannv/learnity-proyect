@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { NgTemplateOutlet } from '@angular/common';
+import { I18nPluralPipe, NgTemplateOutlet } from '@angular/common';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -9,7 +9,7 @@ import { PortadaCurso } from '../../../shared/ui/portada-curso';
 
 @Component({
   selector: 'app-detalle-curso',
-  imports: [NgTemplateOutlet, RouterLink, LucideAngularModule, Avatar, PortadaCurso],
+  imports: [NgTemplateOutlet, I18nPluralPipe, RouterLink, LucideAngularModule, Avatar, PortadaCurso],
   templateUrl: './detalle-curso.html',
   styleUrl: './detalle-curso.scss',
 })
@@ -19,6 +19,8 @@ export class DetalleCurso {
 
   readonly id = input.required<string>();
 
+  protected readonly modulos = { '=1': '# módulo', other: '# módulos' };
+  protected readonly lecciones = { '=1': '# lección', other: '# lecciones' };
   protected readonly curso = signal<DetalleCursoPublico | null>(null);
   protected readonly cargando = signal(true);
   protected readonly noEncontrado = signal(false);

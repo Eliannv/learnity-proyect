@@ -8,6 +8,7 @@ import {
   esquemasIntegrante2,
   rutasIntegrante2,
 } from './openapi-integrante2.js';
+import { esquemasSolicitudes, rutasSolicitudes } from './openapi-solicitudes.js';
 
 const usuarioSesion = {
   type: 'object',
@@ -115,7 +116,7 @@ export const openApi = {
     title: 'Learnity API',
     version: '0.3.0',
     description: [
-      'API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: lecturas públicas de Cursos.',
+      'API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.',
       '',
       '**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie',
       '`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.',
@@ -133,6 +134,7 @@ export const openApi = {
     schemas: {
       ...esquemasIntegrante3,
       ...esquemasIntegrante2,
+      ...esquemasSolicitudes,
     },
     securitySchemes: {
       bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -143,6 +145,7 @@ export const openApi = {
   paths: {
     ...rutasIntegrante3,
     ...rutasIntegrante2,
+    ...rutasSolicitudes,
     '/salud': {
       get: { tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL', responses: { 200: json({ type: 'object' }) } },
     },

@@ -206,7 +206,7 @@ export const routes: Routes = [
       {
         path: 'usuarios',
         title: 'Usuarios · Learnity',
-        data: { seccion: 'Administración' },
+        data: { seccion: 'Usuarios' },
         loadComponent: () =>
           import('./pages/admin/usuarios/usuarios').then(
             (m) => m.Usuarios,
@@ -215,7 +215,7 @@ export const routes: Routes = [
       {
         path: 'solicitudes',
         title: 'Solicitudes de docente · Learnity',
-        data: { seccion: 'Administración' },
+        data: { seccion: 'Solicitudes de docente' },
         loadComponent: () =>
           import(
             './pages/admin/solicitudes/solicitudes'
@@ -233,7 +233,7 @@ export const routes: Routes = [
       {
         path: 'revision/:id',
         title: 'Revisión de curso · Learnity',
-        data: { seccion: 'Administración' },
+        data: { seccion: 'Revisión de cursos' },
         loadComponent: () =>
           import(
             './pages/admin/revision-curso/revision-curso'
@@ -242,7 +242,7 @@ export const routes: Routes = [
       {
         path: 'categorias',
         title: 'Categorías · Learnity',
-        data: { seccion: 'Administración' },
+        data: { seccion: 'Categorías' },
         loadComponent: () =>
           import('./pages/admin/categorias/categorias').then(
             (m) => m.Categorias,

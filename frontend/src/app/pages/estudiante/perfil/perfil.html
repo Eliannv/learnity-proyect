@@ -92,15 +92,40 @@
         <button type="button" class="btn btn-contorno btn-bloque" (click)="auth.cerrarSesion()">Cerrar sesión</button>
       </section>
 
-      <section class="tarjeta-suave ensenar">
+      <section class="tarjeta-suave ensenar" aria-live="polite">
         <div class="fila">
           <span class="icono"><lucide-icon name="presentation" [size]="20" /></span>
-          <strong>¿Quieres enseñar?</strong>
+          <strong>{{ auth.esDocente() ? 'Ya eres docente' : '¿Quieres enseñar?' }}</strong>
         </div>
-        <p>Solicita el rol de Docente para crear y publicar tus propios cursos. Conservarás tus cursos e inscripciones como estudiante.</p>
-        <button type="button" class="btn btn-primario btn-bloque" (click)="modalSolicitud.set(true)">
-          Solicitar ser docente <lucide-icon name="arrow-right" [size]="18" />
-        </button>
+        @if (auth.esDocente()) {
+          <p>Tu solicitud fue aprobada. Crea tu primer curso desde el panel del docente.</p>
+          <a class="btn btn-primario btn-bloque" routerLink="/docente/cursos">
+            Ir a mis cursos <lucide-icon name="arrow-right" [size]="18" />
+          </a>
+        } @else if (miSolicitud()?.estado === 'PENDIENTE') {
+          <span class="estado-solicitud pendiente">
+            <lucide-icon name="clock" [size]="16" /> En revisión
+          </span>
+          <p>
+            Enviaste tu solicitud el {{ fechaCorta(miSolicitud()!.enviadaEn) }} ({{ miSolicitud()!.especialidad }}).
+            Un administrador la revisará y verás el resultado aquí.
+          </p>
+        } @else {
+          @if (miSolicitud()?.estado === 'RECHAZADA') {
+            <span class="estado-solicitud rechazada">
+              <lucide-icon name="circle-x" [size]="16" /> No fue aprobada
+            </span>
+            @if (miSolicitud()!.observacion) {
+              <blockquote class="observacion">{{ miSolicitud()!.observacion }}</blockquote>
+            }
+            <p>Puedes enviar una nueva solicitud con más detalles.</p>
+          } @else {
+            <p>Solicita el rol de Docente para crear y publicar tus propios cursos. Conservarás tus cursos e inscripciones como estudiante.</p>
+          }
+          <button type="button" class="btn btn-primario btn-bloque" (click)="modalSolicitud.set(true)">
+            {{ miSolicitud() ? 'Enviar una nueva solicitud' : 'Solicitar ser docente' }} <lucide-icon name="arrow-right" [size]="18" />
+          </button>
+        }
       </section>
     </aside>
 
@@ -127,10 +152,18 @@
 
 @if (modalSolicitud()) {
   <app-modal titulo="Solicitud para ser docente" icono="presentation" [ancho]="560" (cerrar)="cerrarSolicitud()">
-    @if (solicitudEnviada()) {
-      <div class="aviso exito">
-        <lucide-icon name="circle-check" [size]="18" />
-        <span>Solicitud enviada. Un administrador la revisará y verás el resultado en tu perfil.</span>
+    @if (solicitudEnviada() || auth.esDocente() || miSolicitud()?.estado === 'PENDIENTE') {
+      <div class="aviso" [class.exito]="solicitudEnviada() || auth.esDocente()" role="status">
+        <lucide-icon [name]="solicitudEnviada() || auth.esDocente() ? 'circle-check' : 'clock'" [size]="18" />
+        <span>
+          @if (auth.esDocente()) {
+            Tu cuenta ya tiene el rol Docente.
+          } @else if (solicitudEnviada()) {
+            Solicitud enviada. Un administrador la revisará y verás el resultado en tu perfil.
+          } @else {
+            Ya tienes una solicitud en revisión. Verás el resultado en tu perfil.
+          }
+        </span>
       </div>
       <div class="acciones-modal">
         <button type="button" class="btn btn-primario" (click)="cerrarSolicitud()">Entendido</button>
@@ -144,8 +177,18 @@
           <label class="etiqueta" for="especialidad">Especialidad o tema</label>
           <div class="control-icono">
             <lucide-icon name="briefcase" [size]="20" />
-            <input id="especialidad" class="control" formControlName="especialidad" placeholder="Ej.: Programación web, Diseño gráfico" />
+            <input
+              id="especialidad"
+              class="control"
+              [class.invalido]="formSolicitud.controls.especialidad.invalid && formSolicitud.controls.especialidad.touched"
+              formControlName="especialidad"
+              maxlength="100"
+              placeholder="Ej.: Programación web, Diseño gráfico"
+            />
           </div>
+          @if (formSolicitud.controls.especialidad.invalid && formSolicitud.controls.especialidad.touched) {
+            <span class="error-campo">Escribe la especialidad o el tema (entre 3 y 100 caracteres).</span>
+          }
         </div>
         <div class="campo">
           <label class="etiqueta" for="motivo">¿Por qué quieres enseñar?</label>
@@ -158,13 +201,22 @@
           ></textarea>
           <span class="ayuda">Mínimo 50 caracteres ({{ formSolicitud.controls.motivo.value.length }}/50).</span>
         </div>
-        <div class="aviso">
-          <lucide-icon name="info" [size]="18" />
-          <span>Conservarás tus cursos e inscripciones como estudiante.</span>
-        </div>
+        @if (errorSolicitud()) {
+          <div class="aviso error" role="alert">
+            <lucide-icon name="circle-alert" [size]="18" />
+            <span>{{ errorSolicitud() }}</span>
+          </div>
+        } @else {
+          <div class="aviso">
+            <lucide-icon name="info" [size]="18" />
+            <span>Conservarás tus cursos e inscripciones como estudiante.</span>
+          </div>
+        }
         <div class="acciones-modal">
           <button type="button" class="btn btn-suave" (click)="cerrarSolicitud()">Cancelar</button>
-          <button type="submit" class="btn btn-primario">Enviar solicitud <lucide-icon name="arrow-right" [size]="18" /></button>
+          <button type="submit" class="btn btn-primario" [disabled]="enviandoSolicitud()">
+            {{ enviandoSolicitud() ? 'Enviando…' : 'Enviar solicitud' }} <lucide-icon name="arrow-right" [size]="18" />
+          </button>
         </div>
       </form>
     }

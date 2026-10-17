@@ -17,6 +17,9 @@ import {
   identificador,
   filtroRevision,
   decisionRevision,
+  filtroSolicitudes,
+  decisionSolicitud,
+  type NuevaSolicitudDocente,
 } from './administracion.esquemas.js';
 
 function usuario(req: Request): UsuarioSesion {
@@ -76,5 +79,25 @@ export const administracionController = {
     );
 
     res.json(curso);
+  },
+
+  async solicitarDocencia(req: Request, res: Response): Promise<void> {
+    const solicitud = await service.solicitarDocencia(usuario(req), req.body as NuevaSolicitudDocente);
+    res.status(201).json(solicitud);
+  },
+
+  async miSolicitud(req: Request, res: Response): Promise<void> {
+    res.json({ solicitud: await service.miSolicitud(usuario(req)) });
+  },
+
+  async listarSolicitudes(req: Request, res: Response): Promise<void> {
+    const { estado } = filtroSolicitudes.parse(req.query);
+    res.json(await service.listarSolicitudes(estado));
+  },
+
+  async decidirSolicitud(req: Request, res: Response): Promise<void> {
+    const id = identificador.parse(req.params.id);
+    const datos = decisionSolicitud.parse(req.body);
+    res.json(await service.decidirSolicitud(id, datos, usuario(req)));
   },
 };

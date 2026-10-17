@@ -2,12 +2,12 @@
 // Learnity · Plataforma de cursos en línea
 // Modelo de base de datos · PostgreSQL 17
 // Pegar en https://dbdiagram.io  (Import > DBML)
-// Equivale a learnity_esquema.sql + 015_sesiones_y_recuperacion.sql
+// Equivale a learnity_esquema.sql + 015_sesiones_y_recuperacion.sql + 016_limpieza_pdf.sql
 // =====================================================================
 
 Project learnity {
   database_type: 'PostgreSQL'
-  Note: '21 tablas agrupadas por módulo: Identidad, Cursos, Contenido, Aprendizaje y Evaluaciones.'
+  Note: '22 tablas agrupadas por módulo: Identidad, Cursos, Contenido, Aprendizaje y Evaluaciones.'
 }
 
 // ---------------------------------------------------------------------
@@ -248,8 +248,15 @@ Table token_recuperacion {
   ip          varchar(45)
 }
 
+Table archivo_borrado_pendiente {
+  nombre            varchar(40) [pk, note: 'Nombre interno del PDF: UUID v4 + .pdf']
+  disponible_desde  timestamptz [not null, default: `now()`]
+  creado_en         timestamptz [not null, default: `now()`]
+  Note: 'PDF retirados de una lección; el backend los borra del disco cuando ya no tienen referencias.'
+}
+
 TableGroup identidad { persona usuario rol usuario_rol solicitud_docente docente sesion token_recuperacion }
 TableGroup cursos { categoria curso modulo leccion }
-TableGroup contenido { archivo recurso_adjunto }
+TableGroup contenido { archivo recurso_adjunto archivo_borrado_pendiente }
 TableGroup aprendizaje { inscripcion progreso_leccion }
 TableGroup evaluaciones { evaluacion pregunta opcion intento_evaluacion respuesta }

@@ -27,7 +27,7 @@
       <h1 class="titulo-curso">{{ c.titulo }}</h1>
       @if (c.subtitulo) { <p class="descripcion">{{ c.subtitulo }}</p> }
       <p class="meta">
-        {{ c.docente }} · {{ c.minutos }} min · {{ c.modulos }} módulos · {{ c.lecciones }} lecciones · nivel
+        {{ c.docente }} · {{ c.minutos }} min · {{ c.modulos | i18nPlural: modulos }} · {{ c.lecciones | i18nPlural: lecciones }} · nivel
         {{ nombreNivel(c.nivel).toLowerCase() }}
       </p>
       <p class="descripcion">{{ c.descripcion }}</p>
@@ -36,7 +36,7 @@
 
       <div class="cabecera-temario">
         <h2>Contenido del curso</h2>
-        <span class="texto-suave">{{ c.modulos }} módulos · {{ c.lecciones }} lecciones · {{ c.minutos }} min</span>
+        <span class="texto-suave">{{ c.modulos | i18nPlural: modulos }} · {{ c.lecciones | i18nPlural: lecciones }} · {{ c.minutos }} min</span>
       </div>
 
       <div class="temario">
@@ -45,7 +45,7 @@
             <button type="button" class="cabecera-modulo" (click)="alternar(m.id)" [attr.aria-expanded]="abiertos().includes(m.id)">
               <lucide-icon [name]="abiertos().includes(m.id) ? 'chevron-down' : 'chevron-right'" [size]="20" />
               <strong>{{ m.orden }}. {{ m.titulo }}</strong>
-              <span class="texto-suave">{{ m.lecciones.length }} lecciones</span>
+              <span class="texto-suave">{{ m.lecciones.length | i18nPlural: lecciones }}</span>
             </button>
             @if (abiertos().includes(m.id)) {
               <ul>

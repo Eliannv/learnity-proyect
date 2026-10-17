@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import {
   Component,
   effect,
@@ -22,6 +23,7 @@ import { Peticion } from '../../../shared/cursos/peticion';
 @Component({
   selector: 'app-revision-curso',
   imports: [
+    TitleCasePipe,
     FormsModule,
     RouterLink,
     EstadoCursoBadge,

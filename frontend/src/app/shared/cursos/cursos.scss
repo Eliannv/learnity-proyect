@@ -73,6 +73,11 @@ fieldset {
     min-width: 0;
 }
 
+.campos {
+    display: grid;
+    gap: 16px;
+}
+
 fieldset:disabled {
     opacity: 0.8;
 }
@@ -141,6 +146,40 @@ fieldset:disabled {
 .pdf {
     display: grid;
     gap: 8px;
+}
+
+// Columna única que no crece con el ancho mínimo de su contenido (evita desborde en móvil).
+.bloque,
+.campo,
+.campos,
+.fila,
+.pdf {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+input[type='file'] {
+    width: 100%;
+    max-width: 100%;
+    font: inherit;
+    font-size: 14px;
+    color: var(--gris-500);
+}
+
+input[type='file']::file-selector-button {
+    margin-right: 12px;
+    padding: 8px 14px;
+    border: 1px solid var(--azul-600);
+    border-radius: var(--radio);
+    background: var(--blanco);
+    color: var(--azul-600);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+input[type='file']:disabled::file-selector-button {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 progress {

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PerfilService, fechaCorta } from '../../../core/auth/perfil.service';
+import { SolicitudesDocenteService, type SolicitudDocente } from '../../../core/solicitudes/solicitudes-docente.service';
 import { Avatar } from '../../../shared/ui/avatar';
 import { Modal } from '../../../shared/ui/modal';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../shared/validadores/contrasena';
@@ -30,6 +31,7 @@ function contrasenaOpcional(grupo: AbstractControl): ValidationErrors | null {
 export class PerfilEstudiante {
   protected readonly auth = inject(AuthService);
   private readonly perfiles = inject(PerfilService);
+  private readonly solicitudes = inject(SolicitudesDocenteService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
   /** /perfil?solicitud=1 abre directamente la solicitud (enlace "Enseña en Learnity"). */
@@ -39,6 +41,11 @@ export class PerfilEstudiante {
   protected readonly mensajeContrasena = mensajeContrasena;
   protected readonly modalSolicitud = linkedSignal(() => !!this.solicitud());
   protected readonly solicitudEnviada = signal(false);
+  /** Última solicitud de la cuenta: decide qué muestra la tarjeta "¿Quieres enseñar?". */
+  protected readonly miSolicitud = signal<SolicitudDocente | null>(null);
+  protected readonly enviandoSolicitud = signal(false);
+  protected readonly errorSolicitud = signal<string | null>(null);
+  protected readonly fechaCorta = fechaCorta;
   protected readonly cargando = signal(true);
   protected readonly guardando = signal(false);
   protected readonly mensaje = signal<string | null>(null);
@@ -58,12 +65,24 @@ export class PerfilEstudiante {
   );
 
   protected readonly formSolicitud = this.fb.group({
-    especialidad: ['', [Validators.required, Validators.maxLength(100)]],
-    motivo: ['', [Validators.required, Validators.minLength(50)]],
+    especialidad: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+    motivo: ['', [Validators.required, Validators.minLength(50), Validators.maxLength(2000)]],
   });
 
   constructor() {
     void this.cargar();
+    void this.cargarSolicitud();
+  }
+
+  /** Si ya la aprobaron, renueva la sesión para traer el rol Docente sin volver a iniciar sesión. */
+  private async cargarSolicitud() {
+    try {
+      const s = await this.solicitudes.miSolicitud();
+      this.miSolicitud.set(s);
+      if (s?.estado === 'APROBADA' && !this.auth.esDocente()) await this.auth.renovar();
+    } catch {
+      // La tarjeta conserva el botón para solicitar; el envío mostrará el error si persiste.
+    }
   }
 
   private async cargar() {
@@ -132,16 +151,30 @@ export class PerfilEstudiante {
     }
   }
 
-  /** Sprint 2: aquí se llama a POST /api/solicitudes-docente. */
-  protected enviarSolicitud() {
+  /** RF-05 · POST /api/solicitudes-docente. */
+  protected async enviarSolicitud() {
+    this.errorSolicitud.set(null);
     if (this.formSolicitud.invalid) {
       this.formSolicitud.markAllAsTouched();
       return;
     }
-    this.solicitudEnviada.set(true);
+    const { especialidad, motivo } = this.formSolicitud.getRawValue();
+    this.enviandoSolicitud.set(true);
+    try {
+      this.miSolicitud.set(await this.solicitudes.enviar(especialidad, motivo));
+      this.solicitudEnviada.set(true);
+      this.formSolicitud.reset();
+    } catch (error) {
+      this.errorSolicitud.set(mensajeDeError(error, 'El envío de la solicitud'));
+      void this.cargarSolicitud();
+    } finally {
+      this.enviandoSolicitud.set(false);
+    }
   }
 
   protected cerrarSolicitud() {
     this.modalSolicitud.set(false);
+    this.solicitudEnviada.set(false);
+    this.errorSolicitud.set(null);
   }
 }
