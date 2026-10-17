@@ -519,3 +519,76 @@ Comprueba que esa prueba pase y que el resumen final indique cero fallos.
 Estos casos verifican el backend con datos técnicos creados mediante SQL. La prueba completa del
 recorrido docente y administrativo desde Angular requiere las rutas del integrante 2 descritas
 en la sección 13.
+
+## Sprint 2 — Integrante 2: Backend de Gestión de Cursos
+
+### Descripción
+Se implementó el backend de gestión de cursos de Learnity, desarrollado con Node.js, Express, TypeScript y PostgreSQL.
+
+Permite a los docentes autenticados crear, consultar, editar y organizar cursos mediante módulos y lecciones de tipo DOCUMENTO, así como enviarlos a revisión administrativa.
+
+### Endpoints implementados
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/docente/cursos` | Listar cursos del docente autenticado |
+| GET | `/api/docente/cursos/:id` | Consultar el detalle de un curso propio |
+| POST | `/api/cursos` | Crear un curso en BORRADOR |
+| PUT | `/api/cursos/:id` | Editar un curso propio |
+| POST | `/api/cursos/:id/modulos` | Crear un módulo |
+| PUT | `/api/modulos/:id` | Actualizar un módulo |
+| DELETE | `/api/modulos/:id` | Eliminar un módulo |
+| POST | `/api/modulos/:id/lecciones` | Crear una lección DOCUMENTO |
+| PUT | `/api/lecciones/:id` | Actualizar una lección |
+| DELETE | `/api/lecciones/:id` | Eliminar una lección |
+| POST | `/api/cursos/:id/enviar-revision` | Validar y enviar un curso a revisión |
+
+### Reglas de negocio
+
+- Las rutas privadas requieren autenticación JWT y rol DOCENTE.
+- Solo el docente propietario puede modificar sus cursos.
+- Se permite editar cursos en estado BORRADOR o RECHAZADO.
+- Los cursos EN_REVISION y PUBLICADO no pueden modificarse.
+- Cada curso admite un máximo de 10 módulos.
+- Cada módulo admite un máximo de 12 lecciones.
+- Los órdenes deben ser únicos dentro de cada curso o módulo, respectivamente.
+- Para enviar un curso a revisión, debe cumplir los requisitos de contenido establecidos.
+- Las eliminaciones que involucren archivos PDF se coordinan con el servicio de limpieza de Contenido.
+- Las modificaciones se realizan mediante transacciones PostgreSQL.
+
+### Integración con otros módulos
+El backend reutiliza los servicios de integración de Cursos y la validación de contenido y PDF existente.
+
+El frontend Angular consume los endpoints mediante `gestion-cursos.api.ts`.
+
+El módulo de Administración permite aprobar o rechazar cursos enviados a revisión.
+
+### Pruebas
+Se incorporaron dos archivos de pruebas:
+
+- `backend/test/cursos-gestion.test.ts`
+- `backend/test/cursos-gestion-http.test.ts`
+
+Se ejecutaron correctamente 62 pruebas automáticas del proyecto, incluidas 16 pruebas nuevas de validación y seguridad correspondientes al integrante 2.
+
+Comandos para verificar el backend desde la carpeta `backend`:
+
+```powershell
+npm test
+npm run typecheck
+npm run build
+```
+
+Las pruebas de integración utilizan una base PostgreSQL independiente, configurada mediante `.env.test`.
+
+### Documentación API
+Los 11 endpoints están documentados en:
+
+`backend/src/shared/http/openapi-integrante2.ts`
+
+La documentación interactiva se encuentra disponible al ejecutar el backend:
+
+`http://localhost:3000/api/docs`
+
+### Estado de implementación
+Los 11 endpoints están implementados y se han probado los flujos de creación, edición, organización, envío, rechazo, corrección y publicación de cursos.

@@ -47,6 +47,474 @@ export interface FilaTemario {
 }
 
 export const cursosIntegracionRepository = {
+  async listarDelDocente(idPersona: number): Promise<CursoResumen[]> {
+    const { rows } = await consultar<CursoResumen>(
+      `
+        SELECT
+          c.id_curso AS id,
+          c.titulo,
+          c.estado,
+          c.motivo_rechazo AS "motivoRechazo",
+          concat_ws(' ', p.nombres, p.apellidos) AS docente,
+          (
+            SELECT count(*)::int
+            FROM modulo m
+            WHERE m.id_curso = c.id_curso
+          ) AS modulos
+        FROM curso c
+        JOIN docente d
+          ON d.id_docente = c.id_docente
+        JOIN persona p
+          ON p.id_persona = d.id_persona
+        WHERE d.id_persona = $1
+          AND d.estado = 'ACTIVO'
+        ORDER BY c.creado_en DESC, c.id_curso DESC
+      `,
+      [idPersona],
+    );
+
+    return rows;
+  },
+
+  async docentePorPersona(
+    cliente: PoolClient,
+    idPersona: number,
+  ): Promise<number | null> {
+    const { rows } = await cliente.query<{
+      id: number;
+    }>(
+      `
+        SELECT id_docente AS id
+        FROM docente
+        WHERE id_persona = $1
+          AND estado = 'ACTIVO'
+      `,
+      [idPersona],
+    );
+
+    return rows[0]?.id ?? null;
+  },
+
+  async categoriaActiva(
+    cliente: PoolClient,
+    categoriaId: number,
+  ): Promise<boolean> {
+    const { rows } = await cliente.query(
+      `
+        SELECT 1
+        FROM categoria
+        WHERE id_categoria = $1
+          AND activa = TRUE
+      `,
+      [categoriaId],
+    );
+
+    return rows.length > 0;
+  },
+
+  async crearBorrador(
+    cliente: PoolClient,
+    idDocente: number,
+    datos: {
+      titulo: string;
+      subtitulo: string;
+      descripcion: string;
+      categoriaId: number;
+      nivel: 'PRINCIPIANTE' | 'INTERMEDIO' | 'AVANZADO';
+      portadaUrl: string;
+      objetivos: string[];
+      requisitos: string[];
+    },
+  ): Promise<number> {
+    const { rows } = await cliente.query<{
+      id: number;
+    }>(
+      `
+        INSERT INTO curso (
+          id_docente,
+          id_categoria,
+          titulo,
+          subtitulo,
+          descripcion,
+          nivel,
+          portada_url,
+          objetivos,
+          requisitos,
+          estado
+        )
+        VALUES (
+          $1, $2, $3, $4, $5,
+          $6, $7, $8::text[], $9::text[],
+          'BORRADOR'
+        )
+        RETURNING id_curso AS id
+      `,
+      [
+        idDocente,
+        datos.categoriaId,
+        datos.titulo,
+        datos.subtitulo,
+        datos.descripcion,
+        datos.nivel,
+        datos.portadaUrl,
+        datos.objetivos,
+        datos.requisitos,
+      ],
+    );
+
+    return rows[0]!.id;
+  },
+
+  async actualizarCurso(
+    cliente: PoolClient,
+    idCurso: number,
+    datos: {
+      titulo: string;
+      subtitulo: string;
+      descripcion: string;
+      categoriaId: number;
+      nivel: 'PRINCIPIANTE' | 'INTERMEDIO' | 'AVANZADO';
+      portadaUrl: string;
+      objetivos: string[];
+      requisitos: string[];
+    },
+  ): Promise<void> {
+    await cliente.query(
+      `
+        UPDATE curso
+        SET
+          titulo = $2,
+          subtitulo = $3,
+          descripcion = $4,
+          id_categoria = $5,
+          nivel = $6,
+          portada_url = $7,
+          objetivos = $8::text[],
+          requisitos = $9::text[]
+        WHERE id_curso = $1
+      `,
+      [
+        idCurso,
+        datos.titulo,
+        datos.subtitulo,
+        datos.descripcion,
+        datos.categoriaId,
+        datos.nivel,
+        datos.portadaUrl,
+        datos.objetivos,
+        datos.requisitos,
+      ],
+    );
+  },
+
+  async contarModulos(
+    cliente: PoolClient,
+    idCurso: number,
+  ): Promise<number> {
+    const { rows } = await cliente.query<{
+      total: number;
+    }>(
+      `
+        SELECT COUNT(*)::int AS total
+        FROM modulo
+        WHERE id_curso = $1
+      `,
+      [idCurso],
+    );
+
+    return rows[0]?.total ?? 0;
+  },
+
+  async crearModulo(
+    cliente: PoolClient,
+    idCurso: number,
+    datos: {
+      titulo: string;
+      orden: number;
+    },
+  ): Promise<number> {
+    const { rows } = await cliente.query<{
+      id: number;
+    }>(
+      `
+        INSERT INTO modulo (
+          id_curso,
+          titulo,
+          orden
+        )
+        VALUES ($1, $2, $3)
+        RETURNING id_modulo AS id
+      `,
+      [
+        idCurso,
+        datos.titulo,
+        datos.orden,
+      ],
+    );
+
+    return rows[0]!.id;
+  },
+
+  async buscarModulo(
+    cliente: PoolClient,
+    idModulo: number,
+  ): Promise<{ idCurso: number } | null> {
+    const { rows } = await cliente.query<{
+      idCurso: number;
+    }>(
+      `SELECT id_curso AS "idCurso"
+       FROM modulo
+       WHERE id_modulo = $1`,
+      [idModulo],
+    );
+
+    return rows[0] ?? null;
+  },
+
+  async actualizarModulo(
+    cliente: PoolClient,
+    idModulo: number,
+    titulo: string,
+    orden: number,
+  ): Promise<void> {
+    await cliente.query(
+      `UPDATE modulo
+       SET titulo = $2, orden = $3
+       WHERE id_modulo = $1`,
+      [idModulo, titulo, orden],
+    );
+  },
+
+  async pdfDeModulo(
+    cliente: PoolClient,
+    idModulo: number,
+  ): Promise<number[]> {
+    const { rows } = await cliente.query<{
+      id: number;
+    }>(
+      `
+        SELECT DISTINCT id
+        FROM (
+          SELECT a.id_archivo AS id
+          FROM leccion l
+          JOIN archivo a
+            ON a.id_archivo = l.id_archivo
+          WHERE l.id_modulo = $1
+            AND a.tipo = 'PDF'
+
+          UNION
+
+          SELECT a.id_archivo AS id
+          FROM leccion l
+          JOIN recurso_adjunto ra
+            ON ra.id_leccion = l.id_leccion
+          JOIN archivo a
+            ON a.id_archivo = ra.id_archivo
+          WHERE l.id_modulo = $1
+            AND a.tipo = 'PDF'
+        ) archivos
+      `,
+      [idModulo],
+    );
+
+    return rows.map(fila => fila.id);
+  },
+
+  async eliminarModulo(
+    cliente: PoolClient,
+    idModulo: number,
+    idCurso: number,
+  ): Promise<boolean> {
+    const resultado = await cliente.query(
+      `
+        DELETE FROM modulo
+        WHERE id_modulo = $1
+          AND id_curso = $2
+      `,
+      [idModulo, idCurso],
+    );
+
+    return resultado.rowCount === 1;
+  },
+
+  async contarLecciones(
+    cliente: PoolClient,
+    idModulo: number,
+  ): Promise<number> {
+    const { rows } = await cliente.query<{ total: number }>(
+      `SELECT COUNT(*)::int AS total
+       FROM leccion
+       WHERE id_modulo = $1`,
+      [idModulo],
+    );
+
+    return rows[0]?.total ?? 0;
+  },
+
+  async ordenLeccionOcupado(
+    cliente: PoolClient,
+    idModulo: number,
+    orden: number,
+  ): Promise<boolean> {
+    const { rows } = await cliente.query(
+      `SELECT 1 FROM leccion
+       WHERE id_modulo = $1 AND orden = $2`,
+      [idModulo, orden],
+    );
+
+    return rows.length > 0;
+  },
+
+  async crearLeccion(
+    cliente: PoolClient,
+    idModulo: number,
+    datos: {
+      titulo: string;
+      orden: number;
+      tipo: 'DOCUMENTO';
+    },
+  ): Promise<number> {
+    const { rows } = await cliente.query<{ id: number }>(
+      `INSERT INTO leccion (
+         id_modulo, titulo, orden, tipo
+       )
+       VALUES ($1, $2, $3, $4)
+       RETURNING id_leccion AS id`,
+      [idModulo, datos.titulo, datos.orden, datos.tipo],
+    );
+
+    return rows[0]!.id;
+  },
+
+  async buscarLeccionParaEditar(
+    cliente: PoolClient,
+    idLeccion: number,
+  ): Promise<{
+    idCurso: number;
+    idModulo: number;
+    tipo: string;
+  } | null> {
+    const { rows } = await cliente.query<{
+      idCurso: number;
+      idModulo: number;
+      tipo: string;
+    }>(
+      `
+        SELECT
+          m.id_curso AS "idCurso",
+          l.id_modulo AS "idModulo",
+          l.tipo
+        FROM leccion l
+        JOIN modulo m
+          ON m.id_modulo = l.id_modulo
+        WHERE l.id_leccion = $1
+      `,
+      [idLeccion],
+    );
+
+    return rows[0] ?? null;
+  },
+
+  async actualizarLeccion(
+    cliente: PoolClient,
+    idLeccion: number,
+    idModulo: number,
+    datos: {
+      titulo: string;
+      orden: number;
+      tipo: 'DOCUMENTO';
+    },
+  ): Promise<boolean> {
+    const resultado = await cliente.query(
+      `
+        UPDATE leccion
+        SET titulo = $3,
+            orden = $4
+        WHERE id_leccion = $1
+          AND id_modulo = $2
+          AND tipo = 'DOCUMENTO'
+      `,
+      [
+        idLeccion,
+        idModulo,
+        datos.titulo,
+        datos.orden,
+      ],
+    );
+
+    return resultado.rowCount === 1;
+  },
+
+  async pdfDeLeccion(
+    cliente: PoolClient,
+    idLeccion: number,
+  ): Promise<number[]> {
+    const { rows } = await cliente.query<{
+      id: number;
+    }>(
+      `
+        SELECT id
+        FROM (
+          SELECT a.id_archivo AS id
+          FROM leccion l
+          JOIN archivo a
+            ON a.id_archivo = l.id_archivo
+          WHERE l.id_leccion = $1
+            AND a.tipo = 'PDF'
+
+          UNION
+
+          SELECT a.id_archivo AS id
+          FROM recurso_adjunto ra
+          JOIN archivo a
+            ON a.id_archivo = ra.id_archivo
+          WHERE ra.id_leccion = $1
+            AND a.tipo = 'PDF'
+        ) archivos
+      `,
+      [idLeccion],
+    );
+
+    return rows.map(fila => fila.id);
+  },
+
+  async eliminarLeccion(
+    cliente: PoolClient,
+    idLeccion: number,
+    idModulo: number,
+  ): Promise<boolean> {
+    const resultado = await cliente.query(
+      `
+        DELETE FROM leccion
+        WHERE id_leccion = $1
+          AND id_modulo = $2
+      `,
+      [idLeccion, idModulo],
+    );
+
+    return resultado.rowCount === 1;
+  },
+
+  async enviarARevision(
+    cliente: PoolClient,
+    idCurso: number,
+  ): Promise<boolean> {
+    const resultado = await cliente.query(
+      `
+        UPDATE curso
+        SET
+          estado = 'EN_REVISION',
+          motivo_rechazo = NULL,
+          revisado_por = NULL
+        WHERE id_curso = $1
+          AND estado IN ('BORRADOR', 'RECHAZADO')
+      `,
+      [idCurso],
+    );
+
+    return resultado.rowCount === 1;
+  },
+
   async pendientes(): Promise<CursoResumen[]> {
     const { rows } = await consultar<CursoResumen>(
       `
