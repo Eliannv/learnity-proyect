@@ -8,6 +8,7 @@ import type {
   UsuarioSesion,
 } from '../../shared/auth/tipos.js';
 
+import { z } from 'zod';
 import { AppError } from '../../shared/http/app-error.js';
 import { idRuta } from '../../shared/http/esquemas.js';
 
@@ -15,7 +16,7 @@ import {
   contenidoService as service,
 } from './contenido.service.js';
 
-const identificador = idRuta;
+const identificador = z.object({ id: idRuta }).transform(({ id }) => id);
 
 function usuario(req: Request): UsuarioSesion {
   if (!req.usuario) {
@@ -31,9 +32,7 @@ export const contenidoController = {
     _res: Response,
     next: NextFunction,
   ): Promise<void> {
-    const id = identificador.parse(
-      req.params.id,
-    );
+    const id = identificador.parse(req.params);
 
     await service.verificarCarga(
       id,
@@ -47,9 +46,7 @@ export const contenidoController = {
     req: Request,
     res: Response,
   ): Promise<void> {
-    const id = identificador.parse(
-      req.params.id,
-    );
+    const id = identificador.parse(req.params);
 
     const curso = await service.subir(
       id,
@@ -64,9 +61,7 @@ export const contenidoController = {
     req: Request,
     res: Response,
   ): Promise<void> {
-    const id = identificador.parse(
-      req.params.id,
-    );
+    const id = identificador.parse(req.params);
 
     const archivo = await service.descargar(
       id,

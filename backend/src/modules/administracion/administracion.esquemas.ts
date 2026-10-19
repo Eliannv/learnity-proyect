@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { idRuta } from '../../shared/http/esquemas.js';
 
-export const identificador = idRuta;
+export const identificador = z.object({ id: idRuta }).transform(({ id }) => id);
 
 export const filtroRevision = z.strictObject({
   estado: z

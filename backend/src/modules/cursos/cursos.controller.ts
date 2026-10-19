@@ -21,7 +21,7 @@ const filtros = z.strictObject({
   limite: z.coerce.number().int().min(1).max(50).default(9),
 });
 
-const idCurso = idRuta;
+const idCurso = z.object({ id: idRuta }).transform(({ id }) => id);
 
 export const cursosController = {
   async crearCurso(req: Request, res: Response) {
@@ -54,7 +54,7 @@ export const cursosController = {
   },
 
   async crearModulo(req: Request, res: Response) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     const usuario = req.usuario;
 
@@ -86,7 +86,7 @@ export const cursosController = {
   },
 
   async crearLeccion(req: Request, res: Response) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     if (!req.usuario) {
       throw AppError.noAutenticado();
@@ -119,7 +119,7 @@ export const cursosController = {
     req: Request,
     res: Response,
   ) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     if (!req.usuario) {
       throw AppError.noAutenticado();
@@ -152,7 +152,7 @@ export const cursosController = {
     req: Request,
     res: Response,
   ) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     if (!req.usuario) {
       throw AppError.noAutenticado();
@@ -170,7 +170,7 @@ export const cursosController = {
     req: Request,
     res: Response,
   ) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     if (!req.usuario) {
       throw AppError.noAutenticado();
@@ -188,7 +188,7 @@ export const cursosController = {
     req: Request,
     res: Response,
   ) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     if (!req.usuario) {
       throw AppError.noAutenticado();
@@ -221,7 +221,7 @@ export const cursosController = {
     req: Request,
     res: Response,
   ) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     const usuario = req.usuario;
 
@@ -257,7 +257,7 @@ export const cursosController = {
     req: Request,
     res: Response,
   ) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     if (!req.usuario) {
       throw AppError.noAutenticado();
@@ -286,7 +286,7 @@ export const cursosController = {
   },
 
   async obtenerMiCurso(req: Request, res: Response) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
 
     const usuario = req.usuario;
 
@@ -317,7 +317,7 @@ export const cursosController = {
   },
 
   async detalle(req: Request, res: Response) {
-    const id = idCurso.parse(req.params['id']);
+    const id = idCurso.parse(req.params);
     res.json(await cursosService.detallePublico(id));
   },
 };

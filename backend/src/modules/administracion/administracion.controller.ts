@@ -48,9 +48,7 @@ export const administracionController = {
     req: Request,
     res: Response,
   ): Promise<void> {
-    const id = identificador.parse(
-      req.params.id,
-    );
+    const id = identificador.parse(req.params);
 
     const curso = await service.detalle(
       id,
@@ -64,9 +62,7 @@ export const administracionController = {
     req: Request,
     res: Response,
   ): Promise<void> {
-    const id = identificador.parse(
-      req.params.id,
-    );
+    const id = identificador.parse(req.params);
 
     const datos = decisionRevision.parse(
       req.body,
@@ -96,7 +92,7 @@ export const administracionController = {
   },
 
   async decidirSolicitud(req: Request, res: Response): Promise<void> {
-    const id = identificador.parse(req.params.id);
+    const id = identificador.parse(req.params);
     const datos = decisionSolicitud.parse(req.body);
     res.json(await service.decidirSolicitud(id, datos, usuario(req)));
   },
