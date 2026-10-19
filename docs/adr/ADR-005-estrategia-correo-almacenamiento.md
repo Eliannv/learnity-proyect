@@ -54,7 +54,7 @@ export const almacenLocal: AlmacenArchivos = { /* el código actual de almacenPd
 - Para qué sirve la interfaz:
   1. los módulos dependen de un contrato y no de `fs` (Cursos deja de importar `almacen-pdf.ts`; la comprobación pasa a hacerse a través de Contenido, según el ADR-004 y el ADR-001);
   2. permite sustituir el almacén en las pruebas sin escribir en disco;
-  3. deja un punto claro para el almacenamiento temporal de la subida (ADR-011, punto 4).
+  3. deja un punto claro para el almacenamiento temporal de la subida (ADR-011, punto 11.5).
 - **No resuelve por sí misma** la lectura de disco con filas bloqueadas (A5). Eso es un cambio de orden en el servicio (leer y validar antes de bloquear, o después del `COMMIT`) que hace `be-b` en B1 y B2. La interfaz solo lo hace visible.
 - Se puede mantener el nombre `esValido` si se prefiere no renombrar. Lo importante es que el nombre refleje que lee el archivo, para que nadie lo llame con filas bloqueadas sin saberlo.
 

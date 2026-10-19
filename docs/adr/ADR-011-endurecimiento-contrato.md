@@ -1,101 +1,244 @@
 # ADR-011: Endurecimiento con impacto en el contrato
 
-- **Estado:** Propuesto. **Son cuatro puntos que el usuario aprueba o rechaza por separado** en la Puerta 1.
-- **Fecha:** 2026-10-19
+- **Estado:** Propuesto. **Son 11 puntos independientes**: el usuario aprueba o rechaza cada uno por separado en la Puerta 1.
+- **Fecha:** 2026-10-19 (ampliado el mismo día con los hallazgos H1–H11 de `qa-edge`, `docs/refactor/RIESGOS.md`)
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
-- **Cambia el contrato:**
+- **Regla de proceso (decisión del lead, 19-10-2026):** la caracterización de `qa-edge` **congela el comportamiento actual**, incluido lo inseguro (marcado **CONGELADO-INSEGURO**). Cada punto indica qué pruebas de caracterización actualiza. Esas expectativas cambian **en el mismo commit** que aplica el punto aprobado, nunca antes. Si un punto se rechaza, sus pruebas siguen fijando el comportamiento actual.
 
-| Punto | ¿Cambia el contrato? | Qué cambia |
+## Resumen
+
+| Punto | Hallazgo | ¿Cambia el contrato? | Qué cambia | Pruebas que actualiza | Dueño |
+|---|---|---|---|---|---|
+| 11.1 | S4 / C-01 | **Sí** | `GET /api/salud` deja de devolver `baseDeDatos` | CAR-GEN-01 | be-a |
+| 11.2 | H8 | **Sí** | `GET /api/salud` con la base caída: 500 → 503 | CAR-GEN-03 | be-a |
+| 11.3 | S4 / C-02 | **Sí** (fuera del JSON) | `/api/docs` solo en desarrollo | CAR-GEN-04 | be-a |
+| 11.4 | S5 | **Sí** | Nuevo 429 en `POST /api/lecciones/{id}/archivo` | SEG-28 | be-b |
+| 11.5 | S5 | No | La subida pasa a disco temporal (cambia el modo de fallo) | Ninguna (ver H9) | be-b |
+| 11.6 | H1 / C-14 | **Sí** | Errores del parser JSON: 500 → 400, 413 o 415 | CAR-GEN-05, 06, 07 y 11 | be-a |
+| 11.7 | H11 | **Sí** | Texto con `\u0000`: 500 → 400 | CAR-CUR-08, CAR-IDE-07 | be-a / be-b |
+| 11.8 | H4 | **Sí** | Una sola regla de portada (la revalidación al enviar y al aprobar se vuelve más estricta) | CAR-CUR-07, SEG-19 | be-b |
+| 11.9 | S6 | **Sí** | `portadaUrl` deja de aceptar URLs externas | CAR-CUR-07, SEG-19 | be-b (+ fe-b) |
+| 11.10 | H5 | **Sí** | Los roles se leen de la base en cada petición (un token antiguo deja de recibir 403 tras la aprobación) | CAR-SOL-12 | be-a |
+| 11.11 | H6 | **Sí** | Los IDs rechazan `1e3`, `0x10`, ` 7 ` y `7.0` (pasan a 400) | Paquete ID (`PLAN_PRUEBAS.md` §2.2) | be-a / be-b |
+
+Los identificadores de las pruebas son los de `RIESGOS.md` y `PLAN_PRUEBAS.md` (`qa-edge`). Si cambian, manda el registro de `qa-edge`.
+
+## Contexto común
+
+- La regla del equipo prohíbe cambiar rutas, cuerpos, códigos HTTP o códigos de error sin un ADR aprobado. Estos puntos cierran riesgos de la auditoría (§4.2) y de `RIESGOS.md`, y **todos** cambian lo que la API responde, salvo 11.5.
+- Por eso se reúnen aquí, separados de los refactors que no cambian el contrato (ADR-001 a 007).
+- Consumidores conocidos:
+  - el README enlaza `/api/salud` y `/api/docs` (`README.md:93-94, 361, 864`);
+  - el frontend no llama a `/api/salud` (grep en `frontend/src`).
+- Recomendación global: aprobar 11.1–11.7 (bajo riesgo y alto valor); 11.8–11.11 según el criterio del usuario (ver cada uno).
+
+---
+
+## 11.1 `/api/salud` sin datos internos (S4, C-01)
+
+**Problema.** `app.ts:35-40` devuelve `{ estado: 'ok', baseDeDatos: { base, usuario, roles } }` a cualquier visitante: el nombre de la base, el usuario de PostgreSQL y el número de roles. Además, es SQL fuera de un repositorio. La consulta de arranque de `server.ts:36-47` (`current_database()`, `current_user`, `to_regclass('public.sesion')`) no es contrato, pero también es SQL fuera de un repositorio.
+
+**Propuesta (B).**
+- `200 { "estado": "ok" }`, con un `SELECT 1` desde una función de repositorio en `shared/database` (`comprobarConexion`).
+- La comprobación de arranque pasa también a un repositorio (`verificarEsquema`) y se registra con `registrarEvento` (ADR-006). Puede seguir registrando el nombre de la base en el log local: no es una respuesta HTTP.
+
+| Opción | Contrato | A favor | En contra |
+|---|---|---|---|
+| A. Dejarlo así | Sin cambios | Nada que hacer | La fuga de información sigue |
+| **B. `{ estado }`** | Cambia el cuerpo | No revela nada | Quien leía `baseDeDatos` (solo el README) deja de verlo |
+| C. `baseDeDatos` solo en desarrollo | Depende del entorno | Comodidad para depurar | Un contrato distinto por entorno |
+
+**Pruebas que actualiza:** CAR-GEN-01. **Otros:** `openapi*.ts` y el README (`arquitecto`).
+
+## 11.2 `/api/salud` con la base caída (H8)
+
+**Problema.** Si la consulta falla, el error no se controla y `manejadorErrores` responde **500 `ERROR_INTERNO`**. Un balanceador no puede distinguir "proceso caído" de "base caída".
+
+**Propuesta (B).** `503 { "estado": "sin_bd" }` cuando falla `comprobarConexion`, y se registra el evento.
+
+| Opción | Contrato | Valoración |
 |---|---|---|
-| 11.1 `/api/salud` sin datos internos | **Sí** | El cuerpo de `GET /api/salud` |
-| 11.2 Swagger solo en desarrollo | **Sí** (fuera del contrato JSON) | `GET /api/docs` deja de existir fuera de desarrollo |
-| 11.3 Límite por IP en la subida de PDF | **Sí** | Nuevo 429 en `POST /api/lecciones/{id}/archivo` |
-| 11.4 Subida a disco temporal | No | El comportamiento ante fallos (memoria frente a disco) |
+| A. 500 genérico | Sin cambios | Mezcla un fallo de dependencia con un error inesperado |
+| **B. 503 `{ estado: 'sin_bd' }`** | Nuevo 503 | Semántica estándar de disponibilidad |
+| C. Dos rutas (`/salud` y `/salud/bd`) | Ruta nueva | Separa *liveness* de *readiness*; es innecesario para una sola instancia local |
 
-## Contexto
+**Pruebas que actualiza:** CAR-GEN-03. Requiere 11.1, o al menos mover la consulta a un repositorio.
 
-La auditoría (§4.2) y la arquitectura objetivo (§5, *Seguridad mínima*) piden cuatro endurecimientos. La regla del equipo prohíbe cambiar rutas, cuerpos o códigos sin un ADR aprobado. Por eso se reúnen aquí, separados de los refactors que no cambian el contrato.
+## 11.3 Swagger solo en desarrollo (S4, C-02)
 
-- **S4:**
-  - `app.ts:35-40` responde a `GET /api/salud` con `{ estado: 'ok', baseDeDatos: { base, usuario, roles } }`, que revela a cualquier visitante el nombre de la base, el usuario de PostgreSQL y cuántos roles hay. Además, es SQL fuera de un repositorio;
-  - `app.ts:43` sirve Swagger (`/api/docs`) en cualquier entorno;
-  - `server.ts:36-47` consulta `current_database()`, `current_user` y `to_regclass('public.sesion')` al arrancar, y lo escribe en consola. No forma parte del contrato, pero también es SQL fuera de repositorio.
-- **S5:** `contenido.multipart.ts:15` usa `multer.memoryStorage()` con un límite de 10 MiB por archivo, y `contenido.routes.ts:18-25` no aplica `limitarPorIp`. N subidas simultáneas ocupan hasta N × 10 MiB de RAM antes de validar nada. Además, `validarBytesPdf` carga el documento completo con `pdf-lib` (`pdf-validacion.ts:79`).
-- **Consumidores conocidos:** el README enlaza `/api/salud` y `/api/docs` (`README.md:93-94, 361, 864`). El frontend no llama a `/api/salud` (`grep` en `frontend/src`: solo un comentario que menciona `/api/docs`). Ninguna prueba de `backend/test` usa estas dos rutas.
+**Problema.** `app.ts:43` sirve Swagger UI en cualquier entorno.
 
-## 11.1 `/api/salud` sin datos internos
-
-**Propuesta (B):** `GET /api/salud` → `200 { "estado": "ok" }` si `SELECT 1` funciona. Si falla la base, `503 { "estado": "sin_bd" }`. La consulta se mueve a una función de repositorio en `shared/database` (`comprobarConexion`). La comprobación de arranque de `server.ts:36-47` se mueve también a un repositorio (`verificarEsquema`) y se registra con `registrarEvento` (ADR-006). Puede seguir registrando el nombre de la base en el log local, porque no es una respuesta HTTP.
+**Propuesta (B).** Montar `/api/docs` solo si `NODE_ENV === 'development'`. En `test` y `production` responde el 404 de `rutaNoEncontrada`. `openapi.yaml` sigue siendo la referencia publicada en el repositorio.
 
 | Opción | Contrato | A favor | En contra |
 |---|---|---|---|
-| A. Dejarla como está | Sin cambios | Nada que hacer | Mantiene la fuga de información (S4) y el SQL en `app.ts` |
-| **B. `{estado}` con 200 o 503 (propuesta)** | Cambia el cuerpo y añade el 503 | No revela nada; un 503 lo entiende cualquier balanceador | Quien leía `baseDeDatos` (solo el README) deja de verlo |
-| C. Dos rutas: `/api/salud` (proceso) y `/api/salud/bd` (base) | Añade una ruta | Separa *liveness* de *readiness* | Amplía el contrato sin necesidad para una sola instancia local |
-| D. Dejar `baseDeDatos` solo en desarrollo | Depende del entorno | Comodidad para depurar | Un contrato que cambia según el entorno es más difícil de probar y documentar |
+| A. Público siempre | Sin cambios | Cómodo | Expone toda la superficie de la API |
+| **B. Solo `development`** | 404 fuera de desarrollo | Simple | Sin documentación interactiva en despliegues |
+| C. Variable `SWAGGER_ACTIVO` (apagada por defecto) | Igual que B, según la configuración | Flexible | Una variable más en `env.ts` |
+| D. Detrás de `autorizar('ADMIN')` | Cambia el acceso | Disponible para administradores | Swagger UI no envía el `Bearer` en sus recursos estáticos: es frágil |
 
-**Consecuencias:** se actualizan `openapi*.ts` (C-01) y el README. `qa-edge` caracteriza el cuerpo nuevo.
+**Pruebas que actualiza:** CAR-GEN-04 (hoy `GET /api/docs/` → 200 HTML; con B, en `test` → 404).
 
-## 11.2 Swagger solo en desarrollo
+## 11.4 Límite por IP en la subida de PDF (S5)
 
-**Propuesta (B):** montar `/api/docs` solo si `NODE_ENV === 'development'`. En `test` y `production` responde el 404 genérico de `rutaNoEncontrada`. `openapi.yaml` sigue siendo la referencia publicada en el repositorio.
+**Problema.** `contenido.routes.ts:18-25` no tiene `limitarPorIp` (RG-52: solo hay 10 límites, en Identidad y la solicitud de docente). Las subidas se pueden repetir sin freno.
 
-| Opción | Contrato | A favor | En contra |
-|---|---|---|---|
-| A. Público siempre | Sin cambios | Cómodo | Expone toda la superficie de la API en producción (S4) |
-| **B. Solo en `development` (propuesta)** | `/api/docs` da 404 fuera de desarrollo | Simple; no depende de la autenticación | En un despliegue no hay documentación interactiva |
-| C. Variable `SWAGGER_ACTIVO` (apagada por defecto) | Igual que B, según la configuración | Flexible | Una variable más en `env.ts` y en `.env.example` |
-| D. Detrás de `autenticar` + `autorizar('ADMIN')` | Cambia el acceso | Disponible para administradores | Swagger UI carga recursos estáticos que no envían el `Bearer`, así que es complicado y frágil |
-
-**Consecuencias:** se ajusta el README ("solo en desarrollo"). Ninguna prueba depende de esta ruta.
-
-## 11.3 Límite por IP en la subida de PDF (nuevo 429)
-
-**Propuesta (B):** `limitarPorIp('subida-pdf', 30, 15)` antes de `autenticar` en `POST /lecciones/:id/archivo`, igual que las demás rutas limitadas (`administracion.routes.ts:47-54`). Responde 429 `DEMASIADAS_PETICIONES` con `Retry-After` y `detalles.reintentarEnSegundos`, como el resto. El valor de 30 por 15 minutos se puede ajustar en la aprobación.
+**Propuesta (B).** `limitarPorIp('subida-pdf', 30, 15)` antes de `autenticar`, como en `administracion.routes.ts:47-54`. Responde 429 `DEMASIADAS_PETICIONES` con `Retry-After` y `detalles.reintentarEnSegundos`. El valor (30 por 15 minutos) se puede ajustar al aprobar.
 
 | Opción | Contrato | A favor | En contra |
 |---|---|---|---|
-| A. Sin límite | Sin cambios | — | Un cliente puede agotar la memoria o el disco con subidas repetidas (S5) |
-| **B. `limitarPorIp` (propuesta)** | Nuevo 429 | Reutiliza el mecanismo existente y su formato de error | Detrás de un NAT, varios docentes comparten el límite. El contador vive en memoria y sirve solo para una instancia (A12, documentado) |
-| C. Límite por usuario autenticado | Nuevo 429 | Más justo con NAT | Requiere un ayudante nuevo (`limitarPorUsuario`) y no protege antes de autenticar |
-| D. Límite de subidas simultáneas (semáforo) | Nuevo 503 o 429 | Protege la RAM directamente | Más código y un comportamiento menos predecible |
+| A. Sin límite | Sin cambios | — | Agotamiento de memoria o de disco (S5) |
+| **B. `limitarPorIp`** | Nuevo 429 | Reutiliza el mecanismo y el formato de error | Detrás de un NAT se comparte el límite |
+| C. Límite por usuario autenticado | Nuevo 429 | Más justo con NAT | Ayudante nuevo y no protege antes de autenticar |
+| D. Semáforo de subidas simultáneas | Nuevo 503/429 | Protege la RAM directamente | Más código y un comportamiento menos predecible |
 
-**Consecuencias:** se actualizan `openapi-integrante3.ts` (respuesta 429) y el frontend (`pdf-leccion`), que debe mostrar el mensaje del 429. Falta comprobar si `shared/cursos/peticion.ts` (`fallar`) ya muestra el `mensaje` de un 429: **NO VERIFICADO**. `qa-edge` añade el caso.
+**Consecuencias:**
+- Hay que actualizar `openapi-integrante3.ts` (respuesta 429) y el frontend (`pdf-leccion`) debe mostrar el mensaje. Si `peticion.ts` ya lo hace está **NO VERIFICADO**.
+- **H7 (configuración, no contrato):** `limitarPorIp` usa `req.ip` como clave (`limite-peticiones.ts:24`). Con `TRUST_PROXY=true` (`app.ts:23`, `env.ts:75`) un cliente puede falsear `X-Forwarded-For` y saltarse **este y todos los demás** límites por IP. `TRUST_PROXY` solo debe activarse detrás de un proxy propio que **sobrescriba** esa cabecera, y con el número exacto de saltos, no con `true`. El contador vive en memoria y solo sirve para una instancia (A12). Lo documenta el README (`arquitecto`) y lo prueba SEG-33.
 
-## 11.4 Subida a disco temporal en vez de `memoryStorage`
+**Pruebas que actualiza:** SEG-28 (hoy fija que no hay 429 tras N subidas).
 
-**Propuesta (B):** `multer.diskStorage` en un directorio temporal **dentro del mismo volumen** que `PDF_DIR` (por ejemplo `PDF_DIR/.tmp`), con un nombre aleatorio y los mismos `limits` (`fileSize`, `files: 1`, `fields: 0`, `parts: 2`). Después de validar, el archivo se **renombra** al nombre definitivo. Se mantiene el registro previo `programarNuevo` de `contenido.service.ts`, que permite recuperar la limpieza. En cualquier error se borra el temporal. Al arrancar se limpian los temporales huérfanos.
+## 11.5 Subida a disco temporal en vez de `memoryStorage` (S5, sin cambio de contrato)
 
-| Opción | Contrato | A favor | En contra |
-|---|---|---|---|
-| A. `memoryStorage` (actual) | — | Simple y sin archivos temporales | Hasta N × 10 MiB de RAM con subidas simultáneas; si se agota, se cae el proceso (y con él todas las sesiones) |
-| **B. Disco temporal y luego `rename` (propuesta)** | Sin cambios | Mientras se recibe, la RAM queda acotada; un disco lleno da un error controlado (500) en vez de tumbar el proceso; el `rename` es atómico en el mismo volumen | Hay que gestionar los temporales huérfanos; **la validación con `pdf-lib` sigue cargando el archivo entero** (`pdf-validacion.ts:79`), así que el pico de RAM por subida en validación no desaparece. Para eso hace falta además 11.3 o la Opción D de 11.3 |
-| C. *Stream* directo al destino final, validando después | Sin cambios | Sin copia | Si la validación falla, quedan archivos inválidos en el directorio definitivo. Peor |
+**Problema.** `contenido.multipart.ts:15` usa `multer.memoryStorage()` (10 MiB por archivo). N subidas simultáneas ocupan N × 10 MiB de RAM antes de validar nada.
 
-**Consecuencias (comportamiento ante fallos, sin cambiar el contrato):**
+**Propuesta (B).**
+- `multer.diskStorage` en un directorio temporal del mismo volumen que `PDF_DIR` (por ejemplo `PDF_DIR/.tmp`), con un nombre aleatorio y los mismos `limits`.
+- Después de validar, se **renombra** al nombre definitivo (es atómico en el mismo volumen). Se conserva `programarNuevo`.
+- En cualquier error se borra el temporal, y al arrancar se limpian los huérfanos.
+
+| Opción | A favor | En contra |
+|---|---|---|
+| A. `memoryStorage` (actual) | Simple | Si se agota la RAM, cae el proceso y con él todas las sesiones |
+| **B. Disco temporal y `rename`** | La RAM queda acotada mientras se recibe; un disco lleno da un error controlado | Hay que gestionar los temporales huérfanos. **`pdf-lib` sigue cargando el archivo entero al validar** (`pdf-validacion.ts:79`): el pico por subida en la validación no desaparece (para eso, 11.4) |
+| C. *Stream* al destino final | Sin copia | Si la validación falla, quedan archivos inválidos en el directorio definitivo |
+
+**Comportamiento ante fallos:**
 
 | Fallo | Hoy | Con B |
 |---|---|---|
-| Muchas subidas simultáneas | Crece la RAM; riesgo de que el proceso se caiga | La RAM está acotada mientras se recibe; el disco absorbe la carga |
-| Disco lleno | No ocurre al recibir (solo al guardar) | Error controlado al recibir: 500 `ERROR_INTERNO`, se borra el temporal y se registra el evento |
-| El proceso se cae a mitad de una subida | Se pierde lo que estaba en memoria | Queda un temporal huérfano, que se limpia al arrancar |
+| Muchas subidas simultáneas | Crece la RAM y el proceso puede caer | La RAM queda acotada mientras se recibe |
+| Disco lleno | Solo falla al guardar | Falla al recibir con un error controlado (500), se borra el temporal y se registra |
+| El proceso cae a mitad | Se pierde lo que estaba en memoria | Queda un temporal huérfano, que se limpia al arrancar |
 
-`qa-edge` debe cubrir en `RIESGOS.md`: el disco lleno, el temporal huérfano y una subida cancelada a mitad.
+**Pruebas que actualiza:** ninguna CONGELADO-INSEGURO.
+- **Atención a H9:** `administracion-contenido.test.ts:888, 939-951, 960-974` inyecta fallos sustituyendo `almacenPdf.guardar` y `almacenPdf.eliminar`. Si el flujo de 11.5 deja de llamar a `guardar` (por ejemplo, porque solo hace `rename`), esas pruebas podrían **pasar sin inyectar el fallo**. `be-b` debe comprobar que el fallo inyectado sigue ocurriendo (SEG-27).
+- **Relación con H3** (escribir el PDF con filas bloqueadas, SEG-25): el `rename` debe quedar fuera de la sección bloqueada, igual que la lectura del ADR-005.
 
-## Análisis de compromisos
+## 11.6 Errores del parser JSON (H1, C-14)
 
-Los cuatro puntos reducen la superficie expuesta o el riesgo de caída sin funcionalidad nueva. 11.1 y 11.2 son baratos y su único "consumidor" es el README. 11.3 añade un código HTTP que el frontend ya sabe mostrar. 11.4 no cambia el contrato, pero sí el modo de fallo, y solo tiene sentido completo junto con 11.3. Por eso se recomienda aprobarlos juntos, aunque la decisión es independiente para cada uno.
+**Problema.** Un JSON mal formado, un cuerpo de más de 1 MB o un charset no admitido producen errores de `http-errors` con `status` y `type` (`entity.parse.failed`, `entity.too.large`, `charset.unsupported`). `manejadorErrores` (`manejador-errores.ts:16-50`) solo reconoce `AppError`, `ZodError` y los códigos de PostgreSQL, así que responde **500 `ERROR_INTERNO`** y hace `console.error`.
 
-## Acciones (solo para los puntos aprobados)
+**Propuesta (B).** Reconocer `error.type`:
+- `entity.parse.failed` → 400 `SOLICITUD_INVALIDA`;
+- `entity.too.large` → 413 `CUERPO_DEMASIADO_GRANDE`;
+- `charset.unsupported` o `encoding.unsupported` → 415 `TIPO_NO_ADMITIDO`.
 
-1. [ ] 11.1 y 11.2: `app.ts`, `server.ts` y `shared/database` (`be-a` y `be-b`, Fase 2A); `openapi*.ts` y README (`arquitecto`).
-2. [ ] 11.3: ruta de Contenido (`be-b`, Fase 2B, B3); `openapi-integrante3.ts` (`arquitecto`).
-3. [ ] 11.4: `contenido.multipart.ts` y la limpieza al arrancar (`be-b`, B3), con la caracterización de la subida en verde antes de empezar.
-4. [ ] `qa-edge`: casos de 429, 503, 404 de `/api/docs` en `test`, y fallos de disco.
+Cada uno con un mensaje en español y sin el contenido recibido.
 
-## Cómo se verifica
+| Opción | Contrato | Valoración |
+|---|---|---|
+| A. Mantener el 500 y documentarlo (C-13) | Sin cambios | Mezcla errores del cliente con fallos del servidor y llena el log de falsos errores |
+| **B. 400 / 413 / 415** | Cambia los códigos | Semántica HTTP correcta |
+| C. Usar `error.status` de cualquier error con `expose: true` | Cambia los códigos | Más genérico, pero pierde el control del código de error y del mensaje |
+
+**Pruebas que actualiza:** CAR-GEN-05, CAR-GEN-06, CAR-GEN-07 y CAR-GEN-11. El ADR-006 remite aquí.
+
+## 11.7 Texto con el carácter NUL (H11)
+
+**Problema.** Un texto con `\u0000` pasa zod, y PostgreSQL lo rechaza (`22021`, *invalid byte sequence*). Ese código no está mapeado (`manejador-errores.ts:33-44`), así que la respuesta es **500**.
+
+**Propuesta (B).** Un ayudante zod de texto en `shared/http` (`textoSeguro`) que rechace `\u0000` con un mensaje por campo, para usarlo en todos los esquemas de texto. Como red de seguridad, mapear `22021` → 400 `SOLICITUD_INVALIDA` en `manejadorErrores`.
+
+| Opción | Contrato | Valoración |
+|---|---|---|
+| A. Dejarlo así | Sin cambios | Un 500 provocable a voluntad, con `console.error` |
+| **B. Rechazar en zod y mapear `22021`** | 500 → 400 con `detalles` por campo | Error claro y ubicado |
+| C. Solo mapear `22021` | 500 → 400 sin campo | Más simple, pero sin indicar el campo |
+| D. Eliminar el NUL en silencio | Cambia los datos guardados | Modifica la entrada del usuario sin avisar |
+
+**Pruebas que actualiza:** CAR-CUR-08 y CAR-IDE-07.
+
+## 11.8 Una sola regla de portada (H4)
+
+**Problema.** Hay dos validaciones distintas:
+- el esquema zod (`cursos-gestion.esquemas.ts:12-31`) en las rutas relativas rechaza `..`, `\`, `?`, `#` y los espacios, y en las URL rechaza las credenciales;
+- `portadaValida` (`cursos-integracion.service.ts:66-82`), que se usa al revalidar en el envío a revisión y en la aprobación, acepta cualquier `/…` sin `//` ni `\` y cualquier URL `http(s)`.
+
+Una portada que solo pase la regla laxa (por ejemplo, insertada por semilla o directamente en la base) se puede enviar y aprobar.
+
+**Propuesta (B).** Una sola función (en `cursos`) con la regla del esquema zod, que se usa en los dos sitios.
+
+| Opción | Contrato | Valoración |
+|---|---|---|
+| A. Dos reglas | Sin cambios | Inconsistente |
+| **B. Unificar en la regla estricta** | La revalidación puede rechazar cursos que hoy pasan | Solo afecta a datos que no entraron por la API (las semillas) |
+| C. Unificar en la regla laxa | El `PUT` aceptaría portadas que hoy rechaza | Debilita la validación de entrada |
+
+**Pruebas que actualiza:** CAR-CUR-07 y SEG-19.
+
+## 11.9 Portada externa (S6)
+
+**Problema.** `portadaUrl` acepta cualquier URL `http(s)` externa: la imagen se carga desde terceros (rastreo y contenido mixto).
+
+**Propuesta.** **Decisión del usuario, sin recomendación fuerte**, porque cambia lo que el docente puede hacer:
+- **B**: solo rutas relativas propias (`/…`);
+- **C**: una lista de dominios permitidos en la configuración.
+
+| Opción | Contrato | Valoración |
+|---|---|---|
+| A. Mantener las URL externas | Sin cambios | Riesgo bajo, aceptado hoy |
+| B. Solo rutas propias | `PUT /cursos/{id}` y `POST /cursos` rechazan URLs externas (400) | Hoy no hay subida de imágenes, así que el docente no tendría cómo poner una portada propia |
+| C. Lista de dominios permitidos | Igual que B, salvo para los dominios permitidos | Equilibrado, pero añade configuración |
+
+**Pruebas que actualiza:** CAR-CUR-07 y SEG-19. Si se aprueba B o C, el formulario del editor (`fe-b`) debe explicar la restricción.
+
+## 11.10 Roles actualizados en cada petición (H5)
+
+**Problema.** Los roles viajan en el JWT (`shared/auth/jwt.ts:10`). `sesionVigente` (`identidad.repository.ts:242-252`) comprueba la sesión y `usuario.estado`, pero no los roles. Por eso, cuando se aprueba una solicitud, el estudiante sigue recibiendo 403 en las rutas de DOCENTE hasta que renueva el token. Y al revés: un rol retirado sigue valiendo hasta que el token vence (15 minutos).
+
+**Propuesta: decisión del usuario.** Recomendación: **B**.
+
+| Opción | Contrato | Valoración |
+|---|---|---|
+| A. Dejarlo así (documentado en el contrato: "el rol llega en la próxima renovación") | Sin cambios | Ya lo dice `openapi-solicitudes.ts`; como mucho, 15 minutos de desfase |
+| **B. `sesionVigente` devuelve también los roles actuales y `autenticar` sustituye `req.usuario.roles`** | Un token antiguo pasa de 403 a 200 tras la aprobación | Se reutiliza la consulta que ya se hace en cada petición (un `JOIN` con `usuario_rol` y `rol`); los roles retirados dejan de valer de inmediato |
+| C. El frontend llama a `/auth/refresh` al ver la solicitud `APROBADA` | Sin cambios en el backend | Arregla la experiencia del estudiante, pero no la revocación de roles |
+
+**Pruebas que actualiza:** CAR-SOL-12.
+
+## 11.11 IDs estrictos (H6)
+
+**Problema.** Los IDs con `z.coerce.number().int()` (`cursos.controller.ts:23`, `contenido.controller.ts:19-23`, `administracion.esquemas.ts:3-7`) aceptan `1e3`, `0x10`, ` 7 ` y `7.0` como números válidos.
+
+**Propuesta: decisión del usuario.** El ADR-006 la recoge como opción, no como decisión.
+- **B:** un único esquema `idRuta = z.string().regex(/^[1-9][0-9]{0,9}$/).transform(Number).pipe(z.number().max(2147483647))` en `shared/http`, usado por `validarParametros`.
+
+| Opción | Contrato | Valoración |
+|---|---|---|
+| A. Mantener `coerce` | Sin cambios | Tolerante; el riesgo real es bajo (se convierte a un entero válido) |
+| **B. Solo dígitos decimales** | Esas formas pasan a 400 | Entrada canónica y URLs únicas por recurso |
+
+**Pruebas que actualiza:** el paquete de ID de `PLAN_PRUEBAS.md` §2.2 (los casos `1e3`, `0x10`, ` 7 ` y `7.0`).
+
+---
+
+## Consecuencias generales
+
+- **Si se aprueban:**
+  - cada punto se implementa en un commit propio, que actualiza a la vez el código, las pruebas de caracterización que se citan, `openapi*.ts` (`arquitecto`) y, si hace falta, el README;
+  - `qa-edge` revisa que solo cambien esas expectativas.
+- **Si se rechazan:** el comportamiento queda congelado tal cual. `openapi*.ts` se alinea para documentarlo como es (por ejemplo, el 500 de C-13 y C-14).
+- **A revisar:**
+  - 11.4 + 11.5 tienen sentido juntos;
+  - 11.1 + 11.2 también;
+  - 11.8 + 11.9 tocan la misma regla y conviene decidirlos a la vez.
+
+## Cómo se verifica (por punto aprobado)
 
 - 11.1: `GET /api/salud` → `{"estado":"ok"}`; `grep -n "current_database\|current_user" backend/src/app.ts` → vacío.
-- 11.2: con `NODE_ENV=test`, `GET /api/docs` → 404 `NO_ENCONTRADO`.
-- 11.3: la petición 31 dentro de la ventana → 429 con `Retry-After`.
-- 11.4: `grep -n "memoryStorage" backend/src/modules/contenido/*.ts` → vacío; después de la suite, `PDF_DIR/.tmp` queda vacío.
+- 11.2: con la base detenida en un entorno de prueba → 503 `{"estado":"sin_bd"}`.
+- 11.3: con `NODE_ENV=test`, `GET /api/docs/` → 404 `NO_ENCONTRADO`.
+- 11.4: la petición 31 dentro de la ventana → 429 con `Retry-After`.
+- 11.5: `grep -n "memoryStorage" backend/src/modules/contenido/*.ts` → vacío; `PDF_DIR/.tmp` vacío tras la suite.
+- 11.6 a 11.11: las pruebas citadas, con la nueva expectativa, en verde, y el resto de la caracterización sin cambios.
