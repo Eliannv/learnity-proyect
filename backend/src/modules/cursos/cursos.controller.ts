@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { AppError } from '../../shared/http/app-error.js';
+import { idRuta } from '../../shared/http/esquemas.js';
 import { cursosService } from './cursos.service.js';
 import {
   datosCursoSchema,
@@ -20,7 +21,7 @@ const filtros = z.strictObject({
   limite: z.coerce.number().int().min(1).max(50).default(9),
 });
 
-const idCurso = z.coerce.number().int().min(1).max(2147483647);
+const idCurso = idRuta;
 
 export const cursosController = {
   async crearCurso(req: Request, res: Response) {

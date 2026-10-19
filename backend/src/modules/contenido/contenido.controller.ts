@@ -4,23 +4,18 @@ import type {
   NextFunction,
 } from 'express';
 
-import { z } from 'zod';
-
 import type {
   UsuarioSesion,
 } from '../../shared/auth/tipos.js';
 
 import { AppError } from '../../shared/http/app-error.js';
+import { idRuta } from '../../shared/http/esquemas.js';
 
 import {
   contenidoService as service,
 } from './contenido.service.js';
 
-const identificador = z.coerce
-  .number()
-  .int()
-  .min(1)
-  .max(2_147_483_647);
+const identificador = idRuta;
 
 function usuario(req: Request): UsuarioSesion {
   if (!req.usuario) {

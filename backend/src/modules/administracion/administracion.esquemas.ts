@@ -1,10 +1,7 @@
 import { z } from 'zod';
+import { idRuta } from '../../shared/http/esquemas.js';
 
-export const identificador = z.coerce
-  .number()
-  .int()
-  .min(1)
-  .max(2_147_483_647);
+export const identificador = idRuta;
 
 export const filtroRevision = z.strictObject({
   estado: z
