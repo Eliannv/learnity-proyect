@@ -121,7 +121,7 @@ Solo cambian `openapi*.ts` y `openapi.yaml`; ninguna ruta, cuerpo, código HTTP 
 | ID | Estado | Cómo se cerró |
 |---|---|---|
 | C-01 | **Cerrado** (contrato) | Fase 2A: `GET /salud` describía `{ estado: "ok", baseDeDatos: { base, usuario, roles } }`. Con el punto 11.1 del ADR-011 (`be-a`, `9060760`) responde `200 { estado: "ok" }`, y con el 11.2 (`17aad12`), `503 { estado: "sin_bd" }` si PostgreSQL no responde, en vez del 500. `openapi.ts` describe los dos |
-| C-02 | Sin cambio en el contrato | `/api/docs` no es una operación. Restringirlo es el punto 11.3 (aceptado, `be-a`) |
+| C-02 | **Cerrado** (contrato, fuera del JSON) | `/api/docs` no es una operación. Con el punto 11.3 del ADR-011 (`be-a`, `c62a2ea`) solo se monta con `NODE_ENV=development` y en `test` y `production` responde 404. Se documenta en `info.description` y en el `README.md` |
 | C-03 | **Cerrado** | 403 en `POST /solicitudes-docente` |
 | C-04 | **Cerrado** | 401 en `PUT /admin/solicitudes/{id}` |
 | C-05 | **Cerrado** | 400 en `GET /admin/solicitudes` |

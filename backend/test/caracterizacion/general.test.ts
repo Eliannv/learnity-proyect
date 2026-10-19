@@ -46,13 +46,12 @@ describe('rutas generales', () => {
     assert.equal((await srv.pedir('/api/salud')).status, 200, 'el pool vuelve a servir');
   });
 
-  it('CAR-GEN-04 CONGELADO-INSEGURO (S4, ADR-011 11.3): /api/docs es público', async () => {
-    const a = await srv.pedir('/api/docs');
-    const b = await srv.pedir('/api/docs/');
-    assert.equal(a.status, 301);
-    assert.equal(a.headers.get('location'), '/api/docs/');
-    assert.equal(b.status, 200);
-    assert.match(b.headers.get('content-type') ?? '', /^text\/html/);
+  it('CAR-GEN-04 (ADR-011, 11.3): /api/docs y /api/docs/ no existen fuera de desarrollo', async () => {
+    for (const ruta of ['/api/docs', '/api/docs/']) {
+      const r = await srv.pedir(ruta);
+      assert.equal(r.status, 404, ruta);
+      assert.equal(r.json.error.codigo, 'NO_ENCONTRADO', ruta);
+    }
   });
 
   it('CAR-GEN-08: rutas previstas de aprendizaje y evaluaciones', async () => {

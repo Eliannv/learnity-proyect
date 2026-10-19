@@ -91,7 +91,7 @@ Estos comandos:
 Enlaces del backend:
 
 - Estado del servidor y conexión a PostgreSQL: [http://localhost:3000/api/salud](http://localhost:3000/api/salud).
-- Documentación interactiva de la API: [http://localhost:3000/api/docs](http://localhost:3000/api/docs).
+- Documentación interactiva de la API: [http://localhost:3000/api/docs](http://localhost:3000/api/docs). Solo existe con `NODE_ENV=development` (el valor por defecto); en `test` y `production` responde 404. El contrato publicado es [`docs/api/openapi.yaml`](docs/api/openapi.yaml).
 
 Al arrancar, la consola informa la conexión a PostgreSQL, si falta la tabla de sesiones y qué transporte de correo se utiliza.
 
