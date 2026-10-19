@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 
-import { erroresPorCampo } from '../../pages/auth/mensaje-error';
+import { erroresPorCampo } from '../http/error-api';
 
 export class Peticion {
   private version = 0;

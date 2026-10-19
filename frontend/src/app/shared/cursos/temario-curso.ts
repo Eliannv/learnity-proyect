@@ -18,7 +18,7 @@ import {
   siguienteOrden,
 } from '../../core/cursos/gestion-cursos.model';
 
-import { Peticion } from './peticion';
+import { Peticion } from '../../core/estado/peticion';
 import { PdfLeccion } from './pdf-leccion';
 
 @Component({

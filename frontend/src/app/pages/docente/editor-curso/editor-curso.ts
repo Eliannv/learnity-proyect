@@ -30,7 +30,7 @@ import {
 } from '../../publico/cursos-publicos.service';
 
 import { EstadoCursoBadge } from '../../../shared/ui/estado-curso';
-import { Peticion } from '../../../shared/cursos/peticion';
+import { Peticion } from '../../../core/estado/peticion';
 import { TemarioCurso } from '../../../shared/cursos/temario-curso';
 
 const lineas = (texto: string) =>
