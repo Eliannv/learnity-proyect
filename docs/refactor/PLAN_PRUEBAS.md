@@ -111,10 +111,10 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
-| CAR-GEN-05 | X | JSON mal formado (`{`) | **500** `ERROR_INTERNO`, sin `detalles`. **CONGELADO-INSEGURO** (H1 = C-14; ADR-011 o ampliación del ADR-006) | RG-25, RG-48 | — |
+| CAR-GEN-05 | X | JSON mal formado (`{`) | **500** `ERROR_INTERNO`, sin `detalles`. **CONGELADO-INSEGURO** (H1 = C-14; ADR-011, punto 11.6) | RG-25, RG-48 | — |
 | CAR-GEN-06 | X | Cuerpo JSON > 1 MB | **500** (**capturar**; body-parser lo marca como 413 `entity.too.large`, pero el manejador lo ignora). **CONGELADO-INSEGURO** (H1 = C-14) | RG-25 | — |
 | CAR-GEN-11 | X | `Content-Type: application/json; charset=latin1` con cuerpo válido | **500** (**capturar**; body-parser lo marca como 415 `charset.unsupported`). **CONGELADO-INSEGURO** (C-14) | RG-25 | — |
-| CAR-GEN-07 | X | `Content-Type: text/plain` con cuerpo JSON | **Capturar** (previsto: 400 por `req.body` vacío) | RG-25 | — |
+| CAR-GEN-07 | X | `Content-Type: text/plain` con cuerpo JSON | **Capturar** (previsto: 400 por `req.body` vacío; se captura ejecutándolo en la 2A) | RG-25 | — |
 | CAR-GEN-09 | S | Cabeceras de `helmet` en cualquier respuesta | `X-Content-Type-Options: nosniff`, sin `X-Powered-By`, `Content-Security-Policy` presente (**capturar** su valor) | RG-42 | — |
 | CAR-GEN-10 | C | Forma de todo error | `{ error: { codigo, mensaje, detalles? } }` y nada más | RG-55 | Implícito en varias |
 
@@ -618,7 +618,7 @@ openapi.yaml: rutas 28 · operaciones 33 · con casos en §11 33
 | C-11 Límites de zod no declarados | Documentación | Familia X: CAR-IDE-06, CAR-IDE-42, CAR-CAT-10, CAR-CUR-07, CAR-CUR-09, CAR-SOL-05, CAR-SOL-10, ID-2 |
 | C-12 Errores declarados imposibles en `GET /docente/cursos` | Documentación | CAR-CUR-01, CAR-CUR-02: solo 200, 401 y 403 |
 | C-13 Cualquier ruta puede dar 500; mapeo de `23505`/`23514`/`23503` | Documentación | SEG-12 (`23505` → 409), CAR-CUR-10 (FK de categoría: **capturar** si da 400 por `23503`), CAR-IDE-07 y CAR-CUR-08 (NUL → `22021` → 500, H11) |
-| **C-14** JSON mal formado, más de 1 MB o charset no admitido → 500 | **Contrato** (ADR-011 o ampliación del ADR-006) | **CAR-GEN-05, CAR-GEN-06 y CAR-GEN-11 (CONGELADO-INSEGURO)** |
+| **C-14** JSON mal formado, más de 1 MB o charset no admitido → 500 | **Contrato** (ADR-011, punto 11.6) | **CAR-GEN-05, CAR-GEN-06 y CAR-GEN-11 (CONGELADO-INSEGURO)** |
 | C-15 `Content-Disposition` no declarado | Documentación | CAR-CON-05, SEG-20 |
 | C-16 Máximo 200 filas y orden en `GET /admin/solicitudes` | Documentación | CAR-SOL-07 |
 | C-17 Catálogo: `publicadoEn` con `COALESCE`, `totalPaginas = 0`, sin filtro por categoría o docente inactivo | Documentación; las vistas de D8 deben conservarlo | CAR-CAT-12, CAR-CAT-15, CAR-CAT-16, CAR-CAT-22 (§4) |
