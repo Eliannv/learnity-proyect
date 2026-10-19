@@ -19,7 +19,7 @@ import {
 } from '../../core/cursos/gestion-cursos.model';
 
 import { EstadoCursoBadge } from '../ui/estado-curso';
-import { Peticion } from './peticion';
+import { Peticion } from '../../core/estado/peticion';
 
 @Component({
   selector: 'app-listado-cursos',
