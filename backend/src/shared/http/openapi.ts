@@ -1,13 +1,7 @@
 // Contrato de la API (OpenAPI 3). Se ve en http://localhost:3000/api/docs
 // Cada sprint agrega aquí las rutas que implementa.
-import {
-  esquemasIntegrante3,
-  rutasIntegrante3,
-} from './openapi-integrante3.js';
-import {
-  esquemasIntegrante2,
-  rutasIntegrante2,
-} from './openapi-integrante2.js';
+import { esquemasRevisionContenido, rutasRevisionContenido } from './openapi-revision-contenido.js';
+import { esquemasGestionCursos, rutasGestionCursos } from './openapi-gestion-cursos.js';
 import { esquemasSolicitudes, rutasSolicitudes } from './openapi-solicitudes.js';
 
 const usuarioSesion = {
@@ -132,8 +126,8 @@ export const openApi = {
   servers: [{ url: '/api' }],
   components: {
     schemas: {
-      ...esquemasIntegrante3,
-      ...esquemasIntegrante2,
+      ...esquemasRevisionContenido,
+      ...esquemasGestionCursos,
       ...esquemasSolicitudes,
     },
     securitySchemes: {
@@ -143,8 +137,8 @@ export const openApi = {
     },
   },
   paths: {
-    ...rutasIntegrante3,
-    ...rutasIntegrante2,
+    ...rutasRevisionContenido,
+    ...rutasGestionCursos,
     ...rutasSolicitudes,
     '/salud': {
       get: { tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL', responses: { 200: json({ type: 'object' }) } },
@@ -156,7 +150,7 @@ export const openApi = {
       },
     },
     '/cursos': {
-      ...rutasIntegrante2['/cursos'],
+      ...rutasGestionCursos['/cursos'],
       get: {
         tags: ['Cursos'], summary: 'Catálogo público: solo cursos publicados',
         description: 'Los valores repetidos de categoría o nivel se combinan con OR dentro del grupo y AND entre grupos. La búsqueda consulta título, subtítulo y descripción. El total solo cuenta publicados.',
@@ -178,7 +172,7 @@ export const openApi = {
       },
     },
     '/cursos/{id}': {
-      ...rutasIntegrante2['/cursos/{id}'],
+      ...rutasGestionCursos['/cursos/{id}'],
       get: {
         tags: ['Cursos'], summary: 'Detalle público de un curso publicado',
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer', minimum: 1 } }],

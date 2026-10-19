@@ -43,7 +43,7 @@ const estados = [
   'ARCHIVADO',
 ];
 
-export const esquemasIntegrante3 = {
+export const esquemasRevisionContenido = {
   ArchivoPdf: {
     type: 'object',
     required: [
@@ -273,7 +273,7 @@ const curso = json(
   'Curso completo, directamente en la raíz',
 );
 
-export const rutasIntegrante3 = {
+export const rutasRevisionContenido = {
   '/admin/cursos': {
     get: {
       tags: ['Administración'],

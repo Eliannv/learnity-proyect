@@ -81,7 +81,7 @@ const operacion = (
   },
 });
 
-export const esquemasIntegrante2 = {
+export const esquemasGestionCursos = {
   ErrorApiIntegrante2: {
     type: 'object',
     properties: {
@@ -230,7 +230,7 @@ export const esquemasIntegrante2 = {
   },
 };
 
-export const rutasIntegrante2 = {
+export const rutasGestionCursos = {
   '/docente/cursos': {
     get: operacion(
       'Listar los cursos del docente autenticado',
