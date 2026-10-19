@@ -2,7 +2,6 @@
 import '../ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
-import { capturar } from '../ayudas/captura.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
 
 let srv: Servidor;
@@ -31,7 +30,10 @@ describe('rutas generales', () => {
   it('CAR-GEN-04 CONGELADO-INSEGURO (S4, ADR-011 11.3): /api/docs es público', async () => {
     const a = await srv.pedir('/api/docs');
     const b = await srv.pedir('/api/docs/');
-    capturar('CAR-GEN-04', { sinBarra: a.status, location: a.headers.get('location'), conBarra: b.status, tipo: b.headers.get('content-type') });
+    assert.equal(a.status, 301);
+    assert.equal(a.headers.get('location'), '/api/docs/');
+    assert.equal(b.status, 200);
+    assert.match(b.headers.get('content-type') ?? '', /^text\/html/);
   });
 
   it('CAR-GEN-08: rutas previstas de aprendizaje y evaluaciones', async () => {
@@ -40,11 +42,12 @@ describe('rutas generales', () => {
       ['GET', '/api/evaluaciones/1'], ['POST', '/api/evaluaciones/1/intentos'], ['PUT', '/api/evaluaciones/1'],
     ];
     const vistos: unknown[] = [];
+    const esperado = rutas.map(([m, r]) => [m, r, 404, 'NO_ENCONTRADO']);
     for (const [metodo, ruta] of rutas) {
       const r = await srv.pedir(ruta, { metodo });
       vistos.push([metodo, ruta, r.status, r.json?.error?.codigo]);
     }
-    capturar('CAR-GEN-08', vistos);
+    assert.deepEqual(vistos, esperado);
   });
 });
 
@@ -71,14 +74,17 @@ describe('transversales sobre POST /api/auth/login', () => {
 
   it('CAR-GEN-07: text/plain con cuerpo JSON', async () => {
     const r = await login({ crudo: '{"correo":"a@b.co","contrasena":"x"}', headers: { 'content-type': 'text/plain' } });
-    capturar('CAR-GEN-07', { status: r.status, error: r.json?.error });
+    assert.equal(r.status, 400);
+    assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA');
+    assert.equal(r.json.error.mensaje, 'Revisa los datos enviados.');
   });
 
   it('CAR-GEN-09: cabeceras de helmet', async () => {
     const r = await srv.pedir('/api/categorias');
     assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
     assert.equal(r.headers.get('x-powered-by'), null);
-    capturar('CAR-GEN-09 CSP', r.headers.get('content-security-policy'));
+    assert.match(r.headers.get('content-security-policy') ?? '', /^default-src 'self';/);
+    assert.match(r.headers.get('content-security-policy') ?? '', /script-src 'self'/);
   });
 
   it('CAR-GEN-10: forma de todo error', async () => {

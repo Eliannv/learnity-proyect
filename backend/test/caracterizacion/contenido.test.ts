@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { carpetaPdfPropia, ficheros, filasYFicheros, pdfDeTamano, pdfMinimo, subirPdf } from '../ayudas/archivos.js';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { capturar } from '../ayudas/captura.js';
 import { claves, sinRutasPrivadas } from '../ayudas/contrato.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { fabricaCursos } from '../ayudas/cursos-http.js';
@@ -65,7 +64,7 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
     const r = await subirPdf(srv, idLeccion, docA.token, await pdfMinimo(3), 'apunte.pdf');
     assert.equal(r.status, 200, r.texto);
     const a = archivoDe(r.json);
-    assert.deepEqual(claves(a), ['id', 'nombreOriginal', 'tamanoBytes', 'tipo']);
+    assert.deepEqual(claves(a), ['id', 'tipo', 'nombreOriginal', 'tamanoBytes']);
     assert.equal(a.nombreOriginal, 'apunte.pdf');
     assert.equal(a.tipo, 'PDF');
     assert.deepEqual(sinRutasPrivadas(r.json), []);
@@ -84,7 +83,7 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
     // Otro nombre de campo
     const otroCampo = await subirPdf(srv, idLeccion, docA.token, pdf, 'a.pdf', 'documento');
     assert.equal(otroCampo.status, 400);
-    capturar('CAR-CON-02 otro campo', otroCampo.json.error);
+    assert.equal(otroCampo.json.error.mensaje, 'Envía un único archivo en el campo archivo, sin otros campos.');
     // Campo extra
     const fdExtra = new FormData();
     fdExtra.append('archivo', new Blob([new Uint8Array(pdf)], { type: 'application/pdf' }), 'a.pdf');
@@ -108,14 +107,16 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
     assert.equal(falso.json.error.mensaje, 'El contenido del archivo no es un PDF válido.');
     // Archivo vacío
     const vacio = await subirPdf(srv, idLeccion, docA.token, Buffer.alloc(0), 'v.pdf');
-    capturar('CAR-CON-02 vacio', { status: vacio.status, error: vacio.json?.error });
+    assert.equal(vacio.status, 400);
+    assert.equal(vacio.json.error.mensaje, 'El archivo está vacío.');
     // Sin ninguna parte (multipart sin archivo)
     const sinArchivo = await srv.pedir(`/api/lecciones/${idLeccion}/archivo`, {
       metodo: 'POST', token: docA.token,
       headers: { 'content-type': 'multipart/form-data; boundary=x' }, crudo: '--x--\r\n',
     });
     assert.equal(sinArchivo.status, 400);
-    capturar('CAR-CON-02 sin archivo', sinArchivo.json.error);
+    assert.equal(sinArchivo.json.error.mensaje, 'Selecciona un archivo PDF.');
+    assert.equal(sinArchivo.json.error.detalles[0].mensaje, 'El campo archivo es obligatorio.');
     // > 10 MiB
     const grande = await subirPdf(srv, idLeccion, docA.token, Buffer.alloc(10 * 1024 * 1024 + 1, 1), 'g.pdf');
     assert.equal(grande.status, 413);
@@ -133,7 +134,6 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
     assert.equal(archivoDe(b.json).nombreOriginal, 'dos.pdf');
     assert.notEqual(archivoDe(b.json).id, idPrimero);
     const { rows } = await f.query<{ n: string }>('SELECT count(*) AS n FROM archivo WHERE id_curso = $1', [idCurso]);
-    capturar('CAR-CON-03 filas tras reemplazo', rows[0]!.n);
     assert.equal(rows[0]!.n, '1');
     const { filas } = await filasYFicheros(f, pdfDir.dir, [idCurso]);
     assert.equal(filas, 1);
@@ -144,7 +144,7 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
     const pdf = await pdfMinimo();
     const ajena = await subirPdf(srv, idLeccion, docB.token, pdf);
     assert.equal(ajena.status, 403);
-    capturar('CAR-CON-04 ajena', ajena.json.error);
+    assert.equal(ajena.json.error.mensaje, 'No puedes modificar esta lección.');
     const est403 = await subirPdf(srv, idLeccion, est.token, pdf);
     assert.equal(est403.status, 403);
     assert.equal(est403.json.error.codigo, 'SIN_PERMISO');
@@ -152,14 +152,15 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
       await forzarEstado(idCurso, e);
       const r = await subirPdf(srv, idLeccion, docA.token, pdf);
       assert.equal(r.status, 409, e);
-      capturar(`CAR-CON-04 ${e}`, r.json.error);
+      assert.equal(r.json.error.codigo, 'CURSO_BLOQUEADO', e);
+      assert.equal(r.json.error.mensaje, 'El curso ya no permite cambios. Actualiza su estado.', e);
     }
     await forzarEstado(idCurso, 'BORRADOR');
     const { rows } = await f.query<{ id: number }>(
       "INSERT INTO leccion (id_modulo, titulo, tipo, orden) SELECT id_modulo, 'Video', 'VIDEO', 2 FROM leccion WHERE id_leccion = $1 RETURNING id_leccion AS id", [idLeccion]);
     const video = await subirPdf(srv, rows[0]!.id, docA.token, pdf);
     assert.equal(video.status, 400);
-    capturar('CAR-CON-04 VIDEO', video.json.error);
+    assert.equal(video.json.error.mensaje, 'Solo las lecciones DOCUMENTO admiten este PDF.');
   });
 
   it('PREC-5: id inválido, lección ajena y lección propia sin multipart', async () => {
@@ -184,7 +185,7 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
     assert.equal(n201.json.error.mensaje, 'El nombre del PDF no es válido o supera 200 caracteres.');
     const nfd = await subirPdf(srv, idLeccion, docA.token, pdf, 'café ñandú.pdf');
     assert.equal(nfd.status, 200);
-    capturar('CAR-CON-07 nfd', archivoDe(nfd.json).nombreOriginal === 'café ñandú.pdf' ? 'NFC' : archivoDe(nfd.json).nombreOriginal);
+    assert.equal(archivoDe(nfd.json).nombreOriginal, 'café ñandú.pdf', 'el nombre se normaliza a NFC');
     const ruta = await subirPdf(srv, idLeccion, docA.token, pdf, '../../etc/pasaporte.pdf');
     assert.equal(ruta.status, 200);
     assert.equal(archivoDe(ruta.json).nombreOriginal, 'pasaporte.pdf');
@@ -210,7 +211,7 @@ describe('GET /api/archivos/:id (CAR-CON-05, 06)', () => {
     const { idCurso, idLeccion, idArchivo } = await c.cursoCompleto(docA);
     const ajeno = await c.como(docB, 'GET', `/api/archivos/${idArchivo}`);
     assert.equal(ajeno.status, 403);
-    capturar('CAR-CON-06 ajeno', ajeno.json.error);
+    assert.equal(ajeno.json.error.mensaje, 'No puedes descargar este archivo.');
     const e = await c.como(est, 'GET', `/api/archivos/${idArchivo}`);
     assert.equal(e.status, 403);
     assert.equal(e.json.error.codigo, 'SIN_PERMISO');
@@ -224,7 +225,7 @@ describe('GET /api/archivos/:id (CAR-CON-05, 06)', () => {
     await f.query('UPDATE leccion SET id_archivo = NULL WHERE id_leccion = $1', [idLeccion]);
     const huerfano = await c.como(docA, 'GET', `/api/archivos/${idArchivo}`);
     assert.equal(huerfano.status, 404);
-    capturar('CAR-CON-06 huérfano', huerfano.json.error);
+    assert.equal(huerfano.json.error.mensaje, 'Archivo no encontrado.');
     void idCurso;
   });
 });

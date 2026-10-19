@@ -6,7 +6,6 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { carpetaPdfPropia, ficheros } from '../ayudas/archivos.js';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { capturar } from '../ayudas/captura.js';
 import { forma, sinRutasPrivadas } from '../ayudas/contrato.js';
 import { fabricaCursos } from '../ayudas/cursos-http.js';
 import { crearMarca } from '../ayudas/datos.js';
@@ -77,7 +76,7 @@ describe('AUT e ID en las rutas de revisión', () => {
     }
     const r = await admin$('GET', '/api/admin/cursos/2147483647');
     assert.equal(r.status, 404);
-    capturar('ID-3 admin cursos', r.json.error);
+    assert.deepEqual(r.json.error, { codigo: 'NO_ENCONTRADO', mensaje: 'Curso no disponible.' });
     const dec = await admin$('PUT', '/api/admin/cursos/abc/revision', { decision: 'APROBAR' });
     assert.equal(dec.status, 400);
   });
@@ -90,13 +89,13 @@ describe('GET /api/admin/cursos (CAR-REV-01, 02)', () => {
     const { idCurso: borrador } = await c.cursoCompleto(docA);
     const r = await admin$('GET', '/api/admin/cursos');
     assert.equal(r.status, 200);
-    capturar('CAR-REV-01 forma', forma(r.json));
-    const lista: any[] = Array.isArray(r.json) ? r.json : (r.json.items ?? r.json.cursos);
+    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number' }] });
+    const lista: any[] = r.json.items;
     const ids = lista.map((x) => x.id);
     assert.ok(ids.includes(a) && ids.includes(b));
     assert.ok(!ids.includes(borrador));
     assert.ok(lista.every((x) => x.estado === 'EN_REVISION'));
-    capturar('CAR-REV-01 orden', { antiguoPrimero: ids.indexOf(a) < ids.indexOf(b) });
+    assert.ok(ids.indexOf(a) < ids.indexOf(b), 'la cola va de la más antigua a la más reciente');
     assert.deepEqual(sinRutasPrivadas(r.json), []);
   });
   it('CAR-REV-02: filtro estado', async () => {
@@ -111,14 +110,15 @@ describe('GET /api/admin/cursos/:id (CAR-REV-03, 04)', () => {
     const id = await enRevision();
     const r = await admin$('GET', `/api/admin/cursos/${id}`);
     assert.equal(r.status, 200);
-    capturar('CAR-REV-03 forma', forma(r.json));
+    assert.deepEqual(r.json.validacion, { completo: true, problemas: [] });
+    assert.equal(r.json.estado, 'EN_REVISION');
     assert.deepEqual(sinRutasPrivadas(r.json), []);
     assert.ok(!r.texto.includes(pdfDir.dir));
   });
   it('CAR-REV-04: curso en otro estado e inexistente', async () => {
     const { idCurso } = await c.cursoCompleto(docA);
     const borrador = await admin$('GET', `/api/admin/cursos/${idCurso}`);
-    capturar('CAR-REV-04 BORRADOR', { status: borrador.status, error: borrador.json?.error });
+    assert.equal(borrador.status, 200, 'el detalle de revisión responde también para cursos fuera de la cola');
     const inex = await admin$('GET', '/api/admin/cursos/2147483647');
     assert.equal(inex.status, 404);
   });
@@ -129,7 +129,6 @@ describe('PUT /api/admin/cursos/:id/revision (CAR-REV-05..09)', () => {
     const id = await enRevision();
     const r = await admin$('PUT', `/api/admin/cursos/${id}/revision`, { decision: 'APROBAR' });
     assert.equal(r.status, 200, r.texto);
-    capturar('CAR-REV-05 forma', forma(r.json));
     assert.equal(r.json.estado, 'PUBLICADO');
     const { rows } = await f.query('SELECT estado, revisado_por, publicado_en IS NOT NULL AS con_fecha, motivo_rechazo FROM curso WHERE id_curso = $1', [id]);
     assert.deepEqual(rows[0], { estado: 'PUBLICADO', revisado_por: admin.idPersona, con_fecha: true, motivo_rechazo: null });
@@ -190,7 +189,7 @@ describe('PUT /api/admin/cursos/:id/revision (CAR-REV-05..09)', () => {
     assert.deepEqual([a.status, b.status].sort(), [200, 409]);
     const perdedora = a.status === 409 ? a : b;
     assert.equal(perdedora.json.error.mensaje, 'Este curso ya no está pendiente de revisión.');
-    capturar('CAR-REV-08 codigo', perdedora.json.error.codigo);
+    assert.equal(perdedora.json.error.codigo, 'CONFLICTO');
     const otra = await admin$('PUT', ruta, { decision: 'RECHAZAR', motivo: 'tarde' });
     assert.equal(otra.status, 409);
     const inex = await admin$('PUT', '/api/admin/cursos/2147483647/revision', { decision: 'APROBAR' });
@@ -204,19 +203,26 @@ describe('PUT /api/admin/cursos/:id/revision (CAR-REV-05..09)', () => {
     const { rows: [fila] } = await f.query<{ ruta: string }>('SELECT ruta FROM archivo WHERE id_archivo = $1', [sinFichero.idArchivo]);
     const nombre = path.basename(fila!.ruta);
     try { unlinkSync(path.join(pdfDir.dir, nombre)); } catch { /* ruta relativa: se busca por nombre */ }
-    capturar('CAR-REV-09 ficheros restantes', ficheros(pdfDir.dir).includes(nombre));
+    assert.ok(!ficheros(pdfDir.dir).includes(nombre));
     const a = await admin$('PUT', `/api/admin/cursos/${sinFichero.idCurso}/revision`, { decision: 'APROBAR' });
-    capturar('CAR-REV-09 pdf-ausente', { status: a.status, error: a.json?.error });
+    assert.equal(a.status, 409);
+    assert.equal(a.json.error.codigo, 'CURSO_INCOMPLETO');
+    assert.equal(a.json.error.mensaje, 'El curso dejó de cumplir la validación. Actualiza su contenido.');
+    assert.equal(a.json.error.detalles[0].campo, 'modulos.0.lecciones.0.archivo');
     // Objetivos insuficientes
     const pocos = await enRevision();
     await f.query("UPDATE curso SET objetivos = '{uno}' WHERE id_curso = $1", [pocos]);
     const b = await admin$('PUT', `/api/admin/cursos/${pocos}/revision`, { decision: 'APROBAR' });
-    capturar('CAR-REV-09 objetivos', { status: b.status, error: b.json?.error });
+    assert.equal(b.status, 409);
+    assert.equal(b.json.error.codigo, 'CURSO_INCOMPLETO');
+    assert.equal(b.json.error.detalles[0].campo, 'objetivos');
     // Categoría inactiva
     const inactiva = await enRevision();
     await f.query('UPDATE categoria SET activa = FALSE WHERE id_categoria = $1', [categoriaId]);
     const d = await admin$('PUT', `/api/admin/cursos/${inactiva}/revision`, { decision: 'APROBAR' });
-    capturar('CAR-REV-09 categoria-inactiva', { status: d.status, error: d.json?.error });
+    assert.equal(d.status, 409);
+    assert.equal(d.json.error.codigo, 'CURSO_INCOMPLETO');
+    assert.equal(d.json.error.detalles[0].campo, 'categoriaId');
     await f.query('UPDATE categoria SET activa = TRUE WHERE id_categoria = $1', [categoriaId]);
   });
 });

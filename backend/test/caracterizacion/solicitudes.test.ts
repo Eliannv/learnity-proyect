@@ -4,7 +4,6 @@ import '../ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { capturar } from '../ayudas/captura.js';
 import { forma } from '../ayudas/contrato.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
@@ -18,6 +17,10 @@ let srv: Servidor;
 let fab: ReturnType<typeof fabricaCuentas>;
 let admin: Cuenta;
 let reiniciar: () => void;
+const FORMA_SOLICITUD = {
+  id: 'number', estado: 'string', especialidad: 'string', motivo: 'string', observacion: 'null', enviadaEn: 'string', revisadaEn: 'null',
+  solicitante: { nombres: 'string', apellidos: 'string', correo: 'string', estudianteDesde: 'string', cursosCompletados: 'number' },
+};
 
 const como = (c: Cuenta, metodo: string, ruta: string, cuerpo?: unknown) => srv.pedir(ruta, { token: c.token, metodo, cuerpo });
 const solicitar = (c: Cuenta, extra: Record<string, unknown> = {}) =>
@@ -64,11 +67,11 @@ describe('GET /mia y POST (CAR-SOL-01..06, 13)', () => {
     assert.deepEqual(vacia.json, { solicitud: null });
     const creada = await solicitar(est);
     assert.equal(creada.status, 201, creada.texto);
-    capturar('CAR-SOL-03 forma', forma(creada.json));
-    assert.equal(creada.json.estado ?? creada.json.solicitud?.estado, 'PENDIENTE');
+    assert.deepEqual(forma(creada.json), FORMA_SOLICITUD);
+    assert.equal(creada.json.estado, 'PENDIENTE');
     const mia = await como(est, 'GET', '/api/solicitudes-docente/mia');
     assert.equal(mia.status, 200);
-    capturar('CAR-SOL-02 forma', forma(mia.json));
+    assert.deepEqual(forma(mia.json), { solicitud: FORMA_SOLICITUD });
     const doc = await fab.crearCuenta(['DOCENTE']);
     assert.equal((await como(doc, 'GET', '/api/solicitudes-docente/mia')).status, 200);
     assert.equal((await como(admin, 'GET', '/api/solicitudes-docente/mia')).status, 200);
@@ -118,7 +121,8 @@ describe('GET /mia y POST (CAR-SOL-01..06, 13)', () => {
     reiniciar();
     const est = await estudiante();
     const [a, b] = await Promise.all([solicitar(est), solicitar(est)]);
-    capturar('CAR-SOL-06 concurrencia', [a.status, b.status, a.json?.error?.codigo, b.json?.error?.codigo]);
+    assert.deepEqual([a.status, b.status].sort(), [201, 409]);
+    assert.equal((a.status === 409 ? a : b).json.error.codigo, 'SOLICITUD_PENDIENTE');
     const { rows } = await f.query("SELECT count(*)::int AS n FROM solicitud_docente WHERE id_persona = $1 AND estado = 'PENDIENTE'", [est.idPersona]);
     assert.equal(rows[0]!.n, 1);
     reiniciar();
@@ -144,7 +148,7 @@ describe('Administración de solicitudes (CAR-SOL-07..12)', () => {
     await solicitar(est);
     const r = await como(admin, 'GET', '/api/admin/solicitudes');
     assert.equal(r.status, 200);
-    capturar('CAR-SOL-07 forma', forma(r.json));
+    assert.deepEqual(forma(r.json), [FORMA_SOLICITUD]);
     for (const estado of ['APROBADA', 'RECHAZADA', 'PENDIENTE']) {
       assert.equal((await como(admin, 'GET', `/api/admin/solicitudes?estado=${estado}`)).status, 200, estado);
     }
@@ -171,7 +175,8 @@ describe('Administración de solicitudes (CAR-SOL-07..12)', () => {
     const { est, id } = await pendiente();
     const r = await como(admin, 'PUT', `/api/admin/solicitudes/${id}`, { decision: 'APROBAR' });
     assert.equal(r.status, 200, r.texto);
-    capturar('CAR-SOL-09 forma', forma(r.json));
+    assert.deepEqual(Object.keys(r.json), Object.keys(FORMA_SOLICITUD));
+    assert.equal(r.json.estado, 'APROBADA');
     const roles = await f.query("SELECT r.nombre FROM usuario_rol ur JOIN rol r USING (id_rol) WHERE ur.id_usuario = $1 ORDER BY 1", [est.idUsuario]);
     assert.deepEqual(roles.rows.map((x) => x.nombre), ['DOCENTE', 'ESTUDIANTE']);
     const docente = await f.query('SELECT count(*)::int AS n FROM docente WHERE id_persona = $1', [est.idPersona]);
@@ -208,8 +213,8 @@ describe('Administración de solicitudes (CAR-SOL-07..12)', () => {
     // La suya propia: un administrador con ESTUDIANTE que solicita
     reiniciar();
     const propia = await solicitar(admin);
-    capturar('CAR-SOL-11 propia solicitud', { status: propia.status, error: propia.json?.error });
-    if (propia.status === 201) {
+    assert.equal(propia.status, 201, 'un ADMIN con rol ESTUDIANTE puede solicitar');
+    {
       const { rows } = await f.query<{ id: number }>("SELECT id_solicitud AS id FROM solicitud_docente WHERE id_persona = $1 AND estado = 'PENDIENTE'", [admin.idPersona]);
       const r = await como(admin, 'PUT', `/api/admin/solicitudes/${rows[0]!.id}`, { decision: 'APROBAR' });
       assert.equal(r.status, 403);

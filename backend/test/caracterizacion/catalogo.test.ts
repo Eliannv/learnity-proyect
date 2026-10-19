@@ -9,7 +9,6 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { capturar } from '../ayudas/captura.js';
 import { claves, normalizarConCamino, sinRutasPrivadas } from '../ayudas/contrato.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
@@ -66,8 +65,8 @@ async function categoria(clave: string, nombre: string, activa: boolean, por: nu
 async function curso(clave: string, docente: number, cat: string, titulo: string, nivel: string, estado: string, dias: number | null) {
   const { rows } = await f.query<{ id: number }>(
     `INSERT INTO curso (id_docente, id_categoria, titulo, subtitulo, descripcion, nivel, estado, portada_url, objetivos, requisitos, publicado_en, revisado_por)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, '/img/p.jpg', '{a,b,c}', '{r1}', CASE WHEN $8::int IS NULL THEN NULL ELSE now() - $8::int * interval '1 day' END,
-             CASE WHEN $7 = 'PUBLICADO' THEN $9::int END)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::text, '/img/p.jpg', '{a,b,c}', '{r1}', CASE WHEN $8::int IS NULL THEN NULL ELSE now() - $8::int * interval '1 day' END,
+             CASE WHEN $7::text = 'PUBLICADO' THEN $9::int END)
      RETURNING id_curso AS id`,
     [docente, categorias[cat], `${marca} ${titulo}`, `Sub ${titulo}`, `Desc ${titulo}`, nivel, estado, dias, revisor]);
   cursos[clave] = rows[0]!.id;
@@ -133,7 +132,7 @@ describe('GET /api/categorias (CAR-CAT-01..03)', () => {
     assert.deepEqual(propias.map((x) => x.id), [categorias['A'], categorias['B']]);
     for (const x of propias) assert.deepEqual(claves(x), ['id', 'nombre']);
     const todos = (r.json as any[]).map((x) => x.nombre);
-    capturar('CAR-CAT-03 collation (A=álgebra, B=biología)', propias.map((x) => x.nombre.slice(marca.length + 1)));
+    assert.deepEqual(propias.map((x) => x.nombre.slice(marca.length + 1)), ['Álgebra', 'biología']);
     assert.equal(todos.length >= 2, true);
   });
 });
@@ -167,14 +166,14 @@ describe('GET /api/cursos (CAR-CAT-04..17)', () => {
     const pop = idsDe(await lista('&orden=populares'));
     assert.deepEqual(pop.slice(0, 2), [cursos['c2'], cursos['c3']]);
     const az = idsDe(await lista('&orden=az'));
-    assert.deepEqual(az, [cursos['c1'], cursos['c4'], cursos['c2'], cursos['c3'], cursos['c7'], cursos['c8']]);
+    assert.deepEqual(az, [cursos['c1'], cursos['c2'], cursos['c4'], cursos['c7'], cursos['c3'], cursos['c8']]); // Alfa, Beta, Delta, Eta, Gamma, Theta
   });
 
   it('CAR-CAT-07: filtros repetidos', async () => {
     const niv = await lista('&nivel=INTERMEDIO&nivel=AVANZADO');
     assert.deepEqual(idsDe(niv).sort(), [cursos['c2']!, cursos['c3']!].sort());
     const cat = await lista(`&categoria=${encodeURIComponent(marca + ' Álgebra')}&categoria=${encodeURIComponent(marca + ' biología')}`);
-    assert.equal(cat.json.total, 4);
+    assert.equal(cat.json.total, 5); // A: c1, c2, c8; B: c3, c4
     const ambos = await lista(`&categoria=${encodeURIComponent(marca + ' biología')}&nivel=AVANZADO`);
     assert.deepEqual(idsDe(ambos), [cursos['c3']]);
   });
@@ -228,7 +227,7 @@ describe('GET /api/cursos/:id (CAR-CAT-18..22)', () => {
   it('CAR-CAT-18 y 21: detalle con temario ordenado, módulo vacío y sin ruta', async () => {
     const r = await srv.pedir(`/api/cursos/${cursos['c1']}`);
     assert.equal(r.status, 200);
-    capturar('CAR-CAT-18 claves', claves(r.json));
+    assert.deepEqual(claves(r.json), [...ITEM, 'descripcion', 'docenteBio', 'objetivos', 'requisitos', 'temario']);
     assert.deepEqual(claves(r.json.temario[0]), ['id', 'orden', 'titulo', 'lecciones']);
     assert.deepEqual(claves(r.json.temario[0].lecciones[0]), ['id', 'orden', 'titulo', 'tipo', 'minutos']);
     assert.deepEqual(r.json.temario.map((m: any) => m.orden), [1, 2]);
@@ -243,7 +242,7 @@ describe('GET /api/cursos/:id (CAR-CAT-18..22)', () => {
       assert.deepEqual(r.json, { error: { codigo: 'NO_ENCONTRADO', mensaje: 'Curso no disponible.' } });
     }
     for (const estado of ['RECHAZADO', 'ARCHIVADO']) {
-      await f.query("UPDATE curso SET estado = $2, motivo_rechazo = CASE WHEN $2 = 'RECHAZADO' THEN 'm' END WHERE id_curso = $1", [cursos['c5'], estado]);
+      await f.query("UPDATE curso SET estado = $2::text, motivo_rechazo = CASE WHEN $2::text = 'RECHAZADO' THEN 'm' END WHERE id_curso = $1", [cursos['c5'], estado]);
       assert.equal((await srv.pedir(`/api/cursos/${cursos['c5']}`)).status, 404, estado);
     }
     await f.query("UPDATE curso SET estado = 'BORRADOR', motivo_rechazo = NULL WHERE id_curso = $1", [cursos['c5']]);

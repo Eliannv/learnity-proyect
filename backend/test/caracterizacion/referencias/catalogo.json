@@ -1,0 +1,598 @@
+{
+  "categorias": {
+    "status": 200,
+    "cuerpo": [
+      {
+        "id": "<id:categoria#A>",
+        "nombre": "<marca> Álgebra"
+      },
+      {
+        "id": "<id:categoria#B>",
+        "nombre": "<marca> biología"
+      }
+    ]
+  },
+  "lista por defecto": {
+    "status": 200,
+    "cuerpo": {
+      "items": [
+        {
+          "id": "<id:curso#c3>",
+          "titulo": "<marca> Gamma",
+          "subtitulo": "Sub Gamma",
+          "categoria": {
+            "id": "<id:categoria#B>",
+            "nombre": "<marca> biología"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "AVANZADO",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c2>",
+          "titulo": "<marca> Beta",
+          "subtitulo": "Sub Beta",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "INTERMEDIO",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c1>",
+          "titulo": "<marca> Alfa 100%",
+          "subtitulo": "Sub Alfa 100%",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 2,
+          "lecciones": 1,
+          "minutos": 3,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c7>",
+          "titulo": "<marca> Eta categoria inactiva",
+          "subtitulo": "Sub Eta categoria inactiva",
+          "categoria": {
+            "id": "<id:categoria#C>",
+            "nombre": "<marca> Cálculo inactiva"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c8>",
+          "titulo": "<marca> Theta docente inactivo",
+          "subtitulo": "Sub Theta docente inactivo",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c4>",
+          "titulo": "<marca> Delta heredado",
+          "subtitulo": "Sub Delta heredado",
+          "categoria": {
+            "id": "<id:categoria#B>",
+            "nombre": "<marca> biología"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        }
+      ],
+      "pagina": 1,
+      "limite": 9,
+      "total": 6,
+      "totalPaginas": 1
+    }
+  },
+  "recientes limite 2 pagina 2": {
+    "status": 200,
+    "cuerpo": {
+      "items": [
+        {
+          "id": "<id:curso#c1>",
+          "titulo": "<marca> Alfa 100%",
+          "subtitulo": "Sub Alfa 100%",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 2,
+          "lecciones": 1,
+          "minutos": 3,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c7>",
+          "titulo": "<marca> Eta categoria inactiva",
+          "subtitulo": "Sub Eta categoria inactiva",
+          "categoria": {
+            "id": "<id:categoria#C>",
+            "nombre": "<marca> Cálculo inactiva"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        }
+      ],
+      "pagina": 2,
+      "limite": 2,
+      "total": 6,
+      "totalPaginas": 3
+    }
+  },
+  "populares": {
+    "status": 200,
+    "cuerpo": {
+      "items": [
+        {
+          "id": "<id:curso#c2>",
+          "titulo": "<marca> Beta",
+          "subtitulo": "Sub Beta",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "INTERMEDIO",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c3>",
+          "titulo": "<marca> Gamma",
+          "subtitulo": "Sub Gamma",
+          "categoria": {
+            "id": "<id:categoria#B>",
+            "nombre": "<marca> biología"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "AVANZADO",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c8>",
+          "titulo": "<marca> Theta docente inactivo",
+          "subtitulo": "Sub Theta docente inactivo",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        }
+      ],
+      "pagina": 1,
+      "limite": 3,
+      "total": 6,
+      "totalPaginas": 2
+    }
+  },
+  "az": {
+    "status": 200,
+    "cuerpo": {
+      "items": [
+        {
+          "id": "<id:curso#c1>",
+          "titulo": "<marca> Alfa 100%",
+          "subtitulo": "Sub Alfa 100%",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 2,
+          "lecciones": 1,
+          "minutos": 3,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c2>",
+          "titulo": "<marca> Beta",
+          "subtitulo": "Sub Beta",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "INTERMEDIO",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c4>",
+          "titulo": "<marca> Delta heredado",
+          "subtitulo": "Sub Delta heredado",
+          "categoria": {
+            "id": "<id:categoria#B>",
+            "nombre": "<marca> biología"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c7>",
+          "titulo": "<marca> Eta categoria inactiva",
+          "subtitulo": "Sub Eta categoria inactiva",
+          "categoria": {
+            "id": "<id:categoria#C>",
+            "nombre": "<marca> Cálculo inactiva"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c3>",
+          "titulo": "<marca> Gamma",
+          "subtitulo": "Sub Gamma",
+          "categoria": {
+            "id": "<id:categoria#B>",
+            "nombre": "<marca> biología"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "AVANZADO",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c8>",
+          "titulo": "<marca> Theta docente inactivo",
+          "subtitulo": "Sub Theta docente inactivo",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "PRINCIPIANTE",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        }
+      ],
+      "pagina": 1,
+      "limite": 9,
+      "total": 6,
+      "totalPaginas": 1
+    }
+  },
+  "niveles": {
+    "status": 200,
+    "cuerpo": {
+      "items": [
+        {
+          "id": "<id:curso#c3>",
+          "titulo": "<marca> Gamma",
+          "subtitulo": "Sub Gamma",
+          "categoria": {
+            "id": "<id:categoria#B>",
+            "nombre": "<marca> biología"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "AVANZADO",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        },
+        {
+          "id": "<id:curso#c2>",
+          "titulo": "<marca> Beta",
+          "subtitulo": "Sub Beta",
+          "categoria": {
+            "id": "<id:categoria#A>",
+            "nombre": "<marca> Álgebra"
+          },
+          "docente": "<marca> estudiante-docente",
+          "nivel": "INTERMEDIO",
+          "portadaUrl": "/img/p.jpg",
+          "modulos": 0,
+          "lecciones": 0,
+          "minutos": 0,
+          "publicadoEn": "<fecha>",
+          "estado": "PUBLICADO"
+        }
+      ],
+      "pagina": 1,
+      "limite": 9,
+      "total": 2,
+      "totalPaginas": 1
+    }
+  },
+  "pagina fuera de rango": {
+    "status": 200,
+    "cuerpo": {
+      "items": [],
+      "pagina": 99,
+      "limite": 9,
+      "total": 6,
+      "totalPaginas": 1
+    }
+  },
+  "sin resultados": {
+    "status": 200,
+    "cuerpo": {
+      "items": [],
+      "pagina": 1,
+      "limite": 9,
+      "total": 0,
+      "totalPaginas": 0
+    }
+  },
+  "detalle c1 con temario": {
+    "status": 200,
+    "cuerpo": {
+      "id": "<id:curso#c1>",
+      "titulo": "<marca> Alfa 100%",
+      "subtitulo": "Sub Alfa 100%",
+      "categoria": {
+        "id": "<id:categoria#A>",
+        "nombre": "<marca> Álgebra"
+      },
+      "docente": "<marca> estudiante-docente",
+      "nivel": "PRINCIPIANTE",
+      "portadaUrl": "/img/p.jpg",
+      "modulos": 2,
+      "lecciones": 1,
+      "minutos": 3,
+      "publicadoEn": "<fecha>",
+      "estado": "PUBLICADO",
+      "descripcion": "Desc Alfa 100%",
+      "docenteBio": null,
+      "objetivos": [
+        "a",
+        "b",
+        "c"
+      ],
+      "requisitos": [
+        "r1"
+      ],
+      "temario": [
+        {
+          "id": "<id:modulo#m1>",
+          "orden": 1,
+          "titulo": "Módulo con lección",
+          "lecciones": [
+            {
+              "id": "<id:leccion#l1>",
+              "orden": 1,
+              "titulo": "Lección PDF",
+              "tipo": "DOCUMENTO",
+              "minutos": 3
+            }
+          ]
+        },
+        {
+          "id": "<id:modulo#m2>",
+          "orden": 2,
+          "titulo": "Módulo vacío",
+          "lecciones": []
+        }
+      ]
+    }
+  },
+  "detalle c2 sin módulos": {
+    "status": 200,
+    "cuerpo": {
+      "id": "<id:curso#c2>",
+      "titulo": "<marca> Beta",
+      "subtitulo": "Sub Beta",
+      "categoria": {
+        "id": "<id:categoria#A>",
+        "nombre": "<marca> Álgebra"
+      },
+      "docente": "<marca> estudiante-docente",
+      "nivel": "INTERMEDIO",
+      "portadaUrl": "/img/p.jpg",
+      "modulos": 0,
+      "lecciones": 0,
+      "minutos": 0,
+      "publicadoEn": "<fecha>",
+      "estado": "PUBLICADO",
+      "descripcion": "Desc Beta",
+      "docenteBio": null,
+      "objetivos": [
+        "a",
+        "b",
+        "c"
+      ],
+      "requisitos": [
+        "r1"
+      ],
+      "temario": []
+    }
+  },
+  "detalle c4 heredado": {
+    "status": 200,
+    "cuerpo": {
+      "id": "<id:curso#c4>",
+      "titulo": "<marca> Delta heredado",
+      "subtitulo": "Sub Delta heredado",
+      "categoria": {
+        "id": "<id:categoria#B>",
+        "nombre": "<marca> biología"
+      },
+      "docente": "<marca> estudiante-docente",
+      "nivel": "PRINCIPIANTE",
+      "portadaUrl": "/img/p.jpg",
+      "modulos": 0,
+      "lecciones": 0,
+      "minutos": 0,
+      "publicadoEn": "<fecha>",
+      "estado": "PUBLICADO",
+      "descripcion": "Desc Delta heredado",
+      "docenteBio": null,
+      "objetivos": [
+        "a",
+        "b",
+        "c"
+      ],
+      "requisitos": [
+        "r1"
+      ],
+      "temario": []
+    }
+  },
+  "detalle c7 categoría inactiva": {
+    "status": 200,
+    "cuerpo": {
+      "id": "<id:curso#c7>",
+      "titulo": "<marca> Eta categoria inactiva",
+      "subtitulo": "Sub Eta categoria inactiva",
+      "categoria": {
+        "id": "<id:categoria#C>",
+        "nombre": "<marca> Cálculo inactiva"
+      },
+      "docente": "<marca> estudiante-docente",
+      "nivel": "PRINCIPIANTE",
+      "portadaUrl": "/img/p.jpg",
+      "modulos": 0,
+      "lecciones": 0,
+      "minutos": 0,
+      "publicadoEn": "<fecha>",
+      "estado": "PUBLICADO",
+      "descripcion": "Desc Eta categoria inactiva",
+      "docenteBio": null,
+      "objetivos": [
+        "a",
+        "b",
+        "c"
+      ],
+      "requisitos": [
+        "r1"
+      ],
+      "temario": []
+    }
+  },
+  "detalle c8 docente inactivo": {
+    "status": 200,
+    "cuerpo": {
+      "id": "<id:curso#c8>",
+      "titulo": "<marca> Theta docente inactivo",
+      "subtitulo": "Sub Theta docente inactivo",
+      "categoria": {
+        "id": "<id:categoria#A>",
+        "nombre": "<marca> Álgebra"
+      },
+      "docente": "<marca> estudiante-docente",
+      "nivel": "PRINCIPIANTE",
+      "portadaUrl": "/img/p.jpg",
+      "modulos": 0,
+      "lecciones": 0,
+      "minutos": 0,
+      "publicadoEn": "<fecha>",
+      "estado": "PUBLICADO",
+      "descripcion": "Desc Theta docente inactivo",
+      "docenteBio": null,
+      "objetivos": [
+        "a",
+        "b",
+        "c"
+      ],
+      "requisitos": [
+        "r1"
+      ],
+      "temario": []
+    }
+  },
+  "detalle c5 borrador": {
+    "status": 404,
+    "cuerpo": {
+      "error": {
+        "codigo": "NO_ENCONTRADO",
+        "mensaje": "Curso no disponible."
+      }
+    }
+  }
+}
