@@ -1,13 +1,14 @@
 import '../ayudas/guardia-bd.js';
 
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import { after, before, describe, it } from 'node:test';
 
 import { verificarBaseConectada } from '../ayudas/guardia-bd.js';
 
 const { pool, enTransaccion } = await import('../../src/shared/database/pool.js');
 
-interface ClienteFalso {
+interface ClienteFalso extends EventEmitter {
   consultas: string[];
   liberadoCon: unknown;
   liberado: boolean;
@@ -17,9 +18,9 @@ interface ClienteFalso {
 
 /** Cliente que falla en las sentencias indicadas, para simular una conexión rota. */
 function clienteFalso(fallan: string[]): ClienteFalso {
-  const cliente: ClienteFalso = {
-    consultas: [],
-    liberadoCon: undefined,
+  const cliente = Object.assign(new EventEmitter(), {
+    consultas: [] as string[],
+    liberadoCon: undefined as unknown,
     liberado: false,
     async query(sql: string) {
       cliente.consultas.push(sql);
@@ -30,7 +31,7 @@ function clienteFalso(fallan: string[]): ClienteFalso {
       cliente.liberado = true;
       cliente.liberadoCon = error;
     },
-  };
+  }) as ClienteFalso;
   return cliente;
 }
 
@@ -101,6 +102,30 @@ describe('enTransaccion', () => {
     );
     assert.deepEqual(cliente.consultas, ['BEGIN', 'COMMIT', 'ROLLBACK']);
     assert.ok(cliente.liberadoCon instanceof Error);
+  });
+
+  it('escucha el error del cliente prestado: sin listener sería una excepción no capturada', async () => {
+    const cliente = clienteFalso([]);
+    const corte = Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' });
+    const original = new Error('la consulta falló por el corte');
+    await assert.rejects(
+      conClienteFalso(cliente, () =>
+        enTransaccion(async () => {
+          assert.equal(cliente.listenerCount('error'), 1, 'debe haber un listener mientras dura el préstamo');
+          cliente.emit('error', corte); // EventEmitter lanzaría aquí si nadie escuchara
+          throw original;
+        }),
+      ),
+      (error) => error === original,
+    );
+    assert.equal(cliente.liberadoCon, corte, 'release debe recibir el error de la conexión');
+    assert.equal(cliente.listenerCount('error'), 0, 'el listener se quita antes de liberar');
+  });
+
+  it('quita el listener también cuando todo sale bien', async () => {
+    const cliente = clienteFalso([]);
+    await conClienteFalso(cliente, () => enTransaccion(async () => 1));
+    assert.equal(cliente.listenerCount('error'), 0);
   });
 
   it('fija el actor con set_config parametrizado, antes del trabajo', async () => {

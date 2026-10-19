@@ -51,6 +51,10 @@ async function fijarActor(cliente: pg.PoolClient, actor: number): Promise<void> 
  *
  * Si la conexión murió, el ROLLBACK también falla: se registra, pero el error que se lanza es siempre el
  * original, y el cliente se libera con ese fallo para que el pool lo descarte en lugar de reutilizarlo.
+ *
+ * Mientras la transacción tiene prestado el cliente, el listener `'error'` del pool no lo cubre (solo
+ * vigila los ociosos): si la conexión se corta, pg emite `'error'` en el cliente y, sin listener, sería
+ * una excepción no capturada que tumba el proceso. Por eso se escucha aquí y se descarta el cliente.
  */
 export async function enTransaccion<T>(
   trabajo: (cliente: pg.PoolClient) => Promise<T>,
@@ -58,6 +62,11 @@ export async function enTransaccion<T>(
 ): Promise<T> {
   const cliente = await pool.connect();
   let clienteRoto: Error | undefined;
+  const alFallarLaConexion = (error: Error & { code?: string }) => {
+    clienteRoto ??= error;
+    registrarEvento('bd.cliente_prestado_fallido', { mensaje: error.message, codigo: error.code }, 'error');
+  };
+  cliente.on('error', alFallarLaConexion);
   try {
     await cliente.query('BEGIN');
     if (opciones.actor != null) await fijarActor(cliente, opciones.actor);
@@ -73,6 +82,7 @@ export async function enTransaccion<T>(
     }
     throw error;
   } finally {
+    cliente.removeListener('error', alFallarLaConexion);
     cliente.release(clienteRoto);
   }
 }
