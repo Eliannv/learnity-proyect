@@ -4,10 +4,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './shared/config/env.js';
-import { consultar } from './shared/database/pool.js';
 import { registrarVerificadorSesion } from './shared/auth/middlewares.js';
 import { correlacion, ENCABEZADO_ID_PETICION } from './shared/http/correlacion.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-errores.js';
+import { comprobarConexion } from './shared/http/salud.repository.js';
 import { openApi } from './shared/http/openapi.js';
 import { identidadRoutes } from './modules/identidad/identidad.routes.js';
 import { identidadService } from './modules/identidad/identidad.service.js';
@@ -41,12 +41,10 @@ export function crearApp() {
 
   registrarPuertos();
 
-  // Comprobación rápida: ¿el servidor responde y llega a PostgreSQL?
+  // Comprobación rápida: ¿el servidor responde y llega a PostgreSQL? (ADR-011, 11.1: sin datos internos)
   app.get('/api/salud', async (_req, res) => {
-    const { rows } = await consultar<{ base: string; usuario: string; roles: number }>(
-      'SELECT current_database() AS base, current_user AS usuario, (SELECT count(*)::int FROM rol) AS roles',
-    );
-    res.json({ estado: 'ok', baseDeDatos: rows[0] });
+    await comprobarConexion();
+    res.json({ estado: 'ok' });
   });
 
   // Documentación de la API (Swagger)

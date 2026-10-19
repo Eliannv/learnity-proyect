@@ -16,3 +16,8 @@ export async function verificarEsquema(): Promise<EstadoEsquema> {
   );
   return rows[0]!;
 }
+
+/** Comprobación mínima de que PostgreSQL responde (`/api/salud`). No devuelve ningún dato de la base. */
+export async function comprobarConexion(): Promise<void> {
+  await pool.query('SELECT 1');
+}
