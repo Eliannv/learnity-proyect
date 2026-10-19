@@ -85,7 +85,7 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 | D9 | ¿Se aceptan las dependencias nuevas (`openapi-typescript`, `@playwright/test`, `pg_trgm`)? | **A) Las tres son candidatas.** El `arquitecto` escribe un ADR por cada una (alternativas y consecuencias). El usuario las aprueba o rechaza en la Puerta 1. Nada se agrega a `package.json` ni a migraciones sin ese ADR aprobado | 19-10-2026 |
 | D3 | ¿Se borran los paneles huérfanos o se restauran? | *Pendiente*: se pregunta en la Puerta 1 | |
 | BD-022 | ¿Cómo se corrigen los 3 cursos PUBLICADO sin revisor? (A: pasan a EN_REVISION; B: revisor = el ADMIN con menor id, propuesta de `db`; C: no se corrigen y se aplaza el CHECK) | *Pendiente*: se pregunta en la Puerta 1 | |
-| BD-019b | ¿Permisos de limpieza de las pruebas vía el rol `learnity_pruebas` (solo en _test) o una conexión de fixtures con otro rol? | *Pendiente*: se pregunta en la Puerta 1 | |
+| BD-019b | ¿Cómo limpian las pruebas con privilegios mínimos? (1: rol `learnity_pruebas` heredado por `learnity_app` solo en _test, propuesta de `db`; 2: conexión de fixtures con otro login; 3: `learnity_pruebas` concedido `WITH INHERIT FALSE, SET TRUE` y un pool de fixtures con `SET ROLE`, propuesta de `qa-edge` para que la app corra con el mismo mínimo privilegio que en `Learnity`; NO VERIFICADA) | *Pendiente*: se pregunta en la Puerta 1 | |
 | D4 | ¿Las pantallas del Sprint 3/4 van detrás de un flag? | *Pendiente*: se pregunta en la Puerta 1 | |
 
 ## Teammates activos
@@ -94,7 +94,7 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 |---|---|---|---|---|
 | `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 1 | Activo: **plan aprobado (19-10-2026)**, trabajando en E1 (openapi.yaml y COMPARACION_RUTAS.md) → E2 (ADR 001–007) → E3 (ADR 008–011) → E4 (plantilla y contratos) |
 | `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 1 | Activo: **plan aprobado (19-10-2026)**, escribiendo PLAN_BD y migraciones 017–026, más la propuesta de pg_trgm |
-| `qa-edge` | Opus 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 1 | Activo: **plan aprobado (19-10-2026)**, escribiendo RIESGOS.md y PLAN_PRUEBAS.md |
+| `qa-edge` | Opus 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 1 | **Fase 1 terminada y cerrado (19-10-2026).** Se reactiva en la 2A con su worktree y su rama |
 
 Equipo completo (7), que se activa por fases con un máximo de 6 simultáneos: Fase 1 `arquitecto`, `db` y `qa-edge`; Fases 2A y 2B `arquitecto`, `qa-edge`, `be-a`, `be-b`, `fe-a` y `fe-b`; Fase 3 `qa-edge`, `db`, `arquitecto` y `be-a`/`be-b` si hacen falta.
 
@@ -127,13 +127,15 @@ Copia de la §6 del prompt del lead, con las correcciones de la verificación. S
 | ADR 001–007 (el ADR-002 sigue D8 = A); ADR 008–010 (D9) y ADR-011 (endurecimiento con impacto en el contrato: `/api/salud`, Swagger solo en desarrollo, 429 en la subida, disco temporal) | `arquitecto` | En curso |
 | `docs/arquitectura/PLANTILLA_MODULO.md` y `CONTRATOS_SERVICIO.md` | `arquitecto` | En curso |
 | `docs/bd/PLAN_BD.md` y migraciones 017–026 (`up`/`down`): control de migraciones, roles y dueños, privilegios mínimos (+019b solo en _test), auditoría, `actualizado_en`, corrección de cursos (022), CHECK PUBLICADO (023), solicitud pendiente única, índices de FK, vistas del catálogo (D8); `pg_trgm` como propuesta sin número | `db` | En curso: PLAN_BD (`5d0819d`) y 017–021 (`35c7775`) escritos, **sin ejecutar** (NO VERIFICADO hasta el turno en `learnity_test`). No se integran hasta pasar el ciclo `up → down → up`. Faltan 022–026, los scripts, `database/README.md` y `pg_trgm` |
+| Seam estable para inyectar fallos de disco y BD que sobreviva al refactor (RG-06/H9); revisar `pool.ts:29-40`: si la conexión murió, el ROLLBACK del catch falla y oculta el error original, y `release()` se llama sin el error, con lo que el pool podría reutilizar un cliente roto (NO VERIFICADO, qa-edge) | `be-b` (con `qa-edge`) | Fase 2A |
 | Ajustar el arreglo de datos de las pruebas para fijar `revisado_por` y `publicado_en` en los cursos PUBLICADO (requisito para aplicar la 023) | `be-a` (`cursos-publicos.test.ts`) y `be-b` (`cursos-gestion-http.test.ts`, `administracion-contenido.test.ts`, `scripts/sembrar-catalogo.ts`) | Fase 2A |
-| `docs/refactor/RIESGOS.md` y `docs/refactor/PLAN_PRUEBAS.md` | `qa-edge` | Hecho e integrado (`5e5791c`): 56 riesgos (11 altos, 9 CONGELADO-INSEGURO) y 133 casos CAR; las 33 operaciones tienen casos. Pendiente: contraste con `openapi.yaml` y opinión sobre D-BD2 para `db`. Huecos confirmados: sin prueba HTTP de `GET /docente/cursos`, `DELETE /lecciones/:id` ni del éxito de `enviar-revision` |
+| `docs/refactor/RIESGOS.md` y `docs/refactor/PLAN_PRUEBAS.md` | `qa-edge` | **Hecho e integrado** (`5e5791c` y `cb47761`): 60 riesgos (13 altos, 9 CONGELADO-INSEGURO) y 136 casos CAR. Contraste con `openapi.yaml`: 33/33 operaciones con casos; C-01–C-18 asignados (C-14 CONGELADO-INSEGURO). Huecos confirmados: sin prueba HTTP de `GET /docente/cursos`, `DELETE /lecciones/:id` ni del éxito de `enviar-revision` |
 
 ## Integraciones hechas
 
 | Fecha | Origen | Commit | Contenido | Verificación del lead |
 |---|---|---|---|---|
+| 19-10-2026 | `refactor/qa-edge` | `cb47761` | Contraste con `openapi.yaml` (§12 de PLAN_PRUEBAS) y riesgos RG-57–RG-60 de las migraciones | Solo toca sus 2 archivos; 136 filas CAR y 60 RG |
 | 19-10-2026 | `refactor/qa-edge` | `5e5791c` | `RIESGOS.md` y `PLAN_PRUEBAS.md` | Solo toca esos dos archivos (de su propiedad); se cuentan 56 filas RG y 133 IDs CAR distintos |
 | 19-10-2026 | `refactor/arquitecto` | `ff37b06` | E1: `docs/api/openapi.yaml` y `docs/api/COMPARACION_RUTAS.md` | Solo toca `docs/api/**` (de su propiedad); JSON válido tras quitar la cabecera `#`: 28 rutas, 33 operaciones y 15 esquemas |
 
