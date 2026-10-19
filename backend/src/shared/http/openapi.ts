@@ -1,5 +1,5 @@
-// Contrato de la API (OpenAPI 3). Se ve en http://localhost:3000/api/docs
-// Cada sprint agrega aquí las rutas que implementa.
+// Contrato de la API (OpenAPI 3). Se ve en http://localhost:3000/api/docs, solo con NODE_ENV=development (ADR-011, 11.3).
+// Se serializa en docs/api/openapi.yaml. Cada sprint agrega aquí las rutas que implementa.
 import { error, errorInterno, esquemasComunes, idRuta, json, ref, respuestasComunes } from './openapi-comun.js';
 import { rutasRevisionContenido } from './openapi-revision-contenido.js';
 import { esquemasGestionCursos, rutasGestionCursos } from './openapi-gestion-cursos.js';
@@ -153,6 +153,9 @@ export const openApi = {
       'Cualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es',
       '409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK o clave foránea). Hoy, un JSON mal formado, un cuerpo de más',
       'de 1 MB o un charset no admitido también responden 500 (ADR-011, punto 11.6).',
+      '',
+      '**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta',
+      'responde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto.',
     ].join('\n'),
   },
   servers: [{ url: '/api' }],
