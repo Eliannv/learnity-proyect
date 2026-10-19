@@ -2,7 +2,7 @@
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import type { Fixtures } from './bd-fixtures.js';
 import type { Respuesta, Servidor } from './servidor.js';
 
@@ -35,4 +35,19 @@ export function ficheros(dir: string): string[] {
 export async function filasYFicheros(f: Fixtures, dir: string, idsCurso: number[]): Promise<{ filas: number; ficheros: number }> {
   const { rows: [r] } = await f.query<{ n: string }>('SELECT count(*) AS n FROM archivo WHERE id_curso = ANY($1::int[])', [idsCurso]);
   return { filas: Number(r!.n), ficheros: ficheros(dir).length };
+}
+
+/** PDF válido de exactamente `bytes` bytes (relleno en un flujo sin comprimir). */
+export async function pdfDeTamano(bytes: number): Promise<Buffer> {
+  let relleno = Math.max(0, bytes - 1500);
+  for (let intento = 0; intento < 6; intento++) {
+    const doc = await PDFDocument.create();
+    doc.addPage([200, 200]);
+    const flujo = doc.context.stream(new Uint8Array(relleno));
+    doc.catalog.set(PDFName.of('Relleno'), doc.context.register(flujo));
+    const salida = Buffer.from(await doc.save({ useObjectStreams: false }));
+    if (salida.length === bytes) return salida;
+    relleno += bytes - salida.length;
+  }
+  throw new Error(`No se pudo construir un PDF de ${bytes} bytes.`);
 }

@@ -38,3 +38,27 @@ export function sinRutasPrivadas(v: unknown, camino = '$'): string[] {
   }
   return malos;
 }
+
+/**
+ * Normaliza con conocimiento del camino (p. ej. `items[].categoria.id`): `resolver(camino, valor)` devuelve el
+ * marcador para ese número o undefined si se deja igual. Las fechas ISO pasan a `<fecha>` y la marca a `<marca>`.
+ */
+export function normalizarConCamino(
+  v: unknown,
+  resolver: (camino: string, valor: number) => string | undefined,
+  marca: string,
+  camino = '',
+): unknown {
+  if (Array.isArray(v)) return v.map((x) => normalizarConCamino(x, resolver, marca, `${camino}[]`));
+  if (v !== null && typeof v === 'object') {
+    return Object.fromEntries(
+      Object.entries(v as object).map(([k, x]) => [k, normalizarConCamino(x, resolver, marca, camino ? `${camino}.${k}` : k)]),
+    );
+  }
+  if (typeof v === 'number') return resolver(camino, v) ?? v;
+  if (typeof v === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(v)) return '<fecha>';
+    return v.split(marca).join('<marca>');
+  }
+  return v;
+}
