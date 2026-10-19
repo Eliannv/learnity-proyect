@@ -6,11 +6,12 @@ import { CATEGORIAS } from '../../data/datos-demo';
 import { Logo } from '../ui/logo';
 import { MenuCuenta } from './menu-cuenta';
 import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
+import { environment } from '../../../environments/environment';
 
 /**
  * Header del sitio (HeaderPublic). Cambia según la sesión:
  *  - Visitante: Iniciar sesión + Crear cuenta
- *  - Con sesión: Enseña en Learnity (solo Estudiante), Mi aprendizaje (con vista previa)
+ *  - Con sesión: Enseña en Learnity (solo Estudiante), Mi aprendizaje si está habilitado
  *    y la foto de perfil, cuyo menú es el único acceso a los paneles de Docente y Administración.
  */
 @Component({
@@ -49,7 +50,9 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
             @if (!auth.esDocente() && !auth.esAdmin()) {
               <a class="enlace-marca oculto-movil" routerLink="/perfil" [queryParams]="{ solicitud: 1 }">Enseña en Learnity</a>
             }
-            <app-vista-previa-aprendizaje class="oculto-movil" />
+            @if (sprint34Habilitado) {
+              <app-vista-previa-aprendizaje class="oculto-movil" />
+            }
             <app-menu-cuenta />
           } @else {
             <a class="enlace-marca oculto-movil" routerLink="/login">Iniciar sesión</a>
@@ -68,7 +71,9 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
           }
           <hr class="separador" />
           @if (auth.autenticado()) {
-            <a routerLink="/mi-aprendizaje" (click)="cerrarMenus()">Mi aprendizaje</a>
+            @if (sprint34Habilitado) {
+              <a routerLink="/mi-aprendizaje" (click)="cerrarMenus()">Mi aprendizaje</a>
+            }
             <a [routerLink]="auth.rutaPerfil()" (click)="cerrarMenus()">Mi perfil</a>
             <button type="button" (click)="auth.cerrarSesion()">Cerrar sesión</button>
           } @else {
@@ -83,6 +88,7 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
 })
 export class HeaderSitio {
   protected readonly auth = inject(AuthService);
+  protected readonly sprint34Habilitado = environment.sprint34Habilitado;
   private readonly router = inject(Router);
   protected readonly categorias = CATEGORIAS;
   protected readonly menuMovil = signal(false);
