@@ -6,6 +6,11 @@
 
 **Fase 1: diseño** (`arquitecto`, `db` y `qa-edge`; solo escriben documentos y migraciones sin aplicar). Empezó el 19-10-2026. Siguiente puerta: **Puerta 1** (allí se preguntan D3 y D4, y se aprueban o rechazan los ADR de D9).
 
+> **Interrupción (19-10-2026, ~06:11):** la sesión se cortó por el límite de uso. Todos los teammates quedaron inactivos y **no se les escribe**. Estado comprobado por el lead al retomar:
+> - **Git:** `integration/sprint-2` en `6a4bdee`. `refactor/arquitecto` (`0b3c0a6`) y `refactor/qa-edge` (`5743b07`) están integradas por completo. `refactor/db` (`4d7b787`) tiene 7 commits **sin integrar** (35 archivos, +3201): PLAN_BD, migraciones 017–026 con `down`, `RETENIDAS.txt` (023), `propuestas/pg_trgm`, `verificacion/` (4), `pruebas/` (019b y quitar), `scripts/` (4 .ps1) y `database/README.md`. Los tres worktrees están limpios.
+> - **Bases** (consulta de solo lectura como `postgres`): `learnity_test` y `Learnity` siguen **en la línea base**: 22 tablas de `postgres`, 0 vistas, 0 triggers, sin `schema_migraciones`, `auditoria_cambio` ni `actualizado_en`. En el clúster solo existe el rol `learnity_app` (no se crearon `learnity_owner`, `learnity_lectura` ni `learnity_pruebas`). `learnity_refactor` **no existe** (nunca se creó, según la decisión de alcance). `learnity_test` está vacía de datos (0 cursos, 0 usuarios).
+> - **Ninguna migración se ha ejecutado nunca:** todo el SQL de `db` sigue **NO VERIFICADO**.
+
 ### Fase 0B: línea base (cerrada, Puerta 0B aprobada el 19-10-2026)
 
 | Paso | Estado |
@@ -77,6 +82,7 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 | Alcance BD | ¿Qué entorno y qué bases de prueba? | Solo local, sin producción. Una única base de pruebas, `learnity_test`, compartida, sin clon `learnity_refactor` ni bases por desarrollador | 18-10-2026 |
 | Puerta V | ¿Se aprueba la verificación de la auditoría? | **Aprobada** | 19-10-2026 |
 | Puerta 0B | ¿Se aprueba la línea base? | **Aprobada** | 19-10-2026 |
+| Turno BD Fase 1 | ¿Quién ejecuta con `postgres` las pruebas de migraciones sobre `learnity_test`? | **El lead**, con la contraseña dada por el usuario en el chat, solo como variable de entorno y solo sobre `learnity_test`. `Learnity` sigue sin tocarse (Puerta DB) | 19-10-2026 |
 | D10 | ¿Endureces `.claude/settings.local.json` con los equivalentes `PowerShell(…)`? | **Sí.** El usuario lo guardó y el lead lo comprobó: JSON válido y 30 reglas `deny`, entre ellas `PowerShell(git push/reset --hard/clean/branch -D)`, `Remove-Item -Recurse`, la lectura de `.env*` por Bash y por PowerShell, y `git push` sin argumentos. Son reglas por patrón: frenan errores, pero no son una barrera infalible | 19-10-2026 |
 | D5 | ¿Se versionan `contrasena.ts` y los documentos del Sprint 2? | **A) Todo, en dos commits, solo en `integration/sprint-2`.** (1) `docs: documentos del Sprint 2 y del arranque del refactor` (documentos del Sprint 2, `PROMPT_INICIO_REFACTOR.md`, `docs/refactor/**` y `CLAUDE.md`). (2) `chore: ajusta comentario en contrasena.ts` (una línea de comentario, sin cambio de comportamiento). Revisados: no contienen secretos | 19-10-2026 |
 | D7 | ¿Quién ejecuta las operaciones con `postgres`? | **A) El usuario ejecuta todo lo que requiere `postgres`** (crear `learnity_test`, esquema, 015/016, permisos, `pg_dump` y migraciones sobre `Learnity`), con scripts preparados por el lead (Fase 0B) o por `db` (desde la Fase 1). Los ejecuta con `psql` desde `C:\Program Files\PostgreSQL\17\bin\` y pega la salida. Nadie del equipo usa credenciales de `postgres`. Alcance: entorno local y una única `learnity_test` compartida (18-10-2026). **Excepción del 19-10-2026:** el usuario pidió al lead crear `learnity_test` él mismo y le dio la contraseña de `postgres` en el chat. Se usó solo como variable de entorno en esos comandos y no se guardó. La regla general de D7 sigue vigente para los teammates | 19-10-2026 |
@@ -85,20 +91,20 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 | D9 | ¿Se aceptan las dependencias nuevas (`openapi-typescript`, `@playwright/test`, `pg_trgm`)? | **A) Las tres son candidatas.** El `arquitecto` escribe un ADR por cada una (alternativas y consecuencias). El usuario las aprueba o rechaza en la Puerta 1. Nada se agrega a `package.json` ni a migraciones sin ese ADR aprobado | 19-10-2026 |
 | D3 | ¿Se borran los paneles huérfanos o se restauran? | *Pendiente*: se pregunta en la Puerta 1 | |
 | BD-022 | ¿Cómo se corrigen los 3 cursos PUBLICADO sin revisor? (A: pasan a EN_REVISION; B: revisor = el ADMIN con menor id, propuesta de `db`; C: no se corrigen y se aplaza el CHECK) | *Pendiente*: se pregunta en la Puerta 1 | |
-| BD-019b | ¿Cómo limpian las pruebas con privilegios mínimos? (1: rol `learnity_pruebas` heredado por `learnity_app` solo en _test, propuesta de `db`; 2: conexión de fixtures con otro login; 3: `learnity_pruebas` concedido `WITH INHERIT FALSE, SET TRUE` y un pool de fixtures con `SET ROLE`, propuesta de `qa-edge` para que la app corra con el mismo mínimo privilegio que en `Learnity`; NO VERIFICADA) | *Pendiente*: se pregunta en la Puerta 1 | |
+| BD-019b | ¿Cómo limpian las pruebas con privilegios mínimos? (1: rol `learnity_pruebas` heredado por `learnity_app` solo en _test; 2: conexión de fixtures con otro login; **3 (propuesta conjunta de `db` y `qa-edge`, ya implementada en `4d7b787`)**: `learnity_pruebas` concedido `WITH INHERIT FALSE, SET TRUE` y un pool de fixtures con `SET ROLE`, para que la app corra con el mismo mínimo privilegio que en `Learnity`; que `learnity_app` pueda hacer `SET ROLE` está NO VERIFICADO. Consecuencia: la 019 no puede quedar aplicada en `learnity_test` hasta que las 7 suites usen ese pool, en la Fase 2A) | *Pendiente*: se pregunta en la Puerta 1 | |
 | D4 | ¿Las pantallas del Sprint 3/4 van detrás de un flag? | *Pendiente*: se pregunta en la Puerta 1 | |
 
 ## Teammates activos
 
 | Teammate | Modelo | Worktree / rama | Fase | Estado |
 |---|---|---|---|---|
-| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 1 | Entregables terminados e integrados; inactivo hasta la Puerta 1 por si hay que ajustar algún ADR |
-| `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 1 | Activo: **plan aprobado (19-10-2026)**, escribiendo PLAN_BD y migraciones 017–026, más la propuesta de pg_trgm |
+| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 1 | **Inactivo** (sesión cortada). Fase 1 terminada e integrada (`0b3c0a6`) |
+| `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 1 | **Inactivo** (sesión cortada por el límite de uso). Entregables escritos hasta `4d7b787`; falta probarlos en `learnity_test` |
 | `qa-edge` | Opus 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 1 | **Fase 1 terminada y cerrado (19-10-2026).** Se reactiva en la 2A con su worktree y su rama |
 
 Equipo completo (7), que se activa por fases con un máximo de 6 simultáneos: Fase 1 `arquitecto`, `db` y `qa-edge`; Fases 2A y 2B `arquitecto`, `qa-edge`, `be-a`, `be-b`, `fe-a` y `fe-b`; Fase 3 `qa-edge`, `db`, `arquitecto` y `be-a`/`be-b` si hacen falta.
 
-**Turno de la base `learnity_test`:** libre.
+**Turno de la base `learnity_test`:** libre. `db` lo pidió para `probar-migraciones.ps1 -Base learnity_test` (lo ejecuta el lead, decisión del usuario); su commit final (`4d7b787`) ya está hecho, pero el turno no llegó a ejecutarse.
 
 ## Tareas y dueños
 
@@ -126,7 +132,7 @@ Copia de la §6 del prompt del lead, con las correcciones de la verificación. S
 | `docs/api/openapi.yaml` (contrato actual) y `docs/api/COMPARACION_RUTAS.md` (hallazgos C-01–C-18) | `arquitecto` | Hecho e integrado (`ff37b06`). 33/33 operaciones coinciden con las rutas reales. Los que cambian el contrato van al ADR-011 (C-14 → 11.6; C-01 → 11.1; C-02 → 11.3); el resto es documentación |
 | ADR 001–011 | `arquitecto` | **Hecho e integrado** (`0e754bf`, `2d9265e`, más los ajustes `97ac229`–`eaf329d`). El ADR-011 tiene 11 puntos independientes (11.1–11.11), cada uno con las pruebas CONGELADO-INSEGURO que actualiza; los 16 IDs citados existen en PLAN_PRUEBAS. El ADR-002 recoge las 3 vistas acordadas con `db`. ADR-010 recomienda aplazar `pg_trgm` |
 | `docs/arquitectura/PLANTILLA_MODULO.md` (lista de revisión de integración R1–R11) y `CONTRATOS_SERVICIO.md` | `arquitecto` | Integrados (`157fe81`) |
-| `docs/bd/PLAN_BD.md` y migraciones 017–026 (`up`/`down`): control de migraciones, roles y dueños, privilegios mínimos (+019b solo en _test), auditoría, `actualizado_en`, corrección de cursos (022), CHECK PUBLICADO (023), solicitud pendiente única, índices de FK, vistas del catálogo (D8); `pg_trgm` como propuesta sin número | `db` | En curso: PLAN_BD (`5d0819d`) y 017–021 (`35c7775`) escritos, **sin ejecutar** (NO VERIFICADO hasta el turno en `learnity_test`). No se integran hasta pasar el ciclo `up → down → up`. Faltan 022–026, los scripts, `database/README.md` y `pg_trgm` |
+| `docs/bd/PLAN_BD.md` y migraciones 017–026 (`up`/`down`): control de migraciones, roles y dueños, privilegios mínimos (+019b solo en _test), auditoría, `actualizado_en`, corrección de cursos (022), CHECK PUBLICADO (023), solicitud pendiente única, índices de FK, vistas del catálogo (D8); `pg_trgm` como propuesta sin número | `db` | **Escrito, sin probar** (`5d0819d`–`4d7b787`, sin integrar): PLAN_BD, 017–026, 019b en la variante de la opción 3 (sin herencia), scripts de huella, matriz, pruebas funcionales, comparación del catálogo, aplicar/revertir/probar .ps1, `database/README.md` y `pg_trgm` como propuesta. `probar-migraciones.ps1` deja por defecto `learnity_test` en la línea base. **Falta:** ejecutar el ciclo `up → down → up` (lo hace el lead) y, si sale IGUAL, integrarlo |
 | Seam estable para inyectar fallos de disco y BD que sobreviva al refactor (RG-06/H9); revisar `pool.ts:29-40`: si la conexión murió, el ROLLBACK del catch falla y oculta el error original, y `release()` se llama sin el error, con lo que el pool podría reutilizar un cliente roto (NO VERIFICADO, qa-edge) | `be-b` (con `qa-edge`) | Fase 2A |
 | Corregir la dependencia invertida `shared/cursos/peticion.ts:4` → `pages/auth/mensaje-error` (detectada en el ADR-007) al mover `peticion.ts` a `core/estado` | `fe-b` (con `fe-a`, dueño de `pages/auth`) | Fase 2A |
 | En PLAN_PRUEBAS, cambiar la referencia de CAR-GEN-05 a "ADR-011, punto 11.6" (hoy dice "ADR-011 o ampliación del ADR-006") y capturar CAR-GEN-07 | `qa-edge` | Fase 2A |
