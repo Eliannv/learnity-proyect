@@ -110,13 +110,13 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 
 | Teammate | Modelo | Worktree / rama | Fase | Estado |
 |---|---|---|---|---|
-| `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 2A, tanda 1 | Activo: rediseña la 022 (inventario sin tocar `curso`) y la 023 (`CHECK NOT VALID`) según BD-022; el lead las prueba en `learnity_test` |
-| `qa-edge` | Sonnet 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 2A, tanda 1 | Activo: `guardia-bd.ts`, pool de fixtures (opción 3) y caracterización (cursos/contenido/revisión → catálogo → identidad/solicitudes) |
-| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 2A, tanda 1 | Activo: estado de los ADR, `test:local` con glob, `openapi-typescript`, correcciones documentales de `openapi*.ts`, renombrar `openapi-integrante2/3`, `README.md:141` |
+| `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 2A, tanda 1 | **Terminado, integrado y cerrado** (BD-022, merge `3d7f703`) |
+| `qa-edge` | Sonnet 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 2A, tanda 1 | Activo, **con el turno de `learnity_test`**: lote completo de caracterización (fixtures, cursos, contenido, revisión, general, identidad, solicitudes y catálogo con captura). Hasta ahora: `guardia-bd` 7/7 sin BD; `bd-fixtures` + `cursos` 42/42 sin residuos |
+| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 2A, tanda 1 | **Terminado, integrado y cerrado** (merge `a153670`). Se reactiva para actualizar `openapi*.ts` junto a los commits del ADR-011 |
 
 Equipo completo (7), que se activa por fases con un máximo de 6 simultáneos: Fase 1 `arquitecto`, `db` y `qa-edge`; Fases 2A y 2B `arquitecto`, `qa-edge`, `be-a`, `be-b`, `fe-a` y `fe-b`; Fase 3 `qa-edge`, `db`, `arquitecto` y `be-a`/`be-b` si hacen falta.
 
-**Turno de la base `learnity_test`:** libre; lo administra el lead (una suite a la vez, con la guarda de `.env.test` antes de cada `npm test`). `learnity_test` está en la línea base. `.env.test` se copió sin leerlo a los worktrees de `qa-edge` y `arquitecto`.
+**Turno de la base `learnity_test`:** concedido a `qa-edge` (lote completo). Lo administra el lead (una suite a la vez, con la guarda de `.env.test` antes de cada `npm test`). `learnity_test` está en la línea base. `.env.test` se copió sin leerlo a los worktrees de `qa-edge` y `arquitecto`.
 
 ### Prueba de migraciones (19-10-2026, ejecutada por el lead con `postgres`)
 
@@ -132,7 +132,7 @@ Equipo completo (7), que se activa por fases con un máximo de 6 simultáneos: F
   Estado final: línea base, huella final = H0: IGUAL
   ```
 - **Después:** guarda `.env.test` → APTO; `npm test` → 78/78, 0 fallos. Roles del clúster: solo `learnity_app`.
-- **NO VERIFICADO:** (a) la 022 corrigió 0 cursos porque `learnity_test` no tiene datos: la opción B no se ha ejercitado sobre los 3 cursos reales de `Learnity`; (b) las pruebas "NO APLICA" 9–11 y 22 dependen de la 019b o de la 023; (c) que `learnity_app` pueda hacer `SET ROLE learnity_pruebas` desde su propia sesión (las pruebas corren como `postgres`).
+- **NO VERIFICADO:** (a) *[superado por BD-022: la 022 ya no corrige datos y la prueba de filas heredadas cubre el caso]*; (b) las pruebas "NO APLICA" 9–11 y 22 dependen de la 019b o de la 023; (c) que `learnity_app` pueda hacer `SET ROLE learnity_pruebas` desde su propia sesión (las pruebas corren como `postgres`).
 
 ## Tareas y dueños
 
@@ -161,7 +161,8 @@ Copia de la §6 del prompt del lead, con las correcciones de la verificación. S
 | ADR 001–011 | `arquitecto` | **Hecho e integrado** (`0e754bf`, `2d9265e`, más los ajustes `97ac229`–`eaf329d`). El ADR-011 tiene 11 puntos independientes (11.1–11.11), cada uno con las pruebas CONGELADO-INSEGURO que actualiza; los 16 IDs citados existen en PLAN_PRUEBAS. El ADR-002 recoge las 3 vistas acordadas con `db`. ADR-010 recomienda aplazar `pg_trgm` |
 | `docs/arquitectura/PLANTILLA_MODULO.md` (lista de revisión de integración R1–R11) y `CONTRATOS_SERVICIO.md` | `arquitecto` | Integrados (`157fe81`) |
 | `docs/bd/PLAN_BD.md` y migraciones 017–026, 019b (opción 3), scripts y `pg_trgm` (propuesta) | `db` | **Hecho, probado e integrado** (`5d0819d`–`43374ea`, merge `7afb63a`). Ver *Prueba de migraciones* |
-| Seam estable para inyectar fallos de disco y BD que sobreviva al refactor (RG-06/H9); revisar `pool.ts:29-40`: si la conexión murió, el ROLLBACK del catch falla y oculta el error original, y `release()` se llama sin el error, con lo que el pool podría reutilizar un cliente roto (NO VERIFICADO, qa-edge) | `be-b` (con `qa-edge`) | Fase 2A |
+| BD-022: 022 → `022_inventario_cursos_publicados` (vista `curso_publicado_sin_revision`, sin tocar `curso`) y 023 `CHECK … NOT VALID` | `db` | **Hecho, probado e integrado** (`f27dda8`–`b9e7ba3`, merge `3d7f703`). `probar-migraciones` (lead, 10:04): H2=H0 y H3=H1 IGUAL; cada down IGUAL (10/10); prueba de filas heredadas 12/12 OK (los 3 heredados siguen PUBLICADO y en `catalogo_curso`; `curso` sin cambios; 0 UPDATE/DELETE en la auditoría; se rechazan el INSERT y el UPDATE inválidos nuevos; `VALIDATE` falla con heredados y pasa sin ellos) sin rastro (huella = previa a la 022); matriz 48/48; pruebas funcionales 0 fallas (la 22 da OK en H3); catálogo IGUAL; huella final = H0. **Efecto en el catálogo: ninguno.** NO VERIFICADO: que `pg_dump`/`pg_restore` conserve el `CHECK NOT VALID` |
+| Estado de los ADR, `test:local` con glob, `openapi-typescript` 7.13.0 (`api:tipos`), contrato documental (cierra C-01, C-03–C-13 y C-15–C-18; queda C-14 → 11.6), `openapi-gestion-cursos.ts`/`openapi-revision-contenido.ts`, `README.md:141` | `arquitecto` | **Hecho e integrado** (`8ca9f7f`–`53d6db0`, merge `a153670`). backend build/typecheck exit 0; `npm test` con glob 78/78; frontend `ng build` 363.80 kB y `ng test` 20/20; contrato regenerado IDÉNTICO a `openapi*.ts` (33/33 operaciones) || Seam estable para inyectar fallos de disco y BD que sobreviva al refactor (RG-06/H9); revisar `pool.ts:29-40`: si la conexión murió, el ROLLBACK del catch falla y oculta el error original, y `release()` se llama sin el error, con lo que el pool podría reutilizar un cliente roto (NO VERIFICADO, qa-edge) | `be-b` (con `qa-edge`) | Fase 2A |
 | Corregir la dependencia invertida `shared/cursos/peticion.ts:4` → `pages/auth/mensaje-error` (detectada en el ADR-007) al mover `peticion.ts` a `core/estado` | `fe-b` (con `fe-a`, dueño de `pages/auth`) | Fase 2A |
 | En PLAN_PRUEBAS, cambiar la referencia de CAR-GEN-05 a "ADR-011, punto 11.6" (hoy dice "ADR-011 o ampliación del ADR-006") y capturar CAR-GEN-07 | `qa-edge` | Fase 2A |
 | Ajustar el arreglo de datos de las pruebas para fijar `revisado_por` y `publicado_en` en los cursos PUBLICADO (requisito para aplicar la 023) | `be-a` (`cursos-publicos.test.ts`) y `be-b` (`cursos-gestion-http.test.ts`, `administracion-contenido.test.ts`, `scripts/sembrar-catalogo.ts`) | Fase 2A |
