@@ -18,9 +18,20 @@ import {
   contenidoRepository as repo,
 } from './contenido.repository.js';
 
+// Un temporal de subida con más de una hora es de un proceso que cayó a mitad de la recepción.
+const EDAD_TEMPORAL_HUERFANO_MS = 60 * 60 * 1000;
+
 export const limpiezaPdfService = {
   async limpiarPendientes(): Promise<number> {
     let eliminados = 0;
+
+    try {
+      await almacenLocal.limpiarTemporales(
+        EDAD_TEMPORAL_HUERFANO_MS,
+      );
+    } catch {
+      // Se reintenta en la próxima limpieza; no impide retirar los PDF pendientes.
+    }
 
     const pendientes = await repo.pendientes();
 
