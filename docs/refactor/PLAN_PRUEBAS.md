@@ -250,7 +250,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-01 | C | Docente con cursos en los 5 estados | 200 solo con sus cursos, con estado y `motivoRechazo` (**capturar** la forma y el orden; `cursos-integracion.repository.ts:50-77`) | RG-12 | — |
-| CAR-CUR-02 | C | Docente sin cursos | 200 `[]` (**capturar** si es un array o un objeto) | — | — |
+| CAR-CUR-02 | C | Docente sin cursos | **Fijado (2A):** 200 `{ items: [] }` (objeto, no array). La lista llega ordenada por id descendente; cada item: `id, titulo, estado, motivoRechazo, docente, modulos` | — | — |
 | CAR-CUR-30 | P | No incluye cursos de otro docente | Solo los propios | RG-12 | — |
 
 **E16 · `GET /api/docente/cursos/:id`** · AUT-1 a 5 · paquete ID
@@ -259,7 +259,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 |---|---|---|---|---|---|
 | CAR-CUR-03 | C | Curso propio | 200 CursoDetalle privado (**capturar**); `archivo` sin `ruta` | RG-49 | `cursos-gestion-http.test.ts:396` (parcial) |
 | CAR-CUR-04 | P | Inexistente frente a ajeno | 404 "Curso no disponible." frente a 403 "No tienes permiso para consultar este curso.". **CONGELADO-INSEGURO** (S10) | RG-13 | — |
-| CAR-CUR-05 | P | Docente desactivado (`docenteActivo = false`) | 403 | RG-14 | — |
+| CAR-CUR-05 | P | Docente desactivado (`docente.estado = INACTIVO`) | **Fijado (2A):** `GET /docente/cursos` → 200 `{ items: [] }`; `POST /cursos` → 403 `SIN_PERMISO` "No tienes un perfil docente activo." | RG-14 | — |
 
 **E17 · `POST /api/cursos`** · AUT-1 a 5
 
@@ -267,7 +267,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 |---|---|---|---|---|---|
 | CAR-CUR-06 | C | Curso válido | 201 CursoDetalle en BORRADOR (**capturar**) | — | `cursos-gestion-http.test.ts` (lo usan las fixtures) |
 | CAR-CUR-07 | X | `portadaUrl`: `/img/a.png` → 201; `//x`, `/a/../b`, `/a?b`, `javascript:x`, `https://u:p@x` → 400; `https://externo` → 201 | Según `cursos-gestion.esquemas.ts:11-31`. **CONGELADO-INSEGURO** la URL externa (S6) | RG-43 | — |
-| CAR-CUR-08 | X | `titulo` con `\u0000` | **Capturar** (previsto: 500 por H11) | RG-24 | — |
+| CAR-CUR-08 | X | `titulo` con `\u0000` | **Fijado (2A):** 500 `ERROR_INTERNO`. **CONGELADO-INSEGURO** (H11; ADR-011, punto 11.7) | RG-24 | — |
 | CAR-CUR-09 | V/X | `titulo` 150/151 y vacío tras `trim`; `descripcion` 10 000/10 001; 10/11 objetivos; objetivo de 200/201; `categoriaId: "1"` (string); `nivel` fuera del enum; campo extra | 201 / 400 "Revisa los datos enviados." con `detalles[].campo` | RG-24, RG-27, RG-55 | `cursos-gestion.test.ts:28-65` (sin HTTP) |
 | CAR-CUR-10 | E | Categoría inactiva o inexistente | **Capturar** (400 o 404) | — | — |
 
@@ -284,14 +284,14 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-14 | C | Módulo válido | 201 CursoDetalle con el módulo | — | `cursos-gestion-http.test.ts:302` (fixture) |
-| CAR-CUR-15 | V/X | `orden` 1 y 10 → 201; 0 y 11 → 400 "Revisa los datos del módulo."; orden duplicado → 409; curso bloqueado → 409 `CURSO_BLOQUEADO` | — | RG-21, RG-55 | `cursos-gestion-http.test.ts:302` (duplicado) |
+| CAR-CUR-15 | V/X | `orden` 1 y 10 → 201; 0 y 11 → 400 "Revisa los datos del módulo."; orden duplicado → **400 `SOLICITUD_INVALIDA`** "El orden del módulo ya está ocupado." (corregido en la 2A: no es 409; el 409 `CONFLICTO` solo sale en una carrera, SEG-12); curso bloqueado → 409 `CURSO_BLOQUEADO` | — | RG-21, RG-55 | `cursos-gestion-http.test.ts:302` (duplicado) |
 
 **E20 · `PUT /api/modulos/:id`** · AUT · ID · IDOR (**hueco**) · PREC-3
 
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-16 | C | Edición válida; conservar su propio orden | 200 | — | `cursos-gestion-http.test.ts:402` |
-| CAR-CUR-17 | E/K | Orden de otro módulo → 409; módulo eliminado entre la búsqueda y el bloqueo → 404 `NO_ENCONTRADO`; curso bloqueado → 409 | — | RG-21 | `cursos-gestion-http.test.ts:402, 497` |
+| CAR-CUR-17 | E/K | Orden de otro módulo → **400 `SOLICITUD_INVALIDA`** (no 409, ver CAR-CUR-15); módulo eliminado entre la búsqueda y el bloqueo → 404 `NO_ENCONTRADO`; curso bloqueado → 409 | — | RG-21 | `cursos-gestion-http.test.ts:402, 497` |
 | CAR-CUR-31 | P | Módulo de un curso ajeno | 403 (**capturar**) | RG-12 | — |
 
 **E21 · `DELETE /api/modulos/:id`** · AUT · ID · IDOR (**hueco**)
@@ -299,7 +299,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-18 | C | Borrado válido | 200 CursoDetalle sin el módulo | — | `cursos-gestion-http.test.ts:550` (dentro de la prueba de carrera) |
-| CAR-CUR-19 | E | Curso bloqueado → 409; inexistente → 404; con lecciones y PDF → se borran y el PDF pasa a `archivo_borrado_pendiente` (SEG-26) | — | RG-31 | — |
+| CAR-CUR-19 | E | Curso bloqueado → 409; inexistente → 404; con lecciones y PDF → se borran y la fila `archivo` desaparece; **fijado (2A):** `archivo_borrado_pendiente` queda en 0 en el camino feliz (limpieza inmediata) (SEG-26) | — | RG-31 | — |
 | CAR-CUR-32 | P | Módulo ajeno | 403 (**capturar**) | RG-12 | — |
 
 **E22 · `POST /api/modulos/:id/lecciones`** · AUT · ID · IDOR (**hueco**) · PREC-3
@@ -307,7 +307,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-20 | C | Lección DOCUMENTO válida | 201 CursoDetalle | — | `cursos-gestion-http.test.ts:445` (fixture) |
-| CAR-CUR-21 | V/E | `tipo` VIDEO o EVALUACION → 400 "Revisa los datos de la lección."; `orden` 12 → 201 y 13 → 400; duplicado → 409; curso bloqueado → 409 | — | RG-21, RG-55 | `cursos-gestion.test.ts:109-131` (sin HTTP) |
+| CAR-CUR-21 | V/E | `tipo` VIDEO o EVALUACION → 400 "Revisa los datos de la lección."; `orden` 12 → 201 y 13 → 400; duplicado → **400 `SOLICITUD_INVALIDA`** "El orden de la lección ya está ocupado." (no 409; ver CAR-CUR-15); curso bloqueado → 409 | — | RG-21, RG-55 | `cursos-gestion.test.ts:109-131` (sin HTTP) |
 | CAR-CUR-33 | P | Módulo ajeno | 403 (**capturar**) | RG-12 | — |
 
 **E23 · `PUT /api/lecciones/:id`** · AUT · ID · IDOR (**hueco**) · PREC-3
@@ -315,7 +315,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-22 | C | Edición válida; conservar su propio orden | 200 | — | `cursos-gestion-http.test.ts:445` |
-| CAR-CUR-23 | E | Orden de otra lección → 409; curso bloqueado → 409 | — | RG-21 | `cursos-gestion-http.test.ts:445` |
+| CAR-CUR-23 | E | Orden de otra lección → **400 `SOLICITUD_INVALIDA`** (no 409); curso bloqueado → 409 | — | RG-21 | `cursos-gestion-http.test.ts:445` |
 | CAR-CUR-34 | P | Lección ajena | 403 (**capturar**) | RG-12 | — |
 
 **E24 · `DELETE /api/lecciones/:id`** · AUT · ID · IDOR · **HUECO: no hay ninguna prueba HTTP** (confirmado con grep: el único `'DELETE'` por HTTP es de `/api/modulos/:id`)
@@ -323,7 +323,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-24 | C | Borrado válido | 200 CursoDetalle sin la lección | — | — |
-| CAR-CUR-25 | E | Con PDF → `archivo_borrado_pendiente` y el fichero se retira (SEG-26); curso bloqueado → 409; inexistente → 404 | — | RG-31 | `administracion-contenido.test.ts:1419` (por servicio, sin HTTP) |
+| CAR-CUR-25 | E | Con PDF → la fila `archivo` se borra y el fichero se retira; **fijado (2A):** `archivo_borrado_pendiente` queda en 0 (SEG-26); curso bloqueado → 409; inexistente → 404 | — | RG-31 | `administracion-contenido.test.ts:1419` (por servicio, sin HTTP) |
 | CAR-CUR-35 | P | Lección ajena | 403 (**capturar**) | RG-12 | — |
 
 **E25 · `POST /api/cursos/:id/enviar-revision`** · AUT · ID · IDOR (**hueco**)
