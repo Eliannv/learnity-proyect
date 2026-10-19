@@ -8,7 +8,7 @@
         <a class="btn btn-primario btn-lg" routerLink="/cursos">Explorar cursos <lucide-icon name="arrow-right" [size]="18" /></a>
         @if (!auth.autenticado()) {
           <a class="btn btn-suave btn-lg" routerLink="/registro">Crear cuenta gratis</a>
-        } @else {
+        } @else if (sprint34Habilitado) {
           <a class="btn btn-suave btn-lg" routerLink="/mi-aprendizaje">Ir a Mi aprendizaje</a>
         }
       </div>

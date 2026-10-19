@@ -8,7 +8,7 @@ import {
   SolicitudesDocenteService,
 } from '../../../core/solicitudes/solicitudes-docente.service';
 import { Avatar } from '../../../shared/ui/avatar';
-import { mensajeDeError } from '../../auth/mensaje-error';
+import { mensajeDeError } from '../../../core/http/error-api';
 
 const PESTANAS: { estado: EstadoSolicitud; texto: string }[] = [
   { estado: 'PENDIENTE', texto: 'Pendientes' },

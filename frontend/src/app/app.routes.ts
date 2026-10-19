@@ -10,6 +10,83 @@ import {
 
 import { LayoutPanel } from './layouts/layout-panel';
 import { LayoutSitio } from './layouts/layout-sitio';
+import { environment } from '../environments/environment';
+
+// Las pantallas de aprendizaje, evaluaciones y gestión futura siguen disponibles
+// para demostraciones, pero no forman parte del recorrido real del Sprint 2.
+const inicioEstudiante: Routes = [
+  {
+    path: '',
+    pathMatch: 'full',
+    canMatch: [conSesionMatch],
+    title: 'Inicio · Learnity',
+    loadComponent: () =>
+      import('./pages/estudiante/inicio-estudiante/inicio-estudiante').then(
+        (m) => m.InicioEstudiante,
+      ),
+  },
+];
+
+const rutasAprendizaje: Routes = [
+  {
+    path: 'mi-aprendizaje',
+    canActivate: [autenticadoGuard],
+    title: 'Mi aprendizaje · Learnity',
+    loadComponent: () =>
+      import('./pages/estudiante/mi-aprendizaje/mi-aprendizaje').then(
+        (m) => m.MiAprendizaje,
+      ),
+  },
+  {
+    path: 'aprender/:cursoId/evaluacion/:evaluacionId',
+    canActivate: [autenticadoGuard],
+    title: 'Evaluación · Learnity',
+    loadComponent: () =>
+      import('./pages/estudiante/evaluacion/evaluacion').then(
+        (m) => m.Evaluacion,
+      ),
+  },
+  {
+    path: 'aprender/:cursoId/:leccionId',
+    canActivate: [autenticadoGuard],
+    title: 'Lección · Learnity',
+    loadComponent: () =>
+      import('./pages/estudiante/leccion/leccion').then(
+        (m) => m.Leccion,
+      ),
+  },
+];
+
+const rutasDocenteFuturas: Routes = [
+  {
+    path: 'cursos/:id/evaluacion',
+    title: 'Editor de evaluación · Learnity',
+    data: { seccion: 'Editor de evaluación' },
+    loadComponent: () =>
+      import('./pages/docente/editor-evaluacion/editor-evaluacion').then(
+        (m) => m.EditorEvaluacion,
+      ),
+  },
+  {
+    path: 'estudiantes',
+    title: 'Estudiantes del curso · Learnity',
+    data: { seccion: 'Estudiantes' },
+    loadComponent: () =>
+      import('./pages/docente/estudiantes/estudiantes').then(
+        (m) => m.EstudiantesCurso,
+      ),
+  },
+];
+
+const rutasAdminFuturas: Routes = [
+  {
+    path: 'usuarios',
+    title: 'Usuarios · Learnity',
+    data: { seccion: 'Usuarios' },
+    loadComponent: () =>
+      import('./pages/admin/usuarios/usuarios').then((m) => m.Usuarios),
+  },
+];
 
 export const routes: Routes = [
   // Acceso y recuperación de contraseña.
@@ -54,16 +131,7 @@ export const routes: Routes = [
     path: '',
     component: LayoutSitio,
     children: [
-      {
-        path: '',
-        pathMatch: 'full',
-        canMatch: [conSesionMatch],
-        title: 'Inicio · Learnity',
-        loadComponent: () =>
-          import(
-            './pages/estudiante/inicio-estudiante/inicio-estudiante'
-          ).then((m) => m.InicioEstudiante),
-      },
+      ...(environment.sprint34Habilitado ? inicioEstudiante : []),
       {
         path: '',
         pathMatch: 'full',
@@ -89,33 +157,7 @@ export const routes: Routes = [
             './pages/publico/detalle-curso/detalle-curso'
           ).then((m) => m.DetalleCurso),
       },
-      {
-        path: 'mi-aprendizaje',
-        canActivate: [autenticadoGuard],
-        title: 'Mi aprendizaje · Learnity',
-        loadComponent: () =>
-          import(
-            './pages/estudiante/mi-aprendizaje/mi-aprendizaje'
-          ).then((m) => m.MiAprendizaje),
-      },
-      {
-        path: 'aprender/:cursoId/evaluacion/:evaluacionId',
-        canActivate: [autenticadoGuard],
-        title: 'Evaluación · Learnity',
-        loadComponent: () =>
-          import(
-            './pages/estudiante/evaluacion/evaluacion'
-          ).then((m) => m.Evaluacion),
-      },
-      {
-        path: 'aprender/:cursoId/:leccionId',
-        canActivate: [autenticadoGuard],
-        title: 'Lección · Learnity',
-        loadComponent: () =>
-          import('./pages/estudiante/leccion/leccion').then(
-            (m) => m.Leccion,
-          ),
-      },
+      ...(environment.sprint34Habilitado ? rutasAprendizaje : []),
       {
         path: 'perfil',
         canActivate: [
@@ -161,24 +203,7 @@ export const routes: Routes = [
             './pages/docente/editor-curso/editor-curso'
           ).then((m) => m.EditorCurso),
       },
-      {
-        path: 'cursos/:id/evaluacion',
-        title: 'Editor de evaluación · Learnity',
-        data: { seccion: 'Editor de evaluación' },
-        loadComponent: () =>
-          import(
-            './pages/docente/editor-evaluacion/editor-evaluacion'
-          ).then((m) => m.EditorEvaluacion),
-      },
-      {
-        path: 'estudiantes',
-        title: 'Estudiantes del curso · Learnity',
-        data: { seccion: 'Estudiantes' },
-        loadComponent: () =>
-          import(
-            './pages/docente/estudiantes/estudiantes'
-          ).then((m) => m.EstudiantesCurso),
-      },
+      ...(environment.sprint34Habilitado ? rutasDocenteFuturas : []),
       {
         path: 'perfil',
         title: 'Ajustes y perfil · Learnity',
@@ -203,15 +228,7 @@ export const routes: Routes = [
         pathMatch: 'full',
         redirectTo: 'revision',
       },
-      {
-        path: 'usuarios',
-        title: 'Usuarios · Learnity',
-        data: { seccion: 'Usuarios' },
-        loadComponent: () =>
-          import('./pages/admin/usuarios/usuarios').then(
-            (m) => m.Usuarios,
-          ),
-      },
+      ...(environment.sprint34Habilitado ? rutasAdminFuturas : []),
       {
         path: 'solicitudes',
         title: 'Solicitudes de docente · Learnity',

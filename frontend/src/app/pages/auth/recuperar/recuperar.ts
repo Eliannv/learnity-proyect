@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
 import { MarcoAcceso } from '../marco-acceso';
-import { mensajeDeError } from '../mensaje-error';
+import { mensajeDeError } from '../../../core/http/error-api';
 
 @Component({
   selector: 'app-recuperar',

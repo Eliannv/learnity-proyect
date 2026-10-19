@@ -4,6 +4,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
 import { DESTACADOS, INDICADORES_PUBLICOS, RECIENTES } from '../../../data/datos-demo';
 import { TarjetaCurso } from '../../../shared/ui/tarjeta-curso';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-inicio',
@@ -13,6 +14,7 @@ import { TarjetaCurso } from '../../../shared/ui/tarjeta-curso';
 })
 export class Inicio {
   protected readonly auth = inject(AuthService);
+  protected readonly sprint34Habilitado = environment.sprint34Habilitado;
   protected readonly destacados = DESTACADOS;
   protected readonly recientes = RECIENTES;
   protected readonly indicadores = INDICADORES_PUBLICOS;
