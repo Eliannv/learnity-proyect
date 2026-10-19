@@ -21,7 +21,7 @@
   --tinta-900: #0f172a;
   --tinta-800: #1e293b;
   --tinta-700: #334155;
-  --gris-500: #64748b;
+  --gris-500: #5d6b82; /* texto secundario: AA (>= 4,5:1) también sobre gris-100 y azul-050 */
   --gris-400: #94a3b8;
   --gris-200: #e2e8f0;
   --gris-100: #f1f5f9;
@@ -41,6 +41,23 @@
   --morado-100: #f3e8ff;
   --naranja-600: #ea580c;
   --naranja-100: #ffedd5;
+
+  /* Foco: 6,7:1 sobre blanco y 4,7:1 sobre azul-050 (WCAG 1.4.11 pide 3:1) */
+  --foco: var(--azul-800);
+
+  /* Espaciado (escala de 4 px) */
+  --espacio-1: 4px;
+  --espacio-2: 8px;
+  --espacio-3: 12px;
+  --espacio-4: 16px;
+  --espacio-5: 24px;
+  --espacio-6: 32px;
+  --espacio-7: 48px;
+
+  /* Capas y movimiento */
+  --z-header: 50;
+  --z-modal: 100;
+  --duracion: 0.15s;
 
   /* Forma */
   --radio-sm: 6px;
@@ -112,8 +129,25 @@ lucide-icon {
 }
 
 :focus-visible {
-  outline: 2px solid var(--azul-600);
+  outline: 3px solid var(--foco);
   outline-offset: 2px;
+}
+
+/* .control quita el outline nativo en :focus; con teclado conserva el anillo de foco. */
+.control:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ---------------------------------------------------------------- layout */
