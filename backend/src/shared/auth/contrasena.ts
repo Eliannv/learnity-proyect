@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 /** Costo de bcrypt acordado en la guía de la base de datos. Cada hash lleva su propio salt. */
 const RONDAS = 12;
 
-/** bcrypt solo usa los primeros 72 bytes: la política rechaza contraseñas más largas (ver politica-contrasena). */
+/** bcrypt solo usa los primeros 72 bytes: la política rechaza contraseñas más largas. */
 export const MAX_BYTES_BCRYPT = 72;
 
 /** Genera el hash bcrypt (60 caracteres) que se guarda en usuario.contrasena_hash. */
