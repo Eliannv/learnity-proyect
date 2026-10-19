@@ -37,7 +37,7 @@ Con la base `learnity` y el esquema principal preparados, aplica estos scripts e
 
 Comprueba que Query Tool esté conectado a `learnity` antes de ejecutarlos. Si el esquema o una migración ya están aplicados, conserva sus tablas y datos y aplica únicamente los cambios que falten.
 
-La documentación de la base está en [`database/README.md`](database/README.md).
+La documentación de la base está en [`database/README.md`](database/README.md). Allí está también el procedimiento de las migraciones numeradas del refactor (`database/migraciones/`): qué hace cada script, cómo aplicarlo con `psql` o con los `.ps1`, el respaldo previo con `pg_dump` y cómo lo aplica cada integrante en su base local. Este README no lo repite.
 
 Las pruebas automáticas utilizan una base exclusiva llamada `learnity_test`. Su preparación está explicada en la sección 14.
 
@@ -618,6 +618,8 @@ El recorrido completo se comprobó por HTTP con PostgreSQL y manualmente desde A
 ## 14. Pruebas locales
 
 Las pruebas crean y eliminan datos. Utiliza exclusivamente la base `learnity_test`, separada de la base de desarrollo.
+
+Para aplicar a `learnity_test` las migraciones del refactor (`database/migraciones/`), sigue el procedimiento de [`database/README.md`](database/README.md).
 
 La configuración se encuentra en:
 
