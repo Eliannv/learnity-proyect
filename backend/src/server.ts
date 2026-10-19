@@ -10,6 +10,7 @@ import {
 
 import { env } from './shared/config/env.js';
 import { pool } from './shared/database/pool.js';
+import { verificarEsquema } from './shared/http/salud.repository.js';
 import { registrarEvento } from './shared/log/registro.js';
 
 const app = crearApp();
@@ -28,25 +29,7 @@ const servidor = app.listen(
       registrarEvento('cookies_sin_secure', { motivo: 'solo para desarrollo local por HTTP' }, 'aviso');
     }
     try {
-      const { rows } = await pool.query<{
-        base: string;
-        usuario: string;
-        sesiones: string | null;
-      }>(
-        `
-          SELECT
-            current_database() AS base,
-            current_user AS usuario,
-            to_regclass(
-              'public.sesion'
-            )::text AS sesiones
-        `,
-      );
-      const {
-        base,
-        usuario,
-        sesiones,
-      } = rows[0]!;
+      const { base, usuario, sesiones } = await verificarEsquema();
       registrarEvento('postgresql_conectado', { base, usuario });
       if (!sesiones) {
         registrarEvento(
