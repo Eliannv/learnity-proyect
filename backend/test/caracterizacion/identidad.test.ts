@@ -92,10 +92,11 @@ describe('registro (CAR-IDE-01, 02, 05..07, 09)', () => {
     assert.deepEqual(rows.map((x) => x.nombres === `${marca} caf\u00e9`), [false], 'el nombre se guarda tal cual, sin normalizar a NFC');
   });
 
-  it('CAR-IDE-07 CONGELADO-INSEGURO (H11, ADR-011 11.7): NUL en nombres', async () => {
+  it('CAR-IDE-07 (ADR-011, 11.7): NUL en nombres -> 400 SOLICITUD_INVALIDA', async () => {
     const r = await registrar({ nombres: `${marca} a\u0000b` });
-    assert.equal(r.status, 500);
-    assert.equal(r.json.error.codigo, 'ERROR_INTERNO');
+    assert.equal(r.status, 400);
+    assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA');
+    assert.deepEqual(r.json.error.detalles, [{ campo: 'nombres', mensaje: 'No puede contener caracteres nulos.' }]);
   });
 
   it('CAR-IDE-09: el 11.º registro desde la misma IP en 60 min -> 429', async () => {

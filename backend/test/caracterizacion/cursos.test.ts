@@ -256,11 +256,11 @@ describe('POST /api/cursos (CAR-CUR-06..10)', () => {
     }
   });
 
-  it('CAR-CUR-08: NUL en el título', async () => {
+  it('CAR-CUR-08 (ADR-011, 11.7): NUL en el título -> 400 SOLICITUD_INVALIDA (por ahora sin detalles)', async () => {
     const r = await como(docA, 'POST', '/api/cursos', datosCurso('nul', { titulo: `${marca} a\u0000b` }));
-    // CONGELADO-INSEGURO (H11; ADR-011, punto 11.7): hoy 500; pasará a 400.
-    assert.equal(r.status, 500);
-    assert.equal(r.json.error.codigo, 'ERROR_INTERNO');
+    assert.equal(r.status, 400);
+    assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA');
+    assert.equal(r.json.error.detalles, undefined);
   });
 
   it('CAR-CUR-09: límites y validación', async () => {
