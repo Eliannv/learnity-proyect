@@ -7,7 +7,6 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { carpetaPdfPropia, ficheros, pdfMinimo, subirPdf } from '../ayudas/archivos.js';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { capturar } from '../ayudas/captura.js';
 import { fabricaCursos } from '../ayudas/cursos-http.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { dormir, errorDisco, exigirLlamado, inyectarFalloBd, inyectarMetodo, type Inyeccion } from '../ayudas/fallos.js';
@@ -90,7 +89,7 @@ describe('Disco (SEG-23..26)', () => {
     const lectura = await fetch(`${srv.base}/api/archivos/${idArchivo}`, { headers: { authorization: `Bearer ${docA.token}` } });
     assert.equal(lectura.status, 200, 'el PDF anterior se sigue descargando');
     const tmp = path.join(pdfDir.dir, '.tmp');
-    capturar('SEG-23 temporales', existsSync(tmp) ? readdirSync(tmp) : []);
+    assert.deepEqual(existsSync(tmp) ? readdirSync(tmp) : [], [], 'sin temporales');
   });
 
   it('SEG-23b: fallo al RECIBIR (reservarTemporal con ENOSPC) -> 500 ERROR_INTERNO', async () => {
@@ -98,7 +97,9 @@ describe('Disco (SEG-23..26)', () => {
     const doble = inyectarMetodo(almacenLocal, 'reservarTemporal', async () => { throw errorDisco('ENOSPC'); });
     const r = await conInyeccion(doble, async () => subirPdf(srv, idLeccion, docA.token, await pdfMinimo(), 'otro.pdf'));
     doble.exigirLlamado();
-    capturar('SEG-23b', { status: r.status, error: r.json?.error });
+    assert.equal(r.status, 500);
+    assert.equal(r.json.error.codigo, 'ERROR_INTERNO');
+    assert.equal(r.json.error.mensaje, MENSAJE_500);
   });
 
   it('SEG-24: se borra el fichero del disco y luego GET /api/archivos/:id', async () => {
@@ -106,8 +107,8 @@ describe('Disco (SEG-23..26)', () => {
     const { rows } = await filaArchivo(idCurso);
     unlinkSync(path.join(pdfDir.dir, rows[0]!.ruta));
     const r = await c.como(docA, 'GET', `/api/archivos/${idArchivo}`);
-    capturar('SEG-24', { status: r.status, error: r.json?.error });
-    assert.ok(r.status >= 400 && r.status < 500, 'un fichero ausente no debe dar 200 ni 500');
+    assert.equal(r.status, 404);
+    assert.deepEqual(r.json.error, { codigo: 'NO_ENCONTRADO', mensaje: 'Archivo no disponible.' });
   });
 
   it('SEG-25: guardar lento no bloquea las lecturas del curso (la E/S va antes de bloquear filas)', async () => {
@@ -126,31 +127,39 @@ describe('Disco (SEG-23..26)', () => {
     doble.exigirLlamado();
     assert.equal(subida.status, 200, subida.texto);
     assert.equal(lectura.status, 200);
-    capturar('SEG-25 espera de la lectura (ms)', ms);
     assert.ok(ms < RETARDO / 2, `la lectura esperó ${ms} ms mientras guardar tardaba ${RETARDO} ms`);
   });
 
   it('SEG-26: borrar lección y módulo con PDF deja la BD y el disco sin restos', async () => {
     const a = await c.cursoCompleto(docA);
+    const b = await c.cursoCompleto(docA);
+    const rutas = (await f.query<{ ruta: string }>('SELECT ruta FROM archivo WHERE id_curso = ANY($1::int[])', [[a.idCurso, b.idCurso]])).rows.map((x) => x.ruta);
+    assert.equal(rutas.length, 2);
+    assert.ok(rutas.every((x) => ficheros(pdfDir.dir).includes(x)));
     const rl = await c.como(docA, 'DELETE', `/api/lecciones/${a.idLeccion}`);
     assert.equal(rl.status, 200);
-    const b = await c.cursoCompleto(docA);
     const rm = await c.como(docA, 'DELETE', `/api/modulos/${b.idModulo}`);
     assert.equal(rm.status, 200);
-    for (let i = 0; i < 20 && ficheros(pdfDir.dir).length > 0; i++) await dormir(100);
+    for (let i = 0; i < 20 && rutas.some((x) => ficheros(pdfDir.dir).includes(x)); i++) await dormir(100);
     const filas = await f.query<{ n: string }>('SELECT count(*) AS n FROM archivo WHERE id_curso = ANY($1::int[])', [[a.idCurso, b.idCurso]]);
     assert.equal(filas.rows[0]!.n, '0');
     const pendientes = await f.query<{ n: string }>('SELECT count(*) AS n FROM archivo_borrado_pendiente');
-    capturar('SEG-26 pendientes y ficheros', { pendientes: pendientes.rows[0]!.n, ficheros: ficheros(pdfDir.dir).length });
-    assert.equal(ficheros(pdfDir.dir).length, 0, 'tras la limpieza no queda fichero');
+    assert.equal(pendientes.rows[0]!.n, '0', 'el retiro se completa en el camino feliz');
+    assert.deepEqual(rutas.filter((x) => ficheros(pdfDir.dir).includes(x)), [], 'tras la limpieza no queda fichero');
   });
 
   it('SEG-26b: si eliminar falla, la lección se borra igual y el retiro queda pendiente', async () => {
     const a = await c.cursoCompleto(docA);
+    const ruta = (await filaArchivo(a.idCurso)).rows[0]!.ruta;
     const doble = inyectarMetodo(almacenLocal, 'eliminar', async () => { throw errorDisco('EIO'); });
     const r = await conInyeccion(doble, () => c.como(docA, 'DELETE', `/api/lecciones/${a.idLeccion}`));
     doble.exigirLlamado();
-    capturar('SEG-26b', { status: r.status, fichero: ficheros(pdfDir.dir).length, pendientes: (await f.query('SELECT count(*)::int AS n FROM archivo_borrado_pendiente')).rows[0] });
+    assert.equal(r.status, 200, 'un fallo al retirar el fichero no impide borrar la lección');
+    const filas = await f.query<{ n: string }>('SELECT count(*) AS n FROM archivo WHERE id_curso = $1', [a.idCurso]);
+    assert.equal(filas.rows[0]!.n, '0');
+    assert.ok(ficheros(pdfDir.dir).includes(ruta), 'el fichero sigue en disco');
+    const pendiente = await f.query<{ n: string }>('SELECT count(*) AS n FROM archivo_borrado_pendiente WHERE nombre = $1', [ruta]);
+    assert.equal(pendiente.rows[0]!.n, '1', 'el retiro queda registrado para reintentarlo');
   });
 });
 
@@ -204,6 +213,7 @@ describe('BD (SEG-29, 30)', () => {
   it('SEG-29d: fallo al asociar el PDF tras crear la fila -> 500, sin fila nueva y PDF anterior intacto', async () => {
     const { idCurso, idLeccion } = await c.cursoCompleto(docA);
     const antes = await filaArchivo(idCurso);
+    const fisicosAntes = ficheros(pdfDir.dir).sort();
     const doble = inyectarMetodo(cursosService, 'asociarPdfPrincipal', async () => { throw new Error('fallo de BD simulado'); });
     const r = await conInyeccion(doble, async () => subirPdf(srv, idLeccion, docA.token, await pdfMinimo(3), 'x.pdf'));
     doble.exigirLlamado();
@@ -211,7 +221,7 @@ describe('BD (SEG-29, 30)', () => {
     assert.equal(r.json.error.mensaje, MENSAJE_500);
     assert.deepEqual((await filaArchivo(idCurso)).rows, antes.rows);
     await dormir(500);
-    capturar('SEG-29d ficheros vs filas (global)', { ficheros: ficheros(pdfDir.dir).length, filas: (await f.query('SELECT count(*)::int AS n FROM archivo')).rows[0] });
+    assert.deepEqual(ficheros(pdfDir.dir).sort(), fisicosAntes, 'el fichero nuevo no queda huérfano');
   });
 
   it('SEG-30: la conexión muere a mitad de la transacción -> 500, sin estado parcial y el pool sigue', async () => {
