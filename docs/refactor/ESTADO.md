@@ -8,7 +8,13 @@
 
 **Plan de la 2A en tandas** (máximo 3 teammates a la vez; Sonnet para `qa-edge`, `be-*` y `fe-*`; Opus para `arquitecto` y `db`):
 1. **Tanda 1:** `db` (022/023 sin datos inventados), `qa-edge` (`guardia-bd.ts`, pool de fixtures y caracterización de todos los endpoints) y `arquitecto` (ADR a *Aceptado*/*Rechazado*, `test:local` con glob, devDependency `openapi-typescript`, correcciones solo documentales C-08–C-11 y C-18, renombrar `openapi-integrante2/3.ts`, `README.md:141`).
-2. **Tanda 2** (cuando la caracterización esté en verde): `be-a` y `be-b` (fundaciones del backend y puntos aprobados del ADR-011), más `qa-edge` si quedan casos (recorrido completo y seguridad).
+2. **Tanda 2** (desde el 19-10-2026; la caracterización está en verde): `be-a` y `be-b` (fundaciones del backend y puntos del ADR-011 asignados a la 2A), más `qa-edge` (REC y SEG).
+
+**Resultado de la tanda 1 (19-10-2026):** `integration/sprint-2` en `7ffa8d6`. backend `npm run build` → exit 0; `npm run typecheck` → exit 0; `npm test` (glob) → **tests 199 · suites 46 · pass 199 · fail 0** (78 de la línea base + 114 de caracterización + 7 de la guarda; 112 s). `learnity_test` sin residuos (0 filas en persona, usuario, curso, categoría, archivo, solicitud, pendiente y sesión) y sin migraciones.
+
+**Regla de integración para los cambios de contrato (decidida por el lead):** cada punto aprobado del ADR-011 se entrega en tres partes de dueños distintos: el código (`be-*`), las aserciones CONGELADO-INSEGURO que cambian (`qa-edge`) y `openapi*.ts` + `openapi.yaml` (`arquitecto`). El lead las integra **en un solo merge por punto** y ejecuta la suite completa antes de dar el punto por hecho. Así se cumple "la expectativa cambia en el mismo cambio" sin que nadie edite archivos ajenos ni la suite quede en rojo.
+
+**Reparto de los puntos del ADR-011:** 2A → 11.1, 11.2, 11.3, 11.6, 11.7 y 11.11 (`be-a`, ligados a la validación uniforme y al manejador de errores) y 11.5 (`be-b`, interfaz `AlmacenArchivos`); 2B → 11.8 (`be-b`, cursos) y 11.10 (`be-a`, identidad); Fase 3 → 11.4 (límite por IP en la subida).
 3. **Tanda 3:** `fe-a` y `fe-b` (fundaciones del frontend, flag de D4 y `peticion.ts` → `core/estado`).
 
 ### Fase 1: diseño (cerrada, Puerta 1 el 19-10-2026)
@@ -111,12 +117,13 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 | Teammate | Modelo | Worktree / rama | Fase | Estado |
 |---|---|---|---|---|
 | `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 2A, tanda 1 | **Terminado, integrado y cerrado** (BD-022, merge `3d7f703`) |
-| `qa-edge` | Sonnet 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 2A, tanda 1 | Activo, **con el turno de `learnity_test`**: lote completo de caracterización (fixtures, cursos, contenido, revisión, general, identidad, solicitudes y catálogo con captura). Hasta ahora: `guardia-bd` 7/7 sin BD; `bd-fixtures` + `cursos` 42/42 sin residuos |
-| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 2A, tanda 1 | **Terminado, integrado y cerrado** (merge `a153670`). Se reactiva para actualizar `openapi*.ts` junto a los commits del ADR-011 |
+| `qa-edge` | Sonnet 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 2A, tandas 1 y 2 | Tanda 1 **integrada** (merge `7ffa8d6`): `guardia-bd`, pool de fixtures y 8 suites (114 pruebas, 0 fallos). Sigue con REC-01..11 y SEG prioritarias, y con las aserciones de los puntos del ADR-011 |
+| `be-a` | Sonnet 5.5 | `.worktrees/be-a` / `refactor/be-a` | 2A, tanda 2 | Activo: fundaciones del backend (validación uniforme, logger con correlación, `TransporteCorreo`, `/api/salud`, Swagger, manejador de errores, registro de puertos) |
+| `be-b` | Sonnet 5.5 | `.worktrees/be-b` / `refactor/be-b` | 2A, tanda 2 | Activo: transacción con actor, `AlmacenArchivos` + disco temporal (11.5), plantilla de módulo, SQL de las semillas, seam de fallos y `pool.ts` || `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 2A, tanda 1 | **Terminado, integrado y cerrado** (merge `a153670`). Se reactiva para actualizar `openapi*.ts` junto a los commits del ADR-011 |
 
 Equipo completo (7), que se activa por fases con un máximo de 6 simultáneos: Fase 1 `arquitecto`, `db` y `qa-edge`; Fases 2A y 2B `arquitecto`, `qa-edge`, `be-a`, `be-b`, `fe-a` y `fe-b`; Fase 3 `qa-edge`, `db`, `arquitecto` y `be-a`/`be-b` si hacen falta.
 
-**Turno de la base `learnity_test`:** concedido a `qa-edge` (lote completo). Lo administra el lead (una suite a la vez, con la guarda de `.env.test` antes de cada `npm test`). `learnity_test` está en la línea base. `.env.test` se copió sin leerlo a los worktrees de `qa-edge` y `arquitecto`.
+**Turno de la base `learnity_test`:** libre. Lo administra el lead (una suite a la vez, con la guarda de `.env.test` antes de cada `npm test`). `learnity_test` está en la línea base. `.env.test` se copió sin leerlo a los worktrees de `qa-edge` y `arquitecto`.
 
 ### Prueba de migraciones (19-10-2026, ejecutada por el lead con `postgres`)
 
