@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { AppError } from './app-error.js';
 import { env } from '../config/env.js';
+import { registrarEvento } from '../log/registro.js';
 
 /** Rutas que no existen. */
 export const rutaNoEncontrada: RequestHandler = (req, _res, next) => {
@@ -40,7 +41,21 @@ export const manejadorErrores: ErrorRequestHandler = (error, _req, res, _next) =
     return;
   }
 
-  console.error(error);
+  // Nunca se registran `detail` (trae valores de la fila), `parameters` ni el cuerpo de la petición.
+  // El `message` de PostgreSQL puede incluir el valor recibido (p. ej. "invalid input syntax ... \"abc\""): con `code` solo se registran el código y la restricción.
+  const pg = error as { constraint?: string; table?: string };
+  registrarEvento(
+    'error_no_controlado',
+    {
+      nombre: error?.name,
+      mensaje: pgCodigo ? undefined : error?.message,
+      codigoPg: pgCodigo,
+      restriccion: pgCodigo ? pg.constraint : undefined,
+      tabla: pgCodigo ? pg.table : undefined,
+      pila: env.NODE_ENV === 'development' ? error?.stack : undefined,
+    },
+    'error',
+  );
   res.status(500).json({
     error: {
       codigo: 'ERROR_INTERNO',
