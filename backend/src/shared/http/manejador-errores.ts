@@ -30,6 +30,21 @@ export const manejadorErrores: ErrorRequestHandler = (error, _req, res, _next) =
     return;
   }
 
+  // Errores del parser JSON (http-errors con `type`; ADR-011, 11.6). Nunca se devuelve ni se registra el contenido recibido.
+  const tipoParser = (error as { type?: string }).type;
+  if (tipoParser === 'entity.parse.failed') {
+    res.status(400).json({ error: { codigo: 'SOLICITUD_INVALIDA', mensaje: 'El cuerpo de la petición no es un JSON válido.' } });
+    return;
+  }
+  if (tipoParser === 'entity.too.large') {
+    res.status(413).json({ error: { codigo: 'CUERPO_DEMASIADO_GRANDE', mensaje: 'El cuerpo de la petición supera el tamaño permitido.' } });
+    return;
+  }
+  if (tipoParser === 'charset.unsupported' || tipoParser === 'encoding.unsupported') {
+    res.status(415).json({ error: { codigo: 'TIPO_NO_ADMITIDO', mensaje: 'La codificación del cuerpo de la petición no es admitida. Usa UTF-8.' } });
+    return;
+  }
+
   // Violaciones de restricciones de PostgreSQL (UNIQUE, CHECK, FK)
   const pgCodigo = (error as { code?: string }).code;
   if (pgCodigo === '23505') {
