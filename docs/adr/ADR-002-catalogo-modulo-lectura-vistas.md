@@ -2,8 +2,8 @@
 
 - **Estado:** Propuesto. El usuario ya eligió el enfoque (**D8 = A**, 19-10-2026); este ADR fija el *cómo* y se aprueba en la Puerta 1.
 - **Fecha:** 2026-10-19
-- **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`, en coordinación con `db`, que define las vistas.
-- **Cambia el contrato:** No. `GET /api/cursos` y `GET /api/cursos/:id` devuelven exactamente el mismo JSON.
+- **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`, en coordinación con `db`, que define las vistas. Nombres y columnas acordados con `db` el 19-10-2026.
+- **Cambia el contrato:** No. `GET /api/categorias`, `GET /api/cursos` y `GET /api/cursos/:id` devuelven exactamente el mismo JSON.
 
 ## Contexto
 
@@ -21,8 +21,9 @@
 
 ## Decisión propuesta
 
-1. **Módulo `modules/catalogo`** (dueño `be-a`). Ofrece `GET /cursos` y `GET /cursos/:id`, con las mismas rutas, validación (`filtros` en `strictObject`, `idCurso`) y respuestas. `GET /categorias` pasa a `modules/categorias` (A3). Express no tiene conflicto con `POST /cursos` y `PUT /cursos/:id` de Cursos: son verbos distintos.
-2. **El catálogo lee solo vistas de solo lectura** creadas por `db` en una migración `up`/`down`. Nunca lee tablas. Nombres propuestos a `db` (pendientes de confirmar en su plan):
+1. **Módulo `modules/catalogo`** (dueño `be-a`). Ofrece `GET /categorias`, `GET /cursos` y `GET /cursos/:id`, con las mismas rutas, validación (`filtros` en `strictObject`, `idCurso`) y respuestas. El módulo `categorias` (A3) se queda solo con el CRUD de administración y lee la tabla `categoria` desde su propio repositorio, no desde la vista pública. Express no tiene conflicto con `POST /cursos` y `PUT /cursos/:id` de Cursos: son verbos distintos.
+2. **El catálogo lee solo vistas de solo lectura** creadas por `db` en la migración `026_vistas_catalogo` (`up`/`down`). Nunca lee tablas. Nombres **acordados con `db`**:
+   - **`catalogo_categoria`:** `(id, nombre)`, con `WHERE activa = TRUE` **dentro de la vista** (no expone `activa`). Reproduce `SELECT id_categoria AS id, nombre FROM categoria WHERE activa = TRUE`. El orden `nombre ASC, id ASC` lo pone el repositorio.
    - **`catalogo_curso`:** una fila por curso, con `WHERE c.estado = 'PUBLICADO'` dentro de la vista. Un borrador no aparece, y el detalle sigue respondiendo 404 "Curso no disponible." desde el servicio.
    - **`catalogo_temario`:** una fila por módulo y lección, solo de cursos publicados, con LEFT JOIN de `modulo` a `leccion` y a `archivo`.
 
@@ -31,6 +32,7 @@
 
 | Vista | Columna | Origen actual |
 |---|---|---|
+| `catalogo_categoria` | `id`, `nombre` | `categoria.id_categoria`, `categoria.nombre` (solo activas) |
 | `catalogo_curso` | `id`, `titulo`, `subtitulo` | `c.id_curso`, `c.titulo`, `c.subtitulo` |
 | | `descripcion` | `COALESCE(c.descripcion, '')` |
 | | `categoria_id`, `categoria_nombre` | `cat.id_categoria`, `cat.nombre` |
@@ -44,14 +46,19 @@
 | | `leccion_id`, `leccion_orden`, `leccion_titulo`, `leccion_tipo` (nullables) | `leccion` |
 | | `segundos` (nullable) | `archivo.duracion_seg` |
 
-   **Prohibido** en cualquier vista: `archivo.ruta` y cualquier otra columna de `archivo` salvo `duracion_seg`; `id_archivo`; `nombre_original`; correos; `contrasena_hash` y `token_hash`.
+   **Prohibido** en cualquier vista: `archivo.ruta` y cualquier otra columna de `archivo` salvo `duracion_seg`; `id_archivo`; `nombre_original`; `vista_previa`; correos; `contrasena_hash` y `token_hash`.
+
+   `db` comprobó que los JOIN con `docente` y `persona`, que el conteo actual no hace, no descartan filas: `id_docente`, `id_categoria` y `docente.id_persona` son NOT NULL y tienen FK. `inscripciones` se queda en `catalogo_curso`; si `EXPLAIN` en `learnity_test` muestra un coste alto, `db` lo avisa antes de separarla.
 4. **Lo que queda en `catalogo.repository.ts`** (SQL parametrizado, con fragmentos solo de listas cerradas):
    - **búsqueda `q`:** se escapan `\`, `%` y `_`, y se arma `%q%`, con `ILIKE … ESCAPE '\'` sobre `titulo`, `subtitulo` y `descripcion`;
    - **filtros:** `categoria_nombre = ANY($n::text[])` y `nivel = ANY($n::text[])`;
    - **orden** (lista cerrada): `recientes` → `publicado_en_orden DESC NULLS LAST, id DESC`; `populares` → `inscripciones DESC, id DESC`; `az` → `titulo ASC, id ASC`;
    - **paginación:** `LIMIT $a OFFSET $b`; `total` con el mismo WHERE; `totalPaginas = ceil(total/limite)`;
    - **temario:** `ORDER BY modulo_orden, modulo_id, leccion_orden, leccion_id`.
-5. **Permisos:** `SELECT` sobre las vistas para `learnity_app` y `learnity_lectura`. Si las vistas son de `learnity_owner` y no son `security_invoker`, `learnity_lectura` no necesita permisos sobre las tablas base (lo decide `db`).
+5. **Permisos** (acordados con `db`):
+   - las tres vistas son de `learnity_owner` y **no** son `security_invoker`;
+   - `SELECT` sobre ellas para `learnity_app` y `learnity_lectura`, que no necesitan permisos sobre las tablas base para leer el catálogo;
+   - **sin `security_barrier`**: ni la app ni `learnity_lectura` pueden crear funciones, y con esa opción PostgreSQL no podría aplicar los filtros del repositorio hasta resolver la vista.
 6. **Orden de despliegue:**
    1. caracterización exacta del JSON del catálogo (`qa-edge`);
    2. migración de las vistas probada `up → down → up` en `learnity_test` (`db`);
@@ -121,18 +128,19 @@ C cuesta una migración más que B, y a cambio convierte una protección de segu
   - hay que coordinar el despliegue (migración → Puerta DB → código).
 - **A revisar:**
   - si el catálogo debe ocultar las categorías inactivas o los docentes inactivos. Hoy no lo hace, y cambiarlo sería un cambio de comportamiento con su propio ADR;
-  - `pg_trgm` para la búsqueda (ADR-010).
+  - `pg_trgm` para la búsqueda (ADR-010). `db` la deja como propuesta sin número en `database/migraciones/propuestas/pg_trgm.{up,down}.sql`.
 
 ## Acciones
 
-1. [ ] Confirmar los nombres y columnas de las vistas (`db`; mensaje enviado el 19-10-2026).
-2. [ ] Migración `0NN_vistas_catalogo.{up,down}.sql`, probada `up → down → up` en `learnity_test` (`db`, Fase 1). Aplicarla a `Learnity` tras la Puerta DB.
-3. [ ] Caracterización del JSON exacto de `GET /cursos` (filtros, orden, paginación) y `GET /cursos/:id` (404 de borrador, sin `ruta`) (`qa-edge`, Fase 2A).
+1. [x] Confirmar los nombres y columnas de las vistas (`db`, 19-10-2026).
+2. [ ] Migración `026_vistas_catalogo.{up,down}.sql`, probada `up → down → up` en `learnity_test` (`db`, Fase 1). Aplicarla a `Learnity` tras la Puerta DB.
+3. [ ] Caracterización del JSON exacto de `GET /categorias`, `GET /cursos` (filtros, orden, paginación) y `GET /cursos/:id` (404 de borrador, sin `ruta`) (`qa-edge`, Fase 2A).
 4. [ ] Crear `modules/catalogo` y quitar las lecturas públicas de `cursos.repository.ts` y `cursos.service.ts` (`be-a` y `be-b`, Fase 2B, lote A2).
 
 ## Cómo se verifica
 
 - La caracterización de `qa-edge` pasa sin cambiar expectativas antes y después del cambio.
-- `grep -nE "FROM (curso|categoria|modulo|leccion|archivo)\b" backend/src/modules/catalogo/*.repository.ts` → vacío: solo lee vistas.
-- En `learnity_test`: `SELECT column_name FROM information_schema.columns WHERE table_name IN ('catalogo_curso','catalogo_temario')` no devuelve `ruta`, `id_archivo` ni `nombre_original`.
+- `grep -nE "(FROM|JOIN) (curso|categoria|modulo|leccion|archivo|docente|persona|inscripcion)\b" backend/src/modules/catalogo/*.repository.ts` → vacío: solo lee vistas.
+- `database/verificacion/comparar_catalogo.sql` (de `db`) ejecuta las consultas actuales del repositorio y las de las vistas sobre los mismos datos, y da 0 filas en `(A EXCEPT B) UNION ALL (B EXCEPT A)` para el listado, el detalle, el temario y las categorías.
+- En `learnity_test`: `SELECT column_name FROM information_schema.columns WHERE table_name IN ('catalogo_categoria','catalogo_curso','catalogo_temario')` no devuelve `ruta`, `id_archivo`, `nombre_original` ni `vista_previa`.
 - `openapi.yaml` sin cambios.

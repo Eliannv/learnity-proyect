@@ -14,7 +14,7 @@ Convenciones:
 | `POST /auth/{registro,login,refresh,logout,recuperar,restablecer}` | identidad | `identidad` | A1 |
 | `GET/PUT /perfil`, `PUT /perfil/contrasena` | identidad | `identidad` | A1 |
 | `GET /cursos`, `GET /cursos/{id}` | cursos (`cursos.service.ts:948-994`) | `catalogo` (ADR-002) | A2 |
-| `GET /categorias` | cursos (`cursos.routes.ts:11`) | `categorias` | A3 |
+| `GET /categorias` | cursos (`cursos.routes.ts:11`) | `catalogo` (vista `catalogo_categoria`, ADR-002) | A2 |
 | *(nuevo)* CRUD de categorías | — | `categorias`: **pendiente de un ADR en la Fase 2B** (D1) | A3 |
 | `GET /solicitudes-docente/mia`, `POST /solicitudes-docente` | administracion | `usuarios` | A4 |
 | `GET /admin/solicitudes`, `PUT /admin/solicitudes/{id}` | administracion | `usuarios` | A4 |
@@ -53,18 +53,18 @@ No hay ciclos. Cualquier dependencia nueva entre módulos pasa por un `index.ts`
 
 ### 3.2 `catalogo` (`be-a`, ADR-002)
 
-- **Responsabilidad:** lectura pública de los cursos publicados.
-- **Rutas:** `GET /cursos` y `GET /cursos/{id}`.
+- **Responsabilidad:** lectura pública de las categorías activas y de los cursos publicados.
+- **Rutas:** `GET /categorias`, `GET /cursos` y `GET /cursos/{id}`.
 - **API pública:** ninguna para otros módulos (solo `catalogoRoutes`).
-- **Lee:** solo las vistas `catalogo_curso` y `catalogo_temario` (nombres pendientes de confirmar con `db`). **No escribe nada.**
+- **Lee:** solo las vistas `catalogo_categoria`, `catalogo_curso` y `catalogo_temario` (acordadas con `db`; migración `026_vistas_catalogo`). **No escribe nada.**
 - **Consumidores:** `app.ts`.
 
 ### 3.3 `categorias` (`be-a`)
 
-- **Responsabilidad:** categorías de cursos.
-- **Rutas:** `GET /categorias` (solo las activas, ordenadas por nombre e id). **El CRUD de administración (D1) está pendiente:** amplía el contrato y necesita un ADR con las rutas, los cuerpos, los códigos y las reglas (nombre único, desactivar o borrar con cursos asociados) **antes** de implementarse en la Fase 2B (lote A3).
+- **Responsabilidad:** administración de las categorías de cursos. La lectura pública (`GET /categorias`) es del `catalogo`.
+- **Rutas:** ninguna hoy. **El CRUD de administración (D1) está pendiente:** amplía el contrato y necesita un ADR con las rutas, los cuerpos, los códigos y las reglas (nombre único, desactivar o borrar con cursos asociados) **antes** de implementarse en la Fase 2B (lote A3).
 - **API pública:** ninguna por ahora. Si el CRUD lo necesita, se añadirá aquí.
-- **Escribe:** `categoria` (cuando exista el CRUD). **Lee:** `categoria`.
+- **Escribe:** `categoria` (cuando exista el CRUD). **Lee:** la tabla `categoria` desde su propio repositorio (también las inactivas), no desde la vista pública.
 - **Lectura permitida a otros:** `cursos` lee `categoria.activa` desde su propio repositorio, dentro de su transacción (`categoriaActiva`), para validar `categoriaId`. Es solo lectura, documentada aquí.
 
 ### 3.4 `usuarios` (`be-a`)
@@ -127,9 +127,17 @@ No hay ciclos. Cualquier dependencia nueva entre módulos pasa por un `index.ts`
 | `shared/archivos` | `AlmacenArchivos` (`almacenLocal`) y `pdf-validacion` | be-b |
 | `shared/seguridad` | contraseñas expuestas (HIBP) | be-a |
 
+### 3.9 Actor de la auditoría de base de datos
+
+La auditoría de `db` (migración 020) toma el actor de `current_setting('learnity.id_persona', true)`. Por eso:
+- toda transacción que **escriba** fija el actor con `set_config('learnity.id_persona', $1, true)` al empezar, mediante el ayudante de `shared/database` (`be-b`). Ningún módulo escribe ese SQL por su cuenta;
+- lo que se ejecute con `consultar()` **fuera** de una transacción queda sin actor. Por eso las escrituras van siempre dentro de `enTransaccion`.
+
+Esto afecta a los servicios que escriben: `identidad`, `usuarios`, `categorias` (CRUD), `cursos` y `contenido`.
+
 ## 4. Pendientes que afectan a este documento
 
 1. **CRUD de categorías (D1):** su ADR se escribe en la Fase 2B, antes de A3. Ampliará §1 y §3.3.
-2. **Nombres de las vistas del catálogo:** los confirma `db` (ADR-002).
+2. **Vistas del catálogo:** acordadas con `db` el 19-10-2026 (ADR-002). Se aplican tras la Puerta DB.
 3. **D3 y D4** (frontend) no cambian este documento del backend.
 4. Si se aprueba el ADR-011, `GET /salud` cambia de cuerpo (§1).
