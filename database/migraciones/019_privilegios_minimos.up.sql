@@ -36,7 +36,7 @@ INSERT INTO schema_migraciones (version, nombre, reversion)
 SELECT '019', 'privilegios_minimos',
        jsonb_build_object('learnity_app', COALESCE(jsonb_agg(jsonb_build_object(
          'relacion', c.relname,
-         'tipo', c.relkind,
+         'tipo', c.relkind::TEXT,
          'privilegio', a.privilege_type,
          'con_grant', a.is_grantable) ORDER BY c.relname, a.privilege_type), '[]'::JSONB))
   FROM pg_class c

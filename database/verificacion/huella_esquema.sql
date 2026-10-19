@@ -15,6 +15,8 @@
 --   el down de la 018 los conserva y esa categoría puede diferir (está
 --   documentado).
 -- * datos_curso cubre lo que modifica la 022.
+-- * Las columnas "char" del catálogo (relkind, contype, attidentity…) se
+--   convierten con ::TEXT antes de concatenar: text || "char" es ambiguo.
 -- =====================================================================
 WITH
 rel AS (
@@ -26,8 +28,8 @@ rel AS (
 lineas AS (
   -- Relaciones: tipo, dueño, RLS, persistencia y opciones.
   SELECT 'relaciones' AS categoria,
-         r.relname || '|' || r.relkind || '|' || pg_get_userbyid(r.relowner) || '|' ||
-         c.relrowsecurity || '|' || c.relforcerowsecurity || '|' || c.relpersistence || '|' ||
+         r.relname || '|' || r.relkind::TEXT || '|' || pg_get_userbyid(r.relowner) || '|' ||
+         c.relrowsecurity || '|' || c.relforcerowsecurity || '|' || c.relpersistence::TEXT || '|' ||
          COALESCE(array_to_string(c.reloptions, ','), '') AS linea
     FROM rel r JOIN pg_class c ON c.oid = r.oid
 
@@ -38,7 +40,7 @@ lineas AS (
          row_number() OVER (PARTITION BY r.oid ORDER BY a.attnum) || '|' ||
          a.attname || '|' || format_type(a.atttypid, a.atttypmod) || '|' ||
          a.attnotnull || '|' || COALESCE(pg_get_expr(d.adbin, d.adrelid), '') || '|' ||
-         a.attidentity || '|' || a.attgenerated
+         a.attidentity::TEXT || '|' || a.attgenerated::TEXT
     FROM rel r
     JOIN pg_attribute a ON a.attrelid = r.oid AND a.attnum > 0 AND NOT a.attisdropped
     LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
@@ -46,7 +48,7 @@ lineas AS (
 
   UNION ALL
   SELECT 'restricciones',
-         con.conrelid::regclass::TEXT || '|' || con.conname || '|' || con.contype || '|' ||
+         con.conrelid::regclass::TEXT || '|' || con.conname || '|' || con.contype::TEXT || '|' ||
          pg_get_constraintdef(con.oid)
     FROM pg_constraint con
    WHERE con.connamespace = 'public'::regnamespace
@@ -94,7 +96,7 @@ lineas AS (
     FROM rel r
          CROSS JOIN LATERAL aclexplode(COALESCE(
            r.relacl,
-           acldefault(CASE WHEN r.relkind = 'S' THEN 's' ELSE 'r' END, r.relowner))) a
+           acldefault(CASE WHEN r.relkind = 'S' THEN 's' ELSE 'r' END::"char", r.relowner))) a
 
   UNION ALL
   SELECT 'acl_columnas',
@@ -126,7 +128,7 @@ lineas AS (
 
   UNION ALL
   SELECT 'acl_por_defecto',
-         pg_get_userbyid(da.defaclrole) || '|' || da.defaclobjtype || '|' ||
+         pg_get_userbyid(da.defaclrole) || '|' || da.defaclobjtype::TEXT || '|' ||
          COALESCE(da.defaclnamespace::regnamespace::TEXT, '') || '|' || da.defaclacl::TEXT
     FROM pg_default_acl da
 
