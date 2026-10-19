@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import { enTransaccion, pool } from '../src/shared/database/pool.js';
 import { env } from '../src/shared/config/env.js';
+import { semillasRepository } from '../src/database/semillas.repository.js';
 
 if (env.NODE_ENV === 'production') throw new Error('No se permite sembrar cursos de prueba en producción.');
 
@@ -14,50 +15,35 @@ const cursos = [
 
 try {
   await enTransaccion(async (cliente) => {
-    const docente = await cliente.query<{ id_docente: number }>(
-      `SELECT d.id_docente FROM docente d
-       JOIN persona p ON p.id_persona = d.id_persona
-       JOIN usuario u ON u.id_persona = p.id_persona
-       WHERE u.correo = $1`,
-      ['carlos.mendoza@correo.com'],
-    );
-    const idDocente = docente.rows[0]?.id_docente;
+    const idDocente = await semillasRepository.idDocentePorCorreo(cliente, 'carlos.mendoza@correo.com');
     if (!idDocente) throw new Error('Falta el docente de prueba. Ejecuta primero npm run db:seed.');
+    // Un curso PUBLICADO exige quién lo revisó y cuándo se publicó (migración 023).
+    const idRevisor = await semillasRepository.idPersonaPorCorreo(cliente, 'ana.torres@learnity.com');
+    if (!idRevisor) throw new Error('Falta el administrador de prueba. Ejecuta primero npm run db:seed.');
 
     for (const muestra of cursos) {
-      const categoria = await cliente.query<{ id_categoria: number }>(
-        'SELECT id_categoria FROM categoria WHERE nombre = $1 AND activa = TRUE', [muestra.categoria],
-      );
-      const idCategoria = categoria.rows[0]?.id_categoria;
+      const idCategoria = await semillasRepository.idCategoriaActiva(cliente, muestra.categoria);
       if (!idCategoria) throw new Error(`Falta la categoría activa ${muestra.categoria}. Ejecuta primero npm run db:seed.`);
-      const existente = await cliente.query<{ id_curso: number }>(
-        'SELECT id_curso FROM curso WHERE id_docente = $1 AND titulo = $2', [idDocente, muestra.titulo],
-      );
-      if (existente.rows[0]) {
+      if (await semillasRepository.existeCurso(cliente, idDocente, muestra.titulo)) {
         console.log(`= ${muestra.titulo}: ya existe`);
         continue;
       }
-      const insertado = await cliente.query<{ id_curso: number }>(
-        `INSERT INTO curso
-         (id_docente, id_categoria, titulo, subtitulo, descripcion, nivel, objetivos, requisitos, estado, publicado_en)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING id_curso`,
-        [idDocente, idCategoria, muestra.titulo, 'Curso sintético para comprobar el catálogo público.',
-          'Contenido de prueba local. No representa un curso aprobado mediante el flujo administrativo.',
-          muestra.nivel, ['Conocer la estructura', 'Practicar los conceptos', 'Continuar aprendiendo'],
-          ['Ninguno'], muestra.estado,
-          muestra.estado === 'PUBLICADO' ? new Date(Date.now() - muestra.dias * 86400000) : null],
-      );
-      const idCurso = insertado.rows[0]!.id_curso;
-      const modulo = await cliente.query<{ id_modulo: number }>(
-        'INSERT INTO modulo (id_curso, titulo, orden) VALUES ($1, $2, 1) RETURNING id_modulo',
-        [idCurso, 'Primer módulo'],
-      );
-      await cliente.query(
-        `INSERT INTO leccion (id_modulo, titulo, tipo, orden)
-         VALUES ($1, 'Lección de ejemplo', 'DOCUMENTO', 1)`,
-        [modulo.rows[0]!.id_modulo],
-      );
+      const publicado = muestra.estado === 'PUBLICADO';
+      const idCurso = await semillasRepository.crearCurso(cliente, {
+        idDocente,
+        idCategoria,
+        titulo: muestra.titulo,
+        subtitulo: 'Curso sintético para comprobar el catálogo público.',
+        descripcion: 'Contenido de prueba local. No representa un curso aprobado mediante el flujo administrativo.',
+        nivel: muestra.nivel,
+        objetivos: ['Conocer la estructura', 'Practicar los conceptos', 'Continuar aprendiendo'],
+        requisitos: ['Ninguno'],
+        estado: muestra.estado,
+        revisadoPor: publicado ? idRevisor : null,
+        publicadoEn: publicado ? new Date(Date.now() - muestra.dias * 86400000) : null,
+      });
+      const idModulo = await semillasRepository.crearModulo(cliente, idCurso, 'Primer módulo', 1);
+      await semillasRepository.crearLeccionDocumento(cliente, idModulo, 'Lección de ejemplo', 1);
       console.log(`+ ${muestra.titulo}: id ${idCurso} (${muestra.estado})`);
     }
   });

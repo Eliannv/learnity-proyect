@@ -7,8 +7,8 @@
  * - Requiere que la base ya tenga las 19 tablas y los roles ESTUDIANTE, DOCENTE y ADMIN.
  */
 import 'dotenv/config';
-import type pg from 'pg';
-import { enTransaccion, pool } from '../shared/database/pool.js';
+import { enTransaccion, pool, type Ejecutor } from '../shared/database/pool.js';
+import { semillasRepository } from './semillas.repository.js';
 import { cifrarContrasena } from '../shared/auth/contrasena.js';
 import { env } from '../shared/config/env.js';
 import type { Rol } from '../shared/auth/tipos.js';
@@ -62,51 +62,44 @@ const CATEGORIAS: { nombre: string; descripcion: string; activa: boolean }[] = [
   { nombre: 'Ofimática', descripcion: 'Hojas de cálculo, documentos y presentaciones.', activa: false },
 ];
 
-async function idRol(cliente: pg.PoolClient, rol: Rol): Promise<number> {
-  const { rows } = await cliente.query<{ id_rol: number }>('SELECT id_rol FROM rol WHERE nombre = $1', [rol]);
-  if (!rows[0]) throw new Error(`Falta el rol ${rol}. Ejecuta primero el script 10_roles_learnity.sql de la guía.`);
-  return rows[0].id_rol;
+async function idRol(cliente: Ejecutor, rol: Rol): Promise<number> {
+  const id = await semillasRepository.idRol(cliente, rol);
+  if (id === null) throw new Error(`Falta el rol ${rol}. Ejecuta primero el script 10_roles_learnity.sql de la guía.`);
+  return id;
 }
 
-async function crearCuenta(cliente: pg.PoolClient, cuenta: CuentaSemilla, hash: string, idAdmin: number | null) {
-  const existe = await cliente.query<{ id_persona: number }>('SELECT id_persona FROM usuario WHERE correo = $1', [cuenta.correo]);
-  if (existe.rows[0]) {
+async function crearCuenta(cliente: Ejecutor, cuenta: CuentaSemilla, hash: string, idAdmin: number | null) {
+  const existente = await semillasRepository.idPersonaPorCorreo(cliente, cuenta.correo);
+  if (existente !== null) {
     console.log(`  = ${cuenta.correo} ya existe (sin cambios)`);
-    return existe.rows[0].id_persona;
+    return existente;
   }
 
-  const persona = await cliente.query<{ id_persona: number }>(
-    'INSERT INTO persona (nombres, apellidos, ciudad, biografia) VALUES ($1, $2, $3, $4) RETURNING id_persona',
-    [cuenta.nombres, cuenta.apellidos, cuenta.ciudad, cuenta.biografia ?? null],
-  );
-  const idPersona = persona.rows[0]!.id_persona;
-  const usuario = await cliente.query<{ id_usuario: number }>(
-    'INSERT INTO usuario (id_persona, correo, contrasena_hash) VALUES ($1, $2, $3) RETURNING id_usuario',
-    [idPersona, cuenta.correo, hash],
-  );
-  const idUsuario = usuario.rows[0]!.id_usuario;
+  const { idPersona, idUsuario } = await semillasRepository.crearPersonaYUsuario(cliente, {
+    nombres: cuenta.nombres,
+    apellidos: cuenta.apellidos,
+    ciudad: cuenta.ciudad,
+    biografia: cuenta.biografia ?? null,
+    correo: cuenta.correo,
+    contrasenaHash: hash,
+  });
 
   for (const rol of cuenta.roles) {
     // ESTUDIANTE se asigna al registrarse (sin asignado_por); los demás los otorga el administrador.
     const asignadoPor = rol === 'ESTUDIANTE' ? null : (idAdmin ?? idPersona);
-    await cliente.query('INSERT INTO usuario_rol (id_usuario, id_rol, asignado_por) VALUES ($1, $2, $3)', [
-      idUsuario,
-      await idRol(cliente, rol),
-      asignadoPor,
-    ]);
+    await semillasRepository.asignarRol(cliente, idUsuario, await idRol(cliente, rol), asignadoPor);
   }
 
   if (cuenta.docente) {
     // Flujo real: solicitud aprobada por el administrador → perfil docente.
-    await cliente.query(
-      `INSERT INTO solicitud_docente (id_persona, especialidad, motivo, estado, revisada_por, revisada_en)
-       VALUES ($1, $2, $3, 'APROBADA', $4, now())`,
-      [idPersona, cuenta.docente.especialidad, cuenta.docente.motivo, idAdmin],
-    );
-    await cliente.query('INSERT INTO docente (id_persona, especialidad) VALUES ($1, $2)', [
+    await semillasRepository.crearSolicitudDocenteAprobada(
+      cliente,
       idPersona,
       cuenta.docente.especialidad,
-    ]);
+      cuenta.docente.motivo,
+      idAdmin,
+    );
+    await semillasRepository.crearDocente(cliente, idPersona, cuenta.docente.especialidad);
   }
 
   console.log(`  + ${cuenta.correo} (${cuenta.roles.join(', ')})`);
@@ -130,12 +123,8 @@ async function main() {
 
     console.log('Categorías:');
     for (const c of CATEGORIAS) {
-      const r = await cliente.query(
-        `INSERT INTO categoria (nombre, descripcion, activa, creada_por)
-         VALUES ($1, $2, $3, $4) ON CONFLICT (nombre) DO NOTHING`,
-        [c.nombre, c.descripcion, c.activa, idAdmin],
-      );
-      console.log(`  ${r.rowCount ? '+' : '='} ${c.nombre}`);
+      const creada = await semillasRepository.crearCategoriaSiFalta(cliente, c, idAdmin);
+      console.log(`  ${creada ? '+' : '='} ${c.nombre}`);
     }
   });
 

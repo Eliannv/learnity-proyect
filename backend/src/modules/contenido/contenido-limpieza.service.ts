@@ -7,8 +7,12 @@ import {
 import { AppError } from '../../shared/http/app-error.js';
 
 import {
-  almacenPdf,
-} from '../../shared/archivos/almacen-pdf.js';
+  registrarEvento,
+} from '../../shared/log/registro.js';
+
+import {
+  almacenLocal,
+} from '../../shared/archivos/almacen.js';
 
 import {
   NOMBRE_PDF_INTERNO,
@@ -18,9 +22,20 @@ import {
   contenidoRepository as repo,
 } from './contenido.repository.js';
 
+// Un temporal de subida con más de una hora es de un proceso que cayó a mitad de la recepción.
+const EDAD_TEMPORAL_HUERFANO_MS = 60 * 60 * 1000;
+
 export const limpiezaPdfService = {
   async limpiarPendientes(): Promise<number> {
     let eliminados = 0;
+
+    try {
+      await almacenLocal.limpiarTemporales(
+        EDAD_TEMPORAL_HUERFANO_MS,
+      );
+    } catch {
+      // Se reintenta en la próxima limpieza; no impide retirar los PDF pendientes.
+    }
 
     const pendientes = await repo.pendientes();
 
@@ -43,7 +58,7 @@ export const limpiezaPdfService = {
               return false;
             }
 
-            await almacenPdf.eliminar(nombre);
+            await almacenLocal.eliminar(nombre);
 
             await repo.cancelarRetiro(
               cliente,
@@ -58,8 +73,10 @@ export const limpiezaPdfService = {
           eliminados++;
         }
       } catch {
-        console.warn(
-          '[PDF] Quedó una limpieza pendiente; se reintentará.',
+        registrarEvento(
+          'archivo.limpieza_reintentar',
+          { archivo: 'pendiente' },
+          'aviso',
         );
       }
     }

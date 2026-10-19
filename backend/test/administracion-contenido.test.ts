@@ -1,3 +1,5 @@
+import './ayudas/guardia-bd.js';
+
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
@@ -66,8 +68,8 @@ const {
 } = await import('../src/modules/contenido/contenido-limpieza.service.js');
 
 const {
-  almacenPdf,
-} = await import('../src/shared/archivos/almacen-pdf.js');
+  almacenLocal,
+} = await import('../src/shared/archivos/almacen.js');
 
 const {
   MAX_PDF_BYTES,
@@ -219,7 +221,9 @@ async function escenario(
         portada_url,
         objetivos,
         estado,
-        motivo_rechazo
+        motivo_rechazo,
+        revisado_por,
+        publicado_en
       )
       VALUES (
         $1,
@@ -231,7 +235,9 @@ async function escenario(
         '/img/portada-mi-curso.jpg',
         $4,
         $5,
-        $6
+        $6,
+        $7::int,
+        $8::timestamptz
       )
       RETURNING id_curso AS id
     `,
@@ -248,6 +254,11 @@ async function escenario(
       estado === 'RECHAZADO'
         ? 'Completa el material.'
         : null,
+      // Un curso PUBLICADO exige quién lo revisó y cuándo se publicó (migración 023).
+      estado === 'PUBLICADO'
+        ? admin.sesion.idPersona
+        : null,
+      estado === 'PUBLICADO' ? new Date() : null,
     ],
   );
 
@@ -922,7 +933,7 @@ describe(
         );
 
         assert.deepEqual(
-          await almacenPdf.leer(
+          await almacenLocal.leer(
             await rutaArchivo(archivo.id),
             archivo.tamanoBytes,
           ),
@@ -936,9 +947,9 @@ describe(
       async () => {
         const c = await escenario();
 
-        const guardar = almacenPdf.guardar;
+        const guardar = almacenLocal.guardar;
 
-        almacenPdf.guardar = async () => {
+        almacenLocal.guardar = async () => {
           throw new Error('sin espacio');
         };
 
@@ -948,7 +959,7 @@ describe(
             500,
           );
         } finally {
-          almacenPdf.guardar = guardar;
+          almacenLocal.guardar = guardar;
         }
 
         const primero = await subir(c.leccion);
@@ -957,9 +968,9 @@ describe(
           primero.json.modulos[0].lecciones[0].archivo.id,
         );
 
-        const eliminar = almacenPdf.eliminar;
+        const eliminar = almacenLocal.eliminar;
 
-        almacenPdf.eliminar = async () => {
+        almacenLocal.eliminar = async () => {
           throw new Error(
             'limpieza temporalmente bloqueada',
           );
@@ -971,7 +982,7 @@ describe(
             200,
           );
         } finally {
-          almacenPdf.eliminar = eliminar;
+          almacenLocal.eliminar = eliminar;
         }
 
         assert.equal(

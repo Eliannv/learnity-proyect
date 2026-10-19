@@ -1,3 +1,4 @@
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 
@@ -95,4 +96,27 @@ export async function validarBytesPdf(
       'El PDF está dañado, cifrado o no contiene páginas válidas.',
     );
   }
+}
+
+/**
+ * Valida un PDF que ya está en disco (el temporal de la subida). Comprueba el tamaño antes de leerlo y
+ * devuelve ese tamaño. `pdf-lib` carga el archivo entero para validar, así que el pico de memoria de
+ * la validación no desaparece (ADR-011, 11.5); lo que se acota es la memoria mientras se recibe.
+ */
+export async function validarArchivoPdf(
+  ruta: string,
+): Promise<number> {
+  const { size } = await stat(ruta);
+
+  if (size > MAX_PDF_BYTES) {
+    throw new AppError(
+      413,
+      'El PDF supera el máximo permitido de 10 MiB.',
+      'ARCHIVO_DEMASIADO_GRANDE',
+    );
+  }
+
+  await validarBytesPdf(await readFile(ruta));
+
+  return size;
 }
