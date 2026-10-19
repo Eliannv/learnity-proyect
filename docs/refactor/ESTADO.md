@@ -11,11 +11,41 @@
 | Paso 2: verificación de la auditoría | Hecho. **Puerta V aprobada (19-10-2026)** |
 | `REGLAS_EQUIPO.md`, `CLAUDE.md`, `ESTADO.md` | Hecho |
 | Decisiones D10 → D5 → D7 → D6 | Hecho (19-10-2026) |
-| Rama `integration/sprint-2` | Pendiente |
-| `.worktrees/` en `.gitignore` | Pendiente |
-| `learnity_test` creada por el usuario y `.env.test` corregido | Pendiente |
-| Línea base verde (backend 78 + 1 omitida; frontend 20/20) | Pendiente |
-| Etiqueta `baseline-pre-refactor` | Pendiente |
+| Rama `integration/sprint-2` | Hecho. Creada desde `origin/Edison` (`ce5e83c`), sin upstream para que un push no pueda apuntar a `Edison`. Commits D5: `6524aa1` (docs) y `fc840a3` (`contrasena.ts`) |
+| `.worktrees/` en `.gitignore` | Hecho (`317b392`) |
+| `learnity_test` creada y `.env.test` corregido | Hecho (19-10-2026), ver *Línea base* |
+| Línea base verde (backend 78; frontend 20/20) | Hecho (19-10-2026), ver *Línea base* |
+| Etiqueta `baseline-pre-refactor` | Pendiente de permiso del usuario |
+
+### Línea base (Fase 0B, 19-10-2026)
+
+**`learnity_test`.** La creó el lead con `postgres`, por instrucción expresa del usuario ("tú crea todo"), con `crear-learnity-test.sql` (README §14, fuera del repositorio). La contraseña no se guardó en ningún archivo, documento ni commit. Verificación posterior como `postgres` sobre `learnity_test`:
+
+```
+     base      | tablas | roles | tablas_con_dml | secuencias | duenio_postgres | connect_app
+ learnity_test |     22 |     3 |             22 |         20 |              22 | t
+```
+
+**`.env.test`.** Lo ajustó el script `ajustar-env-test.mjs` sin imprimir valores.
+- Copia de seguridad: `backend/.env.test.bak-20261019` (ignorada por git).
+- Claves fijadas: `NODE_ENV=test`, `DB_HOST`, `DB_PORT=5432`, `DB_NAME=learnity_test`, `DB_USER=learnity_app`, `DB_SSL=false`, `CORREO_TRANSPORTE=buzon`, `HIBP_ACTIVO=false` y `PDF_DIR=uploads/pdf-test`.
+- `DB_PASSWORD` se copió de `.env`: es la misma cuenta `learnity_app` en el mismo servidor.
+
+**Guarda previa a `npm test`** (`verificar-env-test.mjs`): las 11 comprobaciones dieron `OK` → `APTO para npm test`.
+
+**Salidas** (HEAD `317b392`):
+
+```
+backend  npm run build      → exit 0
+backend  npm run typecheck  → exit 0
+backend  npm test           → exit 0
+  ℹ tests 78 · suites 16 · pass 78 · fail 0 · cancelled 0 · skipped 0 · duration_ms 31446
+  (la prueba de HIBP se excluye con --test-skip-pattern, así que no cuenta como "skipped": 79 it( − 1 = 78)
+frontend npx ng build              → exit 0 · Initial total 363.80 kB (101.58 kB transferidos)
+frontend npx ng test --watch=false → exit 0 · Test Files 5 passed (5) · Tests 20 passed (20)
+```
+
+**`Learnity` intacta tras la suite** (`verificar-bd.mjs`): BD-0 a BD-10 y BD-14 dan `OK`, con los mismos valores del 18-10-2026 (3 cursos inconsistentes; 2 filas en `archivo` = 2 PDF). BD-11 a BD-13 cambian como se esperaba: `learnity_test` ya existe y `.env.test` apunta a ella.
 
 **Siguiente puerta:** Puerta 0B.
 
@@ -44,7 +74,7 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 | Puerta V | ¿Se aprueba la verificación de la auditoría? | **Aprobada** | 19-10-2026 |
 | D10 | ¿Endureces `.claude/settings.local.json` con los equivalentes `PowerShell(…)`? | **Sí.** El usuario lo guardó y el lead lo comprobó: JSON válido y 30 reglas `deny`, entre ellas `PowerShell(git push/reset --hard/clean/branch -D)`, `Remove-Item -Recurse`, la lectura de `.env*` por Bash y por PowerShell, y `git push` sin argumentos. Son reglas por patrón: frenan errores, pero no son una barrera infalible | 19-10-2026 |
 | D5 | ¿Se versionan `contrasena.ts` y los documentos del Sprint 2? | **A) Todo, en dos commits, solo en `integration/sprint-2`.** (1) `docs: documentos del Sprint 2 y del arranque del refactor` (documentos del Sprint 2, `PROMPT_INICIO_REFACTOR.md`, `docs/refactor/**` y `CLAUDE.md`). (2) `chore: ajusta comentario en contrasena.ts` (una línea de comentario, sin cambio de comportamiento). Revisados: no contienen secretos | 19-10-2026 |
-| D7 | ¿Quién ejecuta las operaciones con `postgres`? | **A) El usuario ejecuta todo lo que requiere `postgres`** (crear `learnity_test`, esquema, 015/016, permisos, `pg_dump` y migraciones sobre `Learnity`), con scripts preparados por el lead (Fase 0B) o por `db` (desde la Fase 1). Los ejecuta con `psql` desde `C:\Program Files\PostgreSQL\17\bin\` y pega la salida. Nadie del equipo usa credenciales de `postgres`. Alcance: entorno local y una única `learnity_test` compartida (18-10-2026) | 19-10-2026 |
+| D7 | ¿Quién ejecuta las operaciones con `postgres`? | **A) El usuario ejecuta todo lo que requiere `postgres`** (crear `learnity_test`, esquema, 015/016, permisos, `pg_dump` y migraciones sobre `Learnity`), con scripts preparados por el lead (Fase 0B) o por `db` (desde la Fase 1). Los ejecuta con `psql` desde `C:\Program Files\PostgreSQL\17\bin\` y pega la salida. Nadie del equipo usa credenciales de `postgres`. Alcance: entorno local y una única `learnity_test` compartida (18-10-2026). **Excepción del 19-10-2026:** el usuario pidió al lead crear `learnity_test` él mismo y le dio la contraseña de `postgres` en el chat. Se usó solo como variable de entorno en esos comandos y no se guardó. La regla general de D7 sigue vigente para los teammates | 19-10-2026 |
 | D6 | ¿Cuándo se actualiza `main`? | **A)** Tras la Puerta 0B, y con aprobación explícita de ese paso, el `main` **local** avanza con `git merge --ff-only baseline-pre-refactor` (hoy `main` = `55fc8ff`, ancestro de `ce5e83c`). El push a `origin/main` solo se hace si el usuario lo pide. Durante el refactor `main` no se toca; el siguiente avance se propone en la Fase 3 | 19-10-2026 |
 | D8 | ¿El catálogo pasa a ser un módulo de lectura con vistas? | *Pendiente*: se pregunta tras la Puerta 0B | |
 | D9 | ¿Se aceptan las dependencias nuevas (`openapi-typescript`, `@playwright/test`, `pg_trgm`)? | *Pendiente*: se pregunta tras la Puerta 0B | |
@@ -87,6 +117,5 @@ Ninguna todavía.
 
 | Bloqueo | Afecta a | Quién lo resuelve |
 |---|---|---|
-| `learnity_test` no existe y `.env.test` apunta a otro puerto (5499) | Línea base de la Fase 0B (R1/S1) | El usuario, con `postgres` (según D7) |
 | `identidad.test.ts` y `cursos-publicos.test.ts` sin guarda `_test` | Cualquier `npm test` | Mitigación: chequeo de `.env.test` antes de cada ejecución. Solución: `guardia-bd.ts` (`qa-edge`, Fase 2A) |
 | Recepción de Gmail sin confirmar (cierre del Sprint 1) | Informativo; no bloquea el refactor | El usuario |
