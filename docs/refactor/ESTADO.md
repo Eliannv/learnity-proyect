@@ -126,14 +126,15 @@ Copia de la §6 del prompt del lead, con las correcciones de la verificación. S
 | `docs/api/openapi.yaml` (contrato actual) y `docs/api/COMPARACION_RUTAS.md` (hallazgos C-01–C-18) | `arquitecto` | Hecho e integrado (`ff37b06`). 33/33 operaciones coinciden con las rutas reales. Solo C-14 (500 ante JSON mal formado o >1 MB) es de contrato (ADR-006); C-01/C-02 van al ADR-011; el resto es documentación |
 | ADR 001–007 (el ADR-002 sigue D8 = A); ADR 008–010 (D9) y ADR-011 (endurecimiento con impacto en el contrato: `/api/salud`, Swagger solo en desarrollo, 429 en la subida, disco temporal) | `arquitecto` | En curso |
 | `docs/arquitectura/PLANTILLA_MODULO.md` y `CONTRATOS_SERVICIO.md` | `arquitecto` | En curso |
-| `docs/bd/PLAN_BD.md` y migraciones 017–026 (`up`/`down`): control de migraciones, roles y dueños, privilegios mínimos (+019b solo en _test), auditoría, `actualizado_en`, corrección de cursos (022), CHECK PUBLICADO (023), solicitud pendiente única, índices de FK, vistas del catálogo (D8); `pg_trgm` como propuesta sin número | `db` | En curso |
+| `docs/bd/PLAN_BD.md` y migraciones 017–026 (`up`/`down`): control de migraciones, roles y dueños, privilegios mínimos (+019b solo en _test), auditoría, `actualizado_en`, corrección de cursos (022), CHECK PUBLICADO (023), solicitud pendiente única, índices de FK, vistas del catálogo (D8); `pg_trgm` como propuesta sin número | `db` | En curso: PLAN_BD (`5d0819d`) y 017–021 (`35c7775`) escritos, **sin ejecutar** (NO VERIFICADO hasta el turno en `learnity_test`). No se integran hasta pasar el ciclo `up → down → up`. Faltan 022–026, los scripts, `database/README.md` y `pg_trgm` |
 | Ajustar el arreglo de datos de las pruebas para fijar `revisado_por` y `publicado_en` en los cursos PUBLICADO (requisito para aplicar la 023) | `be-a` (`cursos-publicos.test.ts`) y `be-b` (`cursos-gestion-http.test.ts`, `administracion-contenido.test.ts`, `scripts/sembrar-catalogo.ts`) | Fase 2A |
-| `docs/refactor/RIESGOS.md` y `docs/refactor/PLAN_PRUEBAS.md` | `qa-edge` | En curso. Criterio decidido por el lead: la caracterización congela el comportamiento actual (lo inseguro se marca CONGELADO-INSEGURO) y la expectativa solo cambia con su ADR |
+| `docs/refactor/RIESGOS.md` y `docs/refactor/PLAN_PRUEBAS.md` | `qa-edge` | Hecho e integrado (`5e5791c`): 56 riesgos (11 altos, 9 CONGELADO-INSEGURO) y 133 casos CAR; las 33 operaciones tienen casos. Pendiente: contraste con `openapi.yaml` y opinión sobre D-BD2 para `db`. Huecos confirmados: sin prueba HTTP de `GET /docente/cursos`, `DELETE /lecciones/:id` ni del éxito de `enviar-revision` |
 
 ## Integraciones hechas
 
 | Fecha | Origen | Commit | Contenido | Verificación del lead |
 |---|---|---|---|---|
+| 19-10-2026 | `refactor/qa-edge` | `5e5791c` | `RIESGOS.md` y `PLAN_PRUEBAS.md` | Solo toca esos dos archivos (de su propiedad); se cuentan 56 filas RG y 133 IDs CAR distintos |
 | 19-10-2026 | `refactor/arquitecto` | `ff37b06` | E1: `docs/api/openapi.yaml` y `docs/api/COMPARACION_RUTAS.md` | Solo toca `docs/api/**` (de su propiedad); JSON válido tras quitar la cabecera `#`: 28 rutas, 33 operaciones y 15 esquemas |
 
 ## Bloqueos
