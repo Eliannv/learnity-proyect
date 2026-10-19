@@ -138,9 +138,8 @@ Accesos de navegación:
 - Al pasar el mouse sobre la foto de perfil aparece el menú con los paneles disponibles, Mi aprendizaje, Mi perfil y Cerrar sesión.
 - Al pasar el mouse sobre Mi aprendizaje se muestran los cursos recientes del prototipo.
 - Si un Docente o Administrador abre `/perfil`, se le dirige al perfil de su panel.
-- El panel docente, en `/docente`, muestra un resumen con accesos directos.
-- La gestión de cursos está en **Mis cursos**, en `/docente/cursos`.
-- La revisión administrativa de cursos está en `/admin/revision`.
+- La gestión de cursos está en **Mis cursos**, en `/docente/cursos`; `/docente` redirige ahí.
+- La revisión administrativa de cursos está en `/admin/revision`; `/admin` redirige ahí.
 
 El visitante puede acceder al inicio, catálogo, detalle público, login, registro y recuperación de contraseña.
 
