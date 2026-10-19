@@ -54,8 +54,10 @@ export function crearApp() {
     res.json({ estado: 'ok' });
   });
 
-  // Documentación de la API (Swagger)
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApi));
+  // Documentación de la API (Swagger): solo en desarrollo (ADR-011, 11.3). openapi.yaml es la referencia publicada.
+  if (env.NODE_ENV === 'development') {
+    app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApi));
+  }
 
   // Módulos del monolito. Cada uno solo expone sus rutas; el resto queda dentro del módulo.
   const api = express.Router();
