@@ -1,14 +1,21 @@
-import { Component, input, output } from '@angular/core';
+import { Component, DOCUMENT, ElementRef, OnDestroy, afterNextRender, inject, input, output } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 
-/** Ventana modal con fondo oscuro. Se cierra con la X, con Escape o al hacer clic fuera. */
+/**
+ * Ventana modal con fondo oscuro. Se cierra con la X, con Escape o al hacer clic fuera.
+ * Al abrirse lleva el foco al diálogo, lo mantiene dentro con Tab y lo devuelve al elemento que la abrió.
+ */
 @Component({
   selector: 'app-modal',
   imports: [LucideAngularModule],
-  host: { '(document:keydown.escape)': 'cerrar.emit()' },
+  host: {
+    '(document:keydown.escape)': 'cerrar.emit()',
+    '(keydown.tab)': 'atrapar($event)',
+    '(keydown.shift.tab)': 'atrapar($event)',
+  },
   template: `
     <div class="fondo" (click)="cerrar.emit()"></div>
-    <section class="panel" role="dialog" aria-modal="true" [attr.aria-label]="titulo()" [style.max-width.px]="ancho()">
+    <section #panel class="panel" tabindex="-1" role="dialog" aria-modal="true" [attr.aria-label]="titulo()" [style.max-width.px]="ancho()">
       <header>
         @if (icono()) {
           <span class="icono"><lucide-icon [name]="icono()!" [size]="22" /></span>
@@ -36,6 +43,7 @@ import { LucideAngularModule } from 'lucide-angular';
       background: rgb(15 23 42 / 45%);
     }
     .panel {
+      outline: none;
       position: relative;
       width: 100%;
       max-height: calc(100dvh - 32px);
@@ -90,9 +98,50 @@ import { LucideAngularModule } from 'lucide-angular';
     }
   `,
 })
-export class Modal {
+export class Modal implements OnDestroy {
+  private readonly raiz = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly documento = inject(DOCUMENT);
+  private readonly origen = this.documento.activeElement as HTMLElement | null;
+
   readonly titulo = input.required<string>();
   readonly icono = input<string>();
   readonly ancho = input(540);
   readonly cerrar = output<void>();
+
+  constructor() {
+    afterNextRender(() => {
+      const panel = this.raiz.nativeElement.querySelector<HTMLElement>('.panel');
+      (this.enfocables()[0] ?? panel)?.focus();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.origen?.focus?.();
+  }
+
+  protected atrapar(evento: Event): void {
+    const lista = this.enfocables();
+    if (!lista.length) return;
+
+    const primero = lista[0];
+    const ultimo = lista[lista.length - 1];
+    const activo = this.documento.activeElement;
+    const atras = (evento as KeyboardEvent).shiftKey;
+
+    if (atras && activo === primero) {
+      evento.preventDefault();
+      ultimo.focus();
+    } else if (!atras && activo === ultimo) {
+      evento.preventDefault();
+      primero.focus();
+    }
+  }
+
+  private enfocables(): HTMLElement[] {
+    return Array.from(
+      this.raiz.nativeElement.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+  }
 }
