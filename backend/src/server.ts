@@ -10,28 +10,23 @@ import {
 
 import { env } from './shared/config/env.js';
 import { pool } from './shared/database/pool.js';
+import { registrarEvento } from './shared/log/registro.js';
 
 const app = crearApp();
 
 const servidor = app.listen(
   env.PORT,
   async () => {
-    console.log(
-      `API de Learnity en http://localhost:${env.PORT}/api · documentación: /api/docs`,
-    );
-
-    console.log(
+    registrarEvento('servidor_iniciado', { puerto: env.PORT, url: `http://localhost:${env.PORT}/api` });
+    registrarEvento(
+      'correo_configurado',
       env.CORREO_TRANSPORTE === 'gmail'
-        ? `Correo: Gmail API desde ${env.GMAIL_REMITENTE}.`
-        : `Correo: buzón local de pruebas en "${env.BUZON_DIR}" (no se envían correos reales).`,
+        ? { transporte: 'gmail', remitente: env.GMAIL_REMITENTE }
+        : { transporte: 'buzon', carpeta: env.BUZON_DIR },
     );
-
     if (!env.COOKIE_SECURE) {
-      console.log(
-        'Cookies sin Secure (solo para desarrollo local por HTTP).',
-      );
+      registrarEvento('cookies_sin_secure', { motivo: 'solo para desarrollo local por HTTP' }, 'aviso');
     }
-
     try {
       const { rows } = await pool.query<{
         base: string;
@@ -47,26 +42,24 @@ const servidor = app.listen(
             )::text AS sesiones
         `,
       );
-
       const {
         base,
         usuario,
         sesiones,
       } = rows[0]!;
-
-      console.log(
-        `PostgreSQL conectado: base "${base}" con la cuenta "${usuario}".`,
-      );
-
+      registrarEvento('postgresql_conectado', { base, usuario });
       if (!sesiones) {
-        console.error(
-          'Falta la tabla "sesion": aplica database/015_sesiones_y_recuperacion.sql en pgAdmin (ver README).',
+        registrarEvento(
+          'falta_tabla_sesion',
+          { ayuda: 'aplica database/015_sesiones_y_recuperacion.sql en pgAdmin (ver README)' },
+          'error',
         );
       }
     } catch (error) {
-      console.error(
-        'No se pudo conectar a PostgreSQL. Revisa DB_* en tu .env:',
-        (error as Error).message,
+      registrarEvento(
+        'postgresql_sin_conexion',
+        { ayuda: 'revisa DB_* en tu .env', mensaje: (error as Error).message },
+        'error',
       );
     }
   },
@@ -76,8 +69,10 @@ const servidor = app.listen(
 void contenidoService
   .limpiarPendientes()
   .catch(() => {
-    console.warn(
-      '[PDF] Revisa la migración 016 y ejecuta npm run archivos:limpiar.',
+    registrarEvento(
+      'limpieza_pdf_pendiente_fallida',
+      { ayuda: 'revisa la migración 016 y ejecuta npm run archivos:limpiar' },
+      'aviso',
     );
   });
 

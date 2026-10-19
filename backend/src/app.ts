@@ -6,6 +6,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './shared/config/env.js';
 import { consultar } from './shared/database/pool.js';
 import { registrarVerificadorSesion } from './shared/auth/middlewares.js';
+import { correlacion, ENCABEZADO_ID_PETICION } from './shared/http/correlacion.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-errores.js';
 import { openApi } from './shared/http/openapi.js';
 import { identidadRoutes } from './modules/identidad/identidad.routes.js';
@@ -23,8 +24,9 @@ export function crearApp() {
   app.set('trust proxy', env.TRUST_PROXY);
   app.disable('x-powered-by');
 
+  app.use(correlacion);
   app.use(helmet());
-  app.use(cors({ origin: env.ORIGENES, credentials: true }));
+  app.use(cors({ origin: env.ORIGENES, credentials: true, exposedHeaders: [ENCABEZADO_ID_PETICION] }));
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
