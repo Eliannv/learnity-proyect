@@ -4,9 +4,26 @@
 
 ## Fase actual
 
-**Fase 2B: módulos por parejas** (desde el 19-10-2026). **La Puerta 2A se cerró el 19-10-2026, por decisión del lead:** no implicaba ninguna acción irreversible (regla del usuario). Evidencia: `0dc5c66` → backend 246/246, frontend 36/36, builds en verde, `learnity_test` limpia. Revisión R1–R11 del `arquitecto`: **apta**; el contrato coincide (IDÉNTICO, 33/33) y la deuda restante está asignada a la 2B. Lista de revisión actualizada en `3003513`.
+**Fase 2B pausada por decisión del usuario (19-10-2026).** El usuario continuará esta fase con Antigravity. No se asignan ni integran más tareas de 2B desde Claude. **La Puerta 2A se cerró el 19-10-2026:** evidencia en `0dc5c66` → backend 246/246, frontend 36/36, builds en verde, `learnity_test` limpia. Revisión R1–R11 del `arquitecto`: **apta**; el contrato coincide (IDÉNTICO, 33/33). Lista de revisión actualizada en `3003513`.
 
-**Plan de la 2B en tandas** (máximo 3 teammates; Sonnet para `be-*`, `fe-*` y `qa-edge`):
+### Pausa y traspaso a Antigravity
+
+Inventario de solo lectura al corte del 19-10-2026. No se ejecutaron pruebas nuevas ni se modificó `Learnity` para este inventario.
+
+| Lugar | Estado conservado |
+|---|---|
+| `integration/sprint-2` | `1b95d93`. Después del plan de 2B en `8cc569b` se añadió el ADR-012 **Propuesto** (`03b2da9`, integración documental `1b95d93`); no hay código de 2B integrado. |
+| `refactor/be-a` | `4e4b8ca`, worktree limpio. Commits de 2B aún sin integrar: `3ae193a` (API pública de Identidad), `36ba961` (pool de fixtures en tres suites), `ed3e027` (módulo Usuarios sin montar), `4e4b8ca` (roles leídos de BD por petición). La verificación de esta punta **NO VERIFICADA** en este traspaso. |
+| `refactor/be-b` | `8cc569b`, sin commits de 2B. Cuatro renombres preparados en el índice: `cursos-gestion.esquemas.ts` → `cursos.esquemas.ts`, `cursos-privados.model.ts` → `cursos.modelo.ts`, `cursos-integracion.service.ts` → `detalle-privado.service.ts`, `cursos-integracion.repository.ts` → `ficha.repository.ts`. Este último tiene además cambios sin preparar. Sin seguimiento: `cursos/politica-curso.ts` y `cursos/temario/{temario.esquemas.ts,temario.repository.ts}`. No descartar ni limpiar el worktree. |
+| `refactor/arquitecto` | `03b2da9`, worktree limpio. ADR-012 del CRUD de categorías sigue **Propuesto** y requiere decisión del usuario antes de ampliar el contrato. |
+| Checkout principal | `PLAN_SPRINTS_LEARNITY.md` modificado y `ROADMAP_SPRINTS_3_Y_4.md` sin seguimiento: cambios ajenos a esta pausa, preservados. |
+| Otras ramas | `refactor/{fe-a,fe-b,qa-edge,db,codex-fe-a}` sin cambios de trabajo al corte. No aparecen ramas `integration/*` ni `refactor/*` entre las referencias locales de `origin` (sin consulta remota nueva). |
+
+**Cierre de sesiones Claude:** el lead solicitó apagar `be-a` y `be-b`, pero ambos alcanzaron el límite de uso antes de confirmar. La petición de cierre llegó a `be-b`; su aprobación y el cierre de `be-a` siguen **NO VERIFICADOS**. Cancelar la reanudación automática en Claude antes de iniciar trabajo simultáneo con Antigravity. No usar `reset`, `clean`, descartar cambios ni hacer push para resolverlo.
+
+**Verificaciones pendientes para retomar 2B:** revisar los cambios parciales de cada worktree y el ADR-012; comprobar build/typecheck y pruebas de los commits de `be-a` y del trabajo sin commit de `be-b` antes de integrar; coordinar el turno exclusivo de `learnity_test`. El plan de tandas siguiente queda como referencia, no como autorización para continuar en Claude.
+
+**Plan original de la 2B en tandas, pausado** (máximo 3 teammates; Sonnet para `be-*`, `fe-*` y `qa-edge`):
 1. **Tanda 2B-1:** `be-b` (B1+B2: dividir `cursos.service.ts` en ficha y `temario/` con la política del ADR-003, sacar la lectura de PDF de las secciones con `FOR UPDATE` (R4/A5) y el punto 11.8; B3: puerto del ADR-004 que rompe el ciclo; B4: `modules/revision` sale de `administracion`) y `be-a` (A1: `identidad` con `index.ts` y validación en rutas; A4: `modules/usuarios` con las solicitudes, coordinado con `be-b`; el punto 11.10). Los dos adoptan en sus suites el pool de fixtures (`ayudas/bd-fixtures.ts`), requisito para aplicar las migraciones 017–026 a `learnity_test`. El `arquitecto` escribe el **ADR-012 (CRUD de categorías)**, que necesita la aprobación del usuario.
 2. **Tanda 2B-2:** migraciones aplicadas a `learnity_test` (el lead, con `postgres`) → A2 `catalogo` sobre vistas (`be-a`) → A3 `categorias` (si se aprueba el ADR-012; migración 027 de `db`).
 3. **Tanda 2B-3:** `fe-a` y `fe-b` migran sus páginas a `features/*` (contenedor/presentación, cliente tipado y `estado-vista`), con el inicio y el encabezado sin `datos-demo` (A2, commits separados), D3 (borrar los paneles) y `esquema.d.ts` regenerado. `qa-edge` revisa cada lote.
