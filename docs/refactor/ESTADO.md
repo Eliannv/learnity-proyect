@@ -84,15 +84,17 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 | D8 | ¿El catálogo pasa a ser un módulo de lectura con vistas? | **A) Sí.** `modules/catalogo` (`be-a`) lee solo de vistas SQL de solo lectura (por ejemplo `catalogo_curso` y `catalogo_detalle`) creadas por `db` en una migración `up`/`down`, que solo exponen columnas públicas (nunca `archivo.ruta`). El JSON y las rutas no cambian. Requiere el ADR-002 (`arquitecto`), la migración probada `up → down → up` en `learnity_test` y la Puerta DB para aplicarla a `Learnity` | 19-10-2026 |
 | D9 | ¿Se aceptan las dependencias nuevas (`openapi-typescript`, `@playwright/test`, `pg_trgm`)? | **A) Las tres son candidatas.** El `arquitecto` escribe un ADR por cada una (alternativas y consecuencias). El usuario las aprueba o rechaza en la Puerta 1. Nada se agrega a `package.json` ni a migraciones sin ese ADR aprobado | 19-10-2026 |
 | D3 | ¿Se borran los paneles huérfanos o se restauran? | *Pendiente*: se pregunta en la Puerta 1 | |
+| BD-022 | ¿Cómo se corrigen los 3 cursos PUBLICADO sin revisor? (A: pasan a EN_REVISION; B: revisor = el ADMIN con menor id, propuesta de `db`; C: no se corrigen y se aplaza el CHECK) | *Pendiente*: se pregunta en la Puerta 1 | |
+| BD-019b | ¿Permisos de limpieza de las pruebas vía el rol `learnity_pruebas` (solo en _test) o una conexión de fixtures con otro rol? | *Pendiente*: se pregunta en la Puerta 1 | |
 | D4 | ¿Las pantallas del Sprint 3/4 van detrás de un flag? | *Pendiente*: se pregunta en la Puerta 1 | |
 
 ## Teammates activos
 
 | Teammate | Modelo | Worktree / rama | Fase | Estado |
 |---|---|---|---|---|
-| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 1 | Activo: preparando su plan (necesita aprobación antes de escribir) |
-| `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 1 | Activo: preparando su plan |
-| `qa-edge` | Opus 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 1 | Activo: preparando su plan |
+| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 1 | Activo: **plan aprobado (19-10-2026)**, trabajando en E1 (openapi.yaml y COMPARACION_RUTAS.md) → E2 (ADR 001–007) → E3 (ADR 008–011) → E4 (plantilla y contratos) |
+| `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 1 | Activo: **plan aprobado (19-10-2026)**, escribiendo PLAN_BD y migraciones 017–026, más la propuesta de pg_trgm |
+| `qa-edge` | Opus 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 1 | Activo: **plan aprobado (19-10-2026)**, escribiendo RIESGOS.md y PLAN_PRUEBAS.md |
 
 Equipo completo (7), que se activa por fases con un máximo de 6 simultáneos: Fase 1 `arquitecto`, `db` y `qa-edge`; Fases 2A y 2B `arquitecto`, `qa-edge`, `be-a`, `be-b`, `fe-a` y `fe-b`; Fase 3 `qa-edge`, `db`, `arquitecto` y `be-a`/`be-b` si hacen falta.
 
@@ -121,15 +123,18 @@ Copia de la §6 del prompt del lead, con las correcciones de la verificación. S
 | Tarea | Dueño | Estado |
 |---|---|---|
 | Fase 0B: línea base | lead | Hecho |
-| `docs/api/openapi.yaml` (contrato actual) y comparación con `*.routes.ts` | `arquitecto` | Plan pendiente |
-| ADR 001–007 (el ADR-002 sigue D8 = A) y ADR por dependencia de D9 | `arquitecto` | Plan pendiente |
-| `docs/arquitectura/PLANTILLA_MODULO.md` y `CONTRATOS_SERVICIO.md` | `arquitecto` | Plan pendiente |
-| `docs/bd/PLAN_BD.md` y migraciones `017+` (`up`/`down`), incluidas las vistas del catálogo (D8) | `db` | Plan pendiente |
-| `docs/refactor/RIESGOS.md` y `docs/refactor/PLAN_PRUEBAS.md` | `qa-edge` | Plan pendiente |
+| `docs/api/openapi.yaml` (contrato actual) y `docs/api/COMPARACION_RUTAS.md` (hallazgos C-01–C-18) | `arquitecto` | Hecho e integrado (`ff37b06`). 33/33 operaciones coinciden con las rutas reales. Solo C-14 (500 ante JSON mal formado o >1 MB) es de contrato (ADR-006); C-01/C-02 van al ADR-011; el resto es documentación |
+| ADR 001–007 (el ADR-002 sigue D8 = A); ADR 008–010 (D9) y ADR-011 (endurecimiento con impacto en el contrato: `/api/salud`, Swagger solo en desarrollo, 429 en la subida, disco temporal) | `arquitecto` | En curso |
+| `docs/arquitectura/PLANTILLA_MODULO.md` y `CONTRATOS_SERVICIO.md` | `arquitecto` | En curso |
+| `docs/bd/PLAN_BD.md` y migraciones 017–026 (`up`/`down`): control de migraciones, roles y dueños, privilegios mínimos (+019b solo en _test), auditoría, `actualizado_en`, corrección de cursos (022), CHECK PUBLICADO (023), solicitud pendiente única, índices de FK, vistas del catálogo (D8); `pg_trgm` como propuesta sin número | `db` | En curso |
+| Ajustar el arreglo de datos de las pruebas para fijar `revisado_por` y `publicado_en` en los cursos PUBLICADO (requisito para aplicar la 023) | `be-a` (`cursos-publicos.test.ts`) y `be-b` (`cursos-gestion-http.test.ts`, `administracion-contenido.test.ts`, `scripts/sembrar-catalogo.ts`) | Fase 2A |
+| `docs/refactor/RIESGOS.md` y `docs/refactor/PLAN_PRUEBAS.md` | `qa-edge` | En curso. Criterio decidido por el lead: la caracterización congela el comportamiento actual (lo inseguro se marca CONGELADO-INSEGURO) y la expectativa solo cambia con su ADR |
 
 ## Integraciones hechas
 
-Ninguna todavía.
+| Fecha | Origen | Commit | Contenido | Verificación del lead |
+|---|---|---|---|---|
+| 19-10-2026 | `refactor/arquitecto` | `ff37b06` | E1: `docs/api/openapi.yaml` y `docs/api/COMPARACION_RUTAS.md` | Solo toca `docs/api/**` (de su propiedad); JSON válido tras quitar la cabecera `#`: 28 rutas, 33 operaciones y 15 esquemas |
 
 ## Bloqueos
 
