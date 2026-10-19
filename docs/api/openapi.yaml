@@ -8,7 +8,7 @@
   "info": {
     "title": "Learnity API",
     "version": "0.3.0",
-    "description": "API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.\n\n**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie\n`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.\nCerrar sesión, cambiar o restablecer la contraseña revocan las sesiones y sus access tokens dejan de valer de inmediato.\n\n**CSRF.** Las rutas que usan la cookie (`/auth/refresh`, `/auth/logout`) exigen el encabezado `X-XSRF-TOKEN`\ncon el valor de la cookie `XSRF-TOKEN` (Angular lo envía solo). Todas las rutas `/auth/*` rechazan otros orígenes.\n\n**Límites.** Por IP: login 20/15 min, registro 10/h, recuperar 5/15 min, restablecer 10/15 min, refresh 120/15 min,\nlogout 60/15 min, cambiar la contraseña 10/15 min y solicitudes de docente 10/h.\nPor cuenta: 5 inicios fallidos seguidos la bloquean 15 minutos (con el mismo mensaje genérico); una sola solicitud de docente pendiente.\nContenido: un curso tiene hasta 10 módulos, cada módulo hasta 12 lecciones y cada PDF hasta 10 MiB. Cuerpos JSON de hasta 1 MB.\n\n**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.\nCualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es\n409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK o clave foránea). Hoy, un JSON mal formado, un cuerpo de más\nde 1 MB o un charset no admitido también responden 500 (ADR-011, punto 11.6).\n\n**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta\nresponde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto."
+    "description": "API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.\n\n**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie\n`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.\nCerrar sesión, cambiar o restablecer la contraseña revocan las sesiones y sus access tokens dejan de valer de inmediato.\n\n**CSRF.** Las rutas que usan la cookie (`/auth/refresh`, `/auth/logout`) exigen el encabezado `X-XSRF-TOKEN`\ncon el valor de la cookie `XSRF-TOKEN` (Angular lo envía solo). Todas las rutas `/auth/*` rechazan otros orígenes.\n\n**Límites.** Por IP: login 20/15 min, registro 10/h, recuperar 5/15 min, restablecer 10/15 min, refresh 120/15 min,\nlogout 60/15 min, cambiar la contraseña 10/15 min y solicitudes de docente 10/h.\nPor cuenta: 5 inicios fallidos seguidos la bloquean 15 minutos (con el mismo mensaje genérico); una sola solicitud de docente pendiente.\nContenido: un curso tiene hasta 10 módulos, cada módulo hasta 12 lecciones y cada PDF hasta 10 MiB. Cuerpos JSON de hasta 1 MB.\n\n**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.\nCualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es\n409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK o clave foránea).\nLos errores del parser JSON responden sin `detalles` (ADR-011, 11.6): 400 SOLICITUD_INVALIDA si el cuerpo no es un JSON válido,\n413 CUERPO_DEMASIADO_GRANDE si supera 1 MB y 415 TIPO_NO_ADMITIDO si el charset no es UTF o el `Content-Encoding` no es\nidentity, gzip, deflate ni br. El parser actúa antes que las rutas, así que cualquier petición con `Content-Type: application/json`\npuede recibirlos, aunque la operación no tenga cuerpo. Las operaciones con cuerpo JSON los declaran.\n\n**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta\nresponde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto."
   },
   "servers": [
     {
@@ -49,7 +49,7 @@
               "codigo": {
                 "type": "string",
                 "example": "SOLICITUD_INVALIDA",
-                "description": "Código estable para el cliente: SOLICITUD_INVALIDA, NO_AUTENTICADO, TOKEN_INVALIDO, SESION_REVOCADA, SIN_PERMISO, NO_ENCONTRADO, CONFLICTO, CURSO_BLOQUEADO, DEMASIADAS_PETICIONES, ERROR_INTERNO y los propios de cada operación."
+                "description": "Código estable para el cliente: SOLICITUD_INVALIDA, NO_AUTENTICADO, TOKEN_INVALIDO, SESION_REVOCADA, SIN_PERMISO, NO_ENCONTRADO, CONFLICTO, CURSO_BLOQUEADO, DEMASIADAS_PETICIONES, CUERPO_DEMASIADO_GRANDE, TIPO_NO_ADMITIDO, ERROR_INTERNO y los propios de cada operación."
               },
               "mensaje": {
                 "type": "string",
@@ -724,6 +724,26 @@
             }
           }
         }
+      },
+      "CuerpoDemasiadoGrande": {
+        "description": "El cuerpo JSON supera 1 MB (CUERPO_DEMASIADO_GRANDE), sin detalles",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorApi"
+            }
+          }
+        }
+      },
+      "TipoNoAdmitido": {
+        "description": "El charset de `Content-Type` no es UTF (se espera UTF-8) o el `Content-Encoding` no es identity, gzip, deflate ni br (TIPO_NO_ADMITIDO), sin detalles",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorApi"
+            }
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -992,7 +1012,7 @@
             }
           },
           "400": {
-            "description": "ID o decisión inválidos (SOLICITUD_INVALIDA)",
+            "description": "ID o decisión inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1040,6 +1060,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -1447,7 +1473,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1475,6 +1501,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -1653,7 +1685,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1701,6 +1733,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -1806,7 +1844,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1854,6 +1892,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -1906,7 +1950,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1954,6 +1998,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -2094,7 +2144,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2142,6 +2192,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -2194,7 +2250,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2242,6 +2298,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -2492,7 +2554,7 @@
             }
           },
           "400": {
-            "description": "Datos inválidos",
+            "description": "Datos inválidos. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2530,6 +2592,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "429": {
             "description": "Demasiadas peticiones",
@@ -2756,7 +2824,7 @@
             }
           },
           "400": {
-            "description": "Datos inválidos",
+            "description": "Datos inválidos. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2804,6 +2872,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -3012,7 +3086,7 @@
             }
           },
           "400": {
-            "description": "Datos inválidos o contraseña rechazada por la política",
+            "description": "Datos inválidos o contraseña rechazada por la política. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3040,6 +3114,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "429": {
             "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
@@ -3162,7 +3242,7 @@
             }
           },
           "400": {
-            "description": "Correo no válido o contraseña vacía o de más de 256 caracteres (SOLICITUD_INVALIDA)",
+            "description": "Correo no válido o contraseña vacía o de más de 256 caracteres (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3190,6 +3270,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "429": {
             "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
@@ -3424,7 +3510,7 @@
             }
           },
           "400": {
-            "description": "Correo no válido (SOLICITUD_INVALIDA)",
+            "description": "Correo no válido (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3442,6 +3528,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "429": {
             "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
@@ -3510,7 +3602,7 @@
             }
           },
           "400": {
-            "description": "Enlace inválido, usado o vencido, o contraseña rechazada",
+            "description": "Enlace inválido, usado o vencido, o contraseña rechazada. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3528,6 +3620,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "429": {
             "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
@@ -3754,7 +3852,7 @@
             }
           },
           "400": {
-            "description": "Datos inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3782,6 +3880,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
@@ -3843,7 +3947,7 @@
             }
           },
           "400": {
-            "description": "Contraseña actual incorrecta o nueva rechazada",
+            "description": "Contraseña actual incorrecta o nueva rechazada. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3861,6 +3965,12 @@
                 }
               }
             }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "429": {
             "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",

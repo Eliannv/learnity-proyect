@@ -73,21 +73,22 @@ describe('transversales sobre POST /api/auth/login', () => {
   const login = (o: { crudo?: string; headers?: Record<string, string> }) =>
     srv.pedir('/api/auth/login', { metodo: 'POST', headers: { 'content-type': 'application/json', ...(o.headers ?? {}) }, crudo: o.crudo });
 
-  it('CAR-GEN-05 CONGELADO-INSEGURO (H1, ADR-011 11.6): JSON mal formado -> 500', async () => {
+  it('CAR-GEN-05 (ADR-011, 11.6): JSON mal formado -> 400 SOLICITUD_INVALIDA', async () => {
     const r = await login({ crudo: '{' });
-    assert.equal(r.status, 500);
-    assert.deepEqual(r.json, { error: { codigo: 'ERROR_INTERNO', mensaje: 'Ocurrió un error inesperado.' } });
+    assert.equal(r.status, 400);
+    assert.deepEqual(r.json, { error: { codigo: 'SOLICITUD_INVALIDA', mensaje: 'El cuerpo de la petición no es un JSON válido.' } });
   });
 
-  it('CAR-GEN-06 CONGELADO-INSEGURO (ADR-011 11.6): cuerpo > 1 MB -> 500', async () => {
+  it('CAR-GEN-06 (ADR-011, 11.6): cuerpo > 1 MB -> 413 CUERPO_DEMASIADO_GRANDE', async () => {
     const r = await login({ crudo: JSON.stringify({ correo: 'a'.repeat(1_100_000) }) });
-    assert.equal(r.status, 500);
-    assert.equal(r.json.error.codigo, 'ERROR_INTERNO');
+    assert.equal(r.status, 413);
+    assert.equal(r.json.error.codigo, 'CUERPO_DEMASIADO_GRANDE');
   });
 
-  it('CAR-GEN-11 CONGELADO-INSEGURO (ADR-011 11.6): charset no admitido -> 500', async () => {
+  it('CAR-GEN-11 (ADR-011, 11.6): charset no admitido -> 415 TIPO_NO_ADMITIDO', async () => {
     const r = await login({ crudo: '{}', headers: { 'content-type': 'application/json; charset=latin1' } });
-    assert.equal(r.status, 500);
+    assert.equal(r.status, 415);
+    assert.equal(r.json.error.codigo, 'TIPO_NO_ADMITIDO');
   });
 
   it('CAR-GEN-07: text/plain con cuerpo JSON', async () => {

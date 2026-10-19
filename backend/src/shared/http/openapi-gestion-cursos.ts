@@ -1,6 +1,6 @@
 // OpenAPI · Gestión privada de cursos del docente y modelos privados del curso
 // (cursos-privados.model.ts), que también usa la revisión administrativa.
-import { error, errorInterno, idRuta, json, ref, seguridad } from './openapi-comun.js';
+import { error, errorInterno, erroresCuerpoJson, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
 const entero = {
   type: 'integer',
@@ -72,6 +72,8 @@ const operacion = (
   responses: {
     [status]: json(schema),
     ...Object.fromEntries(codigos.map((codigo) => [codigo, errores[codigo]])),
+    // Con cuerpo JSON, el 400 suma el JSON mal formado y se declaran el 413 y el 415 (ADR-011, 11.6).
+    ...(requestBody ? erroresCuerpoJson(errores[400].description) : {}),
     500: errorInterno,
   },
 });

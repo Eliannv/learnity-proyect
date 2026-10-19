@@ -1,5 +1,5 @@
 // OpenAPI · Solicitudes para ser docente (RF-05 estudiante, RF-22 administrador).
-import { error, errorInterno, idRuta, json, ref, seguridad } from './openapi-comun.js';
+import { error, errorInterno, erroresCuerpoJson, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
 const ESTADOS = ['PENDIENTE', 'APROBADA', 'RECHAZADA'];
 
@@ -56,7 +56,7 @@ export const rutasSolicitudes = {
       },
       responses: {
         201: json(ref('SolicitudDocente'), 'Solicitud creada'),
-        400: error('Datos inválidos'),
+        ...erroresCuerpoJson('Datos inválidos'),
         401: error('Sin sesión'),
         403: error('La cuenta no tiene el rol ESTUDIANTE (SIN_PERMISO)'),
         409: error('YA_ES_DOCENTE o SOLICITUD_PENDIENTE'),
@@ -143,7 +143,7 @@ export const rutasSolicitudes = {
       },
       responses: {
         200: json(ref('SolicitudDocente'), 'Solicitud decidida'),
-        400: error('Datos inválidos'),
+        ...erroresCuerpoJson('Datos inválidos'),
         401: error('Sin sesión'),
         403: error('No es administrador o es su propia solicitud'),
         404: error('No existe'),

@@ -1,6 +1,6 @@
 // Contrato de la API (OpenAPI 3). Se ve en http://localhost:3000/api/docs, solo con NODE_ENV=development (ADR-011, 11.3).
 // Se serializa en docs/api/openapi.yaml. Cada sprint agrega aquí las rutas que implementa.
-import { error, errorInterno, esquemasComunes, idRuta, json, ref, respuestasComunes } from './openapi-comun.js';
+import { error, errorInterno, erroresCuerpoJson, esquemasComunes, idRuta, json, ref, respuestasComunes } from './openapi-comun.js';
 import { rutasRevisionContenido } from './openapi-revision-contenido.js';
 import { esquemasGestionCursos, rutasGestionCursos } from './openapi-gestion-cursos.js';
 import { esquemasSolicitudes, rutasSolicitudes } from './openapi-solicitudes.js';
@@ -151,8 +151,11 @@ export const openApi = {
       '',
       '**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.',
       'Cualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es',
-      '409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK o clave foránea). Hoy, un JSON mal formado, un cuerpo de más',
-      'de 1 MB o un charset no admitido también responden 500 (ADR-011, punto 11.6).',
+      '409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK o clave foránea).',
+      'Los errores del parser JSON responden sin `detalles` (ADR-011, 11.6): 400 SOLICITUD_INVALIDA si el cuerpo no es un JSON válido,',
+      '413 CUERPO_DEMASIADO_GRANDE si supera 1 MB y 415 TIPO_NO_ADMITIDO si el charset no es UTF o el `Content-Encoding` no es',
+      'identity, gzip, deflate ni br. El parser actúa antes que las rutas, así que cualquier petición con `Content-Type: application/json`',
+      'puede recibirlos, aunque la operación no tenga cuerpo. Las operaciones con cuerpo JSON los declaran.',
       '',
       '**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta',
       'responde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto.',
@@ -260,7 +263,7 @@ export const openApi = {
         ),
         responses: {
           201: conCookies(respuestaSesion, 'Cuenta creada y sesión abierta'),
-          400: error('Datos inválidos o contraseña rechazada por la política'),
+          ...erroresCuerpoJson('Datos inválidos o contraseña rechazada por la política'),
           403: origen,
           409: error('Correo ya registrado'),
           429: limite,
@@ -275,7 +278,7 @@ export const openApi = {
         requestBody: cuerpo({ correo, contrasena: contrasenaEscrita }, ['correo', 'contrasena']),
         responses: {
           200: conCookies(respuestaSesion),
-          400: error('Correo no válido o contraseña vacía o de más de 256 caracteres (SOLICITUD_INVALIDA)'),
+          ...erroresCuerpoJson('Correo no válido o contraseña vacía o de más de 256 caracteres (SOLICITUD_INVALIDA)'),
           401: error('Mensaje genérico: correo inexistente, contraseña errónea o cuenta bloqueada (CREDENCIALES_INVALIDAS)'),
           403: error('Cuenta desactivada (CUENTA_INACTIVA, solo con la contraseña correcta) u origen no permitido'),
           429: limite,
@@ -322,7 +325,7 @@ export const openApi = {
         requestBody: cuerpo({ correo }, ['correo']),
         responses: {
           202: json(mensaje),
-          400: error('Correo no válido (SOLICITUD_INVALIDA)'),
+          ...erroresCuerpoJson('Correo no válido (SOLICITUD_INVALIDA)'),
           403: origen,
           429: limite,
           500: errorInterno,
@@ -343,7 +346,7 @@ export const openApi = {
         ),
         responses: {
           200: json(mensaje),
-          400: error('Enlace inválido, usado o vencido, o contraseña rechazada'),
+          ...erroresCuerpoJson('Enlace inválido, usado o vencido, o contraseña rechazada'),
           403: origen,
           429: limite,
           500: errorInterno,
@@ -372,7 +375,7 @@ export const openApi = {
         ),
         responses: {
           200: json(perfil),
-          400: error('Datos inválidos (SOLICITUD_INVALIDA)'),
+          ...erroresCuerpoJson('Datos inválidos (SOLICITUD_INVALIDA)'),
           401: sinSesion,
           404: cuentaInexistente,
           500: errorInterno,
@@ -387,7 +390,7 @@ export const openApi = {
         requestBody: cuerpo({ actual: contrasenaEscrita, nueva: contrasenaNueva }, ['actual', 'nueva']),
         responses: {
           200: json(mensaje),
-          400: error('Contraseña actual incorrecta o nueva rechazada'),
+          ...erroresCuerpoJson('Contraseña actual incorrecta o nueva rechazada'),
           401: sinSesion,
           429: limite,
           500: errorInterno,
