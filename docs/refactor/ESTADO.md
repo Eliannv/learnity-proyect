@@ -4,8 +4,15 @@
 
 ## Fase actual
 
-**Fase 2A: fundaciones** (desde el 19-10-2026). La **Puerta 1 está cerrada**: el usuario aprobó P1-1 a P1-3, y el lead decidió BD-022, BD-019b, D3 y D4 con la autonomía que le delegó el usuario (ver *Decisiones*). Siguiente puerta: **Puerta 2A**, cuando la caracterización esté en verde sobre la línea base y las fundaciones integradas, con la suite completa y los builds en verde.
+**Fase 2B: módulos por parejas** (desde el 19-10-2026). **La Puerta 2A se cerró el 19-10-2026, por decisión del lead:** no implicaba ninguna acción irreversible (regla del usuario). Evidencia: `0dc5c66` → backend 246/246, frontend 36/36, builds en verde, `learnity_test` limpia. Revisión R1–R11 del `arquitecto`: **apta**; el contrato coincide (IDÉNTICO, 33/33) y la deuda restante está asignada a la 2B. Lista de revisión actualizada en `3003513`.
 
+**Plan de la 2B en tandas** (máximo 3 teammates; Sonnet para `be-*`, `fe-*` y `qa-edge`):
+1. **Tanda 2B-1:** `be-b` (B1+B2: dividir `cursos.service.ts` en ficha y `temario/` con la política del ADR-003, sacar la lectura de PDF de las secciones con `FOR UPDATE` (R4/A5) y el punto 11.8; B3: puerto del ADR-004 que rompe el ciclo; B4: `modules/revision` sale de `administracion`) y `be-a` (A1: `identidad` con `index.ts` y validación en rutas; A4: `modules/usuarios` con las solicitudes, coordinado con `be-b`; el punto 11.10). Los dos adoptan en sus suites el pool de fixtures (`ayudas/bd-fixtures.ts`), requisito para aplicar las migraciones 017–026 a `learnity_test`. El `arquitecto` escribe el **ADR-012 (CRUD de categorías)**, que necesita la aprobación del usuario.
+2. **Tanda 2B-2:** migraciones aplicadas a `learnity_test` (el lead, con `postgres`) → A2 `catalogo` sobre vistas (`be-a`) → A3 `categorias` (si se aprueba el ADR-012; migración 027 de `db`).
+3. **Tanda 2B-3:** `fe-a` y `fe-b` migran sus páginas a `features/*` (contenedor/presentación, cliente tipado y `estado-vista`), con el inicio y el encabezado sin `datos-demo` (A2, commits separados), D3 (borrar los paneles) y `esquema.d.ts` regenerado. `qa-edge` revisa cada lote.
+**Cambios ajenos en el checkout principal:** `PLAN_SPRINTS_LEARNITY.md` modificado y `ROADMAP_SPRINTS_3_Y_4.md` sin seguimiento (aparecieron el 19-10-2026; ni del lead ni de los teammates). No se tocan ni se incluyen en commits.
+
+### Fase 2A: fundaciones (cerrada el 19-10-2026)
 **Plan de la 2A en tandas** (máximo 3 teammates a la vez; Sonnet para `qa-edge`, `be-*` y `fe-*`; Opus para `arquitecto` y `db`):
 1. **Tanda 1:** `db` (022/023 sin datos inventados), `qa-edge` (`guardia-bd.ts`, pool de fixtures y caracterización de todos los endpoints) y `arquitecto` (ADR a *Aceptado*/*Rechazado*, `test:local` con glob, devDependency `openapi-typescript`, correcciones solo documentales C-08–C-11 y C-18, renombrar `openapi-integrante2/3.ts`, `README.md:141`).
 2. **Tanda 2** (desde el 19-10-2026; la caracterización está en verde): `be-a` y `be-b` (fundaciones del backend y puntos del ADR-011 asignados a la 2A), más `qa-edge` (REC y SEG).
