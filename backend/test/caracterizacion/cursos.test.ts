@@ -6,7 +6,6 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { carpetaPdfPropia, pdfMinimo, subirPdf } from '../ayudas/archivos.js';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { capturar } from '../ayudas/captura.js';
 import { forma, sinRutasPrivadas } from '../ayudas/contrato.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
@@ -25,6 +24,7 @@ let docInactivo: Cuenta;
 let categoriaId = 0;
 let categoriaInactivaId = 0;
 let n = 0;
+let fab: ReturnType<typeof fabricaCuentas>;
 
 const NO_AUTENTICADO = { codigo: 'NO_AUTENTICADO', mensaje: 'Debes iniciar sesión.' };
 
@@ -76,17 +76,17 @@ async function cursoCompleto(c: Cuenta = docA) {
 
 const forzarEstado = (idCurso: number, estado: string) =>
   f.query(
-    `UPDATE curso SET estado = $2,
-       motivo_rechazo = CASE WHEN $2 = 'RECHAZADO' THEN 'Motivo de prueba' ELSE NULL END,
-       revisado_por = CASE WHEN $2 IN ('PUBLICADO', 'RECHAZADO') THEN $3::int ELSE NULL END,
-       publicado_en = CASE WHEN $2 = 'PUBLICADO' THEN now() ELSE NULL END
+    `UPDATE curso SET estado = $2::text,
+       motivo_rechazo = CASE WHEN $2::text = 'RECHAZADO' THEN 'Motivo de prueba' ELSE NULL END,
+       revisado_por = CASE WHEN $2::text IN ('PUBLICADO', 'RECHAZADO') THEN $3::int ELSE NULL END,
+       publicado_en = CASE WHEN $2::text = 'PUBLICADO' THEN now() ELSE NULL END
      WHERE id_curso = $1`,
     [idCurso, estado, admin.idPersona]);
 
 before(async () => {
   f = await crearFixtures();
   srv = await iniciarServidor();
-  const fab = fabricaCuentas(f, srv, marca);
+  fab = fabricaCuentas(f, srv, marca);
   docA = await fab.crearCuenta(['ESTUDIANTE', 'DOCENTE']);
   docB = await fab.crearCuenta(['ESTUDIANTE', 'DOCENTE']);
   est = await fab.crearCuenta(['ESTUDIANTE']);
@@ -118,26 +118,27 @@ const RUTAS: Array<[string, string]> = [
 describe('AUT: las 11 operaciones de gestión de cursos', () => {
   for (const [metodo, ruta] of RUTAS) {
     it(`${metodo} ${ruta}`, async () => {
-      const sin = await srv.pedir(ruta, { metodo, cuerpo: {} });
+      const cuerpo = metodo === 'GET' ? undefined : {};
+      const sin = await srv.pedir(ruta, { metodo, cuerpo });
       assert.equal(sin.status, 401);
       assert.deepEqual(sin.json, { error: NO_AUTENTICADO });
       // AUT-2: firma alterada
       const t = docA.token;
       const i = t.length - 4;
       const alterado = t.slice(0, i) + (t[i] === 'A' ? 'B' : 'A') + t.slice(i + 1);
-      const r2 = await srv.pedir(ruta, { metodo, cuerpo: {}, token: alterado });
+      const r2 = await srv.pedir(ruta, { metodo, cuerpo, token: alterado });
       assert.equal(r2.status, 401);
       assert.equal(r2.json.error.codigo, 'TOKEN_INVALIDO');
       // AUT-3: esquema distinto y Bearer sin token
-      const r3 = await srv.pedir(ruta, { metodo, cuerpo: {}, headers: { authorization: 'Basic abc' } });
+      const r3 = await srv.pedir(ruta, { metodo, cuerpo, headers: { authorization: 'Basic abc' } });
       assert.equal(r3.status, 401);
       assert.equal(r3.json.error.codigo, 'NO_AUTENTICADO');
-      const r3b = await srv.pedir(ruta, { metodo, cuerpo: {}, headers: { authorization: 'Bearer' } });
+      const r3b = await srv.pedir(ruta, { metodo, cuerpo, headers: { authorization: 'Bearer' } });
       assert.equal(r3b.status, 401);
       assert.equal(r3b.json.error.codigo, 'NO_AUTENTICADO');
       // AUT-5 / IDOR-3: ESTUDIANTE y ADMIN sin DOCENTE
       for (const c of [est, admin]) {
-        const r = await como(c, metodo, ruta, {});
+        const r = await como(c, metodo, ruta, cuerpo);
         assert.equal(r.status, 403, `${c.roles}`);
         assert.equal(r.json.error.codigo, 'SIN_PERMISO');
       }
@@ -185,21 +186,21 @@ describe('GET /api/docente/cursos (CAR-CUR-01, 02, 30)', () => {
     const ajeno = await crearCurso(docB);
     const r = await como(docA, 'GET', '/api/docente/cursos');
     assert.equal(r.status, 200);
-    capturar('CAR-CUR-01 forma', forma(r.json));
-    const lista: any[] = Array.isArray(r.json) ? r.json : (r.json.items ?? r.json.cursos);
-    capturar('CAR-CUR-01 orden-estados', lista.map((c) => c.estado));
+    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number' }] });
+    const lista: any[] = r.json.items;
+    assert.deepEqual(lista.map((c) => c.estado), ['ARCHIVADO', 'RECHAZADO', 'PUBLICADO', 'EN_REVISION', 'BORRADOR'], 'orden por id descendente');
     const propios = lista.filter((c) => c.titulo?.startsWith?.(marca));
     assert.equal(propios.length, 5);
     assert.ok(!lista.some((c) => c.id === ajeno), 'CAR-CUR-30: no incluye cursos de otro docente');
     assert.deepEqual(sinRutasPrivadas(r.json), []);
     const rech = lista.find((c) => c.id === ids['RECHAZADO']);
-    capturar('CAR-CUR-01 rechazado', rech);
+    assert.equal(rech.motivoRechazo, 'Motivo de prueba');
   });
   it('CAR-CUR-02: docente sin cursos', async () => {
-    const nuevo = await fabricaCuentas(f, srv, marca).crearCuenta(['ESTUDIANTE', 'DOCENTE']);
+    const nuevo = await fab.crearCuenta(['ESTUDIANTE', 'DOCENTE']);
     const r = await como(nuevo, 'GET', '/api/docente/cursos');
     assert.equal(r.status, 200);
-    capturar('CAR-CUR-02', r.json);
+    assert.deepEqual(r.json, { items: [] });
   });
 });
 
@@ -208,7 +209,8 @@ describe('GET /api/docente/cursos/:id (CAR-CUR-03..05)', () => {
     const { idCurso } = await cursoCompleto();
     const r = await como(docA, 'GET', `/api/docente/cursos/${idCurso}`);
     assert.equal(r.status, 200);
-    capturar('CAR-CUR-03 forma', forma(r.json));
+    assert.deepEqual(Object.keys(r.json), ['id', 'titulo', 'subtitulo', 'descripcion', 'categoriaId', 'categoriaNombre', 'nivel', 'portadaUrl', 'objetivos', 'requisitos', 'estado', 'motivoRechazo', 'docente', 'modulos', 'validacion']);
+    assert.deepEqual(Object.keys(r.json.modulos[0].lecciones[0].archivo), ['id', 'tipo', 'nombreOriginal', 'tamanoBytes']);
     assert.deepEqual(sinRutasPrivadas(r.json), []);
     assert.ok(!r.texto.includes(pdfDir.dir));
   });
@@ -223,9 +225,10 @@ describe('GET /api/docente/cursos/:id (CAR-CUR-03..05)', () => {
   });
   it('CAR-CUR-05: docente desactivado', async () => {
     const r = await como(docInactivo, 'GET', '/api/docente/cursos');
-    capturar('CAR-CUR-05 lista', { status: r.status, codigo: r.json?.error?.codigo });
+    assert.equal(r.status, 200, 'la lista de un docente inactivo responde 200 hoy');
     const c = await como(docInactivo, 'POST', '/api/cursos', datosCurso('inactivo'));
-    capturar('CAR-CUR-05 crear', { status: c.status, error: c.json?.error });
+    assert.equal(c.status, 403);
+    assert.deepEqual(c.json.error, { codigo: 'SIN_PERMISO', mensaje: 'No tienes un perfil docente activo.' });
   });
 });
 
@@ -234,7 +237,8 @@ describe('POST /api/cursos (CAR-CUR-06..10)', () => {
     const r = await como(docA, 'POST', '/api/cursos', datosCurso('valido'));
     assert.equal(r.status, 201);
     assert.equal(r.json.estado, 'BORRADOR');
-    capturar('CAR-CUR-06 forma', forma(r.json));
+    assert.deepEqual(Object.keys(r.json), ['id', 'titulo', 'subtitulo', 'descripcion', 'categoriaId', 'categoriaNombre', 'nivel', 'portadaUrl', 'objetivos', 'requisitos', 'estado', 'motivoRechazo', 'docente', 'modulos', 'validacion']);
+    assert.deepEqual(r.json.modulos, []);
     assert.deepEqual(sinRutasPrivadas(r.json), []);
   });
 
@@ -254,7 +258,9 @@ describe('POST /api/cursos (CAR-CUR-06..10)', () => {
 
   it('CAR-CUR-08: NUL en el título', async () => {
     const r = await como(docA, 'POST', '/api/cursos', datosCurso('nul', { titulo: `${marca} a\u0000b` }));
-    capturar('CAR-CUR-08', { status: r.status, codigo: r.json?.error?.codigo });
+    // CONGELADO-INSEGURO (H11; ADR-011, punto 11.7): hoy 500; pasará a 400.
+    assert.equal(r.status, 500);
+    assert.equal(r.json.error.codigo, 'ERROR_INTERNO');
   });
 
   it('CAR-CUR-09: límites y validación', async () => {
@@ -280,9 +286,12 @@ describe('POST /api/cursos (CAR-CUR-06..10)', () => {
 
   it('CAR-CUR-10: categoría inactiva o inexistente', async () => {
     const a = await como(docA, 'POST', '/api/cursos', datosCurso('cat inactiva', { categoriaId: categoriaInactivaId }));
-    capturar('CAR-CUR-10 inactiva', { status: a.status, error: a.json?.error });
+    assert.equal(a.status, 400);
+    assert.equal(a.json.error.mensaje, 'Selecciona una categoría existente y activa.');
+    assert.deepEqual(a.json.error.detalles, [{ campo: 'categoriaId', mensaje: 'La categoría no existe o está inactiva.' }]);
     const b = await como(docA, 'POST', '/api/cursos', datosCurso('cat inexistente', { categoriaId: 2147483647 }));
-    capturar('CAR-CUR-10 inexistente', { status: b.status, error: b.json?.error });
+    assert.equal(b.status, 400);
+    assert.deepEqual(b.json.error, a.json.error);
   });
 });
 
@@ -309,12 +318,12 @@ describe('PUT /api/cursos/:id (CAR-CUR-11..13, PREC-3, PREC-4)', () => {
     const id = await crearCurso(docB);
     const a = await como(docA, 'PUT', `/api/cursos/${id}`, datosCurso('x'));
     assert.equal(a.status, 403);
-    capturar('CAR-CUR-13 mensaje', a.json.error);
+    assert.equal(a.json.error.mensaje, 'No puedes editar este curso.');
     const p3 = await como(docA, 'PUT', `/api/cursos/${id}`, { titulo: '' });
     assert.equal(p3.status, 400);
     await forzarEstado(id, 'PUBLICADO');
     const p4 = await como(docA, 'PUT', `/api/cursos/${id}`, datosCurso('x'));
-    capturar('PREC-4', { status: p4.status, error: p4.json?.error });
+    assert.equal(p4.status, 403, 'el propietario se comprueba antes que el estado');
   });
 });
 
@@ -323,7 +332,7 @@ describe('Módulos (CAR-CUR-14..19, 31, 32)', () => {
     const id = await crearCurso();
     const r = await como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: 'M1', orden: 1 });
     assert.equal(r.status, 201);
-    capturar('CAR-CUR-14 forma', forma(r.json));
+    assert.deepEqual(Object.keys(r.json), ['id', 'titulo', 'subtitulo', 'descripcion', 'categoriaId', 'categoriaNombre', 'nivel', 'portadaUrl', 'objetivos', 'requisitos', 'estado', 'motivoRechazo', 'docente', 'modulos', 'validacion']);
     const m10 = await como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: 'M10', orden: 10 });
     assert.equal(m10.status, 201);
     for (const orden of [0, 11]) {
@@ -332,8 +341,11 @@ describe('Módulos (CAR-CUR-14..19, 31, 32)', () => {
       assert.equal(x.json.error.mensaje, 'Revisa los datos del módulo.');
     }
     const dup = await como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: 'D', orden: 1 });
-    assert.equal(dup.status, 409);
-    capturar('CAR-CUR-15 duplicado', dup.json.error);
+    // El plan decía 409; el comportamiento real es 400 SOLICITUD_INVALIDA (se fija lo real).
+    assert.equal(dup.status, 400);
+    assert.equal(dup.json.error.codigo, 'SOLICITUD_INVALIDA');
+    assert.equal(dup.json.error.mensaje, 'El orden del módulo ya está ocupado.');
+    assert.deepEqual(dup.json.error.detalles, [{ campo: 'orden', mensaje: 'Selecciona un orden disponible.' }]);
     await forzarEstado(id, 'EN_REVISION');
     const bl = await como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: 'B', orden: 2 });
     assert.equal(bl.status, 409);
@@ -345,11 +357,12 @@ describe('Módulos (CAR-CUR-14..19, 31, 32)', () => {
     const m2 = await crearModulo(id, 2);
     assert.equal((await como(docA, 'PUT', `/api/modulos/${m1}`, { titulo: 'Nuevo', orden: 1 })).status, 200);
     const ocupado = await como(docA, 'PUT', `/api/modulos/${m1}`, { titulo: 'Nuevo', orden: 2 });
-    assert.equal(ocupado.status, 409);
-    capturar('CAR-CUR-17 orden ocupado', ocupado.json.error);
+    assert.equal(ocupado.status, 400);
+    assert.equal(ocupado.json.error.mensaje, 'El orden del módulo ya está ocupado.');
+    assert.equal(ocupado.json.error.detalles[0].mensaje, 'Selecciona otro orden.');
     const inex = await como(docA, 'PUT', '/api/modulos/2147483647', { titulo: 'N', orden: 1 });
     assert.equal(inex.status, 404);
-    capturar('CAR-CUR-17 inexistente', inex.json.error);
+    assert.deepEqual(inex.json.error, { codigo: 'NO_ENCONTRADO', mensaje: 'Módulo no disponible.' });
     await forzarEstado(id, 'PUBLICADO');
     const bl = await como(docA, 'PUT', `/api/modulos/${m2}`, { titulo: 'N', orden: 2 });
     assert.equal(bl.status, 409);
@@ -362,7 +375,7 @@ describe('Módulos (CAR-CUR-14..19, 31, 32)', () => {
     const del = await como(docA, 'DELETE', `/api/modulos/${idModulo}`);
     assert.equal(del.status, 200);
     assert.deepEqual(del.json.modulos, []);
-    capturar('CAR-CUR-19 archivo_borrado_pendiente', (await f.query('SELECT count(*)::int AS n FROM archivo_borrado_pendiente')).rows[0]);
+    assert.equal((await f.query('SELECT count(*) AS n FROM archivo WHERE id_curso = $1', [idCurso])).rows[0]!.n, '0');
     const inex = await como(docA, 'DELETE', '/api/modulos/2147483647');
     assert.equal(inex.status, 404);
     const otro = await crearCurso();
@@ -379,7 +392,8 @@ describe('Módulos (CAR-CUR-14..19, 31, 32)', () => {
     const del = await como(docA, 'DELETE', `/api/modulos/${m}`);
     assert.equal(put.status, 403);
     assert.equal(del.status, 403);
-    capturar('CAR-CUR-31/32', { put: put.json.error, del: del.json.error });
+    assert.equal(put.json.error.mensaje, 'No puedes modificar este módulo.');
+    assert.equal(del.json.error.mensaje, 'No puedes eliminar este módulo.');
     const crear = await como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: 'X', orden: 2 });
     assert.equal(crear.status, 403);
     const p3 = await como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: '', orden: 2 });
@@ -393,7 +407,8 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     const m = await crearModulo(id, 1);
     const r = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 1, tipo: 'DOCUMENTO' });
     assert.equal(r.status, 201);
-    capturar('CAR-CUR-20 forma', forma(r.json));
+    assert.deepEqual(Object.keys(r.json.modulos[0].lecciones[0]), ['id', 'titulo', 'orden', 'tipo', 'archivo']);
+    assert.equal(r.json.modulos[0].lecciones[0].archivo, null);
     for (const tipo of ['VIDEO', 'EVALUACION']) {
       const x = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 2, tipo });
       assert.equal(x.status, 400, tipo);
@@ -401,7 +416,9 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     }
     assert.equal((await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 12, tipo: 'DOCUMENTO' })).status, 201);
     assert.equal((await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 13, tipo: 'DOCUMENTO' })).status, 400);
-    assert.equal((await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 1, tipo: 'DOCUMENTO' })).status, 409);
+    const dupL = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 1, tipo: 'DOCUMENTO' });
+    assert.equal(dupL.status, 400);
+    assert.equal(dupL.json.error.mensaje, 'El orden de la lección ya está ocupado.');
     await forzarEstado(id, 'PUBLICADO');
     const bl = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 3, tipo: 'DOCUMENTO' });
     assert.equal(bl.status, 409);
@@ -413,7 +430,9 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     const l1 = await crearLeccion(m, 1);
     await crearLeccion(m, 2);
     assert.equal((await como(docA, 'PUT', `/api/lecciones/${l1}`, { titulo: 'N', orden: 1, tipo: 'DOCUMENTO' })).status, 200);
-    assert.equal((await como(docA, 'PUT', `/api/lecciones/${l1}`, { titulo: 'N', orden: 2, tipo: 'DOCUMENTO' })).status, 409);
+    const ocL = await como(docA, 'PUT', `/api/lecciones/${l1}`, { titulo: 'N', orden: 2, tipo: 'DOCUMENTO' });
+    assert.equal(ocL.status, 400);
+    assert.equal(ocL.json.error.mensaje, 'El orden de la lección ya está ocupado.');
     await forzarEstado(id, 'EN_REVISION');
     const bl = await como(docA, 'PUT', `/api/lecciones/${l1}`, { titulo: 'N', orden: 1, tipo: 'DOCUMENTO' });
     assert.equal(bl.status, 409);
@@ -423,10 +442,10 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     const { idCurso, idLeccion } = await cursoCompleto();
     const r = await como(docA, 'DELETE', `/api/lecciones/${idLeccion}`);
     assert.equal(r.status, 200);
-    capturar('CAR-CUR-24 forma', forma(r.json));
+    assert.deepEqual(r.json.modulos[0].lecciones, []);
     const fila = await f.query<{ n: string }>('SELECT count(*) AS n FROM leccion WHERE id_leccion = $1', [idLeccion]);
     assert.equal(fila.rows[0]!.n, '0');
-    capturar('CAR-CUR-25 archivo_borrado_pendiente', (await f.query('SELECT count(*)::int AS n FROM archivo_borrado_pendiente')).rows[0]);
+    assert.equal((await f.query('SELECT count(*) AS n FROM archivo WHERE id_curso = $1', [idCurso])).rows[0]!.n, '0');
     assert.equal((await como(docA, 'DELETE', '/api/lecciones/2147483647')).status, 404);
     const m = await crearModulo(idCurso, 2);
     const l = await crearLeccion(m, 1);
@@ -443,7 +462,9 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     const put = await como(docA, 'PUT', `/api/lecciones/${l}`, { titulo: 'X', orden: 1, tipo: 'DOCUMENTO' });
     const del = await como(docA, 'DELETE', `/api/lecciones/${l}`);
     assert.deepEqual([post.status, put.status, del.status], [403, 403, 403]);
-    capturar('CAR-CUR-33..35', { post: post.json.error, put: put.json.error, del: del.json.error });
+    assert.equal(post.json.error.mensaje, 'No puedes modificar este curso.');
+    assert.equal(put.json.error.mensaje, 'No puedes modificar esta lección.');
+    assert.equal(del.json.error.mensaje, 'No puedes eliminar esta lección.');
     assert.equal((await como(docA, 'PUT', `/api/lecciones/${l}`, { titulo: '' })).status, 400, 'PREC-3');
   });
 });
@@ -454,7 +475,7 @@ describe('POST /api/cursos/:id/enviar-revision (CAR-CUR-26..28, 36)', () => {
     const r = await como(docA, 'POST', `/api/cursos/${idCurso}/enviar-revision`);
     assert.equal(r.status, 200);
     assert.equal(r.json.estado, 'EN_REVISION');
-    capturar('CAR-CUR-26 forma', forma(r.json));
+    assert.deepEqual(r.json.validacion, { completo: true, problemas: [] });
     assert.deepEqual(sinRutasPrivadas(r.json), []);
   });
   it('CAR-CUR-27: curso incompleto -> 400 con detalles', async () => {
@@ -463,7 +484,11 @@ describe('POST /api/cursos/:id/enviar-revision (CAR-CUR-26..28, 36)', () => {
     assert.equal(r.status, 400);
     assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA');
     assert.equal(r.json.error.mensaje, 'El curso todavía está incompleto.');
-    capturar('CAR-CUR-27 detalles', r.json.error.detalles);
+    assert.deepEqual(r.json.error.detalles, [
+      { campo: 'objetivos', mensaje: 'Indica entre 3 y 10 objetivos de hasta 200 caracteres.' },
+      { campo: 'modulos', mensaje: 'El curso requiere entre 1 y 10 módulos.' },
+      { campo: 'modulos', mensaje: 'Agrega al menos una lección DOCUMENTO con PDF válido.' },
+    ]);
   });
   it('CAR-CUR-28: desde RECHAZADO -> 200 y motivoRechazo null; EN_REVISION y PUBLICADO -> 409', async () => {
     const { idCurso } = await cursoCompleto();

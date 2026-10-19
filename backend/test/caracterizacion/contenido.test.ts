@@ -26,8 +26,8 @@ let c: ReturnType<typeof fabricaCursos>;
 const archivoDe = (json: any) => json.modulos[0].lecciones[0].archivo;
 const forzarEstado = (idCurso: number, estado: string) =>
   f.query(
-    `UPDATE curso SET estado = $2, revisado_por = CASE WHEN $2 = 'PUBLICADO' THEN $3::int END,
-       publicado_en = CASE WHEN $2 = 'PUBLICADO' THEN now() END WHERE id_curso = $1`,
+    `UPDATE curso SET estado = $2::text, revisado_por = CASE WHEN $2::text = 'PUBLICADO' THEN $3::int END,
+       publicado_en = CASE WHEN $2::text = 'PUBLICADO' THEN now() END WHERE id_curso = $1`,
     [idCurso, estado, admin.idPersona]);
 
 before(async () => {
