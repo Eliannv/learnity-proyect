@@ -2,7 +2,8 @@
 
 - **Fecha:** 19-10-2026 · **Commit de origen:** `3c3c159` (`integration/sprint-2`) · **Autor:** `arquitecto` (Fase 1).
 - **Contrato:** `docs/api/openapi.yaml`, serializado sin cambios desde el objeto `openApi` de `backend/src/shared/http/openapi.ts`.
-- **Alcance:** solo se documenta. **Ningún hallazgo se corrige aquí.** Cada `C-nn` indica cómo se cerraría:
+- **Actualización (Fase 2A, 19-10-2026):** los hallazgos de *Documentación* se cerraron en `openapi*.ts` sin cambiar el comportamiento. Ver la §6. Las §1–§5 describen el estado de la Fase 1 (commit `3c3c159`), y sus números de línea de `openapi*.ts` son los de entonces: desde `b01296c`, `openapi-integrante2.ts` se llama `openapi-gestion-cursos.ts` y `openapi-integrante3.ts`, `openapi-revision-contenido.ts`.
+- **Alcance (Fase 1):** solo se documenta. **Ningún hallazgo se corrige aquí.** Cada `C-nn` indica cómo se cerraría:
   - **Documentación:** se alinea `openapi*.ts` con lo que la API ya hace. No cambia el comportamiento. Lo hace `arquitecto` en la Fase 2A (tarea 4: mantener `openapi.yaml` y `openapi*.ts` alineados).
   - **Contrato:** cerrarlo cambia lo que la API responde. Necesita un ADR y la aprobación del usuario.
 
@@ -10,7 +11,7 @@
 
 Los scripts están fuera del repositorio, en el directorio temporal de `arquitecto`. **No importan** `app.ts`, `server.ts`, `shared/config/env.ts` ni las rutas, así que no cargan `.env` ni tocan la base. Los parciales `openapi-integrante2.ts`, `openapi-integrante3.ts` y `openapi-solicitudes.ts` no tienen ningún `import`.
 
-1. **Serializar** (cwd `backend/`): `npx tsx serializar-openapi.mts <raíz> 3c3c159`. Importa `openapi.ts` y escribe una cabecera de comentarios `#` seguida de `JSON.stringify(openApi, null, 2)`. Un JSON es YAML 1.2 válido, y los comentarios `#` previos también.
+1. **Serializar** (cwd `backend/`): `npx tsx serializar-openapi.mts <raíz>` (en la Fase 1 recibía además el commit, que iba en la cabecera). Importa `openapi.ts` y escribe una cabecera de comentarios `#` seguida de `JSON.stringify(openApi, null, 2)`. Un JSON es YAML 1.2 válido, y los comentarios `#` previos también.
 2. **Verificar la fidelidad:** `npx tsx verificar-openapi.mts <raíz>`. Quita las líneas `#`, hace `JSON.parse` y `assert.deepStrictEqual` contra el objeto importado, y calcula el sha256 del archivo.
 3. **Comparar con las rutas:** `node comparar-rutas.mjs <raíz>`. Lee como texto los `modules/*/*.routes.ts` y `app.ts`, aplica el prefijo `/auth` del router interno de Identidad y el montaje en `/api`, y convierte `:id` en `{id}`. Para cada ruta cruza:
    - (verbo, ruta) en los dos sentidos;
@@ -112,3 +113,43 @@ Además, todas las operaciones comparten C-08 (esquema de error), C-13 (500 y er
 
 - `POST /lecciones/{id}/archivo` no tiene `limitarPorIp` y usa `multer.memoryStorage()` (S5; `contenido.routes.ts:18-25`, `contenido.multipart.ts:15`). El contrato coincide con el código; el cambio se propone en el ADR-011, que añadiría un 429.
 - `server.ts:36-47` consulta la base al arrancar (SQL fuera de repositorio). No forma parte del contrato; lo recoge el ADR-011.
+
+## 6. Cierre en la Fase 2A (tarea 4 de `arquitecto`)
+
+Solo cambian `openapi*.ts` y `openapi.yaml`; ninguna ruta, cuerpo, código HTTP ni código de error. Se añade `openapi-comun.ts` con las piezas que antes repetía cada parcial.
+
+| ID | Estado | Cómo se cerró |
+|---|---|---|
+| C-01 | **Cerrado** (documentación) | `GET /salud` describe `{ estado: "ok", baseDeDatos: { base, usuario, roles } }` y el 500 con la base caída. Quitar `baseDeDatos` y el 503 son los puntos 11.1 y 11.2 del ADR-011 (aceptados, `be-a`); su commit actualizará `openapi.ts` |
+| C-02 | Sin cambio en el contrato | `/api/docs` no es una operación. Restringirlo es el punto 11.3 (aceptado, `be-a`) |
+| C-03 | **Cerrado** | 403 en `POST /solicitudes-docente` |
+| C-04 | **Cerrado** | 401 en `PUT /admin/solicitudes/{id}` |
+| C-05 | **Cerrado** | 400 en `GET /admin/solicitudes` |
+| C-06 | **Cerrado** | 400 en `POST /auth/login` |
+| C-07 | **Cerrado** | 404 `NO_ENCONTRADO` en `GET /perfil` y `PUT /perfil` |
+| C-08 | **Cerrado** | Un solo esquema, `ErrorApi` (`codigo` y `mensaje` obligatorios). `detalles` es opcional y `oneOf`: lista de `ProblemaCampo`, `{ reintentarEnSegundos }` o texto. Desaparecen el `error` en línea, `ErrorApiIntegrante2` y `ErrorIntegrante3` |
+| C-09 | **Cerrado** | Un esquema por modelo: `CursoDetalle` y `CursoResumen` (los estrictos, con `required`) para docente y administración. `ValidacionCurso.problemas` usa `ProblemaCampo` |
+| C-10 | **Cerrado** | `additionalProperties: false` en `DatosCurso`, `DatosModulo`, `DatosLeccion` y los cuerpos de `POST /solicitudes-docente` y `PUT /admin/solicitudes/{id}`. En las consultas de `GET /cursos`, `GET /admin/cursos` y `GET /admin/solicitudes` se dice en la descripción (OpenAPI 3.0 no lo puede declarar en parámetros) |
+| C-11 | **Cerrado** | Correo con `maxLength` 120 (registro, login y recuperar); `nombres` y `apellidos` con `minLength` 1; `token` hasta 100; contraseña de login y `actual` de 1 a 256; `observacion` con `minLength` 1; `id` de `PUT /admin/solicitudes/{id}` de 1 a 2 147 483 647 (todas las rutas usan el mismo `idRuta`); `categoria` y `nivel` con 20 valores como máximo y `categoria` hasta 80; regla de `portadaUrl` descrita; `default` en `subtitulo`, `descripcion`, `portadaUrl`, `objetivos` y `requisitos`; recorte de espacios descrito donde zod usa `trim` |
+| C-12 | **Cerrado** | Cada operación declara solo los errores que puede dar: `GET /docente/cursos` 401 y 403; `GET /docente/cursos/{id}` sin 409; `POST /cursos` sin 404 ni 409; `GET /admin/cursos` sin 404. Comprobado leyendo `cursos.service.ts`, `cursos-integracion.service.ts` y `administracion.controller.ts` |
+| C-13 | **Cerrado** | Respuesta común `components.responses.ErrorInterno` (500) en las 33 operaciones, y en `info.description` las conversiones de PostgreSQL (23505 → 409 `CONFLICTO`; 23514 y 23503 → 400 `SOLICITUD_INVALIDA`) |
+| C-14 | **Abierto** (contrato) | Punto 11.6 del ADR-011 (aceptado, `be-a`). Mientras tanto, `info.description` documenta el 500 actual (por lectura de código: CAR-GEN-05, 06 y 11 aún no están integradas) |
+| C-15 | **Cerrado** | Encabezado `Content-Disposition` en el 200 de `GET /archivos/{id}` |
+| C-16 | **Cerrado** | `GET /admin/solicitudes`: `maxItems` 200 y el orden en la descripción |
+| C-17 | **Cerrado** | Esquemas `CategoriaPublica`, `CursoPublico` y `CursoPublicoDetalle` con `required`; `publicadoEn` explicado; `totalPaginas` 0 sin resultados; el catálogo no excluye categorías ni docentes inactivos (las vistas del ADR-002 deben conservarlo) |
+| C-18 | **Cerrado** | Tag `Gestión de cursos`, sin esquemas `*Integrante*` y parciales renombrados por dominio (`b01296c`). `info.description` añade los límites que faltaban (refresh, logout, cambiar la contraseña, solicitudes de docente, módulos, lecciones, PDF y cuerpo JSON) |
+
+**Verificación** (scripts de la §1, cwd `backend/`):
+
+```
+IDÉNTICO
+sha256 855a88296ec12d5c366a303f46f7d90ab6cfd8192c9f5669f49fa72d483ff22c
+rutas 28 · operaciones 33 · esquemas 15
+
+rutas reales: 33 · operaciones en el spec: 33
+en código y no en spec: 0 · en spec y no en código: 0
+```
+
+`comparar-rutas.mjs` ya no informa de códigos que falten (antes: 403, 400 y 401 en solicitudes); solo anota "declara 500" en las 33 operaciones, que ahora es intencionado (C-13). `openapi-typescript` 7.13.0 genera los tipos sin errores ni avisos (2749 líneas, en un directorio temporal).
+
+**NO VERIFICADO:** una validación completa con un *linter* de OpenAPI (no se instaló ninguno; `openapi-typescript` resuelve todas las `$ref`, pero no valida todo el estándar).

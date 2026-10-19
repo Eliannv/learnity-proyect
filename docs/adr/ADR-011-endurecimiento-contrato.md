@@ -93,7 +93,7 @@ Los identificadores de las pruebas son los de `RIESGOS.md` y `PLAN_PRUEBAS.md` (
 | D. Semáforo de subidas simultáneas | Nuevo 503/429 | Protege la RAM directamente | Más código y un comportamiento menos predecible |
 
 **Consecuencias:**
-- Hay que actualizar `openapi-integrante3.ts` (respuesta 429) y el frontend (`pdf-leccion`) debe mostrar el mensaje. Si `peticion.ts` ya lo hace está **NO VERIFICADO**.
+- Hay que actualizar `openapi-revision-contenido.ts` (antes `openapi-integrante3.ts`; respuesta 429) y el frontend (`pdf-leccion`) debe mostrar el mensaje. Si `peticion.ts` ya lo hace está **NO VERIFICADO**.
 - **H7 (configuración, no contrato):** `limitarPorIp` usa `req.ip` como clave (`limite-peticiones.ts:24`). Con `TRUST_PROXY=true` (`app.ts:23`, `env.ts:75`) un cliente puede falsear `X-Forwarded-For` y saltarse **este y todos los demás** límites por IP. `TRUST_PROXY` solo debe activarse detrás de un proxy propio que **sobrescriba** esa cabecera, y con el número exacto de saltos, no con `true`. El contador vive en memoria y solo sirve para una instancia (A12). Lo documenta el README (`arquitecto`) y lo prueba SEG-33.
 
 **Pruebas que actualiza:** SEG-28 (hoy fija que no hay 429 tras N subidas).

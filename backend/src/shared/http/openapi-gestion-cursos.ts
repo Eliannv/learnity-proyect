@@ -1,41 +1,14 @@
+// OpenAPI · Gestión privada de cursos del docente y modelos privados del curso
+// (cursos-privados.model.ts), que también usa la revisión administrativa.
+import { error, errorInterno, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
-const ref = (nombre: string) => ({
-  $ref: '#/components/schemas/' + nombre,
-});
-
-const seguridad = [{ bearer: [] }];
-
-const id = {
-  name: 'id',
-  in: 'path',
-  required: true,
-  schema: {
-    type: 'integer',
-    minimum: 1,
-    maximum: 2147483647,
-  },
+const entero = {
+  type: 'integer',
+  minimum: 1,
 };
 
-const json = (schema: unknown, description = 'Correcto') => ({
-  description,
-  content: {
-    'application/json': { schema },
-  },
-});
-
-const cuerpo = (schema: unknown) => ({
-  required: true,
-  content: {
-    'application/json': { schema },
-  },
-});
-
-const errores = {
-  400: json(ref('ErrorApiIntegrante2'), 'Datos inválidos'),
-  401: json(ref('ErrorApiIntegrante2'), 'Sin autenticación'),
-  403: json(ref('ErrorApiIntegrante2'), 'Sin permiso'),
-  404: json(ref('ErrorApiIntegrante2'), 'Recurso inexistente'),
-  409: json(ref('ErrorApiIntegrante2'), 'Conflicto o curso bloqueado'),
+const texto = {
+  type: 'string',
 };
 
 const nivel = {
@@ -58,79 +31,98 @@ const titulo = {
   type: 'string',
   minLength: 1,
   maxLength: 150,
+  description: 'Se recortan los espacios de los extremos antes de validar.',
 };
 
-const datosCurso = ref('DatosCursoIntegrante2');
-const datosModulo = ref('DatosModuloIntegrante2');
-const datosLeccion = ref('DatosLeccionIntegrante2');
-const detalle = ref('CursoDetalleIntegrante2');
+const listaTextos = {
+  type: 'array',
+  maxItems: 10,
+  default: [],
+  items: { type: 'string', minLength: 1, maxLength: 200 },
+};
+
+const cuerpo = (schema: unknown) => ({
+  required: true,
+  content: {
+    'application/json': { schema },
+  },
+});
+
+const errores = {
+  400: error('Datos o ID inválidos (SOLICITUD_INVALIDA)'),
+  401: error('Sin sesión, token inválido o sesión revocada'),
+  403: error('Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)'),
+  404: error('El curso, el módulo o la lección no existe (NO_ENCONTRADO)'),
+  409: error('El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto'),
+};
+
+type CodigoError = keyof typeof errores;
 
 const operacion = (
   summary: string,
   status: 200 | 201,
   schema: unknown,
+  codigos: CodigoError[],
   requestBody?: unknown,
 ) => ({
-  tags: ['Gestión de cursos - Integrante 2'],
+  tags: ['Gestión de cursos'],
   summary,
   security: seguridad,
   ...(requestBody ? { requestBody } : {}),
   responses: {
     [status]: json(schema),
-    ...errores,
+    ...Object.fromEntries(codigos.map((codigo) => [codigo, errores[codigo]])),
+    500: errorInterno,
   },
 });
 
-export const esquemasGestionCursos = {
-  ErrorApiIntegrante2: {
-    type: 'object',
-    properties: {
-      error: {
-        type: 'object',
-        properties: {
-          codigo: { type: 'string' },
-          mensaje: { type: 'string' },
-          detalles: {},
-        },
-      },
-    },
-  },
+const todos: CodigoError[] = [400, 401, 403, 404, 409];
 
-  DatosCursoIntegrante2: {
+const detalle = ref('CursoDetalle');
+
+export const esquemasGestionCursos = {
+  DatosCurso: {
     type: 'object',
+    additionalProperties: false,
     required: ['titulo', 'categoriaId', 'nivel'],
+    description: 'En `PUT /cursos/{id}` el curso se reemplaza entero: los campos omitidos toman su valor por defecto.',
     properties: {
       titulo,
-      subtitulo: { type: 'string', maxLength: 200 },
-      descripcion: { type: 'string', maxLength: 10000 },
-      categoriaId: { type: 'integer', minimum: 1 },
+      subtitulo: { type: 'string', maxLength: 200, default: '' },
+      descripcion: { type: 'string', maxLength: 10000, default: '' },
+      categoriaId: { ...entero, description: 'Categoría existente y activa (si no, 400).' },
       nivel,
-      portadaUrl: { type: 'string', maxLength: 255 },
-      objetivos: {
-        type: 'array',
-        maxItems: 10,
-        items: { type: 'string', minLength: 1, maxLength: 200 },
+      portadaUrl: {
+        type: 'string',
+        maxLength: 255,
+        default: '',
+        description:
+          'Vacía, una ruta propia que empieza por `/` (sin `//`, `\\`, `..`, espacios, `?` ni `#`) ' +
+          'o una URL `http(s)` con host y sin usuario ni contraseña.',
       },
-      requisitos: {
-        type: 'array',
-        maxItems: 10,
-        items: { type: 'string', minLength: 1, maxLength: 200 },
-      },
+      objetivos: listaTextos,
+      requisitos: listaTextos,
     },
   },
 
-  DatosModuloIntegrante2: {
+  DatosModulo: {
     type: 'object',
+    additionalProperties: false,
     required: ['titulo', 'orden'],
+    description: 'Un curso tiene como máximo 10 módulos y cada orden se usa una sola vez (si no, 400).',
     properties: {
       titulo,
       orden: { type: 'integer', minimum: 1, maximum: 10 },
     },
   },
 
-  DatosLeccionIntegrante2: {
+  DatosLeccion: {
     type: 'object',
+    additionalProperties: false,
     required: ['titulo', 'orden', 'tipo'],
+    description:
+      'Un módulo tiene como máximo 12 lecciones y cada orden se usa una sola vez (si no, 400). ' +
+      'Solo se editan lecciones DOCUMENTO.',
     properties: {
       titulo,
       orden: { type: 'integer', minimum: 1, maximum: 12 },
@@ -138,94 +130,167 @@ export const esquemasGestionCursos = {
     },
   },
 
-  CursoResumenIntegrante2: {
+  ArchivoPdf: {
     type: 'object',
+    required: [
+      'id',
+      'tipo',
+      'nombreOriginal',
+      'tamanoBytes',
+    ],
     properties: {
-      id: { type: 'integer' },
-      titulo: { type: 'string' },
-      estado,
-      motivoRechazo: { type: 'string', nullable: true },
-      docente: { type: 'string' },
-      modulos: { type: 'integer' },
+      id: entero,
+      tipo: {
+        type: 'string',
+        enum: ['PDF'],
+      },
+      nombreOriginal: {
+        ...texto,
+        maxLength: 200,
+      },
+      tamanoBytes: {
+        type: 'integer',
+        minimum: 1,
+        maximum: 10485760,
+      },
     },
   },
 
-  CursoDetalleIntegrante2: {
+  LeccionPrivada: {
     type: 'object',
+    required: [
+      'id',
+      'titulo',
+      'orden',
+      'tipo',
+      'archivo',
+    ],
     properties: {
-      id: { type: 'integer' },
-      titulo,
-      subtitulo: { type: 'string' },
-      descripcion: { type: 'string' },
-      categoriaId: { type: 'integer' },
-      categoriaNombre: { type: 'string' },
+      id: entero,
+      titulo: texto,
+      orden: entero,
+      tipo: {
+        type: 'string',
+        enum: [
+          'DOCUMENTO',
+          'VIDEO',
+          'EVALUACION',
+        ],
+      },
+      archivo: {
+        type: 'object',
+        nullable: true,
+        allOf: [ref('ArchivoPdf')],
+      },
+    },
+  },
+
+  ModuloPrivado: {
+    type: 'object',
+    required: [
+      'id',
+      'titulo',
+      'orden',
+      'lecciones',
+    ],
+    properties: {
+      id: entero,
+      titulo: texto,
+      orden: entero,
+      lecciones: {
+        type: 'array',
+        items: ref('LeccionPrivada'),
+      },
+    },
+  },
+
+  ValidacionCurso: {
+    type: 'object',
+    required: ['completo', 'problemas'],
+    properties: {
+      completo: {
+        type: 'boolean',
+      },
+      problemas: {
+        type: 'array',
+        items: ref('ProblemaCampo'),
+      },
+    },
+  },
+
+  CursoResumen: {
+    type: 'object',
+    required: [
+      'id',
+      'titulo',
+      'estado',
+      'motivoRechazo',
+      'docente',
+      'modulos',
+    ],
+    properties: {
+      id: entero,
+      titulo: texto,
+      estado,
+      motivoRechazo: {
+        type: 'string',
+        nullable: true,
+      },
+      docente: texto,
+      modulos: {
+        type: 'integer',
+        minimum: 0,
+      },
+    },
+  },
+
+  CursoDetalle: {
+    type: 'object',
+    required: [
+      'id',
+      'titulo',
+      'subtitulo',
+      'descripcion',
+      'categoriaId',
+      'categoriaNombre',
+      'nivel',
+      'portadaUrl',
+      'objetivos',
+      'requisitos',
+      'estado',
+      'motivoRechazo',
+      'docente',
+      'modulos',
+      'validacion',
+    ],
+    properties: {
+      id: entero,
+      titulo: texto,
+      subtitulo: { ...texto, description: 'Cadena vacía si no tiene.' },
+      descripcion: { ...texto, description: 'Cadena vacía si no tiene.' },
+      categoriaId: entero,
+      categoriaNombre: texto,
       nivel,
-      portadaUrl: { type: 'string' },
+      portadaUrl: { ...texto, description: 'Cadena vacía si no tiene.' },
       objetivos: {
         type: 'array',
-        items: { type: 'string' },
+        items: texto,
       },
       requisitos: {
         type: 'array',
-        items: { type: 'string' },
+        items: texto,
       },
       estado,
-      motivoRechazo: { type: 'string', nullable: true },
-      docente: { type: 'string' },
+      motivoRechazo: {
+        type: 'string',
+        nullable: true,
+      },
+      docente: texto,
       modulos: {
         type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'integer' },
-            titulo: { type: 'string' },
-            orden: { type: 'integer' },
-            lecciones: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'integer' },
-                  titulo: { type: 'string' },
-                  orden: { type: 'integer' },
-                  tipo: {
-                    type: 'string',
-                    enum: ['DOCUMENTO', 'VIDEO', 'EVALUACION'],
-                  },
-                  archivo: {
-                    nullable: true,
-                    allOf: [{
-                      type: 'object',
-                      properties: {
-                        id: { type: 'integer' },
-                        tipo: { type: 'string', enum: ['PDF'] },
-                        nombreOriginal: { type: 'string' },
-                        tamanoBytes: { type: 'integer' },
-                      },
-                    }],
-                  },
-                },
-              },
-            },
-          },
-        },
+        items: ref('ModuloPrivado'),
       },
-      validacion: {
-        type: 'object',
-        properties: {
-          completo: { type: 'boolean' },
-          problemas: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                campo: { type: 'string' },
-                mensaje: { type: 'string' },
-              },
-            },
-          },
-        },
-      },
+      validacion: ref('ValidacionCurso'),
     },
   },
 };
@@ -237,13 +302,15 @@ export const rutasGestionCursos = {
       200,
       {
         type: 'object',
+        required: ['items'],
         properties: {
           items: {
             type: 'array',
-            items: ref('CursoResumenIntegrante2'),
+            items: ref('CursoResumen'),
           },
         },
       },
+      [401, 403],
     ),
   },
 
@@ -253,8 +320,9 @@ export const rutasGestionCursos = {
         'Consultar el detalle de un curso propio',
         200,
         detalle,
+        [400, 401, 403, 404],
       ),
-      parameters: [id],
+      parameters: [idRuta],
     },
   },
 
@@ -263,7 +331,8 @@ export const rutasGestionCursos = {
       'Crear curso en estado BORRADOR',
       201,
       detalle,
-      cuerpo(datosCurso),
+      [400, 401, 403],
+      cuerpo(ref('DatosCurso')),
     ),
   },
 
@@ -273,9 +342,10 @@ export const rutasGestionCursos = {
         'Actualizar un curso BORRADOR o RECHAZADO',
         200,
         detalle,
-        cuerpo(datosCurso),
+        todos,
+        cuerpo(ref('DatosCurso')),
       ),
-      parameters: [id],
+      parameters: [idRuta],
     },
   },
 
@@ -285,9 +355,10 @@ export const rutasGestionCursos = {
         'Crear módulo dentro de un curso propio',
         201,
         detalle,
-        cuerpo(datosModulo),
+        todos,
+        cuerpo(ref('DatosModulo')),
       ),
-      parameters: [id],
+      parameters: [idRuta],
     },
   },
 
@@ -297,17 +368,19 @@ export const rutasGestionCursos = {
         'Actualizar un módulo',
         200,
         detalle,
-        cuerpo(datosModulo),
+        todos,
+        cuerpo(ref('DatosModulo')),
       ),
-      parameters: [id],
+      parameters: [idRuta],
     },
     delete: {
       ...operacion(
         'Eliminar un módulo y coordinar limpieza de PDF',
         200,
         detalle,
+        todos,
       ),
-      parameters: [id],
+      parameters: [idRuta],
     },
   },
 
@@ -317,9 +390,10 @@ export const rutasGestionCursos = {
         'Crear una lección DOCUMENTO',
         201,
         detalle,
-        cuerpo(datosLeccion),
+        todos,
+        cuerpo(ref('DatosLeccion')),
       ),
-      parameters: [id],
+      parameters: [idRuta],
     },
   },
 
@@ -329,17 +403,19 @@ export const rutasGestionCursos = {
         'Actualizar una lección DOCUMENTO',
         200,
         detalle,
-        cuerpo(datosLeccion),
+        todos,
+        cuerpo(ref('DatosLeccion')),
       ),
-      parameters: [id],
+      parameters: [idRuta],
     },
     delete: {
       ...operacion(
         'Eliminar una lección y coordinar limpieza de PDF',
         200,
         detalle,
+        todos,
       ),
-      parameters: [id],
+      parameters: [idRuta],
     },
   },
 
@@ -349,12 +425,13 @@ export const rutasGestionCursos = {
         'Validar y enviar curso a revisión administrativa',
         200,
         detalle,
+        todos,
       ),
       description:
         'Exige curso completo, docente propietario y estado BORRADOR ' +
         'o RECHAZADO. Si faltan requisitos devuelve 400 con detalles. ' +
         'Si es válido cambia el estado a EN_REVISION en una transacción.',
-      parameters: [id],
+      parameters: [idRuta],
     },
   },
 };

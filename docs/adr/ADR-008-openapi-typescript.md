@@ -57,7 +57,7 @@ A cuesta 0 en dependencias, pero mantiene el problema que motiva el ADR-007. C y
 ## Acciones
 
 1. [x] `arquitecto` lo añade en `frontend/package.json` (`7.13.0`, exacta) con el script `api:tipos` (Fase 2A).
-2. [ ] Cerrar C-08 a C-11 y C-18 en `openapi*.ts` antes de la primera generación (`arquitecto`, Fase 2A).
+2. [x] Cerrar C-08 a C-11 y C-18 en `openapi*.ts` antes de la primera generación (`arquitecto`, Fase 2A; ver `COMPARACION_RUTAS.md` §6).
 3. [ ] `fe-b` crea `core/api/contrato.ts` a partir del archivo generado.
 
 ## Cómo se verifica
