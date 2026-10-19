@@ -20,3 +20,6 @@ backend/.buzon/
 Thumbs.db
 *.log
 .idea/
+
+# Worktrees de los teammates del refactor
+.worktrees/
