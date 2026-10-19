@@ -594,6 +594,13 @@ Cada paso lleva su turno de `learnity_test` con el lead y se cierra con un commi
 
 **Resultado.** `openapi.yaml` (28 rutas, 33 operaciones) se parseó como JSON quitando las líneas `#`, igual que hace el `arquitecto`, y se buscó cada operación en la tabla de §11: **33 de 33 tienen casos asignados**. No hay operaciones en el contrato sin casos, ni casos sobre operaciones que no estén en el contrato. `/api/docs` (E02) no está en el contrato, como es normal (C-02).
 
+**Comando → salida** (19-10-2026, `refactor/qa-edge` tras `git merge integration/sprint-2` = `055dcbe`; script de solo lectura en el scratchpad de `qa-edge`, fuera del repositorio. Quita las líneas `#` de `openapi.yaml`, hace `JSON.parse` y busca cada `| \`VERBO /api/ruta\`` en la tabla de §11):
+
+```
+node contraste-openapi.cjs
+openapi.yaml: rutas 28 · operaciones 33 · con casos en §11 33
+```
+
 **Hallazgos C-01 a C-18 → casos.** La caracterización fija el comportamiento **real**, no el que declara el contrato. Donde el contrato y el código discrepan, gana el código, y la discrepancia se cierra por documentación (`arquitecto`) o por contrato (ADR).
 
 | Hallazgo | Tipo de cierre | Caso que fija el comportamiento real |
