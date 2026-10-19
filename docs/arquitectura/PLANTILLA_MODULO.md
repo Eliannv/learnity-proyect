@@ -79,11 +79,13 @@ Se ejecuta sobre la rama del dueño antes de cada integración en `integration/s
 | R7 | Sin `console.*` en la aplicación | `grep -rn "console\." backend/src --include=*.ts \| grep -v "database/seed.ts"` | Vacío (después del ADR-006) |
 | R8 | Nunca se expone `ruta` | `grep -rn "ruta" backend/src/modules --include=*.ts` y revisar | Solo en el repositorio o el almacén de Contenido, nunca en un `modelo` ni en una respuesta |
 | R9 | Contrato sin cambios | Regenerar `openapi.yaml` (procedimiento de `docs/api/COMPARACION_RUTAS.md`) y `git diff --exit-code docs/api/openapi.yaml`; `comparar-rutas.mjs` → 33/33, 0 y 0 | Sin diferencias, o un ADR aprobado que las justifique |
-| R10 | Compila y pasa | `npm run build`, `npm run typecheck` y la suite (con turno del lead) | exit 0, sin cambiar expectativas |
+| R10 | Compila y pasa | `npm run build`, `npm run typecheck` y la suite (con turno del lead) | exit 0, sin cambiar expectativas (salvo las CONGELADO-INSEGURO que actualice un ADR aprobado, en el mismo commit) |
+| R10b | `npm test` incluye todas las suites | `node -e "console.log(require('./backend/package.json').scripts['test:local'])"` | Usa el glob `test/**/*.test.ts` (cubre `test/caracterizacion/**` y `test/seguridad/**`), no una lista de archivos |
 | R11 | Nombres por dominio | `git ls-files backend/src \| grep -iE "integrante\|integracion"` | Vacío al cerrar la Fase 2B |
 
 ## 6. Pruebas del módulo
 
 - Las pruebas importan el `index.ts` del módulo (y `crearApp()` para HTTP), no sus archivos internos. Si una prueba necesita sustituir una dependencia, lo hace a través de la API pública o de un puerto.
+- **`npm test` ejecuta todas las suites por glob** (H10 de `RIESGOS.md`). Hoy `test:local` enumera los archivos uno a uno, así que una suite nueva en `test/caracterizacion/**`, `test/seguridad/**` o `test/<m>/**` no se ejecutaría. En la Fase 2A, `arquitecto` cambia `test:local` en `backend/package.json` por el glob `test/**/*.test.ts` (conservando `--env-file=.env.test`, `--test-concurrency=1` y la exclusión de HIBP) y comprueba que el número de pruebas no baja.
 - Toda suite que toque la base importa `backend/test/ayudas/guardia-bd.ts` (de `qa-edge`), que aborta si `DB_NAME` no termina en `_test`.
 - La caracterización (`backend/test/caracterizacion/**`, de `qa-edge`) tiene que estar en verde **antes** de mover código, y se sigue ejecutando después sin cambios.
