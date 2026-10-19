@@ -51,7 +51,8 @@ export const manejadorErrores: ErrorRequestHandler = (error, _req, res, _next) =
     res.status(409).json({ error: { codigo: 'CONFLICTO', mensaje: 'Ya existe un registro con esos datos.' } });
     return;
   }
-  if (pgCodigo === '23514' || pgCodigo === '23503') {
+  // 22021: texto con NUL que no pasó por `textoSeguro` (red de seguridad; ADR-011, 11.7).
+  if (pgCodigo === '22021' || pgCodigo === '23514' || pgCodigo === '23503') {
     res.status(400).json({ error: { codigo: 'SOLICITUD_INVALIDA', mensaje: 'Los datos no cumplen las reglas de la base de datos.' } });
     return;
   }
