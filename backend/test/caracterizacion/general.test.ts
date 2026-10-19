@@ -10,12 +10,10 @@ before(async () => { srv = await iniciarServidor(); });
 after(async () => { await srv?.cerrar(); });
 
 describe('rutas generales', () => {
-  it('CAR-GEN-01 CONGELADO-INSEGURO (S4, ADR-011 11.1): /api/salud expone base, usuario y roles', async () => {
+  it('CAR-GEN-01 (ADR-011, 11.1): /api/salud responde solo { estado: "ok" }', async () => {
     const r = await srv.pedir('/api/salud');
     assert.equal(r.status, 200);
-    assert.equal(r.json.estado, 'ok');
-    assert.deepEqual(Object.keys(r.json.baseDeDatos), ['base', 'usuario', 'roles']);
-    assert.match(r.json.baseDeDatos.base, /_test$/);
+    assert.deepEqual(r.json, { estado: 'ok' });
   });
 
   it('CAR-GEN-02: ruta inexistente -> 404 NO_ENCONTRADO', async () => {

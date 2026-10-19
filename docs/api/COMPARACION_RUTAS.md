@@ -120,7 +120,7 @@ Solo cambian `openapi*.ts` y `openapi.yaml`; ninguna ruta, cuerpo, código HTTP 
 
 | ID | Estado | Cómo se cerró |
 |---|---|---|
-| C-01 | **Cerrado** (documentación) | `GET /salud` describe `{ estado: "ok", baseDeDatos: { base, usuario, roles } }` y el 500 con la base caída. Quitar `baseDeDatos` y el 503 son los puntos 11.1 y 11.2 del ADR-011 (aceptados, `be-a`); su commit actualizará `openapi.ts` |
+| C-01 | **Cerrado** (contrato) | Fase 2A: `GET /salud` describía `{ estado: "ok", baseDeDatos: { base, usuario, roles } }`. Con el punto 11.1 del ADR-011 (`be-a`, `9060760`) responde `200 { estado: "ok" }` y `openapi.ts` lo describe así |
 | C-02 | Sin cambio en el contrato | `/api/docs` no es una operación. Restringirlo es el punto 11.3 (aceptado, `be-a`) |
 | C-03 | **Cerrado** | 403 en `POST /solicitudes-docente` |
 | C-04 | **Cerrado** | 401 en `PUT /admin/solicitudes/{id}` |
