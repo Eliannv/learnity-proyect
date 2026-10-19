@@ -2817,7 +2817,7 @@
           "General"
         ],
         "summary": "Estado del servidor y conexión a PostgreSQL",
-        "description": "Hace un `SELECT 1` y no devuelve ningún dato de la base (ADR-011, 11.1). Con la base de datos caída responde 500 (ERROR_INTERNO).",
+        "description": "Hace un `SELECT 1` y no devuelve ningún dato de la base (ADR-011, 11.1). Si PostgreSQL no responde, devuelve 503 `{ estado: \"sin_bd\" }` y registra el evento `salud_sin_bd` (ADR-011, 11.2).",
         "responses": {
           "200": {
             "description": "El servidor responde y PostgreSQL también",
@@ -2842,6 +2842,27 @@
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"
+          },
+          "503": {
+            "description": "El servidor responde, pero PostgreSQL no. No usa `ErrorApi`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "estado"
+                  ],
+                  "properties": {
+                    "estado": {
+                      "type": "string",
+                      "enum": [
+                        "sin_bd"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

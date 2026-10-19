@@ -8,6 +8,7 @@ import { registrarVerificadorSesion } from './shared/auth/middlewares.js';
 import { correlacion, ENCABEZADO_ID_PETICION } from './shared/http/correlacion.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-errores.js';
 import { comprobarConexion } from './shared/http/salud.repository.js';
+import { registrarEvento } from './shared/log/registro.js';
 import { openApi } from './shared/http/openapi.js';
 import { identidadRoutes } from './modules/identidad/identidad.routes.js';
 import { identidadService } from './modules/identidad/identidad.service.js';
@@ -41,9 +42,15 @@ export function crearApp() {
 
   registrarPuertos();
 
-  // Comprobación rápida: ¿el servidor responde y llega a PostgreSQL? (ADR-011, 11.1: sin datos internos)
+  // Comprobación rápida: ¿el servidor responde y llega a PostgreSQL? (ADR-011, 11.1: sin datos internos; 11.2: 503 si la base no responde)
   app.get('/api/salud', async (_req, res) => {
-    await comprobarConexion();
+    try {
+      await comprobarConexion();
+    } catch (error) {
+      registrarEvento('salud_sin_bd', { codigoPg: (error as { code?: string }).code }, 'error');
+      res.status(503).json({ estado: 'sin_bd' });
+      return;
+    }
     res.json({ estado: 'ok' });
   });
 

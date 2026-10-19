@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
 
+const { pool } = await import('../../src/shared/database/pool.js');
+
 let srv: Servidor;
 
 before(async () => { srv = await iniciarServidor(); });
@@ -23,6 +25,25 @@ describe('rutas generales', () => {
     const b = await srv.pedir('/api/cursos/1', { metodo: 'PATCH' });
     assert.equal(b.status, 404);
     assert.equal(b.json.error.mensaje, 'La ruta PATCH /api/cursos/1 no existe.');
+  });
+
+  it('CAR-GEN-03 (ADR-011, 11.2): con la base caída /api/salud responde 503 { estado: "sin_bd" }', async () => {
+    // Doble sobre pool.query (la consulta de salud pasa por ahí). Se restaura siempre y se exige que se haya llamado.
+    const original = pool.query;
+    let llamadas = 0;
+    (pool as { query: unknown }).query = async () => {
+      llamadas++;
+      throw Object.assign(new Error('conexión terminada'), { code: '57P01' });
+    };
+    try {
+      const r = await srv.pedir('/api/salud');
+      assert.ok(llamadas > 0, 'el doble de la base no se llamó: la prueba no ejercitó el fallo');
+      assert.equal(r.status, 503);
+      assert.deepEqual(r.json, { estado: 'sin_bd' });
+    } finally {
+      (pool as { query: unknown }).query = original;
+    }
+    assert.equal((await srv.pedir('/api/salud')).status, 200, 'el pool vuelve a servir');
   });
 
   it('CAR-GEN-04 CONGELADO-INSEGURO (S4, ADR-011 11.3): /api/docs es público', async () => {

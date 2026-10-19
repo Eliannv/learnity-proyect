@@ -179,11 +179,14 @@ export const openApi = {
         tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL',
         description:
           'Hace un `SELECT 1` y no devuelve ningún dato de la base (ADR-011, 11.1). ' +
-          'Con la base de datos caída responde 500 (ERROR_INTERNO).',
+          'Si PostgreSQL no responde, devuelve 503 `{ estado: "sin_bd" }` y registra el evento `salud_sin_bd` (ADR-011, 11.2).',
         responses: {
           200: json({ type: 'object', required: ['estado'], properties: {
             estado: { type: 'string', enum: ['ok'] },
           } }, 'El servidor responde y PostgreSQL también'),
+          503: json({ type: 'object', required: ['estado'], properties: {
+            estado: { type: 'string', enum: ['sin_bd'] },
+          } }, 'El servidor responde, pero PostgreSQL no. No usa `ErrorApi`'),
           500: errorInterno,
         },
       },
