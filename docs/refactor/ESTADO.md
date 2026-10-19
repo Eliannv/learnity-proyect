@@ -124,10 +124,11 @@ Copia de la §6 del prompt del lead, con las correcciones de la verificación. S
 |---|---|---|
 | Fase 0B: línea base | lead | Hecho |
 | `docs/api/openapi.yaml` (contrato actual) y `docs/api/COMPARACION_RUTAS.md` (hallazgos C-01–C-18) | `arquitecto` | Hecho e integrado (`ff37b06`). 33/33 operaciones coinciden con las rutas reales. Solo C-14 (500 ante JSON mal formado o >1 MB) es de contrato (ADR-006); C-01/C-02 van al ADR-011; el resto es documentación |
-| ADR 001–007 (el ADR-002 sigue D8 = A); ADR 008–010 (D9) y ADR-011 (endurecimiento con impacto en el contrato: `/api/salud`, Swagger solo en desarrollo, 429 en la subida, disco temporal) | `arquitecto` | En curso |
-| `docs/arquitectura/PLANTILLA_MODULO.md` y `CONTRATOS_SERVICIO.md` | `arquitecto` | En curso |
+| ADR 001–011 | `arquitecto` | Integrados (`0e754bf`, `2d9265e`). Ajuste pendiente: el ADR-011 debe incluir C-14/H1, H4+S6, H5 y H11 como puntos opcionales; el ADR-002 debe recoger las vistas acordadas con `db` (`catalogo_curso`, `catalogo_temario` y `catalogo_categoria` propuesta). ADR-010 recomienda aplazar `pg_trgm` |
+| `docs/arquitectura/PLANTILLA_MODULO.md` (lista de revisión de integración R1–R11) y `CONTRATOS_SERVICIO.md` | `arquitecto` | Integrados (`157fe81`) |
 | `docs/bd/PLAN_BD.md` y migraciones 017–026 (`up`/`down`): control de migraciones, roles y dueños, privilegios mínimos (+019b solo en _test), auditoría, `actualizado_en`, corrección de cursos (022), CHECK PUBLICADO (023), solicitud pendiente única, índices de FK, vistas del catálogo (D8); `pg_trgm` como propuesta sin número | `db` | En curso: PLAN_BD (`5d0819d`) y 017–021 (`35c7775`) escritos, **sin ejecutar** (NO VERIFICADO hasta el turno en `learnity_test`). No se integran hasta pasar el ciclo `up → down → up`. Faltan 022–026, los scripts, `database/README.md` y `pg_trgm` |
 | Seam estable para inyectar fallos de disco y BD que sobreviva al refactor (RG-06/H9); revisar `pool.ts:29-40`: si la conexión murió, el ROLLBACK del catch falla y oculta el error original, y `release()` se llama sin el error, con lo que el pool podría reutilizar un cliente roto (NO VERIFICADO, qa-edge) | `be-b` (con `qa-edge`) | Fase 2A |
+| Corregir la dependencia invertida `shared/cursos/peticion.ts:4` → `pages/auth/mensaje-error` (detectada en el ADR-007) al mover `peticion.ts` a `core/estado` | `fe-b` (con `fe-a`, dueño de `pages/auth`) | Fase 2A |
 | Ajustar el arreglo de datos de las pruebas para fijar `revisado_por` y `publicado_en` en los cursos PUBLICADO (requisito para aplicar la 023) | `be-a` (`cursos-publicos.test.ts`) y `be-b` (`cursos-gestion-http.test.ts`, `administracion-contenido.test.ts`, `scripts/sembrar-catalogo.ts`) | Fase 2A |
 | `docs/refactor/RIESGOS.md` y `docs/refactor/PLAN_PRUEBAS.md` | `qa-edge` | **Hecho e integrado** (`5e5791c` y `cb47761`): 60 riesgos (13 altos, 9 CONGELADO-INSEGURO) y 136 casos CAR. Contraste con `openapi.yaml`: 33/33 operaciones con casos; C-01–C-18 asignados (C-14 CONGELADO-INSEGURO). Huecos confirmados: sin prueba HTTP de `GET /docente/cursos`, `DELETE /lecciones/:id` ni del éxito de `enviar-revision` |
 
@@ -135,6 +136,7 @@ Copia de la §6 del prompt del lead, con las correcciones de la verificación. S
 
 | Fecha | Origen | Commit | Contenido | Verificación del lead |
 |---|---|---|---|---|
+| 19-10-2026 | `refactor/arquitecto` | `0e754bf`, `2d9265e`, `157fe81` | ADR 001–011, `docs/adr/README.md`, `PLANTILLA_MODULO.md`, `CONTRATOS_SERVICIO.md` | Sus commits solo tocan `docs/adr/**` y `docs/arquitectura/**`; todos los ADR tienen opciones (tabla) y consecuencias |
 | 19-10-2026 | `refactor/qa-edge` | `cb47761` | Contraste con `openapi.yaml` (§12 de PLAN_PRUEBAS) y riesgos RG-57–RG-60 de las migraciones | Solo toca sus 2 archivos; 136 filas CAR y 60 RG |
 | 19-10-2026 | `refactor/qa-edge` | `5e5791c` | `RIESGOS.md` y `PLAN_PRUEBAS.md` | Solo toca esos dos archivos (de su propiedad); se cuentan 56 filas RG y 133 IDs CAR distintos |
 | 19-10-2026 | `refactor/arquitecto` | `ff37b06` | E1: `docs/api/openapi.yaml` y `docs/api/COMPARACION_RUTAS.md` | Solo toca `docs/api/**` (de su propiedad); JSON válido tras quitar la cabecera `#`: 28 rutas, 33 operaciones y 15 esquemas |
