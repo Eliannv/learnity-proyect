@@ -177,16 +177,13 @@ export const openApi = {
     '/salud': {
       get: {
         tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL',
-        description: 'Con la base de datos caída responde 500 (ERROR_INTERNO).',
+        description:
+          'Hace un `SELECT 1` y no devuelve ningún dato de la base (ADR-011, 11.1). ' +
+          'Con la base de datos caída responde 500 (ERROR_INTERNO).',
         responses: {
-          200: json({ type: 'object', required: ['estado', 'baseDeDatos'], properties: {
+          200: json({ type: 'object', required: ['estado'], properties: {
             estado: { type: 'string', enum: ['ok'] },
-            baseDeDatos: { type: 'object', required: ['base', 'usuario', 'roles'], properties: {
-              base: { type: 'string', description: 'Nombre de la base de datos.' },
-              usuario: { type: 'string', description: 'Usuario de PostgreSQL de la conexión.' },
-              roles: { type: 'integer', description: 'Filas de la tabla `rol`.' },
-            } },
-          } }),
+          } }, 'El servidor responde y PostgreSQL también'),
           500: errorInterno,
         },
       },
