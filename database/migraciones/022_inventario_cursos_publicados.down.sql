@@ -1,8 +1,7 @@
 -- =====================================================================
--- 022 · Corrección de cursos PUBLICADO sin revisor o sin fecha (down)
--- Restaura estado, revisado_por y publicado_en exactamente como estaban
--- (schema_migraciones.reversion). actualizado_en y auditoria_cambio registran
--- esta restauración como un cambio más.
+-- 022 · Inventario de cursos PUBLICADO sin revisor o sin fecha (down)
+-- Quita la vista. El up no cambió ningún dato, así que no hay nada que
+-- restaurar en curso.
 -- Ejecutar con postgres.
 -- =====================================================================
 SET client_encoding = 'UTF8';
@@ -22,13 +21,7 @@ END $$;
 
 SET LOCAL ROLE learnity_owner;
 
-UPDATE curso c
-   SET estado       = o.estado,
-       revisado_por = o.revisado_por,
-       publicado_en = o.publicado_en
-  FROM jsonb_to_recordset((SELECT reversion -> 'cursos' FROM schema_migraciones WHERE version = '022'))
-       AS o(id_curso INTEGER, estado VARCHAR(12), revisado_por INTEGER, publicado_en TIMESTAMPTZ)
- WHERE c.id_curso = o.id_curso;
+DROP VIEW curso_publicado_sin_revision;
 
 DELETE FROM schema_migraciones WHERE version = '022';
 
