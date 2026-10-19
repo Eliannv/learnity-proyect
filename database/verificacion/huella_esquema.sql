@@ -14,7 +14,9 @@
 -- * La categoría roles es del clúster: si otra base usa los roles learnity_*,
 --   el down de la 018 los conserva y esa categoría puede diferir (está
 --   documentado).
--- * datos_curso cubre lo que modifica la 022.
+-- * datos_curso (estado, revisado_por y publicado_en de cada curso) comprueba
+--   que ninguna migración cambia esos datos: la 022 y la 023 no tocan curso
+--   (decisión BD-022).
 -- * Las columnas "char" del catálogo (relkind, contype, attidentity…) se
 --   convierten con ::TEXT antes de concatenar: text || "char" es ambiguo.
 -- =====================================================================

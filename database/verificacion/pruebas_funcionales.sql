@@ -4,6 +4,9 @@
 -- Ejecutar con postgres en learnity_test: hace SET ROLE a learnity_app y a
 -- learnity_lectura para probar los permisos reales, y prueba la auditoría,
 -- actualizado_en, el CHECK, el índice único parcial y las vistas.
+-- Las filas heredadas de la decisión BD-022 (022 y 023) las prueba
+-- pruebas_heredadas.sql. Las pruebas nuevas van al final para no cambiar la
+-- numeración de las anteriores.
 -- Todo corre dentro de BEGIN … ROLLBACK, así que no deja datos.
 -- Las pruebas de una migración que no está aplicada salen como NO APLICA.
 --
@@ -310,6 +313,38 @@ BEGIN
                   AND c.id_curso IN (SELECT id FROM catalogo_curso)$q$ INTO v_obtenido;
   END IF;
   PERFORM pg_temp.anotar('vistas: solo cursos PUBLICADO', '026', '0', v_obtenido);
+END $$;
+
+-- ---------------------------------------------------------------- 022 y 023 (BD-022)
+SELECT pg_temp.anotar('lectura: SELECT curso_publicado_sin_revision', '022', 'permitido',
+       pg_temp.intentar('learnity_lectura', 'SELECT * FROM curso_publicado_sin_revision LIMIT 1'));
+SELECT pg_temp.anotar('app: SELECT curso_publicado_sin_revision', '022', 'denegado',
+       pg_temp.intentar('learnity_app', 'SELECT * FROM curso_publicado_sin_revision LIMIT 1'));
+SELECT pg_temp.anotar('CHECK curso_publicado_revisado sin validar', '023', 'NOT VALID',
+       COALESCE((SELECT CASE WHEN convalidated THEN 'VALIDADO' ELSE 'NOT VALID' END
+                   FROM pg_constraint
+                  WHERE conrelid = 'public.curso'::regclass AND conname = 'curso_publicado_revisado'), 'no existe'));
+DO $$
+DECLARE
+  v_obtenido TEXT;
+  v_persona  INTEGER;
+  v_docente  INTEGER;
+  v_cat      INTEGER;
+BEGIN
+  BEGIN
+    INSERT INTO persona (nombres, apellidos) VALUES ('Check', 'Valido') RETURNING id_persona INTO v_persona;
+    INSERT INTO docente (id_persona, especialidad) VALUES (v_persona, 'Pruebas') RETURNING id_docente INTO v_docente;
+    INSERT INTO categoria (nombre, creada_por) VALUES ('Prueba check valido ' || v_persona, v_persona) RETURNING id_categoria INTO v_cat;
+    INSERT INTO curso (id_docente, id_categoria, titulo, estado, revisado_por, publicado_en)
+    VALUES (v_docente, v_cat, 'Publicado con revisor y fecha', 'PUBLICADO', v_persona, now());
+    v_obtenido := 'aceptado';
+    RAISE EXCEPTION USING ERRCODE = 'LRN01';
+  EXCEPTION
+    WHEN SQLSTATE 'LRN01' THEN NULL;
+    WHEN check_violation THEN v_obtenido := 'rechazado';
+    WHEN OTHERS THEN v_obtenido := 'error ' || SQLSTATE || ': ' || SQLERRM;
+  END;
+  PERFORM pg_temp.anotar('curso PUBLICADO con revisor y fecha', '023', 'aceptado', v_obtenido);
 END $$;
 
 -- ---------------------------------------------------------------- Resultado

@@ -62,7 +62,8 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_lectura', 'auditoria_cambio',          'SELECT'),
     ('learnity_lectura', 'catalogo_categoria',        'SELECT'),
     ('learnity_lectura', 'catalogo_curso',            'SELECT'),
-    ('learnity_lectura', 'catalogo_temario',          'SELECT')
+    ('learnity_lectura', 'catalogo_temario',          'SELECT'),
+    ('learnity_lectura', 'curso_publicado_sin_revision', 'SELECT')
 ),
 esperado_columna (rol, objeto, columna) AS (
   SELECT 'learnity_lectura', 'usuario', unnest(ARRAY['id_usuario', 'id_persona', 'correo', 'estado',
