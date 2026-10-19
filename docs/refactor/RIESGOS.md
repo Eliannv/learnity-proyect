@@ -98,7 +98,7 @@ Salen de leer el código en `3c3c159`. Ninguno se ha ejecutado: **NO VERIFICADO*
 |---|---|---|---|---|---|---|---|---|---|
 | RG-23 | **H6.** IDs aceptados con `coerce` | ver H6 | 2 | 1 | 2 | Paquete ID: `abc`, `0`, `-1`, `1.5`, `2147483648` → 400; `2147483647` → 404; `1e3`, `0x10`, ` 7 ` y `7.0` → se tratan como número | Sí | **CONGELADO-INSEGURO** | `be-a`/`be-b` |
 | RG-24 | **Límites y unicode.** Título 150, descripción 10 000, listas 10 × 200, motivo 50–2000, observación y motivo de rechazo 300, `q` 100, `categoria` repetible ≤ 20. Emoji, NFC/NFD, RTL, caracteres de ancho cero y **NUL (H11)** | `cursos-gestion.esquemas.ts`; `administracion.esquemas.ts`; `cursos.controller.ts:11-21` | 2 | 2 | 4 | Familia X de cada endpoint (límite exacto y límite + 1). CAR-CUR-08 y CAR-IDE-07 (NUL) | Sí (H11) | Parcial (`cursos-gestion.test.ts` prueba algunos límites sin HTTP) | `qa-edge` |
-| RG-25 | **H1.** JSON mal formado, cuerpo > 1 MB o `Content-Type` inesperado | ver H1 | 3 | 2 | **6** | CAR-GEN-05/06/07 fijan el 500 | Sí | **CONGELADO-INSEGURO** | `be-a` (ADR-011) |
+| RG-25 | **H1 = C-14** (`COMPARACION_RUTAS.md`). JSON mal formado, cuerpo > 1 MB, charset no admitido o `Content-Type` inesperado | ver H1 | 3 | 2 | **6** | CAR-GEN-05, 06, 07 y 11 fijan el 500 | Sí | **CONGELADO-INSEGURO** | `be-a` (ADR-011) |
 | RG-26 | **Query strings anómalas:** `q` repetido (llega como array), `pagina=10000` con `limite=50`, parámetros desconocidos (`strictObject`) | `cursos.controller.ts:14-21`; `administracion.esquemas.ts:9-13, 34-36` | 2 | 1 | 2 | CAR-CAT-08 a CAR-CAT-12; CAR-REV-02; CAR-SOL-08 | No | Parcial (`cursos-publicos.test.ts:176`) | — |
 | RG-27 | **Campos extra en el cuerpo.** `strictObject` los rechaza con 400; un refactor a `object()` los aceptaría en silencio | todos los esquemas | 2 | 1 | 2 | Familia V: un campo extra da 400 `SOLICITUD_INVALIDA` | No | Hueco | — |
 
@@ -137,7 +137,7 @@ Salen de leer el código en `3c3c159`. Ninguno se ha ejecutado: **NO VERIFICADO*
 |---|---|---|---|---|---|---|---|---|---|
 | RG-42 | **XSS almacenado.** Títulos, descripción, objetivos, motivo de la solicitud, biografía y nombre del PDF se guardan y se devuelven sin modificar. Angular escapa por defecto y no hay `innerHTML` (F6) | Auditoría §5.2 F6 | 1 | 3 | 3 | SEG-15 (HTTP): la API devuelve el texto literal y `Content-Type: application/json`. E2E-03 (navegador, pendiente de D9): el payload se ve como texto | No | Hueco | `qa-edge`; `fe-a`/`fe-b` |
 | RG-43 | **S6 y H4.** Portada externa (rastreo, contenido mixto) y dos validaciones distintas | ver H4 | 1 | 1 | 1 | CAR-CUR-07, SEG-19 | Sí | **CONGELADO-INSEGURO** | `be-b` |
-| RG-44 | **S4.** Swagger UI público en cualquier entorno | `app.ts:43` | 3 | 1 | 3 | CAR-GEN-04: `GET /api/docs/` responde 200 con HTML | Sí | **CONGELADO-INSEGURO** | `be-a` (ADR-011) |
+| RG-44 | **S4 = C-02.** Swagger UI público en cualquier entorno | `app.ts:43` | 3 | 1 | 3 | CAR-GEN-04: `GET /api/docs/` responde 200 con HTML | Sí | **CONGELADO-INSEGURO** | `be-a` (ADR-011) |
 
 ### 3.10 CSRF, origen y CORS
 
@@ -150,7 +150,7 @@ Salen de leer el código en `3c3c159`. Ninguno se ha ejecutado: **NO VERIFICADO*
 
 | ID | Riesgo | Evidencia | P | I | Pts | Mitigación y casos | ¿Contrato? | Estado | Dueño |
 |---|---|---|---|---|---|---|---|---|---|
-| RG-47 | **S4.** `/api/salud` expone `current_database`, `current_user` y el número de roles a cualquier visitante | `app.ts:35-40` | 3 | 1 | 3 | CAR-GEN-01 fija `{ estado: 'ok', baseDeDatos: { base, usuario, roles } }` | Sí | **CONGELADO-INSEGURO** | `be-a` (ADR-011) |
+| RG-47 | **S4 = C-01.** `/api/salud` expone `current_database`, `current_user` y el número de roles a cualquier visitante | `app.ts:35-40` | 3 | 1 | 3 | CAR-GEN-01 fija `{ estado: 'ok', baseDeDatos: { base, usuario, roles } }` | Sí | **CONGELADO-INSEGURO** | `be-a` (ADR-011) |
 | RG-48 | **S7.** `console.error(error)` incluye el `detail` de PostgreSQL. En `development`, `detalles` del 500 lleva `error.message` | `manejador-errores.ts:43-49` | 2 | 1 | 2 | CAR-GEN-05: con `NODE_ENV=test` no hay `detalles` en el 500 | No | Hueco | `be-a` |
 | RG-49 | **`archivo.ruta` nunca sale en una respuesta** (2.3-d), y menos en el catálogo migrado a vistas (D8) | `cursos.repository.ts:69-78`; `cursos-integracion.service.ts:315-324` | 1 | 3 | 3 | **Recorrido profundo de cada JSON** de la caracterización: ninguna clave `ruta` y ningún valor con un nombre interno `<uuid>.pdf` ni con `PDF_DIR`. Lo aplica la ayuda `sinRutasPrivadas()` en todos los casos C | No | Parcial (`cursos-publicos.test.ts:161`; `administracion-contenido.test.ts:515, 1336`) | `qa-edge` |
 | RG-50 | **Hash de la contraseña en una respuesta** | `identidad.test.ts:289` | 1 | 3 | 3 | Cubierto. La ayuda de recorrido profundo también busca `hash`, `contrasena` y `password` | No | **Cubierto** | — |
@@ -171,6 +171,17 @@ Salen de leer el código en `3c3c159`. Ninguno se ha ejecutado: **NO VERIFICADO*
 | RG-55 | **A6: unificar la validación** cambiaría los mensajes y los `detalles`. Hoy Cursos responde `'Revisa los datos del módulo.'` / `'Revisa los datos de la lección.'` con `detalles[{campo, mensaje}]`; Identidad y Solicitudes responden con el `ZodError` del manejador (`'Revisa los datos enviados.'`) | `cursos.controller.ts:33-108`; `manejador-errores.ts:21-30`; `validar.ts` | 3 | 2 | **6** | Familia V: se fijan `codigo`, `mensaje` y los `campo` de `detalles` (no el texto de cada `mensaje` de zod, que cambia entre versiones) | Sí, si cambia el mensaje | Hueco | `qa-edge` |
 | RG-56 | **El nuevo `openapi.yaml` y el comportamiento real divergen** | `shared/http/openapi*.ts` (33 operaciones) | 2 | 2 | 4 | Contraste final (PLAN §10) | — | Pendiente de `openapi.yaml` | `arquitecto` |
 
+### 3.14 Migraciones de `db` (Fase 1) que afectan a las pruebas
+
+Los avisa `db` (19-10-2026). Las migraciones están escritas pero no aplicadas: estos riesgos se activan cuando se aplican a `learnity_test`.
+
+| ID | Riesgo | Evidencia | P | I | Pts | Mitigación y casos | ¿Contrato? | Estado | Dueño |
+|---|---|---|---|---|---|---|---|---|---|
+| RG-57 | **Migración 024 (índice único parcial de la solicitud PENDIENTE).** En una carrera que esquive el `FOR UPDATE` del servicio, el perdedor recibiría 409 `CONFLICTO` genérico ("Ya existe un registro con esos datos.") en lugar de 409 `SOLICITUD_PENDIENTE`. En el caso normal no cambia nada, porque el bloqueo serializa | `manejador-errores.ts:28-31`; `administracion.service.ts:57-60` | 1 | 1 | 1 | CAR-SOL-06 fija el código del perdedor actual (`SOLICITUD_PENDIENTE`). Si el refactor quita el bloqueo, la prueba lo detecta | Sí (si cambia el código) | Pendiente de la 024 | `db`, `be-a` |
+| RG-58 | **Migración 023 (CHECK `PUBLICADO ⇒ revisado_por y publicado_en`)** rompe los fixtures que crean cursos PUBLICADO sin revisor: `cursos-publicos.test.ts:46`, `cursos-gestion-http.test.ts:285`, `administracion-contenido.test.ts:209` y `scripts/sembrar-catalogo.ts:42`. También hace imposible el caso CAR-CAT-15 (dato heredado) | Aviso de `db`; auditoría §6 (BD-4) | 3 | 2 | **6** | Tarea de la 2A registrada por el lead: los fixtures pasan a crear el revisor y `publicado_en`, o a publicar por la API (REC). CAR-CAT-15 se retira en el mismo commit que aplica la 023 a `learnity_test`. La suite de catálogo se ejecuta antes y después de la 023 | No (cambia datos, no la API) | Pendiente de la 023 | `be-a`, `be-b` (fixtures); `qa-edge` (CAR-CAT-15) |
+| RG-59 | **Migración 020 (trigger de auditoría)** añade una fila por cada login y por cada cascada de limpieza en `learnity_test`. Las filas de las pruebas se acumulan y una suite que cuente filas globales de auditoría daría resultados distintos según el orden | Aviso de `db` | 2 | 1 | 2 | Ninguna suite cuenta filas globales: se filtra por la marca o por un rango de ids tomado en el `before`. Los casos de auditoría de la 2B comprueban la fila de su propia operación | No | Pendiente de la 020 | `qa-edge`; `db` |
+| RG-60 | **Migración 019 (mínimo privilegio de `learnity_app`) y permisos de los fixtures.** Si `learnity_app` **hereda** en `learnity_test` permisos de limpieza que no tiene en `Learnity`, un permiso que le falte a la app (42501, que hoy acaba en 500 porque no está mapeado) no saldría en la suite y solo fallaría en `Learnity`. Además, los fixtures usan permisos que la app no tiene: INSERT en `categoria`; UPDATE de `usuario.estado`, `token_recuperacion.creado_en`, `curso.estado`, `archivo.ruta` y `categoria.activa`; DELETE de `persona`, `usuario`, `curso`, etc. | Aviso de `db`; inventario de DML de `backend/test/*.ts` (script, 19-10-2026) | 2 | 3 | **6** | Propuesta de `qa-edge` a `db`: pertenencia `GRANT learnity_pruebas TO learnity_app WITH INHERIT FALSE, SET TRUE`, más un pool de fixtures con `SET ROLE` (`ayudas/bd-fixtures.ts`). Si no, un login aparte. Además, `seguridad/privilegios.test.ts`: los permisos **directos** de `learnity_app` (`aclexplode(relacl)`) = la matriz de `db`, y la pertenencia sin herencia. La decide el usuario en la Puerta 1 | No | Pendiente de la Puerta 1 | `db`; `qa-edge` (prueba y pool); `be-a`/`be-b` (import en sus suites) |
+
 ## 4. Invariantes que comprueba cada suite al terminar
 
 1. **Filas = ficheros:** las filas `archivo` de la marca de la suite coinciden con los ficheros de `PDF_DIR` (una carpeta temporal por suite, como hace `administracion-contenido.test.ts`). Sin huérfanos en disco ni en la BD.
@@ -181,8 +192,8 @@ Salen de leer el código en `3c3c159`. Ninguno se ha ejecutado: **NO VERIFICADO*
 
 | Prioridad | Riesgos |
 |---|---|
-| Alta (≥ 6) | RG-01, RG-02, RG-05, RG-06, RG-12, RG-16 (cubierto), RG-19, RG-25, RG-53, RG-54, RG-55 |
+| Alta (≥ 6) | RG-01, RG-02, RG-05, RG-06, RG-12, RG-16 (cubierto), RG-19, RG-25, RG-53, RG-54, RG-55, RG-58, RG-60 |
 | Media (3–4) | RG-03, RG-04, RG-07, RG-09, RG-11, RG-17, RG-18, RG-20, RG-21, RG-22, RG-24, RG-28, RG-29, RG-30, RG-31, RG-32, RG-35, RG-39, RG-42, RG-44, RG-45, RG-47, RG-49, RG-50, RG-56 |
-| Baja (≤ 2) | RG-08, RG-10, RG-13, RG-14, RG-15, RG-23, RG-26, RG-27, RG-33, RG-34, RG-36, RG-37, RG-38, RG-40, RG-41, RG-43, RG-46, RG-48, RG-51, RG-52 |
+| Baja (≤ 2) | RG-08, RG-10, RG-13, RG-14, RG-15, RG-23, RG-26, RG-27, RG-33, RG-34, RG-36, RG-37, RG-38, RG-40, RG-41, RG-43, RG-46, RG-48, RG-51, RG-52, RG-57, RG-59 |
 
 **CONGELADO-INSEGURO:** RG-13, RG-23, RG-25, RG-32, RG-36, RG-43, RG-44, RG-47 y RG-52. Cada uno se cierra con el ADR-011 (o el que corresponda), y su expectativa cambia en el mismo commit que aplica ese ADR.
