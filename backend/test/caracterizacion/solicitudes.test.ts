@@ -4,7 +4,7 @@ import '../ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { forma } from '../ayudas/contrato.js';
+import { errorIdInvalido, forma, ID_DEMASIADO_GRANDE, ID_NO_DECIMAL, IDS_NO_DECIMALES } from '../ayudas/contrato.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
 import { fabricaCuentas, iniciarSesion, limpiarMarca, type Cuenta } from '../ayudas/sesiones.js';
@@ -222,9 +222,14 @@ describe('Administración de solicitudes (CAR-SOL-07..12)', () => {
     }
   });
 
-  it('ID-1: id inválido -> 400', async () => {
-    for (const v of ['abc', '0', '-1', '1.5', '2147483648']) {
-      assert.equal((await como(admin, 'PUT', `/api/admin/solicitudes/${v}`, { decision: 'APROBAR' })).status, 400, v);
+  it('ID-1, ID-2 e ID-4 (ADR-011, 11.11): id inválido -> 400 con detalle del campo id', async () => {
+    for (const v of IDS_NO_DECIMALES) {
+      const x = await como(admin, 'PUT', `/api/admin/solicitudes/${v}`, { decision: 'APROBAR' });
+      assert.equal(x.status, 400, v);
+      assert.deepEqual(x.json, errorIdInvalido(ID_NO_DECIMAL), v);
     }
+    const grande = await como(admin, 'PUT', '/api/admin/solicitudes/2147483648', { decision: 'APROBAR' });
+    assert.equal(grande.status, 400);
+    assert.deepEqual(grande.json, errorIdInvalido(ID_DEMASIADO_GRANDE));
   });
 });

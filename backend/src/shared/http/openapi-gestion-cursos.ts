@@ -1,6 +1,6 @@
 // OpenAPI · Gestión privada de cursos del docente y modelos privados del curso
 // (cursos-privados.model.ts), que también usa la revisión administrativa.
-import { error, errorInterno, erroresCuerpoJson, idRuta, json, ref, seguridad } from './openapi-comun.js';
+import { error, errorInterno, erroresCuerpoJson, idInvalido, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
 const entero = {
   type: 'integer',
@@ -49,7 +49,7 @@ const cuerpo = (schema: unknown) => ({
 });
 
 const errores = {
-  400: error('Datos o ID inválidos (SOLICITUD_INVALIDA)'),
+  400: error(`Datos inválidos (SOLICITUD_INVALIDA) o ${idInvalido}`),
   401: error('Sin sesión, token inválido o sesión revocada'),
   403: error('Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)'),
   404: error('El curso, el módulo o la lección no existe (NO_ENCONTRADO)'),
@@ -64,6 +64,8 @@ const operacion = (
   schema: unknown,
   codigos: CodigoError[],
   requestBody?: unknown,
+  /** Causa del 400 si la operación no tiene `{id}` (por defecto, la de `errores`). */
+  causa400 = errores[400].description,
 ) => ({
   tags: ['Gestión de cursos'],
   summary,
@@ -71,9 +73,9 @@ const operacion = (
   ...(requestBody ? { requestBody } : {}),
   responses: {
     [status]: json(schema),
-    ...Object.fromEntries(codigos.map((codigo) => [codigo, errores[codigo]])),
+    ...Object.fromEntries(codigos.map((codigo) => [codigo, codigo === 400 ? error(causa400) : errores[codigo]])),
     // Con cuerpo JSON, el 400 suma el JSON mal formado y se declaran el 413 y el 415 (ADR-011, 11.6).
-    ...(requestBody ? erroresCuerpoJson(errores[400].description) : {}),
+    ...(requestBody ? erroresCuerpoJson(causa400) : {}),
     500: errorInterno,
   },
 });
@@ -335,6 +337,7 @@ export const rutasGestionCursos = {
       detalle,
       [400, 401, 403],
       cuerpo(ref('DatosCurso')),
+      'Datos inválidos (SOLICITUD_INVALIDA)',
     ),
   },
 

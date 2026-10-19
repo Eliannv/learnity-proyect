@@ -6,7 +6,7 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { carpetaPdfPropia, ficheros } from '../ayudas/archivos.js';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { forma, sinRutasPrivadas } from '../ayudas/contrato.js';
+import { errorIdInvalido, forma, ID_DEMASIADO_GRANDE, ID_NO_DECIMAL, IDS_NO_DECIMALES, sinRutasPrivadas } from '../ayudas/contrato.js';
 import { fabricaCursos } from '../ayudas/cursos-http.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
@@ -68,17 +68,23 @@ describe('AUT e ID en las rutas de revisión', () => {
       }
     });
   }
-  it('ID-1 a ID-3 en /api/admin/cursos/:id', async () => {
-    for (const v of ['abc', '0', '-1', '1.5', '2147483648']) {
-      const r = await admin$('GET', `/api/admin/cursos/${v}`);
-      assert.equal(r.status, 400, v);
-      assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA', v);
+  it('ID-1 a ID-4 (ADR-011, 11.11) en las rutas admin con :id', async () => {
+    const rutas: Array<[string, string, unknown?]> = [
+      ['GET', '/api/admin/cursos/:id'], ['PUT', '/api/admin/cursos/:id/revision', { decision: 'APROBAR' }],
+    ];
+    for (const [metodo, plantilla, cuerpo] of rutas) {
+      for (const v of IDS_NO_DECIMALES) {
+        const x = await admin$(metodo, plantilla.replace(':id', v), cuerpo);
+        assert.equal(x.status, 400, `${metodo} ${plantilla} ${v}`);
+        assert.deepEqual(x.json, errorIdInvalido(ID_NO_DECIMAL), `${metodo} ${plantilla} ${v}`);
+      }
+      const grande = await admin$(metodo, plantilla.replace(':id', '2147483648'), cuerpo);
+      assert.equal(grande.status, 400);
+      assert.deepEqual(grande.json, errorIdInvalido(ID_DEMASIADO_GRANDE));
     }
     const r = await admin$('GET', '/api/admin/cursos/2147483647');
     assert.equal(r.status, 404);
     assert.deepEqual(r.json.error, { codigo: 'NO_ENCONTRADO', mensaje: 'Curso no disponible.' });
-    const dec = await admin$('PUT', '/api/admin/cursos/abc/revision', { decision: 'APROBAR' });
-    assert.equal(dec.status, 400);
   });
 });
 

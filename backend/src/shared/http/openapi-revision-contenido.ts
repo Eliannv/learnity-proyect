@@ -1,6 +1,6 @@
 // OpenAPI · Revisión administrativa de cursos y contenido PDF.
 // Los modelos del curso (CursoResumen, CursoDetalle…) están en openapi-gestion-cursos.ts.
-import { error, errorInterno, erroresCuerpoJson, idRuta, json, ref, seguridad } from './openapi-comun.js';
+import { error, errorInterno, erroresCuerpoJson, idInvalido, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
 const curso = json(
   ref('CursoDetalle'),
@@ -60,7 +60,7 @@ export const rutasRevisionContenido = {
       responses: {
         ...comunes,
         200: curso,
-        400: error('ID inválido (SOLICITUD_INVALIDA)'),
+        400: error(idInvalido),
         403: error('No es administrador (SIN_PERMISO)'),
         404: error('El curso no existe (NO_ENCONTRADO)'),
       },
@@ -121,7 +121,7 @@ export const rutasRevisionContenido = {
       responses: {
         ...comunes,
         200: curso,
-        ...erroresCuerpoJson('ID o decisión inválidos (SOLICITUD_INVALIDA)'),
+        ...erroresCuerpoJson(`Decisión inválida (SOLICITUD_INVALIDA) o ${idInvalido}`),
         403: error('No es administrador (SIN_PERMISO)'),
         404: error('El curso no existe (NO_ENCONTRADO)'),
         409: error(
@@ -163,7 +163,7 @@ export const rutasRevisionContenido = {
       responses: {
         ...comunes,
         200: curso,
-        400: error('ID, formulario o PDF inválidos, o lección que no es DOCUMENTO (SOLICITUD_INVALIDA)'),
+        400: error(`Formulario o PDF inválidos, o lección que no es DOCUMENTO (SOLICITUD_INVALIDA), o ${idInvalido}`),
         403: error('Sin rol DOCENTE o la lección no es de un curso propio (SIN_PERMISO)'),
         404: error('La lección no existe (NO_ENCONTRADO)'),
         409: error('Curso bloqueado (CURSO_BLOQUEADO)'),
@@ -211,7 +211,7 @@ export const rutasRevisionContenido = {
             },
           },
         },
-        400: error('ID inválido (SOLICITUD_INVALIDA)'),
+        400: error(idInvalido),
         403: error('Sin permiso sobre el curso del archivo (SIN_PERMISO)'),
         404: error('El archivo no existe o no es un PDF de una lección (NO_ENCONTRADO)'),
       },
