@@ -62,3 +62,14 @@ export function normalizarConCamino(
   }
   return v;
 }
+
+export const ID_NO_DECIMAL = 'Debe ser un entero positivo en decimal.';
+export const ID_DEMASIADO_GRANDE = 'Es demasiado grande.';
+
+/** Valores de `:id` que se rechazan por no ser un entero positivo en decimal (ADR-011, 11.11). */
+export const IDS_NO_DECIMALES = ['abc', '0', '-1', '1.5', '1e3', '0x10', '%207%20', '7.0', '007'];
+
+/** Cuerpo del 400 que devuelve un id de ruta inválido (ADR-011, 11.11). */
+export function errorIdInvalido(detalle: string) {
+  return { error: { codigo: 'SOLICITUD_INVALIDA', mensaje: 'Revisa los datos enviados.', detalles: [{ campo: 'id', mensaje: detalle }] } };
+}

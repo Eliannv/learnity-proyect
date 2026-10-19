@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import { carpetaPdfPropia, pdfMinimo, subirPdf } from '../ayudas/archivos.js';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { forma, sinRutasPrivadas } from '../ayudas/contrato.js';
+import { errorIdInvalido, forma, ID_DEMASIADO_GRANDE, ID_NO_DECIMAL, IDS_NO_DECIMALES, sinRutasPrivadas } from '../ayudas/contrato.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
 import { fabricaCuentas, limpiarMarca, type Cuenta } from '../ayudas/sesiones.js';
@@ -154,12 +154,22 @@ describe('AUT: las 11 operaciones de gestión de cursos', () => {
 });
 
 describe('ID: identificadores en las rutas de gestión', () => {
-  it('ID-1 e ID-2: no numéricos, cero, negativos, decimales y fuera de rango -> 400', async () => {
-    for (const v of ['abc', '0', '-1', '1.5', '2147483648']) {
-      const r = await como(docA, 'GET', `/api/docente/cursos/${v}`);
-      assert.equal(r.status, 400, v);
-      assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA', v);
-      assert.equal(r.json.error.mensaje, 'Revisa los datos enviados.', v);
+  // ADR-011, punto 11.11: el id de ruta es un entero positivo en decimal (nada de 1e3, 0x10, " 7 ", 7.0 ni 007).
+  const RUTAS_CON_ID: Array<[string, string]> = [
+    ['GET', '/api/docente/cursos/:id'], ['PUT', '/api/cursos/:id'], ['POST', '/api/cursos/:id/modulos'], ['PUT', '/api/modulos/:id'],
+    ['DELETE', '/api/modulos/:id'], ['POST', '/api/modulos/:id/lecciones'], ['PUT', '/api/lecciones/:id'], ['DELETE', '/api/lecciones/:id'],
+    ['POST', '/api/cursos/:id/enviar-revision'], ['POST', '/api/lecciones/:id/archivo'], ['GET', '/api/archivos/:id'],
+  ];
+  it('ID-1, ID-2 e ID-4 (11.11): ids no decimales, ceros, negativos y fuera de rango -> 400 con detalle del campo id', async () => {
+    for (const [metodo, plantilla] of RUTAS_CON_ID) {
+      for (const v of IDS_NO_DECIMALES) {
+        const r = await como(docA, metodo, plantilla.replace(':id', v), metodo === 'GET' || metodo === 'DELETE' ? undefined : {});
+        assert.equal(r.status, 400, `${metodo} ${plantilla} ${v}`);
+        assert.deepEqual(r.json, errorIdInvalido(ID_NO_DECIMAL), `${metodo} ${plantilla} ${v}`);
+      }
+      const grande = await como(docA, metodo, plantilla.replace(':id', '2147483648'), metodo === 'GET' || metodo === 'DELETE' ? undefined : {});
+      assert.equal(grande.status, 400, `${metodo} ${plantilla} 2147483648`);
+      assert.deepEqual(grande.json, errorIdInvalido(ID_DEMASIADO_GRANDE), `${metodo} ${plantilla} 2147483648`);
     }
   });
   it('ID-3: el entero máximo existe como valor y no en la BD -> 404', async () => {
@@ -167,12 +177,6 @@ describe('ID: identificadores en las rutas de gestión', () => {
     assert.equal(r.status, 404);
     assert.equal(r.json.error.codigo, 'NO_ENCONTRADO');
     assert.equal(r.json.error.mensaje, 'Curso no disponible.');
-  });
-  it('ID-4 CONGELADO-INSEGURO (ADR-011, punto 11.11): notación científica, hexadecimal y espacios se aceptan', async () => {
-    for (const v of ['2.147483647e9', '0x7FFFFFFF', '%202147483647%20', '2147483647.0']) {
-      const r = await como(docA, 'GET', `/api/docente/cursos/${v}`);
-      assert.equal(r.status, 404, `${v} debería tratarse como 2147483647 hoy`);
-    }
   });
 });
 

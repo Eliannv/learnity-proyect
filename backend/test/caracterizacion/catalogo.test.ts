@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { claves, normalizarConCamino, sinRutasPrivadas } from '../ayudas/contrato.js';
+import { claves, errorIdInvalido, ID_DEMASIADO_GRANDE, ID_NO_DECIMAL, IDS_NO_DECIMALES, normalizarConCamino, sinRutasPrivadas } from '../ayudas/contrato.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
 import { fabricaCuentas, limpiarMarca } from '../ayudas/sesiones.js';
@@ -253,11 +253,17 @@ describe('GET /api/cursos/:id (CAR-CAT-18..22)', () => {
     assert.equal((await srv.pedir(`/api/cursos/${cursos['c8']}`)).status, 200);
   });
 
-  it('paquete ID', async () => {
-    for (const v of ['abc', '0', '-1', '1.5', '2147483648']) assert.equal((await srv.pedir(`/api/cursos/${v}`)).status, 400, v);
+  it('paquete ID (ADR-011, 11.11): solo enteros positivos en decimal', async () => {
+    for (const v of IDS_NO_DECIMALES) {
+      const r = await srv.pedir(`/api/cursos/${v}`);
+      assert.equal(r.status, 400, v);
+      assert.deepEqual(r.json, errorIdInvalido(ID_NO_DECIMAL), v);
+    }
+    const grande = await srv.pedir('/api/cursos/2147483648');
+    assert.equal(grande.status, 400);
+    assert.deepEqual(grande.json, errorIdInvalido(ID_DEMASIADO_GRANDE));
     assert.equal((await srv.pedir('/api/cursos/2147483647')).status, 404);
-    // ID-4 CONGELADO-INSEGURO (ADR-011, punto 11.11)
-    for (const v of ['2.147483647e9', '0x7FFFFFFF']) assert.equal((await srv.pedir(`/api/cursos/${v}`)).status, 404, v);
+    assert.equal((await srv.pedir(`/api/cursos/${cursos['c1']}`)).status, 200);
   });
 });
 
