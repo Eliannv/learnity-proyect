@@ -19,7 +19,7 @@ El diagnóstico, la matriz de privilegios, las decisiones pendientes y los riesg
 | `verificacion/matriz_privilegios.sql` | Compara los permisos reales de `learnity_app` y `learnity_lectura` con los esperados (solo lectura) |
 | `verificacion/pruebas_funcionales.sql` | Prueba permisos, auditoría, `actualizado_en`, `CHECK`, índice único y vistas, y lo deshace todo (solo bases `_test`) |
 | `verificacion/comparar_catalogo.sql` | Comprueba que las vistas del catálogo devuelven lo mismo que las consultas actuales, y lo deshace todo (solo bases `_test`) |
-| `pruebas/privilegios_pruebas.sql` y `quitar_privilegios_pruebas.sql` | 019b: permisos de limpieza de los fixtures, solo en bases `_test` (decisión D-BD2) |
+| `pruebas/privilegios_pruebas.sql` y `quitar_privilegios_pruebas.sql` | 019b: rol de los fixtures (`learnity_pruebas`), del que `learnity_app` es miembro sin herencia; solo en bases `_test` (decisión D-BD2) |
 | `scripts/aplicar-migraciones.ps1` | Aplica las pendientes en orden y registra su checksum |
 | `scripts/revertir-migraciones.ps1` | Revierte desde la última hacia atrás |
 | `scripts/probar-migraciones.ps1` | Ciclo completo `up → down → up` con huellas y verificaciones, solo en bases `_test` |
@@ -32,7 +32,7 @@ El diagnóstico, la matriz de privilegios, las decisiones pendientes y los riesg
 | `learnity_owner` | NOLOGIN | Dueño de tablas, vistas y funciones desde la 018. Las migraciones lo usan con `SET LOCAL ROLE` |
 | `learnity_app` | LOGIN | Backend (`.env` / `.env.test`). Desde la 019 tiene solo el DML que usa el código |
 | `learnity_lectura` | NOLOGIN | Solo lectura sin datos sensibles. Se concede a un login con `GRANT learnity_lectura TO <login>;` |
-| `learnity_pruebas` | NOLOGIN | Permisos de limpieza de los fixtures, solo en bases `_test` (019b) |
+| `learnity_pruebas` | NOLOGIN | Rol de los fixtures, solo con permisos en bases `_test` (019b). Los fixtures lo usan con `SET ROLE`; `learnity_app` no hereda sus permisos |
 
 ### Rol `learnity_app` en un servidor nuevo
 
@@ -120,20 +120,25 @@ Qué hace:
 2. `up` de todas, incluidas las retenidas, guardando la huella previa a cada una → **H1**.
 3. `down` de todas. Cada `down` debe dejar la huella previa a su `up`. Al final → **H2**, que debe ser igual a H0.
 4. `up` de todas otra vez → **H3**, que debe ser igual a H1.
-5. Estado final para la suite: la 023 (retenida) queda sin aplicar → **H4**.
+5. Estado migrado, con la 023 (retenida) sin aplicar → **H4**.
 6. Matriz de privilegios, pruebas funcionales y comparación del catálogo.
+7. Aplica la 019b y repite la matriz y las pruebas funcionales.
+8. Estado final, según `-EstadoFinal`:
+   - **`LineaBase`** (por defecto): quita la 019b, revierte todo y comprueba que la huella final es igual a H0.
+   - **`Migrada`**: deja H4 con la 019b aplicada.
 
 Al final imprime un resumen para pegar y deja las salidas completas en `%TEMP%\learnity-probar-…`.
 
-- Con `-AplicarPrivilegiosPruebas` aplica además la 019b y repite la matriz.
-- Sin la 019b, `npm test` no puede limpiar sus datos (PLAN_BD §2.1).
-- Equivalente manual de la 019b:
+**Por qué el estado final por defecto es la línea base:**
+- Con la 019, `learnity_app` ya no puede limpiar los datos de los fixtures.
+- La 019b no se los devuelve: la pertenencia es **sin herencia** (D-BD2, opción 3). Los fixtures tendrán que usar el pool de `backend/test/ayudas/`, que hace `SET ROLE learnity_pruebas`.
+- Hasta que las suites usen ese pool (Fase 2A), `npm test` solo sigue en verde si `learnity_test` está en la línea base.
 
-  ```powershell
-  & $psql -X -h localhost -U postgres -d learnity_test -v ON_ERROR_STOP=1 -f ..\pruebas\privilegios_pruebas.sql
-  ```
+Equivalente manual de la 019b (requiere PostgreSQL 16 o superior):
 
-Después, el lead ejecuta `npm test`.
+```powershell
+& $psql -X -h localhost -U postgres -d learnity_test -v ON_ERROR_STOP=1 -f ..\pruebas\privilegios_pruebas.sql
+```
 
 Si algo falla, el script dice en qué estado quedó la base. Para volver a la línea base:
 

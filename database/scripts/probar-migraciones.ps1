@@ -12,11 +12,16 @@
     3. down de todas, de la ultima a la primera. Despues de cada down se
        exige huella = P(N). Al final, H2, y se exige H2 = H0.
     4. up de todas -> H3. Se exige H3 = H1.
-    5. Estado final para la suite: down hasta la 022 y up de las pendientes
-       sin las retenidas (la 023 queda sin aplicar) -> H4.
+    5. Estado migrado sin las retenidas: down hasta antes de la primera
+       retenida y up del resto (la 023 queda sin aplicar) -> H4.
     6. matriz_privilegios.sql, pruebas_funcionales.sql y comparar_catalogo.sql.
-    7. Con -AplicarPrivilegiosPruebas, aplica pruebas/privilegios_pruebas.sql
-       (019b) y repite la matriz.
+    7. 019b: aplica pruebas/privilegios_pruebas.sql y repite la matriz y las
+       pruebas funcionales.
+    8. Estado final (-EstadoFinal):
+         LineaBase (por defecto): quita la 019b y revierte todo. learnity_test
+           vuelve a la linea base y la suite actual sigue en verde (sus
+           fixtures todavia no usan el pool de learnity_pruebas; PLAN_BD D-BD2).
+         Migrada: deja H4 con la 019b aplicada.
   Las salidas completas quedan en -SalidaDir (por defecto en %TEMP%).
 
 .EXAMPLE
@@ -28,7 +33,7 @@ param(
     [string]$Puerto = '5432',
     [string]$Usuario = 'postgres',
     [string]$SalidaDir = '',
-    [switch]$AplicarPrivilegiosPruebas,
+    [ValidateSet('LineaBase', 'Migrada')][string]$EstadoFinal = 'LineaBase',
     [switch]$PedirEnCadaPaso,
     [string]$PsqlRuta = ''
 )
@@ -137,20 +142,33 @@ try {
     Anotar "  H3 = H1: $(Comparar-Huellas $h1 $h3)"
     Anotar '--- Cada down deja la huella previa a su up ---'
     $porMigracion | ForEach-Object { Anotar $_ }
-    Anotar "--- Estado final de ${Base}: $((@(Obtener-Aplicadas -Cx $cx) | ForEach-Object { $_.Version }) -join ', ') (retenidas sin aplicar: $($retenidas -join ', ')) ---"
+    Anotar "--- Estado migrado (H4) de ${Base}: $((@(Obtener-Aplicadas -Cx $cx) | ForEach-Object { $_.Version }) -join ', ') (retenidas sin aplicar: $($retenidas -join ', ')) ---"
 
     # 6. Verificaciones sobre el estado final.
     Ejecutar-Reporte '..\verificacion\matriz_privilegios.sql' 'Matriz de privilegios (rol | objeto | esperado | concedido | resultado)'
     Ejecutar-Reporte '..\verificacion\pruebas_funcionales.sql' 'Pruebas funcionales (n | prueba | esperado | obtenido | resultado)'
     Ejecutar-Reporte '..\verificacion\comparar_catalogo.sql' 'Catalogo: consultas actuales frente a vistas (comparacion | actual | vista | diferencias | resultado)'
 
-    # 7. 019b, si se pidio.
-    if ($AplicarPrivilegiosPruebas) {
-        $r = Invocar-Psql -Cx $cx -Argumentos @('-q', '-f', '..\pruebas\privilegios_pruebas.sql')
+    # 7. 019b sobre el estado migrado.
+    $r = Invocar-Psql -Cx $cx -Argumentos @('-q', '-f', '..\pruebas\privilegios_pruebas.sql')
+    Anotar ''
+    Anotar "--- 019b privilegios_pruebas.sql: codigo $($r.Codigo) ---"
+    $r.Salida | Where-Object { $_ -ne '' } | ForEach-Object { Anotar "  $_" }
+    if ($r.Codigo -ne 0) { throw 'Fallo privilegios_pruebas.sql (019b).' }
+    Ejecutar-Reporte '..\verificacion\matriz_privilegios.sql' 'Matriz de privilegios con la 019b'
+    Ejecutar-Reporte '..\verificacion\pruebas_funcionales.sql' 'Pruebas funcionales con la 019b'
+
+    # 8. Estado final.
+    if ($EstadoFinal -eq 'LineaBase') {
+        $r = Invocar-Psql -Cx $cx -Argumentos @('-q', '-f', '..\pruebas\quitar_privilegios_pruebas.sql')
+        if ($r.Codigo -ne 0) { throw "Fallo quitar_privilegios_pruebas.sql: $($r.Salida -join ' ')" }
+        while (Revertir-Ultima -Cx $cx) { }
+        $hFinal = Tomar-Huella 'final'
         Anotar ''
-        Anotar "--- 019b privilegios_pruebas.sql: codigo $($r.Codigo) ---"
-        $r.Salida | Where-Object { $_ -ne '' } | ForEach-Object { Anotar "  $_" }
-        Ejecutar-Reporte '..\verificacion\matriz_privilegios.sql' 'Matriz de privilegios tras 019b'
+        Anotar "--- Estado final: linea base. Huella final = H0: $(Comparar-Huellas $h0 $hFinal) ---"
+    } else {
+        Anotar ''
+        Anotar "--- Estado final: migrada (H4) con la 019b: $((@(Obtener-Aplicadas -Cx $cx) | ForEach-Object { $_.Version }) -join ', ') ---"
     }
 } catch {
     $exito = $false

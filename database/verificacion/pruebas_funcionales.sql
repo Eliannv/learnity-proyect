@@ -89,11 +89,25 @@ SELECT pg_temp.anotar('app: SELECT progreso_leccion (Sprint 3)', '019', 'denegad
        pg_temp.intentar('learnity_app', 'SELECT 1 FROM progreso_leccion LIMIT 1'));
 SELECT pg_temp.anotar('app: CREATE TABLE en public', '019', 'denegado',
        pg_temp.intentar('learnity_app', 'CREATE TABLE public.prueba_funcional (id INTEGER)'));
-SELECT pg_temp.anotar('app: DELETE persona (solo con 019b)', '019',
-       CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'learnity_pruebas')
-                 AND pg_has_role('learnity_app', 'learnity_pruebas', 'MEMBER')
-            THEN 'permitido' ELSE 'denegado' END,
+-- Aunque esté aplicada la 019b, learnity_app no hereda los permisos de learnity_pruebas.
+SELECT pg_temp.anotar('app: DELETE persona (sin herencia aunque haya 019b)', '019', 'denegado',
        pg_temp.intentar('learnity_app', 'DELETE FROM persona WHERE false'));
+
+-- ---------------------------------------------------------------- 019b: rol de los fixtures
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_auth_members m
+              WHERE m.member = 'learnity_app'::regrole
+                AND m.roleid = (SELECT oid FROM pg_roles WHERE rolname = 'learnity_pruebas')) THEN
+    INSERT INTO pg_temp.aplicadas VALUES ('019b');
+  END IF;
+END $$;
+SELECT pg_temp.anotar('pruebas: DELETE persona (limpieza de fixtures)', '019b', 'permitido',
+       pg_temp.intentar('learnity_pruebas', 'DELETE FROM persona WHERE false'));
+SELECT pg_temp.anotar('pruebas: INSERT inscripcion', '019b', 'permitido',
+       pg_temp.intentar('learnity_pruebas', 'INSERT INTO inscripcion (id_persona, id_curso) SELECT 1, 1 WHERE false'));
+SELECT pg_temp.anotar('pruebas: UPDATE auditoria_cambio', '019b', 'denegado',
+       pg_temp.intentar('learnity_pruebas', 'UPDATE auditoria_cambio SET tabla = tabla WHERE false'));
 
 -- ---------------------------------------------------------------- 019: learnity_lectura
 SELECT pg_temp.anotar('lectura: SELECT usuario.id_usuario', '019', 'permitido',

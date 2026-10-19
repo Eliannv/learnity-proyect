@@ -3,12 +3,19 @@
 --
 -- Compara los permisos PROPIOS de cada rol (relacl/attacl, sin contar los que
 -- hereda por pertenencia) con la matriz esperada de docs/bd/PLAN_BD.md §4.
--- Por eso detecta un error aunque learnity_app sea miembro de learnity_pruebas
--- (019b), y lo marca.
+-- Además comprueba que learnity_app no tiene CREATE en public, que no es dueño
+-- de ninguna relación y que su pertenencia a learnity_pruebas (019b) es sin
+-- herencia.
+--
+-- Es la ÚNICA fuente de la matriz esperada. Solo lee el catálogo, así que
+-- también la puede ejecutar learnity_app: la prueba de qa-edge
+-- (backend/test/seguridad/) puede leer este archivo, ejecutarlo y exigir que
+-- todas las filas den OK.
 --
 -- Salida: rol | objeto | esperado | concedido | resultado (OK, FALTA, SOBRA o DISTINTO),
 -- más una fila final RESUMEN. Las relaciones que todavía no existen (por
--- ejemplo, las vistas sin la 026) no se esperan.
+-- ejemplo, las vistas sin la 026) no se esperan. Requiere PostgreSQL 16 o
+-- superior (pg_auth_members.inherit_option).
 -- Uso: psql -At -F "|" -f matriz_privilegios.sql
 -- =====================================================================
 WITH
@@ -112,21 +119,43 @@ comparacion AS (
          END AS resultado
     FROM esperado e
     FULL JOIN concedido r ON r.rol = e.rol AND r.objeto = e.objeto
+),
+-- Comprobaciones de rol (no de tabla).
+membresia AS (
+  SELECT 'inherit=' || m.inherit_option || ',set=' || m.set_option AS opciones
+    FROM pg_auth_members m
+   WHERE m.member = 'learnity_app'::regrole
+     AND m.roleid = (SELECT oid FROM pg_roles WHERE rolname = 'learnity_pruebas')
+),
+roles AS (
+  SELECT 'learnity_app' AS rol, 'CREATE en el esquema public' AS objeto, 'no' AS esperado,
+         CASE WHEN has_schema_privilege('learnity_app', 'public', 'CREATE') THEN 'si' ELSE 'no' END AS concedido
+  UNION ALL
+  SELECT 'learnity_app', 'relaciones de las que es dueño', '0',
+         (SELECT count(*) FROM pg_class
+           WHERE relnamespace = 'public'::regnamespace AND relowner = 'learnity_app'::regrole)::TEXT
+  UNION ALL
+  -- Con la 019b, la pertenencia debe ser sin herencia (la app no usa los permisos de los fixtures).
+  SELECT 'learnity_app', 'miembro de learnity_pruebas (019b)',
+         CASE WHEN EXISTS (SELECT 1 FROM membresia) THEN 'inherit=false,set=true' ELSE '-' END,
+         COALESCE((SELECT opciones FROM membresia), '-')
+),
+todo AS (
+  SELECT rol, objeto, esperado, concedido, resultado FROM comparacion
+  UNION ALL
+  SELECT rol, objeto, esperado, concedido,
+         CASE WHEN esperado = concedido THEN 'OK' ELSE 'DISTINTO' END
+    FROM roles
 )
 SELECT rol, objeto, esperado, concedido, resultado
   FROM (
-    SELECT rol, objeto, esperado, concedido, resultado, 0 AS bloque FROM comparacion
-    UNION ALL
-    SELECT 'learnity_app', 'miembro de learnity_pruebas (019b)', '-',
-           CASE WHEN pg_has_role('learnity_app', 'learnity_pruebas', 'MEMBER') THEN 'si' ELSE 'no' END,
-           'INFO', 1
-     WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'learnity_pruebas')
+    SELECT rol, objeto, esperado, concedido, resultado, 0 AS bloque FROM todo
     UNION ALL
     SELECT 'RESUMEN', current_database(),
-           (SELECT count(*) FROM comparacion)::TEXT || ' filas',
-           (SELECT count(*) FROM comparacion WHERE resultado <> 'OK')::TEXT || ' diferencias',
-           CASE WHEN EXISTS (SELECT 1 FROM comparacion WHERE resultado <> 'OK')
+           (SELECT count(*) FROM todo)::TEXT || ' filas',
+           (SELECT count(*) FROM todo WHERE resultado <> 'OK')::TEXT || ' diferencias',
+           CASE WHEN EXISTS (SELECT 1 FROM todo WHERE resultado <> 'OK')
                 THEN 'MATRIZ CON DIFERENCIAS' ELSE 'MATRIZ OK' END,
-           2
+           1
   ) t
  ORDER BY bloque, rol, objeto;

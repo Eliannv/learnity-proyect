@@ -70,7 +70,7 @@ Matriz de la §6 de la auditoría, con la operación SQL real de cada repositori
 | `learnity_owner` | NOLOGIN | Dueño de tablas, vistas y funciones. Las migraciones lo usan con `SET LOCAL ROLE learnity_owner`, ejecutadas por `postgres` |
 | `learnity_app` | LOGIN (ya existe; su contraseña nunca va al repositorio) | Backend. DML mínimo por tabla |
 | `learnity_lectura` | NOLOGIN | Lectura para inspección y reportes: se concede a un login con `GRANT learnity_lectura TO <login>` |
-| `learnity_pruebas` | NOLOGIN | Solo con permisos en bases `_test` (ver D-BD2) |
+| `learnity_pruebas` | NOLOGIN | Rol de los fixtures. Solo tiene permisos en bases `_test`; `learnity_app` es miembro sin herencia (ver D-BD2) |
 
 **`learnity_app`** (migración 019; también es lo que comprueba `verificacion/matriz_privilegios.sql`):
 
@@ -176,10 +176,15 @@ Pasar de B a A solo exige cambiar `v_estrategia := 'B'` por `'A'` en `022_correc
 
 | Opción | Qué hace | Ventajas | Inconvenientes |
 |---|---|---|---|
-| **019b (propuesta)** | `database/pruebas/privilegios_pruebas.sql` aborta si la base no termina en `_test`. Concede a `learnity_pruebas` los permisos de limpieza (§2.1, punto 1) y ejecuta `GRANT learnity_pruebas TO learnity_app`. En `Learnity`, `learnity_pruebas` no tiene ningún permiso, así que la pertenencia no aporta nada | No hay que tocar código de prueba ni `.env.test` | En `learnity_test` el código de la app corre con más permisos que en `Learnity`, así que un error de permisos de la app no saldría en la suite. Mitigación: `verificacion/matriz_privilegios.sql`, que lee los permisos propios de `learnity_app` (`relacl`, sin herencia) y los compara con §4. Podría convertirse en una prueba de `backend/test/seguridad/` |
-| **Conexión de fixtures** | Los fixtures usan un segundo pool con otro login (`learnity_pruebas` con LOGIN y contraseña, solo en `learnity_test`), y la app sigue con `learnity_app` | La suite ejerce los permisos reales de la app | Hay que cambiar las 7 suites y `backend/test/ayudas/` (`qa-edge` y `be-*`), añadir variables a `.env.test` y que cada integrante cree el login con contraseña |
+| **3. Pertenencia sin herencia (propuesta, de `qa-edge`)** | `database/pruebas/privilegios_pruebas.sql` (019b) aborta si la base no termina en `_test`. Da a `learnity_pruebas` (NOLOGIN) DML completo sobre las tablas del dominio y `SELECT` sobre auditoría, `schema_migraciones` y vistas. Ejecuta `GRANT learnity_pruebas TO learnity_app WITH INHERIT FALSE, SET TRUE`. Los fixtures usan un pool aparte en `backend/test/ayudas/` (`qa-edge`), con las mismas credenciales de `.env.test`, que hace `SET ROLE learnity_pruebas` al conectarse | Las conexiones de la app siguen con el mínimo privilegio real: la suite detecta un 42501 (que hoy acaba en 500) antes de llegar a `Learnity`. No hay login nuevo, ni contraseña, ni variables nuevas. En `Learnity`, `learnity_pruebas` no tiene ningún permiso | Requiere PostgreSQL 16 o superior. Cada suite cambia el `pool` de sus fixtures por el de `ayudas/`: una línea de import, que cambian sus dueños (`be-a` y `be-b`) junto con `guardia-bd.ts` |
+| 1. Pertenencia con herencia | Igual que la 3, pero con `GRANT learnity_pruebas TO learnity_app` (con herencia) | No hay que tocar código de prueba | En `learnity_test` la app corre con más permisos que en `Learnity`, así que un fallo de permisos solo aparecería en `Learnity`. La matriz estática no detecta, por ejemplo, un `UPDATE` nuevo añadido en un refactor |
+| 2. Login de fixtures | Los fixtures usan un segundo login (`learnity_pruebas` con LOGIN y contraseña, solo en `learnity_test`) | La suite ejerce los permisos reales de la app | Hay que crear el login con contraseña en cada máquina, añadir variables a `.env.test` y cambiar las 7 suites |
 
-**Opinión de `qa-edge`:** *pendiente* (pedida el 19-10-2026; se recoge aquí cuando responda).
+**Opinión de `qa-edge` (19-10-2026):** prefiere la **3**; si no es viable, la 2 antes que la 1. El motivo es que la caracterización debe detectar justo lo que puede romper la 019: una ruta que use un permiso retirado da 42501, que `manejador-errores.ts` no mapea y acaba en 500. Además:
+- `qa-edge` convertirá la matriz en `backend/test/seguridad/privilegios.test.ts`. La fuente única de la matriz esperada es `database/verificacion/matriz_privilegios.sql`. Solo lee el catálogo, así que `learnity_app` lo puede ejecutar y la prueba exige que todas sus filas den OK; no hay que mantener una copia en JSON.
+- La matriz comprueba también que `learnity_app` no tiene `CREATE` en `public`, que no es dueño de ninguna relación y que su pertenencia a `learnity_pruebas` tiene `inherit=false, set=true`.
+- Nadie puede borrar filas de `auditoria_cambio`, así que en `learnity_test` se acumulan. Ninguna suite debe contar filas globales de auditoría: se filtra por una marca o por un rango de ids.
+- `pg_terminate_backend` (SEG-30) se ejecutará desde una conexión sin `SET ROLE`. **NO VERIFICADO.**
 
 ### D-BD3. `pg_trgm` (D9, ADR-010 del `arquitecto`)
 
@@ -204,8 +209,10 @@ La búsqueda `ILIKE '%q%'` recorre la tabla completa. La propuesta `database/mig
 2. `up` de todas, incluidas las retenidas → **H1**.
 3. `down` de todas, en orden inverso → **H2**. Se exige **H2 = H0**.
 4. `up` de todas → **H3**. Se exige **H3 = H1**.
-5. Estado final para la suite: `down` hasta la 022 y `up` de 024–026 (la 023 queda retenida) → **H4**.
+5. Estado migrado sin las retenidas: `down` hasta la 022 y `up` de 024–026 (la 023 queda retenida) → **H4**.
 6. Matriz de privilegios, pruebas funcionales y comparación del catálogo.
+7. 019b: se aplica y se repiten la matriz y las pruebas funcionales.
+8. Estado final: por defecto, la línea base (se quita la 019b, se revierte todo y se exige que la huella final sea igual a H0), para que la suite actual siga en verde hasta que los fixtures usen el pool de `learnity_pruebas` (R2). Con `-EstadoFinal Migrada` queda H4 con la 019b.
 
 Lo que un `down` no devuelve, por definición: las filas de `auditoria_cambio` y los valores de `actualizado_en` desaparecen con su tabla o columna. Los roles del clúster se conservan si otra base los usa (lo avisa con NOTICE). Si el `down` de la 018 sí puede borrarlos, H2 = H0 también en la categoría `roles`.
 
@@ -214,7 +221,7 @@ Lo que un `down` no devuelve, por definición: las filas de `auditoria_cambio` y
 | # | Riesgo | Mitigación |
 |---|---|---|
 | R1 | `REVOKE CONNECT … FROM PUBLIC` (018): cualquier login que hoy entre a la base sin un `GRANT` explícito deja de poder conectarse. Los superusuarios no se ven afectados. **NO VERIFICADO** en las bases de cada integrante | Antes de aplicar, cada integrante ejecuta la consulta de abajo en su base. Cada login que aparezca necesita `GRANT CONNECT` o pertenecer a `learnity_lectura` |
-| R2 | El mínimo privilegio rompe la limpieza de la suite | 019b (D-BD2), aplicada en `learnity_test` antes de `npm test` |
+| R2 | El mínimo privilegio rompe la limpieza de la suite. Además, una ruta que use un permiso retirado da 42501 y acaba en 500 | 019b sin herencia y pool de fixtures con `SET ROLE learnity_pruebas` (D-BD2, opción 3). Mientras los fixtures no usen ese pool, `npm test` falla en la limpieza: la 019 no debe quedar aplicada en `learnity_test` para la suite hasta entonces |
 | R3 | El `CHECK` de `PUBLICADO` rompe 3 suites y `sembrar-catalogo.ts` | 023 retenida hasta la Fase 2A (§2.1, punto 2) |
 | R4 | La auditoría añade filas: una por login y una por intento fallido (`UPDATE usuario`), además de muchas por las cascadas de limpieza en `learnity_test` | Volumen pequeño. Si molesta, una migración futura puede ignorar `ultimo_acceso`, `intentos_fallidos` y `bloqueado_hasta` mediante los argumentos del trigger |
 | R5 | El actor queda NULL hasta que el backend use `set_config('learnity.id_persona', $1, true)` | Documentado para el `arquitecto` (`CONTRATOS_SERVICIO.md`) y para `be-a`/`be-b` |
@@ -248,7 +255,7 @@ SELECT r.rolname AS login_que_hoy_depende_de_public
 
 El detalle, con los comandos exactos de PowerShell y `psql`, está en [`database/README.md`](../../database/README.md).
 
-1. **Prueba en `learnity_test`** (turno del lead): `probar-migraciones.ps1 -Base learnity_test`. Si se usa 019b, después `privilegios_pruebas.sql`. Luego el lead ejecuta `npm test`.
+1. **Prueba en `learnity_test`** (turno del lead): `probar-migraciones.ps1 -Base learnity_test`. Deja la base en la línea base; `npm test` debe seguir en 78/78. La suite con las migraciones aplicadas (`-EstadoFinal Migrada`) se ejecuta cuando los fixtures usen el pool de `learnity_pruebas` (Fase 2A).
 2. **Puerta DB:** el usuario revisa H0–H4, la matriz y la suite.
 3. **Respaldo de `Learnity`:** `pg_dump -F c` y `pg_dumpall --roles-only`, fuera del repositorio. El de roles contiene hashes de contraseñas.
 4. **Aplicar a `Learnity`** con aprobación del usuario: `aplicar-migraciones.ps1 -Base Learnity`.
@@ -257,6 +264,7 @@ El detalle, con los comandos exactos de PowerShell y `psql`, está en [`database
 ## 11. Pendiente y NO VERIFICADO
 
 - Todo el SQL está **NO VERIFICADO** hasta el turno de pruebas en `learnity_test`.
-- Opinión de `qa-edge` sobre D-BD2.
+- Opinión de `qa-edge` sobre D-BD2: recibida (opción 3, §7). El pool de fixtures con `SET ROLE learnity_pruebas` es de `qa-edge` (`backend/test/ayudas/`); el cambio de import en cada suite, de `be-a` y `be-b` (Fase 2A).
+- `arquitecto` confirmó las tres vistas, sus columnas y que `catalogo_categoria` filtra `activa` dentro de la vista (ADR-002).
 - Decisiones D-BD1, D-BD2 y D-BD3 (Puerta 1).
 - Las 3 lecciones `DOCUMENTO` sin PDF de cursos publicados: no hay `CHECK` posible (es una regla entre tablas). Quedan en el servicio, como hoy.

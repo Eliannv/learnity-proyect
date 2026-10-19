@@ -17,6 +17,7 @@ END $$;
 
 SET LOCAL ROLE learnity_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM learnity_pruebas;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM learnity_pruebas;
 RESET ROLE;
 
 REVOKE learnity_pruebas FROM learnity_app;

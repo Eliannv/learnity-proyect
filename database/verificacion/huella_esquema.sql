@@ -139,7 +139,8 @@ lineas AS (
 
   UNION ALL
   SELECT 'roles',
-         'miembro|' || pg_get_userbyid(m.member) || '|de|' || pg_get_userbyid(m.roleid) || '|' || m.admin_option
+         'miembro|' || pg_get_userbyid(m.member) || '|de|' || pg_get_userbyid(m.roleid) || '|' ||
+         m.admin_option || '|' || m.inherit_option || '|' || m.set_option
     FROM pg_auth_members m
    WHERE pg_get_userbyid(m.member) LIKE 'learnity\_%'
       OR pg_get_userbyid(m.roleid) LIKE 'learnity\_%'
