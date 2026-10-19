@@ -1,6 +1,6 @@
 # Plantilla de módulo del backend
 
-La mantiene `arquitecto` y se basa en los ADR-001, 003, 004 y 006, que están *Propuestos* hasta la Puerta 1. `be-b` adapta `backend/scripts/crear-modulos.mjs` para que genere esta estructura.
+La mantiene `arquitecto` y se basa en los ADR-001, 003, 004 y 006 (*Aceptados* en la Puerta 1, P1-1). `be-b` adapta `backend/scripts/crear-modulos.mjs` para que genere esta estructura.
 
 ## 1. Estructura
 
@@ -72,13 +72,14 @@ Se ejecuta sobre la rama del dueño antes de cada integración en `integration/s
 |---|---|---|---|
 | R1 | Ningún import interno entre módulos | `grep -rnE "from '\.\./[a-z-]+/[a-zA-Z.-]+\.js'" backend/src/modules \| grep -v "/index\.js'"` | Vacío (o solo deuda aún no migrada, con un dueño asignado) |
 | R2 | `shared` no depende de módulos | `grep -rn "modules/" backend/src/shared` | Vacío |
-| R3 | `app.ts` solo importa `index.ts` | `grep -nE "modules/[a-z-]+/[a-zA-Z.-]+\.js" backend/src/app.ts \| grep -v "/index\.js'"` | Vacío |
+| R3 | `app.ts` y `server.ts` solo importan `index.ts` | `grep -nE "modules/[a-z-]+/[a-zA-Z.-]+\.js" backend/src/app.ts backend/src/server.ts \| grep -v "/index\.js'"` | Vacío |
 | R4 | SQL solo en repositorios | `grep -rnE "consultar[<(]\|\.query[<(]" backend/src --include=*.ts \| grep -v "\.repository\.ts:"` | Solo `shared/database/pool.ts` |
 | R5 | Sin datos del cliente interpolados en SQL | `grep -rn '\${' backend/src/modules/*/*.repository.ts` y revisar cada línea | Cada `${…}` es una constante o un elemento de una lista cerrada |
 | R6 | Controladores sin validación ni reglas | `grep -rnE "\.(safeParse\|parse)\(" backend/src/modules/*/*.controller.ts` | Vacío (después del ADR-006) |
-| R7 | Sin `console.*` en la aplicación | `grep -rn "console\." backend/src --include=*.ts \| grep -v "database/seed.ts"` | Vacío (después del ADR-006) |
+| R7 | Sin `console.*` en la aplicación | `grep -rn "console\." backend/src --include=*.ts \| grep -v "database/seed.ts" \| grep -v "shared/log/registro.ts:"` | Vacío (después del ADR-006). `registro.ts` se excluye porque es la salida de `registrarEvento` (una línea JSON por evento) |
 | R8 | Nunca se expone `ruta` | `grep -rn "ruta" backend/src/modules --include=*.ts` y revisar | Solo en el repositorio o el almacén de Contenido, nunca en un `modelo` ni en una respuesta |
 | R9 | Contrato sin cambios | Regenerar `openapi.yaml` (procedimiento de `docs/api/COMPARACION_RUTAS.md`) y `git diff --exit-code docs/api/openapi.yaml`; `comparar-rutas.mjs` → 33/33, 0 y 0 | Sin diferencias, o un ADR aprobado que las justifique |
+| R9b | Los tipos del frontend siguen al contrato (ADR-008) | `cd frontend && npx openapi-typescript ../docs/api/openapi.yaml -o "$TMP/esquema.d.ts" && git diff --no-index --exit-code src/app/core/api/generado/esquema.d.ts "$TMP/esquema.d.ts"` (`$TMP` fuera del repositorio) | Sin diferencias. Si cambia `openapi.yaml`, el dueño de `core/api` (`fe-b`) ejecuta `npm run api:tipos` en el mismo merge |
 | R10 | Compila y pasa | `npm run build`, `npm run typecheck` y la suite (con turno del lead) | exit 0, sin cambiar expectativas (salvo las CONGELADO-INSEGURO que actualice un ADR aprobado, en el mismo commit) |
 | R10b | `npm test` incluye todas las suites | `node -e "console.log(require('./backend/package.json').scripts['test:local'])"` | Usa el glob `test/**/*.test.ts` (cubre `test/caracterizacion/**` y `test/seguridad/**`), no una lista de archivos |
 | R11 | Nombres por dominio | `git ls-files backend/src \| grep -iE "integrante\|integracion"` | Vacío al cerrar la Fase 2B |
@@ -86,6 +87,6 @@ Se ejecuta sobre la rama del dueño antes de cada integración en `integration/s
 ## 6. Pruebas del módulo
 
 - Las pruebas importan el `index.ts` del módulo (y `crearApp()` para HTTP), no sus archivos internos. Si una prueba necesita sustituir una dependencia, lo hace a través de la API pública o de un puerto.
-- **`npm test` ejecuta todas las suites por glob** (H10 de `RIESGOS.md`). Hoy `test:local` enumera los archivos uno a uno, así que una suite nueva en `test/caracterizacion/**`, `test/seguridad/**` o `test/<m>/**` no se ejecutaría. En la Fase 2A, `arquitecto` cambia `test:local` en `backend/package.json` por el glob `test/**/*.test.ts` (conservando `--env-file=.env.test`, `--test-concurrency=1` y la exclusión de HIBP) y comprueba que el número de pruebas no baja.
+- **`npm test` ejecuta todas las suites por glob** (H10 de `RIESGOS.md`). Desde la Fase 2A, `test:local` usa el glob `test/**/*.test.ts` (con `--env-file=.env.test`, `--test-concurrency=1` y la exclusión de HIBP), así que cualquier suite nueva en `test/caracterizacion/**`, `test/seguridad/**` o `test/<m>/**` se ejecuta sin tocar `package.json`. R10b lo comprueba en cada integración.
 - Toda suite que toque la base importa `backend/test/ayudas/guardia-bd.ts` (de `qa-edge`), que aborta si `DB_NAME` no termina en `_test`.
 - La caracterización (`backend/test/caracterizacion/**`, de `qa-edge`) tiene que estar en verde **antes** de mover código, y se sigue ejecutando después sin cambios.
