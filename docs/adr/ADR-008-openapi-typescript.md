@@ -52,11 +52,11 @@ A cuesta 0 en dependencias, pero mantiene el problema que motiva el ADR-007. C y
   - hay que regenerar los tipos tras cada cambio de `openapi*.ts`;
   - `openapi.yaml` se regenera desde `openapi*.ts` (procedimiento de `COMPARACION_RUTAS.md`), así que la cadena queda `openapi*.ts` → `openapi.yaml` → `esquema.d.ts`.
 - **Si se rechaza:** `fe-b` escribe los tipos a mano en `core/api/contrato.ts`, y cada tipo cita su esquema del contrato (ADR-007, punto 2).
-- **NO VERIFICADO:** que `openapi-typescript` lea sin problemas el `openapi.yaml` actual (JSON con una cabecera de comentarios `#`). Se comprueba al instalarlo; si fallara, se le pasa la versión sin cabecera.
+- **Verificado (19-10-2026):** `openapi-typescript` 7.13.0 lee el `openapi.yaml` actual (JSON con una cabecera de comentarios `#`, que es YAML válido) sin errores ni avisos.
 
 ## Acciones
 
-1. [ ] `arquitecto` lo añade en `frontend/package.json` con el script `api:tipos` (Fase 2A).
+1. [x] `arquitecto` lo añade en `frontend/package.json` (`7.13.0`, exacta) con el script `api:tipos` (Fase 2A).
 2. [ ] Cerrar C-08 a C-11 y C-18 en `openapi*.ts` antes de la primera generación (`arquitecto`, Fase 2A).
 3. [ ] `fe-b` crea `core/api/contrato.ts` a partir del archivo generado.
 
