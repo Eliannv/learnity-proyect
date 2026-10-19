@@ -1,6 +1,6 @@
 // OpenAPI · Revisión administrativa de cursos y contenido PDF.
 // Los modelos del curso (CursoResumen, CursoDetalle…) están en openapi-gestion-cursos.ts.
-import { error, errorInterno, idRuta, json, ref, seguridad } from './openapi-comun.js';
+import { error, errorInterno, erroresCuerpoJson, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
 const curso = json(
   ref('CursoDetalle'),
@@ -121,7 +121,7 @@ export const rutasRevisionContenido = {
       responses: {
         ...comunes,
         200: curso,
-        400: error('ID o decisión inválidos (SOLICITUD_INVALIDA)'),
+        ...erroresCuerpoJson('ID o decisión inválidos (SOLICITUD_INVALIDA)'),
         403: error('No es administrador (SIN_PERMISO)'),
         404: error('El curso no existe (NO_ENCONTRADO)'),
         409: error(

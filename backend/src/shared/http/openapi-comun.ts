@@ -12,6 +12,16 @@ export const errorInterno = { $ref: '#/components/responses/ErrorInterno' };
 
 export const seguridad = [{ bearer: [] }];
 
+/**
+ * Errores del parser JSON (`express.json`, ADR-011, 11.6) para una operación con cuerpo JSON. Sustituye a su 400:
+ * `descripcion400` es la causa propia de la operación, y se añade el JSON mal formado. Declara también el 413 y el 415.
+ */
+export const erroresCuerpoJson = (descripcion400: string) => ({
+  400: error(`${descripcion400}. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)`),
+  413: { $ref: '#/components/responses/CuerpoDemasiadoGrande' },
+  415: { $ref: '#/components/responses/TipoNoAdmitido' },
+});
+
 /** ID de ruta: entero de 1 a 2 147 483 647 (los controladores responden 400 fuera de ese rango). */
 export const idRuta = {
   in: 'path',
@@ -42,7 +52,8 @@ export const esquemasComunes = {
             example: 'SOLICITUD_INVALIDA',
             description:
               'Código estable para el cliente: SOLICITUD_INVALIDA, NO_AUTENTICADO, TOKEN_INVALIDO, SESION_REVOCADA, SIN_PERMISO, ' +
-              'NO_ENCONTRADO, CONFLICTO, CURSO_BLOQUEADO, DEMASIADAS_PETICIONES, ERROR_INTERNO y los propios de cada operación.',
+              'NO_ENCONTRADO, CONFLICTO, CURSO_BLOQUEADO, DEMASIADAS_PETICIONES, CUERPO_DEMASIADO_GRANDE, TIPO_NO_ADMITIDO, ' +
+              'ERROR_INTERNO y los propios de cada operación.',
           },
           mensaje: { type: 'string', description: 'Texto para mostrar a la persona usuaria.' },
           detalles: {
@@ -68,4 +79,10 @@ export const esquemasComunes = {
 
 export const respuestasComunes = {
   ErrorInterno: json(ref('ErrorApi'), 'Error inesperado (ERROR_INTERNO). Puede darse en cualquier operación'),
+  CuerpoDemasiadoGrande: json(ref('ErrorApi'), 'El cuerpo JSON supera 1 MB (CUERPO_DEMASIADO_GRANDE), sin detalles'),
+  TipoNoAdmitido: json(
+    ref('ErrorApi'),
+    'El charset de `Content-Type` no es UTF (se espera UTF-8) o el `Content-Encoding` no es identity, gzip, deflate ni br ' +
+      '(TIPO_NO_ADMITIDO), sin detalles',
+  ),
 };
