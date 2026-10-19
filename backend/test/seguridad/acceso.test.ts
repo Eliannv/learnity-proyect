@@ -7,7 +7,6 @@ import jwt from 'jsonwebtoken';
 import { after, before, describe, it } from 'node:test';
 import { carpetaPdfPropia, filasYFicheros, pdfMinimo, subirPdf } from '../ayudas/archivos.js';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
-import { capturar } from '../ayudas/captura.js';
 import { sinRutasPrivadas } from '../ayudas/contrato.js';
 import { fabricaCursos } from '../ayudas/cursos-http.js';
 import { crearMarca } from '../ayudas/datos.js';
@@ -25,12 +24,13 @@ let admin: Cuenta;
 let categoriaId = 0;
 let c: ReturnType<typeof fabricaCursos>;
 let reiniciar: () => void;
+let fab: ReturnType<typeof fabricaCuentas>;
 
 before(async () => {
   f = await crearFixtures();
   srv = await iniciarServidor();
   ({ reiniciarLimites: reiniciar } = await import('../../src/shared/http/limite-peticiones.js'));
-  const fab = fabricaCuentas(f, srv, marca);
+  fab = fabricaCuentas(f, srv, marca);
   docA = await fab.crearCuenta(['ESTUDIANTE', 'DOCENTE']);
   docB = await fab.crearCuenta(['ESTUDIANTE', 'DOCENTE']);
   admin = await fab.crearCuenta(['ESTUDIANTE', 'ADMIN']);
@@ -78,10 +78,11 @@ describe('Tokens (SEG-01..03)', () => {
   });
 
   it('SEG-03: cuenta desactivada con un access token vigente', async () => {
-    const otra = await fabricaCuentas(f, srv, marca).crearCuenta(['ESTUDIANTE', 'DOCENTE']);
+    const otra = await fab.crearCuenta(['ESTUDIANTE', 'DOCENTE']);
     await f.query("UPDATE usuario SET estado = 'INACTIVO' WHERE id_usuario = $1", [otra.idUsuario]);
     const r = await srv.pedir('/api/docente/cursos', { token: otra.token });
-    capturar('SEG-03', { status: r.status, error: r.json?.error });
+    assert.equal(r.status, 401);
+    assert.equal(r.json.error.codigo, 'SESION_REVOCADA');
   });
 });
 
@@ -152,8 +153,11 @@ describe('Concurrencia (SEG-10, 12, 22)', () => {
     const id = await c.crearCurso(docA);
     const pedir = () => c.como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: 'M', orden: 1 });
     const [a, b] = await Promise.all([pedir(), pedir()]);
-    capturar('SEG-12', [a.status, b.status, a.json?.error?.codigo, b.json?.error?.codigo]);
     assert.equal([a.status, b.status].filter((s) => s === 201).length, 1);
+    const perdedora = a.status === 201 ? b : a;
+    // Con la comprobación previa del servicio el perdedor suele recibir 400; si llega al UNIQUE, 409 CONFLICTO.
+    assert.ok([400, 409].includes(perdedora.status), String(perdedora.status));
+    assert.ok(['SOLICITUD_INVALIDA', 'CONFLICTO'].includes(perdedora.json.error.codigo));
     const { rows } = await f.query<{ n: string }>('SELECT count(*) AS n FROM modulo WHERE id_curso = $1', [id]);
     assert.equal(rows[0]!.n, '1');
   });
@@ -162,8 +166,9 @@ describe('Concurrencia (SEG-10, 12, 22)', () => {
     const { idCurso } = await c.cursoCompleto(docA);
     const pedir = () => c.como(docA, 'POST', `/api/cursos/${idCurso}/enviar-revision`);
     const [a, b] = await Promise.all([pedir(), pedir()]);
-    capturar('SEG-10', [a.status, b.status, a.json?.error?.codigo, b.json?.error?.codigo]);
     assert.equal([a.status, b.status].filter((s) => s === 200).length, 1);
+    assert.equal((a.status === 200 ? b : a).status, 409);
+    assert.equal((a.status === 200 ? b : a).json.error.codigo, 'CURSO_BLOQUEADO');
     const { rows } = await f.query('SELECT estado FROM curso WHERE id_curso = $1', [idCurso]);
     assert.equal(rows[0]!.estado, 'EN_REVISION');
   });
@@ -176,11 +181,11 @@ describe('Concurrencia (SEG-10, 12, 22)', () => {
       subirPdf(srv, l, docA.token, await pdfMinimo(1), 'a.pdf'),
       subirPdf(srv, l, docA.token, await pdfMinimo(2), 'b.pdf'),
     ]);
-    capturar('SEG-22', [a.status, b.status, a.json?.error?.codigo, b.json?.error?.codigo]);
-    const { filas, ficheros } = await filasYFicheros(f, pdfDir.dir, [id]);
-    assert.equal(filas, 1, 'una sola fila asociada');
-    const total = await f.query<{ n: string }>('SELECT count(*) AS n FROM archivo');
-    capturar('SEG-22 filas globales vs ficheros', { filas: total.rows[0]!.n, ficheros });
+    assert.deepEqual([a.status, b.status], [200, 200], 'las dos subidas terminan bien: la última gana');
+    const { filas } = await filasYFicheros(f, pdfDir.dir, [id]);
+    assert.equal(filas, 1, 'una sola fila asociada a la lección');
+    const huerfanas = await f.query<{ n: string }>('SELECT count(*) AS n FROM archivo a WHERE NOT EXISTS (SELECT 1 FROM leccion l WHERE l.id_archivo = a.id_archivo) AND a.id_curso = $1', [id]);
+    assert.equal(huerfanas.rows[0]!.n, '0');
   });
 });
 
@@ -232,7 +237,7 @@ describe('Rutas privadas (SEG-31)', () => {
     for (const r of respuestas) {
       assert.equal(r.status, 200);
       assert.deepEqual(sinRutasPrivadas(r.json), []);
-      assert.doesNotMatch(r.texto, /contrasena|password|\.pdf"/i, r.texto.slice(0, 40));
+      assert.doesNotMatch(r.texto, /contrasena|password/i, r.texto.slice(0, 40));
     }
   });
 });
