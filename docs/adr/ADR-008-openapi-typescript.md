@@ -1,10 +1,10 @@
 # ADR-008: Dependencia candidata `openapi-typescript` (D9)
 
-- **Estado:** Propuesto. Es una de las tres candidatas de D9 = A; el usuario la aprueba o la rechaza en la Puerta 1.
+- **Estado:** Aceptado (19-10-2026, Puerta 1, decisión P1-2). Antes de la primera generación se corrigen C-08–C-11 y C-18 en `openapi*.ts`.
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
 - **Cambia el contrato:** No
-- **Dónde iría:** `devDependencies` de `frontend/package.json` (de `arquitecto`). **No se añade nada hasta que se apruebe.**
+- **Dónde va:** `devDependencies` de `frontend/package.json` (de `arquitecto`), en versión exacta.
 
 ## Contexto
 
@@ -52,12 +52,12 @@ A cuesta 0 en dependencias, pero mantiene el problema que motiva el ADR-007. C y
   - hay que regenerar los tipos tras cada cambio de `openapi*.ts`;
   - `openapi.yaml` se regenera desde `openapi*.ts` (procedimiento de `COMPARACION_RUTAS.md`), así que la cadena queda `openapi*.ts` → `openapi.yaml` → `esquema.d.ts`.
 - **Si se rechaza:** `fe-b` escribe los tipos a mano en `core/api/contrato.ts`, y cada tipo cita su esquema del contrato (ADR-007, punto 2).
-- **NO VERIFICADO:** que `openapi-typescript` lea sin problemas el `openapi.yaml` actual (JSON con una cabecera de comentarios `#`). Se comprueba al instalarlo; si fallara, se le pasa la versión sin cabecera.
+- **Verificado (19-10-2026):** `openapi-typescript` 7.13.0 lee el `openapi.yaml` actual (JSON con una cabecera de comentarios `#`, que es YAML válido) sin errores ni avisos.
 
 ## Acciones
 
-1. [ ] Si se aprueba: `arquitecto` lo añade en `frontend/package.json` con el script `api:tipos` (Fase 2A).
-2. [ ] Cerrar C-08 a C-11 y C-18 en `openapi*.ts` antes de la primera generación (`arquitecto`, Fase 2A).
+1. [x] `arquitecto` lo añade en `frontend/package.json` (`7.13.0`, exacta) con el script `api:tipos` (Fase 2A).
+2. [x] Cerrar C-08 a C-11 y C-18 en `openapi*.ts` antes de la primera generación (`arquitecto`, Fase 2A; ver `COMPARACION_RUTAS.md` §6).
 3. [ ] `fe-b` crea `core/api/contrato.ts` a partir del archivo generado.
 
 ## Cómo se verifica

@@ -1,6 +1,6 @@
 # ADR-005: Strategy de transporte de correo e interfaz de almacenamiento
 
-- **Estado:** Propuesto (dos decisiones que se pueden aprobar por separado: 5.1 correo y 5.2 almacenamiento)
+- **Estado:** Aceptado (19-10-2026, Puerta 1, decisión P1-1), con sus dos decisiones: 5.1 correo y 5.2 almacenamiento
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
 - **Cambia el contrato:** No

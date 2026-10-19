@@ -1,6 +1,6 @@
 # ADR-001: Monolito modular en capas con API pública por módulo
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado (19-10-2026, Puerta 1, decisión P1-1)
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
 - **Cambia el contrato:** No

@@ -1,10 +1,10 @@
 # ADR-009: Dependencia candidata `@playwright/test` (D9)
 
-- **Estado:** Propuesto. Es una de las tres candidatas de D9 = A; el usuario la aprueba o la rechaza en la Puerta 1.
+- **Estado:** Aceptado (19-10-2026, Puerta 1, decisión P1-2), en un `e2e/package.json` propio. **Excepción de propiedad:** `e2e/package.json` es de `qa-edge`.
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`, para `qa-edge`
 - **Cambia el contrato:** No
-- **Dónde iría:** ver "Ubicación del `package.json`". **No se añade nada hasta que se apruebe.**
+- **Dónde va:** ver "Ubicación del `package.json`".
 
 ## Contexto
 
@@ -63,8 +63,9 @@ El coste principal de B es operativo: la descarga del navegador, levantar el bac
 
 ## Acciones
 
-1. [ ] Si se aprueba: el lead registra la excepción de propiedad; `arquitecto` crea `e2e/package.json` con `@playwright/test` en versión exacta (Fase 2A).
-2. [ ] `qa-edge`: `playwright.config.ts` (solo Chromium, `baseURL` local) y los 4 recorridos; guarda que aborte si `DB_NAME` no termina en `_test`.
+1. [x] El lead registra la excepción de propiedad (P1-2, 19-10-2026).
+2. [ ] `qa-edge` crea `e2e/package.json` con `@playwright/test` en versión exacta (Fase 2A).
+3. [ ] `qa-edge`: `playwright.config.ts` (solo Chromium, `baseURL` local) y los 4 recorridos; guarda que aborte si `DB_NAME` no termina en `_test`.
 
 ## Cómo se verifica
 
