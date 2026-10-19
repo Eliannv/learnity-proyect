@@ -5,7 +5,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AYUDA_CONTRASENA, caracteresDe, mensajeContrasena, politicaContrasena } from '../../../shared/validadores/contrasena';
 import { MarcoAcceso } from '../marco-acceso';
-import { erroresPorCampo, mensajeDeError } from '../mensaje-error';
+import { erroresPorCampo, mensajeDeError } from '../../../core/http/error-api';
 
 function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
   const { contrasena, confirmar } = grupo.value as { contrasena: string; confirmar: string };

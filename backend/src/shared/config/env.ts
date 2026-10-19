@@ -79,10 +79,16 @@ const esquema = z
 const resultado = esquema.safeParse(process.env);
 
 if (!resultado.success) {
-  console.error('Variables de entorno inválidas. Revisa tu archivo .env (usa .env.example como guía):');
-  for (const problema of resultado.error.issues) {
-    console.error(`  - ${problema.path.join('.')}: ${problema.message}`);
-  }
+  // `registrarEvento` depende de `env`, así que aquí se escribe la misma línea JSON directamente.
+  process.stderr.write(
+    JSON.stringify({
+      momento: new Date().toISOString(),
+      nivel: 'error',
+      evento: 'variables_entorno_invalidas',
+      ayuda: 'revisa tu archivo .env (usa .env.example como guía)',
+      problemas: resultado.error.issues.map((problema) => ({ variable: problema.path.join('.'), mensaje: problema.message })),
+    }) + '\n',
+  );
   process.exit(1);
 }
 

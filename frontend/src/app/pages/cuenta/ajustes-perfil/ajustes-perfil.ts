@@ -6,7 +6,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { PerfilService, fechaCorta } from '../../../core/auth/perfil.service';
 import { Avatar } from '../../../shared/ui/avatar';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../shared/validadores/contrasena';
-import { erroresPorCampo, mensajeDeError } from '../../auth/mensaje-error';
+import { erroresPorCampo, mensajeDeError } from '../../../core/http/error-api';
 
 type Pestana = 'perfil' | 'foto' | 'contrasena' | 'cuenta';
 

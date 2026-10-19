@@ -6,7 +6,7 @@ import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth/auth.service';
 import type { Rol } from '../../../core/auth/sesion.model';
 import { MarcoAcceso } from '../marco-acceso';
-import { mensajeDeError } from '../mensaje-error';
+import { mensajeDeError } from '../../../core/http/error-api';
 
 @Component({
   selector: 'app-login',

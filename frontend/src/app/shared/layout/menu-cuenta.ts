@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
 import { Avatar } from '../ui/avatar';
+import { environment } from '../../../environments/environment';
 
 /**
  * Foto de perfil del header (sitio y paneles).
@@ -51,16 +52,20 @@ import { Avatar } from '../ui/avatar';
           </div>
         }
 
-        <div class="grupo">
-          <a routerLink="/mi-aprendizaje" (click)="cerrar()" role="menuitem">
-            <lucide-icon name="graduation-cap" [size]="18" /> Mi aprendizaje
-          </a>
-          @if (!auth.esDocente() && !auth.esAdmin()) {
-            <a routerLink="/perfil" [queryParams]="{ solicitud: 1 }" (click)="cerrar()" role="menuitem">
-              <lucide-icon name="presentation" [size]="18" /> Enseña en Learnity
-            </a>
-          }
-        </div>
+        @if (sprint34Habilitado || (!auth.esDocente() && !auth.esAdmin())) {
+          <div class="grupo">
+            @if (sprint34Habilitado) {
+              <a routerLink="/mi-aprendizaje" (click)="cerrar()" role="menuitem">
+                <lucide-icon name="graduation-cap" [size]="18" /> Mi aprendizaje
+              </a>
+            }
+            @if (!auth.esDocente() && !auth.esAdmin()) {
+              <a routerLink="/perfil" [queryParams]="{ solicitud: 1 }" (click)="cerrar()" role="menuitem">
+                <lucide-icon name="presentation" [size]="18" /> Enseña en Learnity
+              </a>
+            }
+          </div>
+        }
 
         <div class="grupo">
           <a [routerLink]="auth.rutaPerfil()" (click)="cerrar()" role="menuitem">
@@ -181,6 +186,7 @@ import { Avatar } from '../ui/avatar';
 })
 export class MenuCuenta implements OnDestroy {
   protected readonly auth = inject(AuthService);
+  protected readonly sprint34Habilitado = environment.sprint34Habilitado;
   private readonly elemento = inject(ElementRef<HTMLElement>);
   private temporizador?: ReturnType<typeof setTimeout>;
   protected readonly abierto = signal(false);

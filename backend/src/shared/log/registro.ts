@@ -1,4 +1,5 @@
 import { env } from '../config/env.js';
+import { idPeticionActual } from './contexto.js';
 
 /**
  * Registro de eventos de seguridad (una línea JSON por evento, en la salida estándar).
@@ -20,7 +21,7 @@ export function registrarEvento(evento: string, datos: Record<string, unknown> =
   for (const [clave, valor] of Object.entries(datos)) {
     if (!CLAVES_PROHIBIDAS.test(clave) && valor !== undefined) limpio[clave] = valor;
   }
-  const linea = JSON.stringify({ momento: new Date().toISOString(), nivel, evento, ...limpio });
+  const linea = JSON.stringify({ momento: new Date().toISOString(), nivel, evento, idPeticion: idPeticionActual(), ...limpio });
   if (nivel === 'error') console.error(linea);
   else console.log(linea);
 }

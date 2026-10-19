@@ -25,6 +25,7 @@ import {
   TabBar,
 } from '../shared/layout/tab-bar';
 import { Logo } from '../shared/ui/logo';
+import { environment } from '../../environments/environment';
 
 interface ItemMenu {
   icono: string;
@@ -59,11 +60,9 @@ const MENU: Record<
         etiqueta: 'Mis cursos',
         ruta: '/docente/cursos',
       },
-      {
-        icono: 'graduation-cap',
-        etiqueta: 'Estudiantes',
-        ruta: '/docente/estudiantes',
-      },
+      ...(environment.sprint34Habilitado
+        ? [{ icono: 'graduation-cap', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' }]
+        : []),
     ],
 
     tabs: [
@@ -72,11 +71,9 @@ const MENU: Record<
         etiqueta: 'Mis cursos',
         ruta: '/docente/cursos',
       },
-      {
-        icono: 'chart-no-axes-column',
-        etiqueta: 'Estudiantes',
-        ruta: '/docente/estudiantes',
-      },
+      ...(environment.sprint34Habilitado
+        ? [{ icono: 'chart-no-axes-column', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' }]
+        : []),
       {
         icono: 'user',
         etiqueta: 'Perfil',
@@ -95,11 +92,9 @@ const MENU: Record<
         etiqueta: 'Mi perfil',
         ruta: '/admin/perfil',
       },
-      {
-        icono: 'users',
-        etiqueta: 'Usuarios',
-        ruta: '/admin/usuarios',
-      },
+      ...(environment.sprint34Habilitado
+        ? [{ icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios' }]
+        : []),
       {
         icono: 'user-check',
         etiqueta: 'Solicitudes de docente',
@@ -118,11 +113,9 @@ const MENU: Record<
     ],
 
     tabs: [
-      {
-        icono: 'users',
-        etiqueta: 'Usuarios',
-        ruta: '/admin/usuarios',
-      },
+      ...(environment.sprint34Habilitado
+        ? [{ icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios' }]
+        : []),
       {
         icono: 'user-check',
         etiqueta: 'Solicitudes',

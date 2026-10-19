@@ -1,6 +1,6 @@
 <div class="contenedor pagina">
   <nav class="migas" aria-label="Ruta">
-    <a routerLink="/mi-aprendizaje">Mi aprendizaje</a>
+    <a [routerLink]="sprint34Habilitado ? '/mi-aprendizaje' : '/cursos'">{{ sprint34Habilitado ? 'Mi aprendizaje' : 'Catálogo' }}</a>
     <lucide-icon name="chevron-right" [size]="16" />
     <span>Mi perfil</span>
   </nav>
@@ -142,7 +142,7 @@
           <span>{{ error() }}</span>
         </div>
       }
-      <a class="btn btn-texto btn-lg" routerLink="/mi-aprendizaje">Cancelar</a>
+      <a class="btn btn-texto btn-lg" [routerLink]="sprint34Habilitado ? '/mi-aprendizaje' : '/cursos'">Cancelar</a>
       <button type="submit" class="btn btn-primario btn-lg" [disabled]="cargando() || guardando()">
         {{ guardando() ? 'Guardando…' : 'Guardar cambios' }}
       </button>

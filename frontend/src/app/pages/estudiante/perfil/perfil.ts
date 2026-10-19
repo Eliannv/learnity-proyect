@@ -8,7 +8,8 @@ import { SolicitudesDocenteService, type SolicitudDocente } from '../../../core/
 import { Avatar } from '../../../shared/ui/avatar';
 import { Modal } from '../../../shared/ui/modal';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../shared/validadores/contrasena';
-import { erroresPorCampo, mensajeDeError } from '../../auth/mensaje-error';
+import { erroresPorCampo, mensajeDeError } from '../../../core/http/error-api';
+import { environment } from '../../../../environments/environment';
 
 /** El cambio de contraseña es opcional: si se escribe una de las dos, se exigen ambas. */
 function contrasenaOpcional(grupo: AbstractControl): ValidationErrors | null {
@@ -30,6 +31,7 @@ function contrasenaOpcional(grupo: AbstractControl): ValidationErrors | null {
 })
 export class PerfilEstudiante {
   protected readonly auth = inject(AuthService);
+  protected readonly sprint34Habilitado = environment.sprint34Habilitado;
   private readonly perfiles = inject(PerfilService);
   private readonly solicitudes = inject(SolicitudesDocenteService);
   private readonly fb = inject(FormBuilder).nonNullable;
