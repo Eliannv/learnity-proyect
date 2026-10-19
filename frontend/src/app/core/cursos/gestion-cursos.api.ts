@@ -11,16 +11,17 @@ import {
   DatosLeccion,
   DatosModulo,
   DecisionRevision,
-} from './gestion-cursos.model';
+  ListaCursos,
+} from '../api/contrato';
 
 @Injectable({ providedIn: 'root' })
 export class GestionCursosApi {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiUrl;
 
-  misCursos(): Promise<{ items: CursoResumen[] }> {
+  misCursos(): Promise<ListaCursos> {
     return firstValueFrom(
-      this.http.get<{ items: CursoResumen[] }>(
+      this.http.get<ListaCursos>(
         `${this.base}/docente/cursos`,
       ),
     );
@@ -107,9 +108,9 @@ export class GestionCursosApi {
     );
   }
 
-  colaRevision(): Promise<{ items: CursoResumen[] }> {
+  colaRevision(): Promise<ListaCursos> {
     return firstValueFrom(
-      this.http.get<{ items: CursoResumen[] }>(
+      this.http.get<ListaCursos>(
         `${this.base}/admin/cursos`,
         {
           params: {

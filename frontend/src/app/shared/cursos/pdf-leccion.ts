@@ -19,7 +19,7 @@ import {
   LeccionPrivada,
 } from '../../core/cursos/gestion-cursos.model';
 
-import { Peticion } from './peticion';
+import { Peticion } from '../../core/estado/peticion';
 
 @Component({
   selector: 'app-pdf-leccion',

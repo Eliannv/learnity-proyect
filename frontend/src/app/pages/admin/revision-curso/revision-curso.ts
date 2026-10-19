@@ -18,7 +18,7 @@ import {
 
 import { EstadoCursoBadge } from '../../../shared/ui/estado-curso';
 import { TemarioCurso } from '../../../shared/cursos/temario-curso';
-import { Peticion } from '../../../shared/cursos/peticion';
+import { Peticion } from '../../../core/estado/peticion';
 
 @Component({
   selector: 'app-revision-curso',
