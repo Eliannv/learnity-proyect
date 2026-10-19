@@ -7,6 +7,10 @@ import {
 import { AppError } from '../../shared/http/app-error.js';
 
 import {
+  registrarEvento,
+} from '../../shared/log/registro.js';
+
+import {
   almacenLocal,
 } from '../../shared/archivos/almacen.js';
 
@@ -69,8 +73,10 @@ export const limpiezaPdfService = {
           eliminados++;
         }
       } catch {
-        console.warn(
-          '[PDF] Quedó una limpieza pendiente; se reintentará.',
+        registrarEvento(
+          'archivo.limpieza_reintentar',
+          { archivo: 'pendiente' },
+          'aviso',
         );
       }
     }

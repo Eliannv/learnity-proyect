@@ -1,5 +1,6 @@
 import { AppError } from '../../shared/http/app-error.js';
 import { enTransaccion } from '../../shared/database/pool.js';
+import { registrarEvento } from '../../shared/log/registro.js';
 import type {
   DatosCurso,
   DatosModulo,
@@ -760,8 +761,10 @@ export const cursosService = {
     try {
       await limpiezaPdfService.limpiarPendientes();
     } catch {
-      console.warn(
-        '[PDF] Hay eliminaciones pendientes de reintento.',
+      registrarEvento(
+        'archivo.limpieza_reintentar',
+        {},
+        'aviso',
       );
     }
 
@@ -858,8 +861,10 @@ export const cursosService = {
     try {
       await limpiezaPdfService.limpiarPendientes();
     } catch {
-      console.warn(
-        '[PDF] Hay eliminaciones pendientes de reintento.',
+      registrarEvento(
+        'archivo.limpieza_reintentar',
+        {},
+        'aviso',
       );
     }
 

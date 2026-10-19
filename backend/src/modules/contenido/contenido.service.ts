@@ -7,6 +7,10 @@ import type {
 import { AppError } from '../../shared/http/app-error.js';
 
 import {
+  registrarEvento,
+} from '../../shared/log/registro.js';
+
+import {
   almacenLocal,
 } from '../../shared/archivos/almacen.js';
 
@@ -41,8 +45,10 @@ async function limpiarSinInterrumpir(): Promise<void> {
   try {
     await limpiezaPdfService.limpiarPendientes();
   } catch {
-    console.warn(
-      '[PDF] No fue posible consultar las limpiezas pendientes.',
+    registrarEvento(
+      'archivo.limpieza_pendientes_fallida',
+      {},
+      'aviso',
     );
   }
 }
