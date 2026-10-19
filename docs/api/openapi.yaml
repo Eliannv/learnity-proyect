@@ -1,0 +1,4339 @@
+# Contrato de la API de Learnity tal como está hoy (Fase 1 del refactor).
+# Generado desde backend/src/shared/http/openapi.ts (commit 3c3c159). No se edita a mano:
+# se regenera desde openapi*.ts con el mismo procedimiento (ver docs/api/COMPARACION_RUTAS.md).
+# El cuerpo es JSON, que también es YAML 1.2 válido.
+# Diferencias con las rutas reales: docs/api/COMPARACION_RUTAS.md (hallazgos C-nn).
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Learnity API",
+    "version": "0.3.0",
+    "description": "API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.\n\n**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie\n`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.\nCerrar sesión, cambiar o restablecer la contraseña revocan las sesiones y sus access tokens dejan de valer de inmediato.\n\n**CSRF.** Las rutas que usan la cookie (`/auth/refresh`, `/auth/logout`) exigen el encabezado `X-XSRF-TOKEN`\ncon el valor de la cookie `XSRF-TOKEN` (Angular lo envía solo). Todas las rutas `/auth/*` rechazan otros orígenes.\n\n**Límites.** Por IP: login 20/15 min, registro 10/h, recuperar 5/15 min, restablecer 10/15 min.\nPor cuenta: 5 inicios fallidos seguidos la bloquean 15 minutos (con el mismo mensaje genérico)."
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "ArchivoPdf": {
+        "type": "object",
+        "required": [
+          "id",
+          "tipo",
+          "nombreOriginal",
+          "tamanoBytes"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "PDF"
+            ]
+          },
+          "nombreOriginal": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "tamanoBytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10485760
+          }
+        }
+      },
+      "LeccionPrivada": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "orden",
+          "tipo",
+          "archivo"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "orden": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTO",
+              "VIDEO",
+              "EVALUACION"
+            ]
+          },
+          "archivo": {
+            "type": "object",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchivoPdf"
+              }
+            ]
+          }
+        }
+      },
+      "ModuloPrivado": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "orden",
+          "lecciones"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "orden": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "lecciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeccionPrivada"
+            }
+          }
+        }
+      },
+      "ValidacionCurso": {
+        "type": "object",
+        "required": [
+          "completo",
+          "problemas"
+        ],
+        "properties": {
+          "completo": {
+            "type": "boolean"
+          },
+          "problemas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "campo",
+                "mensaje"
+              ],
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "mensaje": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CursoResumen": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "estado",
+          "motivoRechazo",
+          "docente",
+          "modulos"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "EN_REVISION",
+              "PUBLICADO",
+              "RECHAZADO",
+              "ARCHIVADO"
+            ]
+          },
+          "motivoRechazo": {
+            "type": "string",
+            "nullable": true
+          },
+          "docente": {
+            "type": "string"
+          },
+          "modulos": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "CursoDetalle": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "subtitulo",
+          "descripcion",
+          "categoriaId",
+          "categoriaNombre",
+          "nivel",
+          "portadaUrl",
+          "objetivos",
+          "requisitos",
+          "estado",
+          "motivoRechazo",
+          "docente",
+          "modulos",
+          "validacion"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "subtitulo": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "categoriaId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "categoriaNombre": {
+            "type": "string"
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "PRINCIPIANTE",
+              "INTERMEDIO",
+              "AVANZADO"
+            ]
+          },
+          "portadaUrl": {
+            "type": "string"
+          },
+          "objetivos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "EN_REVISION",
+              "PUBLICADO",
+              "RECHAZADO",
+              "ARCHIVADO"
+            ]
+          },
+          "motivoRechazo": {
+            "type": "string",
+            "nullable": true
+          },
+          "docente": {
+            "type": "string"
+          },
+          "modulos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModuloPrivado"
+            }
+          },
+          "validacion": {
+            "$ref": "#/components/schemas/ValidacionCurso"
+          }
+        }
+      },
+      "ErrorIntegrante3": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "codigo",
+              "mensaje"
+            ],
+            "properties": {
+              "codigo": {
+                "type": "string"
+              },
+              "mensaje": {
+                "type": "string"
+              },
+              "detalles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "campo": {
+                      "type": "string"
+                    },
+                    "mensaje": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErrorApiIntegrante2": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "codigo": {
+                "type": "string"
+              },
+              "mensaje": {
+                "type": "string"
+              },
+              "detalles": {}
+            }
+          }
+        }
+      },
+      "DatosCursoIntegrante2": {
+        "type": "object",
+        "required": [
+          "titulo",
+          "categoriaId",
+          "nivel"
+        ],
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150
+          },
+          "subtitulo": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "descripcion": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "categoriaId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "PRINCIPIANTE",
+              "INTERMEDIO",
+              "AVANZADO"
+            ]
+          },
+          "portadaUrl": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "objetivos": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "requisitos": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        }
+      },
+      "DatosModuloIntegrante2": {
+        "type": "object",
+        "required": [
+          "titulo",
+          "orden"
+        ],
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150
+          },
+          "orden": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        }
+      },
+      "DatosLeccionIntegrante2": {
+        "type": "object",
+        "required": [
+          "titulo",
+          "orden",
+          "tipo"
+        ],
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150
+          },
+          "orden": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTO"
+            ]
+          }
+        }
+      },
+      "CursoResumenIntegrante2": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "EN_REVISION",
+              "PUBLICADO",
+              "RECHAZADO",
+              "ARCHIVADO"
+            ]
+          },
+          "motivoRechazo": {
+            "type": "string",
+            "nullable": true
+          },
+          "docente": {
+            "type": "string"
+          },
+          "modulos": {
+            "type": "integer"
+          }
+        }
+      },
+      "CursoDetalleIntegrante2": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150
+          },
+          "subtitulo": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "categoriaId": {
+            "type": "integer"
+          },
+          "categoriaNombre": {
+            "type": "string"
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "PRINCIPIANTE",
+              "INTERMEDIO",
+              "AVANZADO"
+            ]
+          },
+          "portadaUrl": {
+            "type": "string"
+          },
+          "objetivos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "EN_REVISION",
+              "PUBLICADO",
+              "RECHAZADO",
+              "ARCHIVADO"
+            ]
+          },
+          "motivoRechazo": {
+            "type": "string",
+            "nullable": true
+          },
+          "docente": {
+            "type": "string"
+          },
+          "modulos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "titulo": {
+                  "type": "string"
+                },
+                "orden": {
+                  "type": "integer"
+                },
+                "lecciones": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "titulo": {
+                        "type": "string"
+                      },
+                      "orden": {
+                        "type": "integer"
+                      },
+                      "tipo": {
+                        "type": "string",
+                        "enum": [
+                          "DOCUMENTO",
+                          "VIDEO",
+                          "EVALUACION"
+                        ]
+                      },
+                      "archivo": {
+                        "nullable": true,
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "tipo": {
+                                "type": "string",
+                                "enum": [
+                                  "PDF"
+                                ]
+                              },
+                              "nombreOriginal": {
+                                "type": "string"
+                              },
+                              "tamanoBytes": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "validacion": {
+            "type": "object",
+            "properties": {
+              "completo": {
+                "type": "boolean"
+              },
+              "problemas": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "campo": {
+                      "type": "string"
+                    },
+                    "mensaje": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErrorApi": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "codigo": {
+                "type": "string"
+              },
+              "mensaje": {
+                "type": "string"
+              },
+              "detalles": {}
+            }
+          }
+        }
+      },
+      "SolicitudDocente": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 4
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "PENDIENTE",
+              "APROBADA",
+              "RECHAZADA"
+            ]
+          },
+          "especialidad": {
+            "type": "string",
+            "example": "Programación web"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "observacion": {
+            "type": "string",
+            "nullable": true,
+            "description": "Motivo del rechazo (solo RECHAZADA)."
+          },
+          "enviadaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revisadaEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "solicitante": {
+            "type": "object",
+            "properties": {
+              "nombres": {
+                "type": "string"
+              },
+              "apellidos": {
+                "type": "string"
+              },
+              "correo": {
+                "type": "string"
+              },
+              "estudianteDesde": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "cursosCompletados": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "cookieRefresh": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "learnity_rt"
+      },
+      "csrf": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-XSRF-TOKEN"
+      }
+    }
+  },
+  "paths": {
+    "/admin/cursos": {
+      "get": {
+        "tags": [
+          "Administración"
+        ],
+        "summary": "Cursos pendientes de revisión (ADMIN)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "estado",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EN_REVISION"
+              ],
+              "default": "EN_REVISION"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CursoResumen"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente o inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fallo inesperado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/cursos/{id}": {
+      "get": {
+        "tags": [
+          "Administración"
+        ],
+        "summary": "Detalle privado, incluso si ya fue decidido (ADMIN)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Curso completo, directamente en la raíz",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente o inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fallo inesperado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/cursos/{id}/revision": {
+      "put": {
+        "tags": [
+          "Administración"
+        ],
+        "summary": "Aprobar o rechazar una revisión pendiente (ADMIN)",
+        "description": "La operación es atómica; una segunda decisión responde 409. Aprobar revalida el contenido y sus PDF.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "decision"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "APROBAR"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "decision",
+                      "motivo"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "RECHAZAR"
+                        ]
+                      },
+                      "motivo": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Curso completo, directamente en la raíz",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente o inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Curso ya decidido, bloqueado o incompleto al aprobar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fallo inesperado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lecciones/{id}/archivo": {
+      "post": {
+        "tags": [
+          "Contenido"
+        ],
+        "summary": "Subir o reemplazar el PDF principal (DOCENTE propietario)",
+        "description": "Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF de hasta 10 MiB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Curso completo, directamente en la raíz",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente o inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Supera 10 MiB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Tipo o formato de envío no admitido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fallo inesperado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/archivos/{id}": {
+      "get": {
+        "tags": [
+          "Contenido"
+        ],
+        "summary": "Descargar PDF privado (ADMIN o DOCENTE propietario)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bytes del PDF, sin publicar su ruta física",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente o inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fallo inesperado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorIntegrante3"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/docente/cursos": {
+      "get": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Listar los cursos del docente autenticado",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CursoResumenIntegrante2"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/docente/cursos/{id}": {
+      "get": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Consultar el detalle de un curso propio",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/cursos": {
+      "post": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Crear curso en estado BORRADOR",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosCursoIntegrante2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Cursos"
+        ],
+        "summary": "Catálogo público: solo cursos publicados",
+        "description": "Los valores repetidos de categoría o nivel se combinan con OR dentro del grupo y AND entre grupos. La búsqueda consulta título, subtítulo y descripción. El total solo cuenta publicados.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "categoria",
+            "description": "Nombre exacto; repetible.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "in": "query",
+            "name": "nivel",
+            "description": "Repetible.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "PRINCIPIANTE",
+                  "INTERMEDIO",
+                  "AVANZADO"
+                ]
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "in": "query",
+            "name": "orden",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "recientes",
+                "populares",
+                "az"
+              ],
+              "default": "recientes"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 9
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "titulo": {
+                            "type": "string"
+                          },
+                          "subtitulo": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "categoria": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "nombre"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "nombre": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "docente": {
+                            "type": "string"
+                          },
+                          "nivel": {
+                            "type": "string",
+                            "enum": [
+                              "PRINCIPIANTE",
+                              "INTERMEDIO",
+                              "AVANZADO"
+                            ]
+                          },
+                          "portadaUrl": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "modulos": {
+                            "type": "integer"
+                          },
+                          "lecciones": {
+                            "type": "integer"
+                          },
+                          "minutos": {
+                            "type": "integer"
+                          },
+                          "publicadoEn": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "estado": {
+                            "type": "string",
+                            "enum": [
+                              "PUBLICADO"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "pagina": {
+                      "type": "integer"
+                    },
+                    "limite": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "totalPaginas": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Filtros o paginación inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cursos/{id}": {
+      "put": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Actualizar un curso BORRADOR o RECHAZADO",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosCursoIntegrante2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Cursos"
+        ],
+        "summary": "Detalle público de un curso publicado",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "titulo": {
+                      "type": "string"
+                    },
+                    "subtitulo": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "categoria": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "nombre"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "nombre": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "docente": {
+                      "type": "string"
+                    },
+                    "nivel": {
+                      "type": "string",
+                      "enum": [
+                        "PRINCIPIANTE",
+                        "INTERMEDIO",
+                        "AVANZADO"
+                      ]
+                    },
+                    "portadaUrl": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "modulos": {
+                      "type": "integer"
+                    },
+                    "lecciones": {
+                      "type": "integer"
+                    },
+                    "minutos": {
+                      "type": "integer"
+                    },
+                    "publicadoEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "estado": {
+                      "type": "string",
+                      "enum": [
+                        "PUBLICADO"
+                      ]
+                    },
+                    "descripcion": {
+                      "type": "string"
+                    },
+                    "docenteBio": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "objetivos": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "requisitos": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "temario": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "orden": {
+                            "type": "integer"
+                          },
+                          "titulo": {
+                            "type": "string"
+                          },
+                          "lecciones": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "integer"
+                                },
+                                "orden": {
+                                  "type": "integer"
+                                },
+                                "titulo": {
+                                  "type": "string"
+                                },
+                                "tipo": {
+                                  "type": "string",
+                                  "enum": [
+                                    "VIDEO",
+                                    "DOCUMENTO",
+                                    "EVALUACION"
+                                  ]
+                                },
+                                "minutos": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El ID no existe o el curso no está publicado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cursos/{id}/modulos": {
+      "post": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Crear módulo dentro de un curso propio",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosModuloIntegrante2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/modulos/{id}": {
+      "put": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Actualizar un módulo",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosModuloIntegrante2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Eliminar un módulo y coordinar limpieza de PDF",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/modulos/{id}/lecciones": {
+      "post": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Crear una lección DOCUMENTO",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosLeccionIntegrante2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/lecciones/{id}": {
+      "put": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Actualizar una lección DOCUMENTO",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosLeccionIntegrante2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Eliminar una lección y coordinar limpieza de PDF",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/cursos/{id}/enviar-revision": {
+      "post": {
+        "tags": [
+          "Gestión de cursos - Integrante 2"
+        ],
+        "summary": "Validar y enviar curso a revisión administrativa",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalleIntegrante2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin autenticación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto o curso bloqueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApiIntegrante2"
+                }
+              }
+            }
+          }
+        },
+        "description": "Exige curso completo, docente propietario y estado BORRADOR o RECHAZADO. Si faltan requisitos devuelve 400 con detalles. Si es válido cambia el estado a EN_REVISION en una transacción.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/solicitudes-docente": {
+      "post": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Enviar la solicitud para ser docente (estudiante)",
+        "description": "Solo una solicitud pendiente por cuenta. Tras un rechazo se puede enviar otra. Límite: 10 por hora por IP.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "especialidad",
+                  "motivo"
+                ],
+                "properties": {
+                  "especialidad": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 100
+                  },
+                  "motivo": {
+                    "type": "string",
+                    "minLength": 50,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Solicitud creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_ES_DOCENTE o SOLICITUD_PENDIENTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/solicitudes-docente/mia": {
+      "get": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Estado de mi última solicitud",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "solicitud": {
+                      "$ref": "#/components/schemas/SolicitudDocente",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/solicitudes": {
+      "get": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Listar solicitudes por estado (administrador)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "estado",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDIENTE",
+                "APROBADA",
+                "RECHAZADA"
+              ],
+              "default": "PENDIENTE"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SolicitudDocente"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/solicitudes/{id}": {
+      "put": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Aprobar o rechazar una solicitud (administrador)",
+        "description": "APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol llega a la sesión del estudiante en su próxima renovación. RECHAZAR exige `observacion` (máximo 300 caracteres).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "decision"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "APROBAR"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "decision",
+                      "observacion"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "RECHAZAR"
+                        ]
+                      },
+                      "observacion": {
+                        "type": "string",
+                        "maxLength": 300
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud decidida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador o es su propia solicitud",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SOLICITUD_YA_REVISADA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/salud": {
+      "get": {
+        "tags": [
+          "General"
+        ],
+        "summary": "Estado del servidor y conexión a PostgreSQL",
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categorias": {
+      "get": {
+        "tags": [
+          "Cursos"
+        ],
+        "summary": "Categorías activas ordenadas por nombre",
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "nombre"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "nombre": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/registro": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-01 · Crear cuenta (rol ESTUDIANTE) y abrir sesión",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombres",
+                  "apellidos",
+                  "correo",
+                  "contrasena"
+                ],
+                "properties": {
+                  "nombres": {
+                    "type": "string",
+                    "example": "Rosa",
+                    "maxLength": 80
+                  },
+                  "apellidos": {
+                    "type": "string",
+                    "example": "Vera Chávez",
+                    "maxLength": 80
+                  },
+                  "correo": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "rosa.vera@correo.com"
+                  },
+                  "contrasena": {
+                    "type": "string",
+                    "minLength": 15,
+                    "description": "Mínimo 15 caracteres y máximo 72 bytes UTF-8 (límite de bcrypt), sin reglas de composición. Se rechazan contraseñas comunes, basadas en el nombre o el correo, y las expuestas en filtraciones (Have I Been Pwned, k-anonimato)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cuenta creada y sesión abierta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT de 15 minutos. Guardarlo SOLO en memoria y enviarlo como Authorization: Bearer <token>."
+                    },
+                    "expiraEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "idUsuario": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "idPersona": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "nombres": {
+                          "type": "string",
+                          "example": "Rosa"
+                        },
+                        "apellidos": {
+                          "type": "string",
+                          "example": "Vera Chávez"
+                        },
+                        "correo": {
+                          "type": "string",
+                          "example": "rosa.vera@correo.com"
+                        },
+                        "fotoUrl": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ESTUDIANTE",
+                              "DOCENTE",
+                              "ADMIN"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "`learnity_rt` (refresh token opaco, HttpOnly, SameSite=Lax, Path=/api/auth, Secure en HTTPS) y `XSRF-TOKEN` (token CSRF legible por JavaScript).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o contraseña rechazada por la política",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origen no permitido (ORIGEN_NO_PERMITIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Correo ya registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-02 · Iniciar sesión",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "correo",
+                  "contrasena"
+                ],
+                "properties": {
+                  "correo": {
+                    "type": "string",
+                    "example": "rosa.vera@correo.com"
+                  },
+                  "contrasena": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión abierta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT de 15 minutos. Guardarlo SOLO en memoria y enviarlo como Authorization: Bearer <token>."
+                    },
+                    "expiraEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "idUsuario": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "idPersona": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "nombres": {
+                          "type": "string",
+                          "example": "Rosa"
+                        },
+                        "apellidos": {
+                          "type": "string",
+                          "example": "Vera Chávez"
+                        },
+                        "correo": {
+                          "type": "string",
+                          "example": "rosa.vera@correo.com"
+                        },
+                        "fotoUrl": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ESTUDIANTE",
+                              "DOCENTE",
+                              "ADMIN"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "`learnity_rt` (refresh token opaco, HttpOnly, SameSite=Lax, Path=/api/auth, Secure en HTTPS) y `XSRF-TOKEN` (token CSRF legible por JavaScript).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mensaje genérico: correo inexistente, contraseña errónea o cuenta bloqueada (CREDENCIALES_INVALIDAS)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cuenta desactivada (CUENTA_INACTIVA, solo con la contraseña correcta) u origen no permitido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "Renovar la sesión: rota el refresh token y entrega un access token nuevo",
+        "description": "El frontend lo llama al cargar la página (restaurar la sesión) y cuando el access token vence.",
+        "security": [
+          {
+            "cookieRefresh": [],
+            "csrf": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sesión renovada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT de 15 minutos. Guardarlo SOLO en memoria y enviarlo como Authorization: Bearer <token>."
+                    },
+                    "expiraEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "idUsuario": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "idPersona": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "nombres": {
+                          "type": "string",
+                          "example": "Rosa"
+                        },
+                        "apellidos": {
+                          "type": "string",
+                          "example": "Vera Chávez"
+                        },
+                        "correo": {
+                          "type": "string",
+                          "example": "rosa.vera@correo.com"
+                        },
+                        "fotoUrl": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ESTUDIANTE",
+                              "DOCENTE",
+                              "ADMIN"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "`learnity_rt` (refresh token opaco, HttpOnly, SameSite=Lax, Path=/api/auth, Secure en HTTPS) y `XSRF-TOKEN` (token CSRF legible por JavaScript).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, vencida, revocada o reutilizada (SESION_INVALIDA); se borran las cookies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token CSRF ausente o inválido (CSRF_INVALIDO) u origen no permitido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Otra pestaña renovó la sesión hace instantes (REFRESCO_CONCURRENTE): reintentar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "Cerrar sesión: revoca el refresh token y los access tokens de esa sesión",
+        "security": [
+          {
+            "cookieRefresh": [],
+            "csrf": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sesión cerrada y cookies borradas"
+          },
+          "403": {
+            "description": "CSRF inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/recuperar": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-06 · Enviar enlace para recuperar la contraseña",
+        "description": "Responde siempre lo mismo y al instante, exista o no el correo. Si existe, envía (Gmail API) un enlace de un solo uso que vence en 15–30 minutos (RECUPERACION_MINUTOS). Máximo 3 enlaces por cuenta y hora.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "correo"
+                ],
+                "properties": {
+                  "correo": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensaje": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origen no permitido (ORIGEN_NO_PERMITIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/restablecer": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-06 · Guardar la nueva contraseña con el token del enlace",
+        "description": "Consume el enlace (un solo uso), cambia la contraseña y revoca todas las sesiones anteriores de la cuenta.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token",
+                  "contrasena"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "Valor tras #token= en el enlace del correo"
+                  },
+                  "contrasena": {
+                    "type": "string",
+                    "minLength": 15,
+                    "description": "Mínimo 15 caracteres y máximo 72 bytes UTF-8 (límite de bcrypt), sin reglas de composición. Se rechazan contraseñas comunes, basadas en el nombre o el correo, y las expuestas en filtraciones (Have I Been Pwned, k-anonimato)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensaje": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Enlace inválido, usado o vencido, o contraseña rechazada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origen no permitido (ORIGEN_NO_PERMITIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/perfil": {
+      "get": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-04 · Ver mi perfil",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idUsuario": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "idPersona": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "nombres": {
+                      "type": "string",
+                      "example": "Rosa"
+                    },
+                    "apellidos": {
+                      "type": "string",
+                      "example": "Vera Chávez"
+                    },
+                    "correo": {
+                      "type": "string",
+                      "example": "rosa.vera@correo.com"
+                    },
+                    "fotoUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "ESTUDIANTE",
+                          "DOCENTE",
+                          "ADMIN"
+                        ]
+                      }
+                    },
+                    "ciudad": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Machala"
+                    },
+                    "biografia": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "creadoEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-04 · Editar mi perfil",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombres",
+                  "apellidos"
+                ],
+                "properties": {
+                  "nombres": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "apellidos": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "ciudad": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 60
+                  },
+                  "biografia": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 300
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idUsuario": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "idPersona": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "nombres": {
+                      "type": "string",
+                      "example": "Rosa"
+                    },
+                    "apellidos": {
+                      "type": "string",
+                      "example": "Vera Chávez"
+                    },
+                    "correo": {
+                      "type": "string",
+                      "example": "rosa.vera@correo.com"
+                    },
+                    "fotoUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "ESTUDIANTE",
+                          "DOCENTE",
+                          "ADMIN"
+                        ]
+                      }
+                    },
+                    "ciudad": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Machala"
+                    },
+                    "biografia": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "creadoEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/perfil/contrasena": {
+      "put": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-04 · Cambiar mi contraseña (cierra las demás sesiones)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "actual",
+                  "nueva"
+                ],
+                "properties": {
+                  "actual": {
+                    "type": "string"
+                  },
+                  "nueva": {
+                    "type": "string",
+                    "minLength": 15,
+                    "description": "Mínimo 15 caracteres y máximo 72 bytes UTF-8 (límite de bcrypt), sin reglas de composición. Se rechazan contraseñas comunes, basadas en el nombre o el correo, y las expuestas en filtraciones (Have I Been Pwned, k-anonimato)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensaje": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Contraseña actual incorrecta o nueva rechazada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "codigo": {
+                          "type": "string",
+                          "example": "SOLICITUD_INVALIDA"
+                        },
+                        "mensaje": {
+                          "type": "string"
+                        },
+                        "detalles": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
