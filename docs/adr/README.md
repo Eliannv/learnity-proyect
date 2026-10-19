@@ -19,8 +19,9 @@ Lo mantiene `arquitecto`. Todo ADR nace **Propuesto** y pasa a **Aceptado** o **
 | [009](ADR-009-playwright.md) | Dependencia candidata: `@playwright/test` (D9) | Aceptado (P1-2; `e2e/package.json` de `qa-edge`) | 1 | No |
 | [010](ADR-010-pg-trgm.md) | Extensión candidata: `pg_trgm` (D9) | Aceptado, opción A: aplazar (P1-2) | 1 | No |
 | [011](ADR-011-endurecimiento-contrato.md) | Endurecimiento con impacto en el contrato | Aceptado parcialmente (P1-3): 11.1–11.8, 11.10 y 11.11 aceptados; **11.9 rechazado** (se mantiene el comportamiento actual) | 1 | Sí (todos los aceptados menos 11.5) |
+| [012](ADR-012-crud-categorias.md) | CRUD de categorías para el administrador (A3, D1/D2) | **Propuesto** | 2B (antes de A3) | Sí: amplía con 3 operaciones (`/admin/categorias*`) y `CATEGORIA_DUPLICADA`; ninguna existente cambia |
 
-Pendiente para la Fase 2B: el ADR del CRUD de categorías (D1), que amplía el contrato con rutas nuevas (ver `docs/arquitectura/CONTRATOS_SERVICIO.md`).
+Fase 2B: el ADR-012 (CRUD de categorías, D1) está **Propuesto**. Amplía el contrato y necesita la aprobación del usuario antes de escribir `openapi*.ts` y de implementar A3.
 
 ## Reglas que comparten todos los ADR
 
