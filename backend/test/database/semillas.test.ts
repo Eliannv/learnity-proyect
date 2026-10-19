@@ -42,7 +42,7 @@ describe('semillas.repository', () => {
           nombres: marca, apellidos: 'Docente', ciudad: 'Machala', biografia: 'Bio',
           correo: `${marca}.docente@pruebas.test`, contrasenaHash: 'hash-de-prueba',
         });
-        await repo.crearSolicitudDocenteAprobada(cliente, profe.idPersona, 'Prueba', 'Motivo de prueba suficiente', admin.idPersona);
+        await repo.crearSolicitudDocenteAprobada(cliente, profe.idPersona, 'Prueba', 'Motivo de prueba con la longitud suficiente para cumplir la restricción de la solicitud de docente.', admin.idPersona);
         await repo.crearDocente(cliente, profe.idPersona, 'Prueba');
         const idDocente = await repo.idDocentePorCorreo(cliente, `${marca}.docente@pruebas.test`);
         assert.ok(idDocente);
