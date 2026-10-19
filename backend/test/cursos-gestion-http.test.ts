@@ -1,3 +1,5 @@
+import './ayudas/guardia-bd.js';
+
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
@@ -283,9 +285,10 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
     await pool.query(
       `UPDATE curso
        SET estado = 'PUBLICADO',
+           revisado_por = $2,
            publicado_en = now()
        WHERE id_curso = $1`,
-      [id],
+      [id, docente.idPersona],
     );
 
     const r = await pedir(

@@ -1,3 +1,5 @@
+import './ayudas/guardia-bd.js';
+
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
@@ -219,7 +221,9 @@ async function escenario(
         portada_url,
         objetivos,
         estado,
-        motivo_rechazo
+        motivo_rechazo,
+        revisado_por,
+        publicado_en
       )
       VALUES (
         $1,
@@ -231,7 +235,9 @@ async function escenario(
         '/img/portada-mi-curso.jpg',
         $4,
         $5,
-        $6
+        $6,
+        $7::int,
+        $8::timestamptz
       )
       RETURNING id_curso AS id
     `,
@@ -248,6 +254,11 @@ async function escenario(
       estado === 'RECHAZADO'
         ? 'Completa el material.'
         : null,
+      // Un curso PUBLICADO exige quién lo revisó y cuándo se publicó (migración 023).
+      estado === 'PUBLICADO'
+        ? admin.sesion.idPersona
+        : null,
+      estado === 'PUBLICADO' ? new Date() : null,
     ],
   );
 
