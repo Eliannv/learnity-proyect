@@ -1,6 +1,7 @@
 // Pruebas de integración del módulo Identidad contra PostgreSQL real (Sprint 1).
 // Ejecutar con:  npm test   (lee .env.test; ver .env.test.example)
 // Solo crea y borra cuentas del dominio @pruebas.test, pero por seguridad exige NODE_ENV=test.
+import './ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';

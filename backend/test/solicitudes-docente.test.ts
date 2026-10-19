@@ -1,5 +1,6 @@
 // Pruebas de integración: solicitud para ser docente (estudiante) y su revisión (administrador).
 // Requiere NODE_ENV=test y una base cuyo nombre termine en _test (ver .env.test.example).
+import './ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';

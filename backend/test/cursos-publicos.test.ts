@@ -1,3 +1,4 @@
+import './ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import { after, before, describe, it } from 'node:test';
@@ -41,11 +42,12 @@ async function categoria(nombre: string, activa: boolean, creadaPor: number) {
   return id;
 }
 
-async function curso(docente: number, cat: number, sufijo: string, nivel: string, estado: string, dias: number) {
+// Un curso PUBLICADO exige revisor y fecha de publicación (CHECK de la migración 023).
+async function curso(docente: number, cat: number, sufijo: string, nivel: string, estado: string, dias: number, revisor: number) {
   const { rows } = await pool.query<{ id_curso: number }>(
-    `INSERT INTO curso (id_docente, id_categoria, titulo, subtitulo, descripcion, nivel, estado, publicado_en)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, now() - $8::int * interval '1 day') RETURNING id_curso`,
-    [docente, cat, `${marca} ${sufijo}`, `Subtítulo ${sufijo}`, `Descripción ${sufijo}`, nivel, estado, dias],
+    `INSERT INTO curso (id_docente, id_categoria, titulo, subtitulo, descripcion, nivel, estado, publicado_en, revisado_por)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, now() - $8::int * interval '1 day', $9) RETURNING id_curso`,
+    [docente, cat, `${marca} ${sufijo}`, `Subtítulo ${sufijo}`, `Descripción ${sufijo}`, nivel, estado, dias, estado === 'PUBLICADO' ? revisor : null],
   );
   const id = rows[0]!.id_curso;
   ids.cursos.push(id);
@@ -70,10 +72,10 @@ before(async () => {
   const catA = await categoria(categoriaA, true, autor);
   const catB = await categoria(categoriaB, true, autor);
   await categoria(`${marca} Inactiva`, false, autor);
-  publicadoA = await curso(docente, catA, 'A Python', 'PRINCIPIANTE', 'PUBLICADO', 3);
-  publicadoB = await curso(docente, catB, 'B Diseño', 'INTERMEDIO', 'PUBLICADO', 2);
-  publicadoC = await curso(docente, catA, 'C Python', 'AVANZADO', 'PUBLICADO', 1);
-  borrador = await curso(docente, catA, 'D Borrador', 'PRINCIPIANTE', 'BORRADOR', 0);
+  publicadoA = await curso(docente, catA, 'A Python', 'PRINCIPIANTE', 'PUBLICADO', 3, autor);
+  publicadoB = await curso(docente, catB, 'B Diseño', 'INTERMEDIO', 'PUBLICADO', 2, autor);
+  publicadoC = await curso(docente, catA, 'C Python', 'AVANZADO', 'PUBLICADO', 1, autor);
+  borrador = await curso(docente, catA, 'D Borrador', 'PRINCIPIANTE', 'BORRADOR', 0, autor);
   const { rows: modulos } = await pool.query<{ id_modulo: number }>(
     'INSERT INTO modulo (id_curso, titulo, orden) VALUES ($1, $2, 1) RETURNING id_modulo',
     [publicadoA, 'Introducción'],
