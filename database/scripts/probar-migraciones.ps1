@@ -9,9 +9,14 @@
     1. H0 = huella inicial.
     2. up de todas, incluidas las retenidas. Antes de cada up se guarda la
        huella previa P(N). Al final, H1.
+       Justo antes de la 022 (BD-022) se ejecuta pruebas_heredadas.sql: simula
+       cursos PUBLICADO sin revisor, aplica dentro de una sola transaccion el
+       cuerpo de las migraciones pendientes (las retenidas al final, como en
+       Learnity) y lo deshace todo con ROLLBACK. Se exige huella = P(022).
     3. down de todas, de la ultima a la primera. Despues de cada down se
        exige huella = P(N). Al final, H2, y se exige H2 = H0.
-    4. up de todas -> H3. Se exige H3 = H1.
+    4. up de todas -> H3. Se exige H3 = H1. Pruebas funcionales con todas,
+       incluidas las retenidas (la 023).
     5. Estado migrado sin las retenidas: down hasta antes de la primera
        retenida y up del resto (la 023 queda sin aplicar) -> H4.
     6. matriz_privilegios.sql, pruebas_funcionales.sql y comparar_catalogo.sql.
@@ -69,14 +74,44 @@ function Comparar-Huellas($A, $B) {
     return 'DISTINTO (' + ($distintas -join ', ') + ')'
 }
 
-function Ejecutar-Reporte([string]$Archivo, [string]$Titulo) {
-    $r = Invocar-Psql -Cx $cx -Argumentos @('-At', '-F', ' | ', '-f', $Archivo)
-    $nombre = [IO.Path]::GetFileNameWithoutExtension($Archivo)
-    $r.Salida | Set-Content -LiteralPath (Join-Path $SalidaDir "$nombre.txt") -Encoding UTF8
-    Anotar ''
-    Anotar "--- $Titulo ---"
-    $r.Salida | Where-Object { $_ -ne '' } | ForEach-Object { Anotar "  $_" }
-    if ($r.Codigo -ne 0) { Anotar "  ERROR: $Archivo termino con codigo $($r.Codigo)" }
+# Con -Diferir, las lineas se guardan en $diferidos y se anotan en el paso 6.
+$diferidos = New-Object System.Collections.Generic.List[string]
+function Ejecutar-Reporte([string]$Archivo, [string]$Titulo, [string]$Nombre = '', [string[]]$Opciones = @(), [switch]$Diferir) {
+    $r = Invocar-Psql -Cx $cx -Argumentos (@('-At', '-F', ' | ') + $Opciones + @('-f', $Archivo))
+    if (-not $Nombre) { $Nombre = [IO.Path]::GetFileNameWithoutExtension($Archivo) }
+    $r.Salida | Set-Content -LiteralPath (Join-Path $SalidaDir "$Nombre.txt") -Encoding UTF8
+    $lineas = @('', "--- $Titulo ---") + @($r.Salida | Where-Object { $_ -ne '' } | ForEach-Object { "  $_" })
+    if ($r.Codigo -ne 0) { $lineas += "  ERROR: $Archivo termino con codigo $($r.Codigo)" }
+    foreach ($l in $lineas) { if ($Diferir) { $script:diferidos.Add($l) } else { Anotar $l } }
+}
+
+# BD-022: compone verificacion\pruebas_heredadas.sql sustituyendo la linea
+# '-- @migraciones' por el cuerpo de cada migracion pendiente desde $Desde, sin
+# su BEGIN ni su COMMIT y seguido de RESET ROLE. Primero las no retenidas en
+# orden y al final las retenidas, como se aplicarian en Learnity. Todo queda en
+# la transaccion de la prueba, que termina en ROLLBACK.
+function Probar-Heredadas([string]$Desde, $Migraciones) {
+    $plantilla = [IO.File]::ReadAllText((Join-Path $script:RaizBd 'verificacion\pruebas_heredadas.sql'), [Text.Encoding]::UTF8)
+    $partes = [regex]::Split($plantilla, '(?m)^-- @migraciones[ \t]*\r?$')
+    if ($partes.Count -ne 2) { throw 'pruebas_heredadas.sql debe tener una sola linea "-- @migraciones".' }
+    $retenidas = @(Obtener-Retenidas)
+    $pendientes = @($Migraciones | Where-Object { $_.Version -ge $Desde })
+    $orden = @($pendientes | Where-Object { $retenidas -notcontains $_.Version }) +
+             @($pendientes | Where-Object { $retenidas -contains $_.Version })
+    $cuerpos = foreach ($m in $orden) {
+        $sql = [IO.File]::ReadAllText($m.RutaUp, [Text.Encoding]::UTF8)
+        foreach ($sentencia in 'BEGIN', 'COMMIT') {
+            $patron = "(?m)^[ \t]*$sentencia;[ \t]*\r?$"
+            if ([regex]::Matches($sql, $patron).Count -ne 1) { throw "$($m.Up) debe tener una sola linea '$sentencia;'." }
+            $sql = [regex]::Replace($sql, $patron, "-- ($sentencia de la $($m.Version) omitido: va en la transaccion de la prueba)")
+        }
+        "-- ===================================== $($m.Up)`n$sql`nRESET ROLE;`n"
+    }
+    $ruta = Join-Path $SalidaDir 'pruebas_heredadas-compuesto.sql'
+    [IO.File]::WriteAllText($ruta, $partes[0] + ($cuerpos -join "`n") + $partes[1], (New-Object Text.UTF8Encoding $false))
+    $versiones = ($orden | ForEach-Object { $_.Version }) -join ', '
+    Ejecutar-Reporte -Archivo $ruta -Nombre 'pruebas_heredadas' -Opciones @('-q') -Diferir `
+        -Titulo "Filas heredadas, BD-022 (migraciones dentro de la prueba: $versiones; n | prueba | esperado | obtenido | resultado)"
 }
 
 Push-Location -LiteralPath $script:DirMigracion
@@ -92,8 +127,13 @@ try {
     # 1-2. H0 y up de todas, guardando la huella previa de cada una.
     $h0 = Tomar-Huella 'H0'
     $previas = @{}
+    $heredadasSinRastro = 'NO SE EJECUTO'
     foreach ($m in $migs) {
         $previas[$m.Version] = Tomar-Huella "previa-$($m.Version)"
+        if ($m.Version -eq '022') {
+            Probar-Heredadas -Desde $m.Version -Migraciones $migs
+            $heredadasSinRastro = Comparar-Huellas $previas[$m.Version] (Tomar-Huella 'tras-heredadas')
+        }
         if (-not (Aplicar-Una -Cx $cx -Migracion $m)) { throw "Fallo el up de la $($m.Version) (primer up)." }
     }
     $h1 = Tomar-Huella 'H1'
@@ -113,6 +153,7 @@ try {
         if (-not (Aplicar-Una -Cx $cx -Migracion $m)) { throw "Fallo el up de la $($m.Version) (segundo up)." }
     }
     $h3 = Tomar-Huella 'H3'
+    Ejecutar-Reporte '..\verificacion\pruebas_funcionales.sql' 'Pruebas funcionales con todas las migraciones, incluidas las retenidas (H3)' -Nombre 'pruebas_funcionales-H3' -Diferir
 
     # 5. Estado final: sin las retenidas.
     $retenidas = @(Obtener-Retenidas)
@@ -140,11 +181,13 @@ try {
     Anotar "  H4 estado final       $($h4['TOTAL'])"
     Anotar "  H2 = H0: $(Comparar-Huellas $h0 $h2)"
     Anotar "  H3 = H1: $(Comparar-Huellas $h1 $h3)"
+    Anotar "  Prueba de filas heredadas sin rastro (huella = previa a la 022): $heredadasSinRastro"
     Anotar '--- Cada down deja la huella previa a su up ---'
     $porMigracion | ForEach-Object { Anotar $_ }
     Anotar "--- Estado migrado (H4) de ${Base}: $((@(Obtener-Aplicadas -Cx $cx) | ForEach-Object { $_.Version }) -join ', ') (retenidas sin aplicar: $($retenidas -join ', ')) ---"
 
-    # 6. Verificaciones sobre el estado final.
+    # 6. Pruebas diferidas (filas heredadas y H3) y verificaciones sobre el estado final.
+    $diferidos | ForEach-Object { Anotar $_ }
     Ejecutar-Reporte '..\verificacion\matriz_privilegios.sql' 'Matriz de privilegios (rol | objeto | esperado | concedido | resultado)'
     Ejecutar-Reporte '..\verificacion\pruebas_funcionales.sql' 'Pruebas funcionales (n | prueba | esperado | obtenido | resultado)'
     Ejecutar-Reporte '..\verificacion\comparar_catalogo.sql' 'Catalogo: consultas actuales frente a vistas (comparacion | actual | vista | diferencias | resultado)'
@@ -155,8 +198,8 @@ try {
     Anotar "--- 019b privilegios_pruebas.sql: codigo $($r.Codigo) ---"
     $r.Salida | Where-Object { $_ -ne '' } | ForEach-Object { Anotar "  $_" }
     if ($r.Codigo -ne 0) { throw 'Fallo privilegios_pruebas.sql (019b).' }
-    Ejecutar-Reporte '..\verificacion\matriz_privilegios.sql' 'Matriz de privilegios con la 019b'
-    Ejecutar-Reporte '..\verificacion\pruebas_funcionales.sql' 'Pruebas funcionales con la 019b'
+    Ejecutar-Reporte '..\verificacion\matriz_privilegios.sql' 'Matriz de privilegios con la 019b' -Nombre 'matriz_privilegios-019b'
+    Ejecutar-Reporte '..\verificacion\pruebas_funcionales.sql' 'Pruebas funcionales con la 019b' -Nombre 'pruebas_funcionales-019b'
 
     # 8. Estado final.
     if ($EstadoFinal -eq 'LineaBase') {
