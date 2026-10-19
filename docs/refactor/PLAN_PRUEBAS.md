@@ -111,10 +111,10 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
-| CAR-GEN-05 | X | JSON mal formado (`{`) | **500** `ERROR_INTERNO`, sin `detalles`. **CONGELADO-INSEGURO** (H1 = C-14; ADR-011 o ampliación del ADR-006) | RG-25, RG-48 | — |
+| CAR-GEN-05 | X | JSON mal formado (`{`) | **500** `ERROR_INTERNO`, sin `detalles`. **CONGELADO-INSEGURO** (H1 = C-14; ADR-011, punto 11.6) | RG-25, RG-48 | — |
 | CAR-GEN-06 | X | Cuerpo JSON > 1 MB | **500** (**capturar**; body-parser lo marca como 413 `entity.too.large`, pero el manejador lo ignora). **CONGELADO-INSEGURO** (H1 = C-14) | RG-25 | — |
 | CAR-GEN-11 | X | `Content-Type: application/json; charset=latin1` con cuerpo válido | **500** (**capturar**; body-parser lo marca como 415 `charset.unsupported`). **CONGELADO-INSEGURO** (C-14) | RG-25 | — |
-| CAR-GEN-07 | X | `Content-Type: text/plain` con cuerpo JSON | **Capturar** (previsto: 400 por `req.body` vacío) | RG-25 | — |
+| CAR-GEN-07 | X | `Content-Type: text/plain` con cuerpo JSON | **Capturar** (previsto: 400 por `req.body` vacío; se captura ejecutándolo en la 2A) | RG-25 | — |
 | CAR-GEN-09 | S | Cabeceras de `helmet` en cualquier respuesta | `X-Content-Type-Options: nosniff`, sin `X-Powered-By`, `Content-Security-Policy` presente (**capturar** su valor) | RG-42 | — |
 | CAR-GEN-10 | C | Forma de todo error | `{ error: { codigo, mensaje, detalles? } }` y nada más | RG-55 | Implícito en varias |
 
@@ -250,7 +250,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-01 | C | Docente con cursos en los 5 estados | 200 solo con sus cursos, con estado y `motivoRechazo` (**capturar** la forma y el orden; `cursos-integracion.repository.ts:50-77`) | RG-12 | — |
-| CAR-CUR-02 | C | Docente sin cursos | 200 `[]` (**capturar** si es un array o un objeto) | — | — |
+| CAR-CUR-02 | C | Docente sin cursos | **Fijado (2A):** 200 `{ items: [] }` (objeto, no array). La lista llega ordenada por id descendente; cada item: `id, titulo, estado, motivoRechazo, docente, modulos` | — | — |
 | CAR-CUR-30 | P | No incluye cursos de otro docente | Solo los propios | RG-12 | — |
 
 **E16 · `GET /api/docente/cursos/:id`** · AUT-1 a 5 · paquete ID
@@ -259,7 +259,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 |---|---|---|---|---|---|
 | CAR-CUR-03 | C | Curso propio | 200 CursoDetalle privado (**capturar**); `archivo` sin `ruta` | RG-49 | `cursos-gestion-http.test.ts:396` (parcial) |
 | CAR-CUR-04 | P | Inexistente frente a ajeno | 404 "Curso no disponible." frente a 403 "No tienes permiso para consultar este curso.". **CONGELADO-INSEGURO** (S10) | RG-13 | — |
-| CAR-CUR-05 | P | Docente desactivado (`docenteActivo = false`) | 403 | RG-14 | — |
+| CAR-CUR-05 | P | Docente desactivado (`docente.estado = INACTIVO`) | **Fijado (2A):** `GET /docente/cursos` → 200 `{ items: [] }`; `POST /cursos` → 403 `SIN_PERMISO` "No tienes un perfil docente activo." | RG-14 | — |
 
 **E17 · `POST /api/cursos`** · AUT-1 a 5
 
@@ -267,7 +267,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 |---|---|---|---|---|---|
 | CAR-CUR-06 | C | Curso válido | 201 CursoDetalle en BORRADOR (**capturar**) | — | `cursos-gestion-http.test.ts` (lo usan las fixtures) |
 | CAR-CUR-07 | X | `portadaUrl`: `/img/a.png` → 201; `//x`, `/a/../b`, `/a?b`, `javascript:x`, `https://u:p@x` → 400; `https://externo` → 201 | Según `cursos-gestion.esquemas.ts:11-31`. **CONGELADO-INSEGURO** la URL externa (S6) | RG-43 | — |
-| CAR-CUR-08 | X | `titulo` con `\u0000` | **Capturar** (previsto: 500 por H11) | RG-24 | — |
+| CAR-CUR-08 | X | `titulo` con `\u0000` | **Fijado (2A):** 500 `ERROR_INTERNO`. **CONGELADO-INSEGURO** (H11; ADR-011, punto 11.7) | RG-24 | — |
 | CAR-CUR-09 | V/X | `titulo` 150/151 y vacío tras `trim`; `descripcion` 10 000/10 001; 10/11 objetivos; objetivo de 200/201; `categoriaId: "1"` (string); `nivel` fuera del enum; campo extra | 201 / 400 "Revisa los datos enviados." con `detalles[].campo` | RG-24, RG-27, RG-55 | `cursos-gestion.test.ts:28-65` (sin HTTP) |
 | CAR-CUR-10 | E | Categoría inactiva o inexistente | **Capturar** (400 o 404) | — | — |
 
@@ -284,14 +284,14 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-14 | C | Módulo válido | 201 CursoDetalle con el módulo | — | `cursos-gestion-http.test.ts:302` (fixture) |
-| CAR-CUR-15 | V/X | `orden` 1 y 10 → 201; 0 y 11 → 400 "Revisa los datos del módulo."; orden duplicado → 409; curso bloqueado → 409 `CURSO_BLOQUEADO` | — | RG-21, RG-55 | `cursos-gestion-http.test.ts:302` (duplicado) |
+| CAR-CUR-15 | V/X | `orden` 1 y 10 → 201; 0 y 11 → 400 "Revisa los datos del módulo."; orden duplicado → **400 `SOLICITUD_INVALIDA`** "El orden del módulo ya está ocupado." (corregido en la 2A: no es 409; el 409 `CONFLICTO` solo sale en una carrera, SEG-12); curso bloqueado → 409 `CURSO_BLOQUEADO` | — | RG-21, RG-55 | `cursos-gestion-http.test.ts:302` (duplicado) |
 
 **E20 · `PUT /api/modulos/:id`** · AUT · ID · IDOR (**hueco**) · PREC-3
 
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-16 | C | Edición válida; conservar su propio orden | 200 | — | `cursos-gestion-http.test.ts:402` |
-| CAR-CUR-17 | E/K | Orden de otro módulo → 409; módulo eliminado entre la búsqueda y el bloqueo → 404 `NO_ENCONTRADO`; curso bloqueado → 409 | — | RG-21 | `cursos-gestion-http.test.ts:402, 497` |
+| CAR-CUR-17 | E/K | Orden de otro módulo → **400 `SOLICITUD_INVALIDA`** (no 409, ver CAR-CUR-15); módulo eliminado entre la búsqueda y el bloqueo → 404 `NO_ENCONTRADO`; curso bloqueado → 409 | — | RG-21 | `cursos-gestion-http.test.ts:402, 497` |
 | CAR-CUR-31 | P | Módulo de un curso ajeno | 403 (**capturar**) | RG-12 | — |
 
 **E21 · `DELETE /api/modulos/:id`** · AUT · ID · IDOR (**hueco**)
@@ -299,7 +299,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-18 | C | Borrado válido | 200 CursoDetalle sin el módulo | — | `cursos-gestion-http.test.ts:550` (dentro de la prueba de carrera) |
-| CAR-CUR-19 | E | Curso bloqueado → 409; inexistente → 404; con lecciones y PDF → se borran y el PDF pasa a `archivo_borrado_pendiente` (SEG-26) | — | RG-31 | — |
+| CAR-CUR-19 | E | Curso bloqueado → 409; inexistente → 404; con lecciones y PDF → se borran y la fila `archivo` desaparece; **fijado (2A):** `archivo_borrado_pendiente` queda en 0 en el camino feliz (limpieza inmediata) (SEG-26) | — | RG-31 | — |
 | CAR-CUR-32 | P | Módulo ajeno | 403 (**capturar**) | RG-12 | — |
 
 **E22 · `POST /api/modulos/:id/lecciones`** · AUT · ID · IDOR (**hueco**) · PREC-3
@@ -307,7 +307,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-20 | C | Lección DOCUMENTO válida | 201 CursoDetalle | — | `cursos-gestion-http.test.ts:445` (fixture) |
-| CAR-CUR-21 | V/E | `tipo` VIDEO o EVALUACION → 400 "Revisa los datos de la lección."; `orden` 12 → 201 y 13 → 400; duplicado → 409; curso bloqueado → 409 | — | RG-21, RG-55 | `cursos-gestion.test.ts:109-131` (sin HTTP) |
+| CAR-CUR-21 | V/E | `tipo` VIDEO o EVALUACION → 400 "Revisa los datos de la lección."; `orden` 12 → 201 y 13 → 400; duplicado → **400 `SOLICITUD_INVALIDA`** "El orden de la lección ya está ocupado." (no 409; ver CAR-CUR-15); curso bloqueado → 409 | — | RG-21, RG-55 | `cursos-gestion.test.ts:109-131` (sin HTTP) |
 | CAR-CUR-33 | P | Módulo ajeno | 403 (**capturar**) | RG-12 | — |
 
 **E23 · `PUT /api/lecciones/:id`** · AUT · ID · IDOR (**hueco**) · PREC-3
@@ -315,7 +315,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-22 | C | Edición válida; conservar su propio orden | 200 | — | `cursos-gestion-http.test.ts:445` |
-| CAR-CUR-23 | E | Orden de otra lección → 409; curso bloqueado → 409 | — | RG-21 | `cursos-gestion-http.test.ts:445` |
+| CAR-CUR-23 | E | Orden de otra lección → **400 `SOLICITUD_INVALIDA`** (no 409); curso bloqueado → 409 | — | RG-21 | `cursos-gestion-http.test.ts:445` |
 | CAR-CUR-34 | P | Lección ajena | 403 (**capturar**) | RG-12 | — |
 
 **E24 · `DELETE /api/lecciones/:id`** · AUT · ID · IDOR · **HUECO: no hay ninguna prueba HTTP** (confirmado con grep: el único `'DELETE'` por HTTP es de `/api/modulos/:id`)
@@ -323,7 +323,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-CUR-24 | C | Borrado válido | 200 CursoDetalle sin la lección | — | — |
-| CAR-CUR-25 | E | Con PDF → `archivo_borrado_pendiente` y el fichero se retira (SEG-26); curso bloqueado → 409; inexistente → 404 | — | RG-31 | `administracion-contenido.test.ts:1419` (por servicio, sin HTTP) |
+| CAR-CUR-25 | E | Con PDF → la fila `archivo` se borra y el fichero se retira; **fijado (2A):** `archivo_borrado_pendiente` queda en 0 (SEG-26); curso bloqueado → 409; inexistente → 404 | — | RG-31 | `administracion-contenido.test.ts:1419` (por servicio, sin HTTP) |
 | CAR-CUR-35 | P | Lección ajena | 403 (**capturar**) | RG-12 | — |
 
 **E25 · `POST /api/cursos/:id/enviar-revision`** · AUT · ID · IDOR (**hueco**)
@@ -618,7 +618,7 @@ openapi.yaml: rutas 28 · operaciones 33 · con casos en §11 33
 | C-11 Límites de zod no declarados | Documentación | Familia X: CAR-IDE-06, CAR-IDE-42, CAR-CAT-10, CAR-CUR-07, CAR-CUR-09, CAR-SOL-05, CAR-SOL-10, ID-2 |
 | C-12 Errores declarados imposibles en `GET /docente/cursos` | Documentación | CAR-CUR-01, CAR-CUR-02: solo 200, 401 y 403 |
 | C-13 Cualquier ruta puede dar 500; mapeo de `23505`/`23514`/`23503` | Documentación | SEG-12 (`23505` → 409), CAR-CUR-10 (FK de categoría: **capturar** si da 400 por `23503`), CAR-IDE-07 y CAR-CUR-08 (NUL → `22021` → 500, H11) |
-| **C-14** JSON mal formado, más de 1 MB o charset no admitido → 500 | **Contrato** (ADR-011 o ampliación del ADR-006) | **CAR-GEN-05, CAR-GEN-06 y CAR-GEN-11 (CONGELADO-INSEGURO)** |
+| **C-14** JSON mal formado, más de 1 MB o charset no admitido → 500 | **Contrato** (ADR-011, punto 11.6) | **CAR-GEN-05, CAR-GEN-06 y CAR-GEN-11 (CONGELADO-INSEGURO)** |
 | C-15 `Content-Disposition` no declarado | Documentación | CAR-CON-05, SEG-20 |
 | C-16 Máximo 200 filas y orden en `GET /admin/solicitudes` | Documentación | CAR-SOL-07 |
 | C-17 Catálogo: `publicadoEn` con `COALESCE`, `totalPaginas = 0`, sin filtro por categoría o docente inactivo | Documentación; las vistas de D8 deben conservarlo | CAR-CAT-12, CAR-CAT-15, CAR-CAT-16, CAR-CAT-22 (§4) |
