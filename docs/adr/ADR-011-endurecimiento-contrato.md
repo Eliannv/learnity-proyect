@@ -14,7 +14,7 @@
 | 11.3 | S4 / C-02 | **Sí** (fuera del JSON) | `/api/docs` solo en desarrollo | CAR-GEN-04 | be-a |
 | 11.4 | S5 | **Sí** | Nuevo 429 en `POST /api/lecciones/{id}/archivo` | SEG-28 | be-b |
 | 11.5 | S5 | No | La subida pasa a disco temporal (cambia el modo de fallo) | Ninguna (ver H9) | be-b |
-| 11.6 | H1 / C-14 | **Sí** | Errores del parser JSON: 500 → 400, 413 o 415 | CAR-GEN-05, 06, 07 y 11 | be-a |
+| 11.6 | H1 / C-14 | **Sí** | Errores del parser JSON: 500 → 400, 413 o 415 | CAR-GEN-05, 06 y 11 | be-a |
 | 11.7 | H11 | **Sí** | Texto con `\u0000`: 500 → 400 | CAR-CUR-08, CAR-IDE-07 | be-a / be-b |
 | 11.8 | H4 | **Sí** | Una sola regla de portada (la revalidación al enviar y al aprobar se vuelve más estricta) | CAR-CUR-07, SEG-19 | be-b |
 | 11.9 | S6 | **Sí** | `portadaUrl` deja de aceptar URLs externas | CAR-CUR-07, SEG-19 | be-b (+ fe-b) |
@@ -142,7 +142,7 @@ Cada uno con un mensaje en español y sin el contenido recibido.
 | **B. 400 / 413 / 415** | Cambia los códigos | Semántica HTTP correcta |
 | C. Usar `error.status` de cualquier error con `expose: true` | Cambia los códigos | Más genérico, pero pierde el control del código de error y del mensaje |
 
-**Pruebas que actualiza:** CAR-GEN-05, CAR-GEN-06, CAR-GEN-07 y CAR-GEN-11. El ADR-006 remite aquí.
+**Pruebas que actualiza:** CAR-GEN-05 (JSON mal formado), CAR-GEN-06 (más de 1 MB) y CAR-GEN-11 (charset no admitido). CAR-GEN-07 (`Content-Type: text/plain`) **no cambia**: `express.json` no procesa ese cuerpo, así que el error lo da la validación y no el parser. Se vuelve a ejecutar para confirmarlo. El ADR-006 remite aquí.
 
 ## 11.7 Texto con el carácter NUL (H11)
 
