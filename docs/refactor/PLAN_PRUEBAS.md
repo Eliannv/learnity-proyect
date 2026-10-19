@@ -41,6 +41,8 @@
 
 **Datos.** Correo `<rol>.<marca>.<n>@caracterizacion.test`, con una marca única por suite. Cada suite borra solo las filas de su marca. **Nunca** se usa `@pruebas.test`: `identidad.test.ts` borra todo ese dominio (RG-03). Cada suite que sube archivos usa su propia carpeta temporal en `PDF_DIR`.
 
+**Permisos de los fixtures (019, mínimo privilegio).** Pendiente de la Puerta 1 (lo propone `db` en `docs/bd/PLAN_BD.md`). La propuesta de `qa-edge` es un pool de fixtures en `ayudas/bd-fixtures.ts` que hace `SET ROLE learnity_pruebas`, con una pertenencia **sin herencia**, para que la app siga corriendo con el mínimo privilegio real (RG-60). `seguridad/privilegios.test.ts` compara los permisos directos de `learnity_app` con la matriz de `db`.
+
 **Sesiones.** Por defecto, login real por HTTP (caja negra). Como el login tiene un límite por IP de 20 cada 15 min, se decide en la 2A entre (a) reutilizar las sesiones por suite y (b) usar `reiniciarLimites()`. Las suites actuales usan `firmarAccessToken` más una fila de `sesion`, pero eso depende de internos.
 
 ## 2. Paquetes comunes (pruebas guiadas por tabla)
@@ -109,8 +111,9 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
-| CAR-GEN-05 | X | JSON mal formado (`{`) | **500** `ERROR_INTERNO`, sin `detalles`. **CONGELADO-INSEGURO** (H1; ADR-011) | RG-25, RG-48 | — |
-| CAR-GEN-06 | X | Cuerpo JSON > 1 MB | **500** (**capturar**; body-parser lo marca como 413, pero el manejador lo ignora). **CONGELADO-INSEGURO** (H1) | RG-25 | — |
+| CAR-GEN-05 | X | JSON mal formado (`{`) | **500** `ERROR_INTERNO`, sin `detalles`. **CONGELADO-INSEGURO** (H1 = C-14; ADR-011 o ampliación del ADR-006) | RG-25, RG-48 | — |
+| CAR-GEN-06 | X | Cuerpo JSON > 1 MB | **500** (**capturar**; body-parser lo marca como 413 `entity.too.large`, pero el manejador lo ignora). **CONGELADO-INSEGURO** (H1 = C-14) | RG-25 | — |
+| CAR-GEN-11 | X | `Content-Type: application/json; charset=latin1` con cuerpo válido | **500** (**capturar**; body-parser lo marca como 415 `charset.unsupported`). **CONGELADO-INSEGURO** (C-14) | RG-25 | — |
 | CAR-GEN-07 | X | `Content-Type: text/plain` con cuerpo JSON | **Capturar** (previsto: 400 por `req.body` vacío) | RG-25 | — |
 | CAR-GEN-09 | S | Cabeceras de `helmet` en cualquier respuesta | `X-Content-Type-Options: nosniff`, sin `X-Powered-By`, `Content-Security-Policy` presente (**capturar** su valor) | RG-42 | — |
 | CAR-GEN-10 | C | Forma de todo error | `{ error: { codigo, mensaje, detalles? } }` y nada más | RG-55 | Implícito en varias |
@@ -183,6 +186,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
 | CAR-IDE-40 | C | Con sesión | 200 perfil (**capturar** las claves); sin hash | RG-50 | `identidad.test.ts:289` |
+| CAR-IDE-44 | E | C-07: 404 "La cuenta no existe." (`identidad.service.ts:337-347`) | **Capturar** si se puede alcanzar: `sesionVigente` exige que exista la fila de `usuario`, así que es probable que gane antes el 401 `SESION_REVOCADA`. Si es inalcanzable por HTTP, se anota así y se informa al `arquitecto` | — | — |
 
 **E10 · `PUT /api/perfil`** · AUT-1 a 4
 
@@ -225,7 +229,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | CAR-CAT-12 | C | Sin resultados | 200 `items: []`, `total: 0`, `totalPaginas: 0` | RG-53 | `cursos-publicos.test.ts:122` (parcial) |
 | CAR-CAT-13 | S | `q` con `%`, `_`, `\` | Se buscan literales (`ESCAPE`) | RG-39 | — |
 | CAR-CAT-14 | E | Solo PUBLICADO cuenta y se lista | BORRADOR, EN_REVISION, RECHAZADO y ARCHIVADO quedan fuera del `total` | RG-53 | `cursos-publicos.test.ts:122` |
-| CAR-CAT-15 | E | PUBLICADO sin `publicado_en` (dato heredado) | `publicadoEn` = `creado_en` en ISO; va **al final** en `recientes` (NULLS LAST) | RG-07, RG-53 | — |
+| CAR-CAT-15 | E | PUBLICADO sin `publicado_en` (dato heredado) | `publicadoEn` = `creado_en` en ISO; va **al final** en `recientes` (NULLS LAST). Vale **hasta la migración 023** (CHECK de PUBLICADO): se retira en el mismo commit que la aplica a `learnity_test` (RG-58) | RG-07, RG-53, RG-58 | — |
 | CAR-CAT-16 | E | PUBLICADO en una categoría inactiva; PUBLICADO de un docente inactivo | **Aparecen** hoy: no hay filtro (`cursos.repository.ts:48-67`); **capturar** | RG-53 | — |
 | CAR-CAT-17 | C | `minutos` | `Math.round(segundos / 60)` con la suma de `archivo.duracion_seg` (DOCUMENTO sin duración → 0) | RG-53 | — |
 
@@ -392,14 +396,15 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | CAR-SOL-03 | C | Solicitud válida | 201 con la solicitud PENDIENTE (**capturar**) | — | `solicitudes-docente.test.ts:109` |
 | CAR-SOL-04 | E | Ya tiene una pendiente → 409 `SOLICITUD_PENDIENTE`; ya es DOCENTE → 409 `YA_ES_DOCENTE` (**capturar** si `autorizar('ESTUDIANTE')` deja pasar a un docente-estudiante) | — | RG-18 | `solicitudes-docente.test.ts:109` (pendiente) |
 | CAR-SOL-05 | V/X | `especialidad` 2/3/100/101; `motivo` 49/50/2000/2001; campo extra | 400 / 201 | RG-24, RG-27 | `solicitudes-docente.test.ts:101` (parcial) |
-| CAR-SOL-06 | K/X | Dos envíos simultáneos → una sola pendiente; 11.º envío en 60 min → 429 | — | RG-18, RG-51 | `solicitudes-docente.test.ts:122, 223` |
+| CAR-SOL-06 | K/X | Dos envíos simultáneos → una sola pendiente; 11.º envío en 60 min → 429 | — | RG-18, RG-51, RG-57 | `solicitudes-docente.test.ts:122, 223` |
+| CAR-SOL-13 | R | C-03: una cuenta DOCENTE sin ESTUDIANTE y una ADMIN envían una solicitud | 403 `SIN_PERMISO` (no declarado en el contrato) | RG-12 | — |
 
 **E33 · `GET /api/admin/solicitudes`** · AUT (ESTUDIANTE y DOCENTE → 403)
 
 | ID | Fam. | Caso | Esperado actual | Riesgo | Existe |
 |---|---|---|---|---|---|
-| CAR-SOL-07 | C | Sin filtro | 200 con las PENDIENTE y los datos del solicitante (**capturar** la forma y el orden) | — | `solicitudes-docente.test.ts:142` |
-| CAR-SOL-08 | V | `?estado=OTRO` → 400; `APROBADA` y `RECHAZADA` → 200 filtrado; `?extra=1` → 400 | — | RG-26 | `solicitudes-docente.test.ts:132` (parcial) |
+| CAR-SOL-07 | C | Sin filtro | 200 con las PENDIENTE y los datos del solicitante (**capturar** la forma). C-16: pendientes de la más antigua a la más reciente; revisadas al revés; máximo 200 filas sin paginar | — | `solicitudes-docente.test.ts:142` |
+| CAR-SOL-08 | V | **C-05:** `?estado=OTRO` → 400 `SOLICITUD_INVALIDA` "Revisa los datos enviados." con `detalles[0].campo = 'estado'`; `?extra=1` → 400 (`strictObject`); `APROBADA` y `RECHAZADA` → 200 filtrado. El contrato no declara el 400: es una diferencia de documentación, y el caso fija el comportamiento real | — | RG-26 | `solicitudes-docente.test.ts:132` (parcial) |
 
 **E34 · `PUT /api/admin/solicitudes/:id`** · AUT · ID
 
@@ -539,7 +544,7 @@ Todo por HTTP, sin SQL salvo para crear las cuentas DOCENTE y ADMIN y la categor
 
 Cada paso lleva su turno de `learnity_test` con el lead y se cierra con un commit propio.
 
-**Contraste con `docs/api/openapi.yaml`:** pendiente hasta que el lead lo integre. Hoy los 33 endpoints de `*.routes.ts` coinciden con las 33 operaciones de `shared/http/openapi*.ts` (13 + 11 + 5 + 4). `/api/docs` no está en OpenAPI, como es normal.
+**Contraste con `docs/api/openapi.yaml`:** hecho en §12 (merge de `integration/sprint-2` en `055dcbe`).
 
 ## 11. Conteo endpoint → casos
 
@@ -554,7 +559,7 @@ Cada paso lleva su turno de `learnity_test` con el lead y se cierra con un commi
 | E06 | `POST /api/auth/logout` | 3 | 1 | — | SEG-32 |
 | E07 | `POST /api/auth/recuperar` | 4 | 2 | — | SEG-16, 32 |
 | E08 | `POST /api/auth/restablecer` | 3 | 2 | — | SEG-32 |
-| E09 | `GET /api/perfil` | 1 | 1 | AUT | SEG-31 |
+| E09 | `GET /api/perfil` | 2 | 1 | AUT | SEG-31 |
 | E10 | `PUT /api/perfil` | 3 | 1 | AUT | SEG-15 |
 | E11 | `PUT /api/perfil/contrasena` | 3 | 2 | AUT | SEG-32 |
 | E12 | `GET /api/categorias` | 3 | 2 | — | — |
@@ -577,10 +582,37 @@ Cada paso lleva su turno de `learnity_test` con el lead y se cierra con un commi
 | E29 | `GET /api/admin/cursos/:id` | 2 | 2 | AUT, ID | SEG-31 |
 | E30 | `PUT /api/admin/cursos/:id/revision` | 5 | 4 | AUT, ID | SEG-29; REC-07 |
 | E31 | `GET /api/solicitudes-docente/mia` | 2 | 2 | AUT | — |
-| E32 | `POST /api/solicitudes-docente` | 4 | 4 | AUT | SEG-15 |
+| E32 | `POST /api/solicitudes-docente` | 5 | 4 | AUT | SEG-15 |
 | E33 | `GET /api/admin/solicitudes` | 2 | 2 | AUT | — |
 | E34 | `PUT /api/admin/solicitudes/:id` | 4 | 3 | AUT, ID | SEG-29 |
-| Transversales | CAR-GEN-05, 06, 07, 09 y 10 (todas las rutas) | 5 | 1 | — | — |
-| **Total** | **33 operaciones + `/api/docs` + 404** | **133** | **78** | AUT en 23, ID en 15, IDOR en 9, PREC en 6 | **33 SEG + 11 REC** |
+| Transversales | CAR-GEN-05, 06, 07, 09, 10 y 11 (todas las rutas) | 6 | 1 | — | — |
+| **Total** | **33 operaciones + `/api/docs` + 404** | **136** | **78** | AUT en 23, ID en 15, IDOR en 9, PREC en 6 | **33 SEG + 11 REC** |
 
-**Condición de salida de la Fase 1.** Los 35 elementos de la tabla (las 33 operaciones de `*.routes.ts`, `/api/docs` y el 404 genérico) tienen **al menos un caso CAR propio**. Los números salen de contar las filas `| CAR-` de cada sección con `awk`. De los 133 casos CAR, 78 amplían una prueba que ya existe y 55 son nuevos. Ninguna operación queda sin casos. Cuando el lead integre `docs/api/openapi.yaml`, se repite el contraste (§10) y esta tabla se actualiza si aparece alguna diferencia.
+**Condición de salida de la Fase 1.** Los 35 elementos de la tabla (las 33 operaciones de `*.routes.ts`, `/api/docs` y el 404 genérico) tienen **al menos un caso CAR propio**. Los números salen de contar las filas `| CAR-` de cada sección con `awk`. De los 136 casos CAR, 78 amplían una prueba que ya existe y 58 son nuevos. Ninguna operación queda sin casos. Cuando el lead integre `docs/api/openapi.yaml`, se repite el contraste (§10) y esta tabla se actualiza si aparece alguna diferencia.
+
+## 12. Contraste con `docs/api/openapi.yaml` y `COMPARACION_RUTAS.md`
+
+**Resultado.** `openapi.yaml` (28 rutas, 33 operaciones) se parseó como JSON quitando las líneas `#`, igual que hace el `arquitecto`, y se buscó cada operación en la tabla de §11: **33 de 33 tienen casos asignados**. No hay operaciones en el contrato sin casos, ni casos sobre operaciones que no estén en el contrato. `/api/docs` (E02) no está en el contrato, como es normal (C-02).
+
+**Hallazgos C-01 a C-18 → casos.** La caracterización fija el comportamiento **real**, no el que declara el contrato. Donde el contrato y el código discrepan, gana el código, y la discrepancia se cierra por documentación (`arquitecto`) o por contrato (ADR).
+
+| Hallazgo | Tipo de cierre | Caso que fija el comportamiento real |
+|---|---|---|
+| C-01 `/salud` expone la base y el usuario | Documentación; quitarlo es Contrato (ADR-011) | CAR-GEN-01 (**CONGELADO-INSEGURO**) |
+| C-02 `/api/docs` público | Contrato (ADR-011) | CAR-GEN-04 (**CONGELADO-INSEGURO**) |
+| C-03 403 no declarado en `POST /solicitudes-docente` | Documentación | CAR-SOL-13 |
+| C-04 401 no declarado en `PUT /admin/solicitudes/{id}` | Documentación | Paquete AUT en E34 |
+| **C-05** 400 no declarado en `GET /admin/solicitudes` | Documentación | **CAR-SOL-08** |
+| C-06 400 no declarado en login | Documentación | CAR-IDE-15 |
+| C-07 404 no declarado en `/perfil` | Documentación | CAR-IDE-44 (**capturar** si se puede alcanzar) |
+| C-08 Cuatro esquemas de error; `detalles` variable (lista, `{ reintentarEnSegundos }`, texto o ausente) | Documentación | CAR-GEN-10, CAR-IDE-09 (429), CAR-GEN-05 (500), SEG-12 (409 de PostgreSQL sin `detalles`) |
+| C-09 Esquemas duplicados de `CursoDetalle` y `CursoResumen` | Documentación | CAR-CUR-03, CAR-REV-03: la **misma** forma real de `detallePrivado` en las rutas del docente y del administrador |
+| C-10 `strictObject` sin `additionalProperties: false` | Documentación | Familia V "campo extra → 400" en E13, E17–E23, E28, E30, E32–E34; Identidad ignora las claves extra (CAR-IDE-05: **capturar**, porque usa `z.object`) |
+| C-11 Límites de zod no declarados | Documentación | Familia X: CAR-IDE-06, CAR-IDE-42, CAR-CAT-10, CAR-CUR-07, CAR-CUR-09, CAR-SOL-05, CAR-SOL-10, ID-2 |
+| C-12 Errores declarados imposibles en `GET /docente/cursos` | Documentación | CAR-CUR-01, CAR-CUR-02: solo 200, 401 y 403 |
+| C-13 Cualquier ruta puede dar 500; mapeo de `23505`/`23514`/`23503` | Documentación | SEG-12 (`23505` → 409), CAR-CUR-10 (FK de categoría: **capturar** si da 400 por `23503`), CAR-IDE-07 y CAR-CUR-08 (NUL → `22021` → 500, H11) |
+| **C-14** JSON mal formado, más de 1 MB o charset no admitido → 500 | **Contrato** (ADR-011 o ampliación del ADR-006) | **CAR-GEN-05, CAR-GEN-06 y CAR-GEN-11 (CONGELADO-INSEGURO)** |
+| C-15 `Content-Disposition` no declarado | Documentación | CAR-CON-05, SEG-20 |
+| C-16 Máximo 200 filas y orden en `GET /admin/solicitudes` | Documentación | CAR-SOL-07 |
+| C-17 Catálogo: `publicadoEn` con `COALESCE`, `totalPaginas = 0`, sin filtro por categoría o docente inactivo | Documentación; las vistas de D8 deben conservarlo | CAR-CAT-12, CAR-CAT-15, CAR-CAT-16, CAR-CAT-22 (§4) |
+| C-18 Nombres por persona en los esquemas | Documentación | No afecta a la forma JSON: ningún caso, a propósito |
