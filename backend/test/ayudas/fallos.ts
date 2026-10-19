@@ -54,10 +54,6 @@ export function inyectarFalloBd(pool: pg.Pool, modo: ModoFalloBd): Inyeccion {
     if (!activo) return cliente;
     const consultaOriginal = cliente.query.bind(cliente) as Fn;
     const liberarOriginal = cliente.release.bind(cliente) as Fn;
-    // Con la conexión muerta, pg emite 'error' (ECONNRESET) en el cliente de la transacción. La app no tiene
-    // listener en ese cliente (candidato a bug de pool.ts, reportado a be-b): sin este listener el ECONNRESET
-    // sería una excepción no capturada que el ejecutor de pruebas marca como fallo del archivo entero.
-    if (modo === 'terminar-conexion') cliente.on('error', () => undefined);
     let escribio = false;
     let disparado = false;
     (cliente as unknown as { query: Fn }).query = async (...q: any[]) => {

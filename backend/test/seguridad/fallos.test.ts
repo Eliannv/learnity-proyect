@@ -13,6 +13,11 @@ import { dormir, errorDisco, exigirLlamado, inyectarFalloBd, inyectarMetodo, typ
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
 import { fabricaCuentas, limpiarMarca, type Cuenta } from '../ayudas/sesiones.js';
 
+// Excepciones que nadie capturó durante la suite (p. ej. un ECONNRESET sin listener en un cliente de pg).
+const noCapturadas: string[] = [];
+process.on('uncaughtException', (e) => { noCapturadas.push(String(e?.message ?? e)); });
+process.on('unhandledRejection', (e) => { noCapturadas.push(String((e as Error)?.message ?? e)); });
+
 const marca = crearMarca('seg_fal');
 const pdfDir = carpetaPdfPropia();
 const { almacenLocal } = await import('../../src/shared/archivos/almacen.js');
@@ -234,5 +239,7 @@ describe('BD (SEG-29, 30)', () => {
     for (let i = 0; i < 3; i++) {
       assert.equal((await c.como(docA, 'GET', `/api/docente/cursos/${id}`)).status, 200, `petición ${i + 1} tras la caída`);
     }
+    await dormir(500);
+    assert.deepEqual(noCapturadas, [], 'una conexión muerta no debe dejar excepciones sin capturar (listener de error en enTransaccion)');
   });
 });
