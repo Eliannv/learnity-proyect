@@ -1,5 +1,5 @@
 // OpenAPI · Solicitudes para ser docente (RF-05 estudiante, RF-22 administrador).
-import { error, errorInterno, erroresCuerpoJson, idRuta, json, ref, seguridad } from './openapi-comun.js';
+import { error, errorInterno, erroresCuerpoJson, idInvalido, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
 const ESTADOS = ['PENDIENTE', 'APROBADA', 'RECHAZADA'];
 
@@ -143,7 +143,7 @@ export const rutasSolicitudes = {
       },
       responses: {
         200: json(ref('SolicitudDocente'), 'Solicitud decidida'),
-        ...erroresCuerpoJson('Datos inválidos'),
+        ...erroresCuerpoJson(`Datos inválidos o ${idInvalido}`),
         401: error('Sin sesión'),
         403: error('No es administrador o es su propia solicitud'),
         404: error('No existe'),

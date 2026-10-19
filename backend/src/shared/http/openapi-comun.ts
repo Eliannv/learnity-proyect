@@ -22,13 +22,25 @@ export const erroresCuerpoJson = (descripcion400: string) => ({
   415: { $ref: '#/components/responses/TipoNoAdmitido' },
 });
 
-/** ID de ruta: entero de 1 a 2 147 483 647 (los controladores responden 400 fuera de ese rango). */
+/**
+ * ID de ruta (`idRuta` de `shared/http/esquemas.ts`, ADR-011, 11.11). Sigue siendo `integer` para que los tipos generados
+ * no cambien; la forma del texto, que OpenAPI 3.0 no expresa en un entero, va en la descripción.
+ */
 export const idRuta = {
   in: 'path',
   name: 'id',
   required: true,
-  schema: { type: 'integer', minimum: 1, maximum: 2_147_483_647 },
+  description:
+    'Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, ' +
+    'sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, ' +
+    'responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con ' +
+    '`detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." ' +
+    'si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.',
+  schema: { type: 'integer', format: 'int32', minimum: 1, maximum: 2_147_483_647 },
 };
+
+/** Causa del 400 por un `{id}` que no cumple `idRuta` (ADR-011, 11.11). */
+export const idInvalido = '`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)';
 
 export const esquemasComunes = {
   ProblemaCampo: {

@@ -864,8 +864,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -883,7 +885,7 @@
             }
           },
           "400": {
-            "description": "ID inválido (SOLICITUD_INVALIDA)",
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -945,8 +947,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -1012,7 +1016,7 @@
             }
           },
           "400": {
-            "description": "ID o decisión inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Decisión inválida (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1090,8 +1094,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -1130,7 +1136,7 @@
             }
           },
           "400": {
-            "description": "ID, formulario o PDF inválidos, o lección que no es DOCUMENTO (SOLICITUD_INVALIDA)",
+            "description": "Formulario o PDF inválidos, o lección que no es DOCUMENTO (SOLICITUD_INVALIDA), o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1221,8 +1227,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -1256,7 +1264,7 @@
             }
           },
           "400": {
-            "description": "ID inválido (SOLICITUD_INVALIDA)",
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1383,7 +1391,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1431,8 +1439,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -1473,7 +1483,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1685,7 +1695,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1749,8 +1759,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -1767,8 +1779,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -1786,7 +1800,7 @@
             }
           },
           "400": {
-            "description": "ID inválido",
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1844,7 +1858,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1908,8 +1922,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -1950,7 +1966,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2014,8 +2030,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -2044,7 +2062,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2102,8 +2120,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -2144,7 +2164,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2208,8 +2228,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -2250,7 +2272,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2314,8 +2336,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -2344,7 +2368,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2402,8 +2426,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -2434,7 +2460,7 @@
             }
           },
           "400": {
-            "description": "Datos o ID inválidos (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2493,8 +2519,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -2757,8 +2785,10 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
             "schema": {
               "type": "integer",
+              "format": "int32",
               "minimum": 1,
               "maximum": 2147483647
             }
@@ -2824,7 +2854,7 @@
             }
           },
           "400": {
-            "description": "Datos inválidos. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Datos inválidos o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {

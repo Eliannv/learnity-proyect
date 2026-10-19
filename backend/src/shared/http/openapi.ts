@@ -1,6 +1,6 @@
 // Contrato de la API (OpenAPI 3). Se ve en http://localhost:3000/api/docs, solo con NODE_ENV=development (ADR-011, 11.3).
 // Se serializa en docs/api/openapi.yaml. Cada sprint agrega aquí las rutas que implementa.
-import { error, errorInterno, erroresCuerpoJson, esquemasComunes, idRuta, json, ref, respuestasComunes } from './openapi-comun.js';
+import { error, errorInterno, erroresCuerpoJson, esquemasComunes, idInvalido, idRuta, json, ref, respuestasComunes } from './openapi-comun.js';
 import { rutasRevisionContenido } from './openapi-revision-contenido.js';
 import { esquemasGestionCursos, rutasGestionCursos } from './openapi-gestion-cursos.js';
 import { esquemasSolicitudes, rutasSolicitudes } from './openapi-solicitudes.js';
@@ -246,7 +246,7 @@ export const openApi = {
         parameters: [idRuta],
         responses: {
           200: json(ref('CursoPublicoDetalle')),
-          400: error('ID inválido'),
+          400: error(idInvalido),
           404: error('El ID no existe o el curso no está publicado'),
           500: errorInterno,
         },
