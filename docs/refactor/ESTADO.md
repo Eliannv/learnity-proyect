@@ -110,13 +110,13 @@ Detalle en `docs/refactor/VERIFICACION_AUDITORIA.md`.
 
 | Teammate | Modelo | Worktree / rama | Fase | Estado |
 |---|---|---|---|---|
-| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 1 | **Inactivo** (sesión cortada). Fase 1 terminada e integrada (`0b3c0a6`) |
-| `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 1 | Relanzado tras el corte para corregir el SQL (`43374ea`). **Fase 1 terminada, integrada y cerrado (19-10-2026)** |
-| `qa-edge` | Opus 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 1 | **Fase 1 terminada y cerrado (19-10-2026).** Se reactiva en la 2A con su worktree y su rama |
+| `db` | Opus 5.5 | `.worktrees/db` / `refactor/db` | 2A, tanda 1 | Activo: rediseña la 022 (inventario sin tocar `curso`) y la 023 (`CHECK NOT VALID`) según BD-022; el lead las prueba en `learnity_test` |
+| `qa-edge` | Sonnet 5.5 | `.worktrees/qa-edge` / `refactor/qa-edge` | 2A, tanda 1 | Activo: `guardia-bd.ts`, pool de fixtures (opción 3) y caracterización (cursos/contenido/revisión → catálogo → identidad/solicitudes) |
+| `arquitecto` | Opus 5.5 | `.worktrees/arquitecto` / `refactor/arquitecto` | 2A, tanda 1 | Activo: estado de los ADR, `test:local` con glob, `openapi-typescript`, correcciones documentales de `openapi*.ts`, renombrar `openapi-integrante2/3`, `README.md:141` |
 
 Equipo completo (7), que se activa por fases con un máximo de 6 simultáneos: Fase 1 `arquitecto`, `db` y `qa-edge`; Fases 2A y 2B `arquitecto`, `qa-edge`, `be-a`, `be-b`, `fe-a` y `fe-b`; Fase 3 `qa-edge`, `db`, `arquitecto` y `be-a`/`be-b` si hacen falta.
 
-**Turno de la base `learnity_test`:** libre. `learnity_test` está en la línea base (sin migraciones; solo existe el rol `learnity_app`).
+**Turno de la base `learnity_test`:** libre; lo administra el lead (una suite a la vez, con la guarda de `.env.test` antes de cada `npm test`). `learnity_test` está en la línea base. `.env.test` se copió sin leerlo a los worktrees de `qa-edge` y `arquitecto`.
 
 ### Prueba de migraciones (19-10-2026, ejecutada por el lead con `postgres`)
 
