@@ -7,8 +7,8 @@ import {
 import { AppError } from '../../shared/http/app-error.js';
 
 import {
-  almacenPdf,
-} from '../../shared/archivos/almacen-pdf.js';
+  almacenLocal,
+} from '../../shared/archivos/almacen.js';
 
 import {
   NOMBRE_PDF_INTERNO,
@@ -43,7 +43,7 @@ export const limpiezaPdfService = {
               return false;
             }
 
-            await almacenPdf.eliminar(nombre);
+            await almacenLocal.eliminar(nombre);
 
             await repo.cancelarRetiro(
               cliente,

@@ -7,7 +7,7 @@ import type {
 
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
-import { almacenPdf } from '../../shared/archivos/almacen-pdf.js';
+import { almacenLocal } from '../../shared/archivos/almacen.js';
 
 import {
   cursosIntegracionRepository as repo,
@@ -335,7 +335,7 @@ async function detallePrivado(
       fila.leccionTipo === 'DOCUMENTO' &&
       archivo &&
       fila.archivoRuta &&
-      await almacenPdf.esValido(
+      await almacenLocal.existeYCoincide(
         fila.archivoRuta,
         archivo.tamanoBytes,
       )

@@ -7,8 +7,8 @@ import type {
 import { AppError } from '../../shared/http/app-error.js';
 
 import {
-  almacenPdf,
-} from '../../shared/archivos/almacen-pdf.js';
+  almacenLocal,
+} from '../../shared/archivos/almacen.js';
 
 import {
   NOMBRE_PDF_INTERNO,
@@ -129,7 +129,7 @@ export const contenidoService = {
               );
             }
 
-            await almacenPdf.guardar(
+            await almacenLocal.guardar(
               nombre,
               carga.buffer,
             );
@@ -224,7 +224,7 @@ export const contenidoService = {
       usuario,
     );
 
-    const bytes = await almacenPdf.leer(
+    const bytes = await almacenLocal.leer(
       archivo.ruta,
       archivo.tamanoBytes,
     );

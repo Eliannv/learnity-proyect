@@ -66,8 +66,8 @@ const {
 } = await import('../src/modules/contenido/contenido-limpieza.service.js');
 
 const {
-  almacenPdf,
-} = await import('../src/shared/archivos/almacen-pdf.js');
+  almacenLocal,
+} = await import('../src/shared/archivos/almacen.js');
 
 const {
   MAX_PDF_BYTES,
@@ -922,7 +922,7 @@ describe(
         );
 
         assert.deepEqual(
-          await almacenPdf.leer(
+          await almacenLocal.leer(
             await rutaArchivo(archivo.id),
             archivo.tamanoBytes,
           ),
@@ -936,9 +936,9 @@ describe(
       async () => {
         const c = await escenario();
 
-        const guardar = almacenPdf.guardar;
+        const guardar = almacenLocal.guardar;
 
-        almacenPdf.guardar = async () => {
+        almacenLocal.guardar = async () => {
           throw new Error('sin espacio');
         };
 
@@ -948,7 +948,7 @@ describe(
             500,
           );
         } finally {
-          almacenPdf.guardar = guardar;
+          almacenLocal.guardar = guardar;
         }
 
         const primero = await subir(c.leccion);
@@ -957,9 +957,9 @@ describe(
           primero.json.modulos[0].lecciones[0].archivo.id,
         );
 
-        const eliminar = almacenPdf.eliminar;
+        const eliminar = almacenLocal.eliminar;
 
-        almacenPdf.eliminar = async () => {
+        almacenLocal.eliminar = async () => {
           throw new Error(
             'limpieza temporalmente bloqueada',
           );
@@ -971,7 +971,7 @@ describe(
             200,
           );
         } finally {
-          almacenPdf.eliminar = eliminar;
+          almacenLocal.eliminar = eliminar;
         }
 
         assert.equal(
