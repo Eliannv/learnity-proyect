@@ -17,6 +17,15 @@ import { aprendizajeRoutes } from './modules/aprendizaje/aprendizaje.routes.js';
 import { evaluacionesRoutes } from './modules/evaluaciones/evaluaciones.routes.js';
 import { administracionRoutes } from './modules/administracion/administracion.routes.js';
 
+/**
+ * Puertos: contratos que `shared` o un módulo define y otro módulo implementa (ADR-001, ADR-004).
+ * `app.ts` es el único sitio que los conecta; cada puerto nuevo se registra aquí, una sola vez.
+ */
+function registrarPuertos(): void {
+  // `autenticar` (shared) pregunta a Identidad si la sesión del access token sigue vigente.
+  registrarVerificadorSesion((usuario) => identidadService.sesionVigente(usuario));
+}
+
 export function crearApp() {
   const app = express();
 
@@ -30,8 +39,7 @@ export function crearApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
-  // `autenticar` (shared) pregunta a Identidad si la sesión del access token sigue vigente.
-  registrarVerificadorSesion((usuario) => identidadService.sesionVigente(usuario));
+  registrarPuertos();
 
   // Comprobación rápida: ¿el servidor responde y llega a PostgreSQL?
   app.get('/api/salud', async (_req, res) => {
