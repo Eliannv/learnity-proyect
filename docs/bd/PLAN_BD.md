@@ -26,7 +26,7 @@ Idéntico en `Learnity` y `learnity_test`:
 | `actualizado_en` | 0 columnas | No se sabe cuándo cambió una fila |
 | Control de migraciones | No existe; scripts numerados manuales | No se sabe qué está aplicado en cada base |
 | RLS | Desactivado en todas las tablas | Fuera de alcance |
-| Datos inválidos | 3 cursos `PUBLICADO` sin `revisado_por`; 3 lecciones `DOCUMENTO` sin PDF en cursos publicados (semillas `[Prueba Sprint 2]`) | Impiden el `CHECK` de `PUBLICADO` |
+| Datos inválidos | 3 cursos `PUBLICADO` sin `revisado_por`; 3 lecciones `DOCUMENTO` sin PDF en cursos publicados (semillas `[Prueba Sprint 2]`) | Impiden **validar** el `CHECK` de `PUBLICADO`: la 023 lo añade `NOT VALID` y no se les inventa revisor ni fecha (D-BD1, decisión BD-022) |
 | Restricciones que faltan | `PUBLICADO ⇒ revisado_por y publicado_en`; una sola solicitud `PENDIENTE` por persona (hoy solo la garantiza un `FOR UPDATE` en el servicio) | — |
 | FK sin índice (13) | `categoria.creada_por`, `curso.id_categoria`, `curso.revisado_por`, `inscripcion.id_ultima_leccion`, `intento_evaluacion.id_evaluacion`, `progreso_leccion.id_leccion`, `recurso_adjunto.id_leccion`, `respuesta.id_opcion`, `respuesta.id_pregunta`, `solicitud_docente.id_persona`, `solicitud_docente.revisada_por`, `usuario_rol.asignado_por` y `usuario_rol.id_rol` | Ver §6, 025 |
 | Base de pruebas | `learnity_test` (Fase 0B), única y compartida | Toda prueba de migraciones va allí, con turno del lead |
@@ -34,7 +34,7 @@ Idéntico en `Learnity` y `learnity_test`:
 ### 2.1 Hallazgos del código que condicionan el plan
 
 1. **Las pruebas se conectan como `learnity_app` y borran más que la app.** La app solo hace `DELETE` en `modulo`, `leccion`, `archivo`, `archivo_borrado_pendiente`, `sesion` y `token_recuperacion`. Los fixtures de `backend/test/*.test.ts`, en cambio, hacen `DELETE` en `persona`, `usuario`, `usuario_rol`, `curso`, `categoria`, `docente`, `solicitud_docente` e `inscripcion`, `INSERT` en `inscripcion` y `UPDATE` en `archivo` y `categoria`. Ver la decisión D-BD2 (§7).
-2. **El `CHECK` de `PUBLICADO` rompe fixtures que crean cursos publicados sin revisor:** `cursos-publicos.test.ts:46`, `cursos-gestion-http.test.ts:285`, `administracion-contenido.test.ts:209` (`escenario('PUBLICADO')`) y `scripts/sembrar-catalogo.ts:42`. El lead lo registró como tarea de la Fase 2A (`be-a` y `be-b`): solo se ajustan los datos de prueba, nunca las aserciones. **La 023 queda retenida hasta entonces.**
+2. **El `CHECK` de `PUBLICADO` rompe fixtures que crean cursos publicados sin revisor:** `cursos-publicos.test.ts:46`, `cursos-gestion-http.test.ts:285`, `administracion-contenido.test.ts:209` (`escenario('PUBLICADO')`) y `scripts/sembrar-catalogo.ts:42`. Aunque sea `NOT VALID`, el `CHECK` rechaza esos `INSERT` nuevos. El lead lo registró como tarea de la Fase 2A (`be-a` y `be-b`): solo se ajustan los datos de prueba, nunca las aserciones. **La 023 queda retenida hasta entonces.**
 3. `seed.ts` inserta en `persona`, `usuario`, `usuario_rol`, `docente`, `categoria` (`ON CONFLICT DO NOTHING`, que solo exige `INSERT`) y `solicitud_docente`.
 4. Una violación de `UNIQUE` (23505) se responde como 409 `CONFLICTO` (`manejador-errores.ts:34`).
 5. Ningún repositorio usa `SELECT *`, `RETURNING *`, `to_jsonb` ni `INSERT … VALUES` sin lista de columnas: agregar `actualizado_en` no cambia ningún JSON ni ningún `INSERT`.
@@ -87,7 +87,7 @@ Matriz de la §6 de la auditoría, con la operación SQL real de cada repositori
 | Vistas `catalogo_*` | S | Catálogo público (D8) |
 | Secuencias de identidad | — | **NO VERIFICADO:** una columna `GENERATED ALWAYS AS IDENTITY` no debería necesitar `USAGE` sobre su secuencia. `verificacion/pruebas_funcionales.sql` lo comprueba con un `INSERT` real como `learnity_app`. Si falla, la 019 concede `USAGE` solo en las secuencias de las tablas con `I` |
 
-**`learnity_lectura`**: `SELECT` en todas las tablas salvo `sesion` y `token_recuperacion`. En `usuario` el permiso es por columna, sin `contrasena_hash`; en `archivo`, por columna, sin `ruta`. También tiene `SELECT` en `auditoria_cambio`, `schema_migraciones` y las vistas.
+**`learnity_lectura`**: `SELECT` en todas las tablas salvo `sesion` y `token_recuperacion`. En `usuario` el permiso es por columna, sin `contrasena_hash`; en `archivo`, por columna, sin `ruta`. También tiene `SELECT` en `auditoria_cambio`, `schema_migraciones`, las vistas del catálogo y `curso_publicado_sin_revision` (022). Esta última es **solo** suya: `learnity_app` no la lee.
 
 **Base y esquema** (018): `REVOKE CONNECT ON DATABASE <base> FROM PUBLIC` y `GRANT CONNECT` a `learnity_owner`, `learnity_app` y `learnity_lectura`. `learnity_owner` recibe `USAGE, CREATE` en `public`. Ver el riesgo R1.
 
@@ -110,8 +110,8 @@ Matriz de la §6 de la auditoría, con la operación SQL real de cada repositori
 | **019** `privilegios_minimos` | Guarda en `reversion` los permisos explícitos de `learnity_app` en tablas y secuencias. `REVOKE ALL` y después aplica la matriz de §4 para `learnity_app` y `learnity_lectura` | `REVOKE ALL` de `learnity_app`, `learnity_lectura` y `learnity_pruebas` en tablas y secuencias, y vuelve a conceder exactamente lo guardado | 018 |
 | **020** `auditoria` | Tabla `auditoria_cambio` (`id`, `tabla`, `operacion`, `id_persona_actor` **sin FK**, `usuario_bd`, `cambiado_en`, `id_transaccion`, `columnas_cambiadas`, `antes`, `despues`) con índices `(tabla, cambiado_en)` e `(id_persona_actor)`. Función `auditoria_registrar()`, `SECURITY DEFINER`, con `search_path` fijo y `EXECUTE` revocado a PUBLIC. Triggers `AFTER INSERT OR UPDATE OR DELETE FOR EACH ROW` en 12 tablas (detalle abajo). `SELECT` para `learnity_lectura` | `DROP` de los triggers, la función y la tabla | 019 |
 | **021** `actualizado_en` | `actualizado_en timestamptz NOT NULL DEFAULT now()` en `persona`, `usuario`, `docente`, `solicitud_docente`, `categoria`, `curso`, `modulo` y `leccion` (las filas existentes quedan con la hora de la migración). Función `fijar_actualizado_en()` y trigger `BEFORE UPDATE … WHEN (OLD.* IS DISTINCT FROM NEW.*)`. `SELECT (actualizado_en)` en `usuario` para `learnity_lectura` | `DROP` de los triggers, la función y las columnas | 019 |
-| **022** `correccion_cursos_publicados` | Guarda en `reversion` el (`id_curso`, `estado`, `revisado_por`, `publicado_en`) de los cursos `PUBLICADO` sin revisor o sin fecha y los corrige con la estrategia de la variable `v_estrategia` (**B** propuesta; **A** alternativa; ver D-BD1). Va después de la 020 para que la corrección quede auditada | Restaura exactamente esos valores desde `reversion` | 020 |
-| **023** `check_curso_publicado` (**retenida**) | Comprobación previa (si queda alguna fila inválida, falla con sus `id_curso`). `ADD CONSTRAINT curso_publicado_revisado CHECK (estado <> 'PUBLICADO' OR (revisado_por IS NOT NULL AND publicado_en IS NOT NULL))` | `DROP CONSTRAINT` | 017 y datos válidos |
+| **022** `inventario_cursos_publicados` | **No cambia ninguna fila.** Vista `curso_publicado_sin_revision` (`id_curso`, `titulo`, `id_docente`, `revisado_por`, `publicado_en`, `creado_en`) con los cursos `PUBLICADO` sin revisor o sin fecha, de `learnity_owner`, con `COMMENT` y `SELECT` solo para `learnity_lectura`. Un NOTICE lista sus `id_curso` al aplicarse (D-BD1) | `DROP VIEW` | 019 |
+| **023** `check_curso_publicado` (**retenida**) | `ADD CONSTRAINT curso_publicado_revisado CHECK (estado <> 'PUBLICADO' OR (revisado_por IS NOT NULL AND publicado_en IS NOT NULL)) NOT VALID` y `COMMENT ON CONSTRAINT` que explica la excepción. Sin comprobación previa: no rechaza ni reescribe las filas heredadas. Un NOTICE lista las que quedan sin validar (D-BD1) | `DROP CONSTRAINT` | 022 |
 | **024** `solicitud_pendiente_unica` | Comprobación previa de duplicados. `CREATE UNIQUE INDEX solicitud_docente_pendiente_uq ON solicitud_docente (id_persona) WHERE estado = 'PENDIENTE'` | `DROP INDEX` | 018 |
 | **025** `indices_fk` | `solicitud_docente (id_persona, enviada_en DESC)`, `solicitud_docente (estado, enviada_en)`, `recurso_adjunto (id_leccion)`, `progreso_leccion (id_leccion)` e `inscripcion (id_ultima_leccion)` | `DROP INDEX` | 018 |
 | **026** `vistas_catalogo` | Vistas `catalogo_categoria`, `catalogo_curso` y `catalogo_temario` (detalle abajo), de `learnity_owner`, con `SELECT` para `learnity_app` y `learnity_lectura` | `DROP VIEW` | 019 |
@@ -162,15 +162,39 @@ Acordadas con `arquitecto`. Reproducen exactamente lo que hoy leen `cursos.repos
 
 ## 7. Decisiones para la Puerta 1
 
-### D-BD1. Los 3 cursos `PUBLICADO` sin revisor (022 y 023)
+### D-BD1. Los 3 cursos `PUBLICADO` sin revisor (022 y 023): **decidida (BD-022, 19-10-2026)**
 
-| Opción | Qué hace | Consecuencias |
-|---|---|---|
-| **B (propuesta)** | `revisado_por` = el ADMIN activo con el menor `id_persona`; `publicado_en = COALESCE(publicado_en, creado_en)`. Si la base no tiene ningún ADMIN activo, ese curso pasa a A y se avisa con NOTICE | El catálogo no cambia: es lo coherente con "refactorizar no cambia funcionalidades". El revisor es un dato asignado por la migración, no una revisión real; queda marcado así en `auditoria_cambio` (`usuario_bd = postgres`, sin actor). Permite aplicar la 023 |
-| **A (alternativa)** | `estado = 'EN_REVISION'`, sin tocar otras columnas | Más honesto, pero los 3 cursos **desaparecen del catálogo** y **no se pueden reaprobar** desde la UI: tienen 3 lecciones `DOCUMENTO` sin PDF y la revisión las rechaza. Si eran los únicos publicados, el catálogo queda vacío. Permite aplicar la 023 |
-| **C (no hacer nada)** | No se aplican ni la 022 ni la 023 (`aplicar-migraciones.ps1 -Omitir 022,023`) | El catálogo no cambia, pero la base sigue aceptando cursos `PUBLICADO` sin revisor ni fecha: la regla depende solo del servicio. Quedan los 3 cursos inconsistentes y no se puede cerrar la Puerta DB con el `CHECK`. El resto de migraciones no depende de ellas |
+**Decisión** (del lead, siguiendo la indicación del usuario de no inventar un revisor ni una fecha de revisión; ver `docs/refactor/ESTADO.md`, BD-022):
 
-Pasar de B a A solo exige cambiar `v_estrategia := 'B'` por `'A'` en `022_correccion_cursos_publicados.up.sql`. El `down` restaura cualquiera de las dos.
+- **La 022 no corrige datos.** Crea la vista `curso_publicado_sin_revision`, que deja a la vista los cursos que incumplen la regla. Nunca cambia `curso`; su `down` es un `DROP VIEW`.
+- **La 023 añade el `CHECK` como `NOT VALID`.** PostgreSQL lo exige en todo `INSERT` o `UPDATE` nuevo, pero no revisa ni reescribe las filas que ya existen.
+- **Efecto sobre el catálogo: ninguno.** Los 3 cursos siguen `PUBLICADO` y siguen en `catalogo_curso`.
+
+**Mecanismo elegido para la excepción: una vista, en vez de una tabla o un `COMMENT` con los IDs.**
+
+| Mecanismo | Por qué no / por qué sí |
+|---|---|
+| `COMMENT` con los IDs | Es texto libre: no se puede consultar con SQL normal ni cruzar con `curso`. Cualquier `COMMENT ON` posterior lo sobrescribe sin dejar rastro. Además, la lista se queda vieja si un curso se corrige o se borra |
+| Tabla con los IDs | Copia datos de `curso` que pueden divergir: si un curso se corrige, la tabla sigue diciendo que es una excepción. Habría que decidir una FK (que bloquearía borrar el curso, o lo borraría en cascada) y alguien tendría que mantenerla. Además, la 022 tendría que escribir datos |
+| **Vista (elegida)** | No copia nada ni escribe nada: lee `curso` en vivo con el mismo predicado del `CHECK`. Lista **exactamente** las filas por las que `VALIDATE CONSTRAINT` fallaría, así que no puede quedar desactualizada. Con la 023 aplicada no puede entrar ninguna fila nueva, así que solo muestra las heredadas, y una que se corrija sale sola. Es de `learnity_owner`, con `SELECT` solo para `learnity_lectura`, como pedía el lead para la tabla. Su `COMMENT` explica la excepción. Quién y cuándo la creó queda en `schema_migraciones`, y los IDs del momento, en el NOTICE de la 022 y de la 023 |
+
+**Por qué el `CHECK NOT VALID` no cambia el comportamiento de la app.** Un `CHECK NOT VALID` se evalúa en cada fila nueva o modificada, aunque el `UPDATE` no toque `estado`, `revisado_por` ni `publicado_en`. Comprobé que la app nunca actualiza un curso `PUBLICADO`, porque sus tres `UPDATE curso` lo impiden:
+
+| Ruta | Guarda |
+|---|---|
+| `cursos-integracion.repository.ts:184` (`actualizarCurso`, datos del curso) | `cursos.service.ts:212-243` lee el curso con `FOR UPDATE OF c` (`base(cliente, id, true)`, `cursos-integracion.repository.ts:623`) y responde 409 `CURSO_BLOQUEADO` si el estado no es `BORRADOR` ni `RECHAZADO` |
+| `cursos-integracion.repository.ts:537` (enviar a revisión) | `WHERE … AND estado IN ('BORRADOR', 'RECHAZADO')` |
+| `cursos-integracion.repository.ts:747` (revisión del admin) | `WHERE … AND estado = 'EN_REVISION'`; si publica, fija `revisado_por = $4` y `publicado_en = now()` |
+
+Además, la FK `curso.revisado_por → persona` es `NO ACTION` (no hay `SET NULL` que reescriba la fila) y ningún otro archivo del repositorio, fuera de `backend/test/`, hace `UPDATE curso` (`git grep`). Los únicos otros `UPDATE curso` están en `backend/test/` (`administracion-contenido.test.ts` y `cursos-gestion-http.test.ts`) y los ajusta la Fase 2A junto con los fixtures.
+
+**Efectos documentados** (los prueba `verificacion/pruebas_heredadas.sql`):
+
+- Un `UPDATE` de una fila heredada que la deje inválida se **rechaza** con 23514, aunque cambie otra columna (por ejemplo `subtitulo`). Un `UPDATE` que la corrige (pone revisor y fecha) se acepta.
+- `ALTER TABLE curso VALIDATE CONSTRAINT curso_publicado_revisado` **falla mientras `curso_publicado_sin_revision` tenga filas**. No se valida en ninguna migración. Si algún día las filas se corrigen o se retiran con una decisión del usuario, una migración nueva podrá validarlo.
+- `pg_dump` guarda un `CHECK NOT VALID` aparte y lo crea después de cargar los datos, así que el respaldo se restaura con las filas heredadas. **NO VERIFICADO** en este entorno.
+
+Opciones descartadas: **B** (asignar como revisor al ADMIN activo con el menor `id_persona`) inventaba un revisor. **A** (`EN_REVISION`) sacaba los cursos del catálogo, y además no se podían reaprobar porque tienen lecciones `DOCUMENTO` sin PDF. **C** (no aplicar la 022 ni la 023) dejaba la regla solo en el servicio.
 
 ### D-BD2. Permisos de limpieza de los fixtures
 
@@ -201,16 +225,16 @@ La búsqueda `ILIKE '%q%'` recorre la tabla completa. La propuesta `database/mig
 - ACL de relaciones, columnas, esquema y base. Se normalizan con `acldefault()`, porque un ACL NULL y su equivalente explícito dan el mismo acceso;
 - los roles `learnity_*` y sus pertenencias;
 - las extensiones;
-- un md5 de (`id_curso`, `estado`, `revisado_por`, `publicado_en`) de `curso`, que es el dato que toca la 022.
+- un md5 de (`id_curso`, `estado`, `revisado_por`, `publicado_en`) de `curso`. Ninguna migración debe cambiarlo: ni la 022 ni la 023 tocan `curso` (D-BD1).
 
 `database/scripts/probar-migraciones.ps1` ejecuta el ciclo e imprime un resumen para pegar:
 
 1. **H0**: huella inicial.
-2. `up` de todas, incluidas las retenidas → **H1**.
+2. `up` de todas, incluidas las retenidas → **H1**. Justo antes de la 022 se ejecuta `verificacion/pruebas_heredadas.sql` (D-BD1): simula cursos `PUBLICADO` sin revisor o sin fecha, aplica dentro de la misma transacción el cuerpo real de 022, 024–026 y, al final, la 023 (el orden en que llegarían a `Learnity`), comprueba los efectos y lo deshace todo con `ROLLBACK`. Después se exige que la huella siga igual a la previa a la 022.
 3. `down` de todas, en orden inverso → **H2**. Se exige **H2 = H0**.
-4. `up` de todas → **H3**. Se exige **H3 = H1**.
+4. `up` de todas → **H3**. Se exige **H3 = H1**. Se ejecutan las pruebas funcionales con todas aplicadas, incluida la 023: es el único punto en que las pruebas de la 023 dan OK en vez de NO APLICA.
 5. Estado migrado sin las retenidas: `down` hasta la 022 y `up` de 024–026 (la 023 queda retenida) → **H4**.
-6. Matriz de privilegios, pruebas funcionales y comparación del catálogo.
+6. Resultados de las filas heredadas y de las pruebas funcionales en H3; después, sobre H4, matriz de privilegios, pruebas funcionales y comparación del catálogo.
 7. 019b: se aplica y se repiten la matriz y las pruebas funcionales.
 8. Estado final: por defecto, la línea base (se quita la 019b, se revierte todo y se exige que la huella final sea igual a H0), para que la suite actual siga en verde hasta que los fixtures usen el pool de `learnity_pruebas` (R2). Con `-EstadoFinal Migrada` queda H4 con la 019b.
 
@@ -222,7 +246,8 @@ Lo que un `down` no devuelve, por definición: las filas de `auditoria_cambio` y
 |---|---|---|
 | R1 | `REVOKE CONNECT … FROM PUBLIC` (018): cualquier login que hoy entre a la base sin un `GRANT` explícito deja de poder conectarse. Los superusuarios no se ven afectados. **NO VERIFICADO** en las bases de cada integrante | Antes de aplicar, cada integrante ejecuta la consulta de abajo en su base. Cada login que aparezca necesita `GRANT CONNECT` o pertenecer a `learnity_lectura` |
 | R2 | El mínimo privilegio rompe la limpieza de la suite. Además, una ruta que use un permiso retirado da 42501 y acaba en 500 | 019b sin herencia y pool de fixtures con `SET ROLE learnity_pruebas` (D-BD2, opción 3). Mientras los fixtures no usen ese pool, `npm test` falla en la limpieza: la 019 no debe quedar aplicada en `learnity_test` para la suite hasta entonces |
-| R3 | El `CHECK` de `PUBLICADO` rompe 3 suites y `sembrar-catalogo.ts` | 023 retenida hasta la Fase 2A (§2.1, punto 2) |
+| R3 | El `CHECK` de `PUBLICADO`, aunque sea `NOT VALID`, rompe 3 suites y `sembrar-catalogo.ts` | 023 retenida hasta la Fase 2A (§2.1, punto 2) |
+| R11 | Con la 023, cualquier `UPDATE` de uno de los cursos heredados se rechaza (23514) salvo que lo corrija, y `VALIDATE CONSTRAINT` falla mientras existan (D-BD1) | La app nunca actualiza un curso `PUBLICADO` (§7, D-BD1). La vista `curso_publicado_sin_revision` los lista. Corregirlos o retirarlos es una decisión del usuario, con su propia migración |
 | R4 | La auditoría añade filas: una por login y una por intento fallido (`UPDATE usuario`), además de muchas por las cascadas de limpieza en `learnity_test` | Volumen pequeño. Si molesta, una migración futura puede ignorar `ultimo_acceso`, `intentos_fallidos` y `bloqueado_hasta` mediante los argumentos del trigger |
 | R5 | El actor queda NULL hasta que el backend use `set_config('learnity.id_persona', $1, true)` | Documentado para el `arquitecto` (`CONTRATOS_SERVICIO.md`) y para `be-a`/`be-b` |
 | R6 | En una carrera, el índice único parcial (024) devuelve 409 `CONFLICTO` genérico en vez del error de negocio. En el caso normal no cambia nada, porque el `FOR UPDATE` del servicio ya serializa | Documentado; `qa-edge` lo anota en `RIESGOS.md` |
@@ -263,8 +288,8 @@ El detalle, con los comandos exactos de PowerShell y `psql`, está en [`database
 
 ## 11. Pendiente y NO VERIFICADO
 
-- Todo el SQL está **NO VERIFICADO** hasta el turno de pruebas en `learnity_test`.
+- 022 y 023 rediseñadas (D-BD1) y `verificacion/pruebas_heredadas.sql`: **NO VERIFICADO** hasta el próximo turno de `probar-migraciones.ps1` en `learnity_test`. El resto se probó el 19-10-2026 (ver `docs/refactor/ESTADO.md`, *Prueba de migraciones*).
 - Opinión de `qa-edge` sobre D-BD2: recibida (opción 3, §7). El pool de fixtures con `SET ROLE learnity_pruebas` es de `qa-edge` (`backend/test/ayudas/`); el cambio de import en cada suite, de `be-a` y `be-b` (Fase 2A).
 - `arquitecto` confirmó las tres vistas, sus columnas y que `catalogo_categoria` filtra `activa` dentro de la vista (ADR-002).
-- Decisiones D-BD1, D-BD2 y D-BD3 (Puerta 1).
+- Puerta 1 cerrada: D-BD1 decidida (BD-022, §7); D-BD2, opción 3 (BD-019b); D-BD3, `pg_trgm` aplazado (ADR-010, P1-2).
 - Las 3 lecciones `DOCUMENTO` sin PDF de cursos publicados: no hay `CHECK` posible (es una regla entre tablas). Quedan en el servicio, como hoy.

@@ -13,11 +13,12 @@ El diagnóstico, la matriz de privilegios, las decisiones pendientes y los riesg
 | `016_limpieza_pdf.sql` | Sprint 2: `archivo_borrado_pendiente` (línea base) |
 | `learnity_modelo.dbml` | Modelo para https://dbdiagram.io (Import → DBML) |
 | `migraciones/0NN_<nombre>.up.sql` / `.down.sql` | Cambios desde la 017, cada uno con su reversión. Detalle en PLAN_BD §6 |
-| `migraciones/RETENIDAS.txt` | Migraciones que todavía no se aplican (hoy, la 023) |
+| `migraciones/RETENIDAS.txt` | Migraciones que todavía no se aplican (hoy, la 023: ver *Cursos `PUBLICADO` heredados*) |
 | `migraciones/propuestas/` | Migraciones sin número que esperan un ADR (hoy, `pg_trgm`) |
 | `verificacion/huella_esquema.sql` | Huella del esquema (solo lectura): comprueba que un `down` deja la base igual |
 | `verificacion/matriz_privilegios.sql` | Compara los permisos reales de `learnity_app` y `learnity_lectura` con los esperados (solo lectura) |
 | `verificacion/pruebas_funcionales.sql` | Prueba permisos, auditoría, `actualizado_en`, `CHECK`, índice único y vistas, y lo deshace todo (solo bases `_test`) |
+| `verificacion/pruebas_heredadas.sql` | Prueba la decisión BD-022 con cursos `PUBLICADO` heredados sin revisor: aplica 022–026 dentro de una transacción y lo deshace todo. No se ejecuta suelto: lo compone `probar-migraciones.ps1` (solo bases `_test`) |
 | `verificacion/comparar_catalogo.sql` | Comprueba que las vistas del catálogo devuelven lo mismo que las consultas actuales, y lo deshace todo (solo bases `_test`) |
 | `pruebas/privilegios_pruebas.sql` y `quitar_privilegios_pruebas.sql` | 019b: rol de los fixtures (`learnity_pruebas`), del que `learnity_app` es miembro sin herencia; solo en bases `_test` (decisión D-BD2) |
 | `scripts/aplicar-migraciones.ps1` | Aplica las pendientes en orden y registra su checksum |
@@ -117,11 +118,11 @@ powershell -ExecutionPolicy Bypass -File database\scripts\probar-migraciones.ps1
 Qué hace:
 
 1. **H0**: huella inicial.
-2. `up` de todas, incluidas las retenidas, guardando la huella previa a cada una → **H1**.
+2. `up` de todas, incluidas las retenidas, guardando la huella previa a cada una → **H1**. Justo antes de la 022 ejecuta `pruebas_heredadas.sql` dentro de una transacción que se deshace, y comprueba que la huella no cambia.
 3. `down` de todas. Cada `down` debe dejar la huella previa a su `up`. Al final → **H2**, que debe ser igual a H0.
-4. `up` de todas otra vez → **H3**, que debe ser igual a H1.
+4. `up` de todas otra vez → **H3**, que debe ser igual a H1. Pruebas funcionales con todas aplicadas, incluida la 023.
 5. Estado migrado, con la 023 (retenida) sin aplicar → **H4**.
-6. Matriz de privilegios, pruebas funcionales y comparación del catálogo.
+6. Resultados de las filas heredadas y de las pruebas funcionales en H3; después, sobre H4, matriz de privilegios, pruebas funcionales y comparación del catálogo.
 7. Aplica la 019b y repite la matriz y las pruebas funcionales.
 8. Estado final, según `-EstadoFinal`:
    - **`LineaBase`** (por defecto): quita la 019b, revierte todo y comprueba que la huella final es igual a H0.
@@ -150,7 +151,7 @@ Si estaba aplicada la 019b, primero hay que quitarla con `quitar_privilegios_pru
 
 ### Paso 2. Puerta DB
 
-El usuario revisa el resumen (H2 = H0, H3 = H1, cada `down` IGUAL, `MATRIZ OK`, `PRUEBAS OK`, `CATALOGO IGUAL`) y el resultado de `npm test`. También decide D-BD1, D-BD2 y D-BD3 (PLAN_BD §7) en la Puerta 1.
+El usuario revisa el resumen (H2 = H0, H3 = H1, cada `down` IGUAL, prueba de filas heredadas sin rastro, `MATRIZ OK`, `PRUEBAS OK`, `CATALOGO IGUAL`) y el resultado de `npm test`. Las decisiones D-BD1, D-BD2 y D-BD3 ya se tomaron en la Puerta 1 (PLAN_BD §7 y §11).
 
 ### Paso 3. Consulta previa y respaldo de `Learnity` (lo ejecuta el usuario)
 
@@ -195,7 +196,7 @@ $fecha = Get-Date -Format 'yyyyMMdd-HHmm'
 powershell -ExecutionPolicy Bypass -File database\scripts\aplicar-migraciones.ps1 -Base Learnity -ConfirmoRespaldo
 ```
 
-Para ver antes qué se aplicaría, añade `-Simular`. Con la opción C de D-BD1, añade `-Omitir 022,023`.
+Para ver antes qué se aplicaría, añade `-Simular`. La 023 está retenida: no se aplica sin `-IncluirRetenidas`, y eso solo cuando el lead la quite de `RETENIDAS.txt`. Entonces se aplica después de la 026, que es el orden que simula `pruebas_heredadas.sql`.
 
 ### Paso 5. Cada integrante, en su base local
 
@@ -208,6 +209,20 @@ Cada uno lo hace en su propio PostgreSQL, con su `postgres`:
 5. Comprobar el resultado, con la lista que imprime el script o con `SELECT version, aplicada_en FROM schema_migraciones ORDER BY orden;`.
 
 Si la 018 avisa de que `learnity_owner` ya existía con LOGIN (lo mencionaba la versión anterior de este documento), ese integrante decide si ejecuta `ALTER ROLE learnity_owner NOLOGIN;`.
+
+## Cursos `PUBLICADO` heredados (decisión BD-022)
+
+`Learnity` tiene 3 cursos `PUBLICADO` sin revisor. No se les inventa un revisor ni una fecha, y siguen en el catálogo:
+
+- La **022** no cambia ningún dato. Crea la vista `curso_publicado_sin_revision`, que solo puede leer `learnity_lectura` (y `postgres`):
+
+  ```sql
+  SELECT * FROM curso_publicado_sin_revision ORDER BY id_curso;
+  ```
+
+- La **023** añade el `CHECK curso_publicado_revisado` como `NOT VALID`. PostgreSQL lo exige en todo `INSERT` o `UPDATE` nuevo, pero no revisa las filas que ya existen.
+- Efecto: un `UPDATE` de uno de esos cursos que lo deje inválido se rechaza (23514), aunque cambie otra columna. La app nunca actualiza un curso `PUBLICADO` (PLAN_BD §7, D-BD1).
+- `ALTER TABLE curso VALIDATE CONSTRAINT curso_publicado_revisado` **falla mientras la vista tenga filas**. Ninguna migración lo ejecuta.
 
 ## Revertir
 
