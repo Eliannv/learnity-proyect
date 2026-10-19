@@ -355,7 +355,7 @@ Endpoints implementados:
 | GET    | `/api/cursos`     | Consultar el catálogo         |
 | GET    | `/api/cursos/:id` | Consultar el detalle público  |
 
-El contrato de filtros, paginación y respuestas está disponible en:
+El contrato de filtros, paginación y respuestas está en [`docs/api/openapi.yaml`](docs/api/openapi.yaml) y, con `NODE_ENV=development`, en:
 
 [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
@@ -857,10 +857,10 @@ Cinco pruebas de regresión comprueban:
 Los once endpoints están documentados en:
 
 ```text
-backend/src/shared/http/openapi-integrante2.ts
+backend/src/shared/http/openapi-gestion-cursos.ts
 ```
 
-La documentación interactiva está disponible con el backend iniciado:
+El contrato publicado es [`docs/api/openapi.yaml`](docs/api/openapi.yaml). La documentación interactiva está disponible con el backend iniciado con `NODE_ENV=development`:
 
 [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
