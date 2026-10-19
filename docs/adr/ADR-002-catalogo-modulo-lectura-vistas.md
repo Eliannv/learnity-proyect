@@ -1,6 +1,6 @@
 # ADR-002: Catálogo como módulo de lectura sobre vistas SQL
 
-- **Estado:** Propuesto. El usuario ya eligió el enfoque (**D8 = A**, 19-10-2026); este ADR fija el *cómo* y se aprueba en la Puerta 1.
+- **Estado:** Aceptado (19-10-2026, Puerta 1, decisión P1-1). El enfoque lo eligió el usuario en **D8 = A**; este ADR fija el *cómo*.
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`, en coordinación con `db`, que define las vistas. Nombres y columnas acordados con `db` el 19-10-2026.
 - **Cambia el contrato:** No. `GET /api/categorias`, `GET /api/cursos` y `GET /api/cursos/:id` devuelven exactamente el mismo JSON.

@@ -1,25 +1,25 @@
 # ADR-011: Endurecimiento con impacto en el contrato
 
-- **Estado:** Propuesto. **Son 11 puntos independientes**: el usuario aprueba o rechaza cada uno por separado en la Puerta 1.
+- **Estado:** Aceptado parcialmente (19-10-2026, Puerta 1, decisión P1-3). **Son 11 puntos independientes**: 11.1–11.8, 11.10 y 11.11 aceptados; **11.9 rechazado** (se mantiene el comportamiento actual). Cada punto aceptado va en su propio commit, que actualiza sus pruebas CONGELADO-INSEGURO.
 - **Fecha:** 2026-10-19 (ampliado el mismo día con los hallazgos H1–H11 de `qa-edge`, `docs/refactor/RIESGOS.md`)
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
 - **Regla de proceso (decisión del lead, 19-10-2026):** la caracterización de `qa-edge` **congela el comportamiento actual**, incluido lo inseguro (marcado **CONGELADO-INSEGURO**). Cada punto indica qué pruebas de caracterización actualiza. Esas expectativas cambian **en el mismo commit** que aplica el punto aprobado, nunca antes. Si un punto se rechaza, sus pruebas siguen fijando el comportamiento actual.
 
 ## Resumen
 
-| Punto | Hallazgo | ¿Cambia el contrato? | Qué cambia | Pruebas que actualiza | Dueño |
-|---|---|---|---|---|---|
-| 11.1 | S4 / C-01 | **Sí** | `GET /api/salud` deja de devolver `baseDeDatos` | CAR-GEN-01 | be-a |
-| 11.2 | H8 | **Sí** | `GET /api/salud` con la base caída: 500 → 503 | CAR-GEN-03 | be-a |
-| 11.3 | S4 / C-02 | **Sí** (fuera del JSON) | `/api/docs` solo en desarrollo | CAR-GEN-04 | be-a |
-| 11.4 | S5 | **Sí** | Nuevo 429 en `POST /api/lecciones/{id}/archivo` | SEG-28 | be-b |
-| 11.5 | S5 | No | La subida pasa a disco temporal (cambia el modo de fallo) | Ninguna (ver H9) | be-b |
-| 11.6 | H1 / C-14 | **Sí** | Errores del parser JSON: 500 → 400, 413 o 415 | CAR-GEN-05, 06 y 11 | be-a |
-| 11.7 | H11 | **Sí** | Texto con `\u0000`: 500 → 400 | CAR-CUR-08, CAR-IDE-07 | be-a / be-b |
-| 11.8 | H4 | **Sí** | Una sola regla de portada (la revalidación al enviar y al aprobar se vuelve más estricta) | CAR-CUR-07, SEG-19 | be-b |
-| 11.9 | S6 | **Sí** | `portadaUrl` deja de aceptar URLs externas | CAR-CUR-07, SEG-19 | be-b (+ fe-b) |
-| 11.10 | H5 | **Sí** | Los roles se leen de la base en cada petición (un token antiguo deja de recibir 403 tras la aprobación) | CAR-SOL-12 | be-a |
-| 11.11 | H6 | **Sí** | Los IDs rechazan `1e3`, `0x10`, ` 7 ` y `7.0` (pasan a 400) | Paquete ID (`PLAN_PRUEBAS.md` §2.2) | be-a / be-b |
+| Punto | Hallazgo | ¿Cambia el contrato? | Qué cambia | Pruebas que actualiza | Dueño | Decisión (Puerta 1) |
+|---|---|---|---|---|---|---|
+| 11.1 | S4 / C-01 | **Sí** | `GET /api/salud` deja de devolver `baseDeDatos` | CAR-GEN-01 | be-a | Aceptado |
+| 11.2 | H8 | **Sí** | `GET /api/salud` con la base caída: 500 → 503 | CAR-GEN-03 | be-a | Aceptado |
+| 11.3 | S4 / C-02 | **Sí** (fuera del JSON) | `/api/docs` solo en desarrollo | CAR-GEN-04 | be-a | Aceptado |
+| 11.4 | S5 | **Sí** | Nuevo 429 en `POST /api/lecciones/{id}/archivo` | SEG-28 | be-b | Aceptado |
+| 11.5 | S5 | No | La subida pasa a disco temporal (cambia el modo de fallo) | Ninguna (ver H9) | be-b | Aceptado |
+| 11.6 | H1 / C-14 | **Sí** | Errores del parser JSON: 500 → 400, 413 o 415 | CAR-GEN-05, 06 y 11 | be-a | Aceptado |
+| 11.7 | H11 | **Sí** | Texto con `\u0000`: 500 → 400 | CAR-CUR-08, CAR-IDE-07 | be-a / be-b | Aceptado |
+| 11.8 | H4 | **Sí** | Una sola regla de portada (la revalidación al enviar y al aprobar se vuelve más estricta) | CAR-CUR-07, SEG-19 | be-b | Aceptado (B) |
+| 11.9 | S6 | **Sí** | `portadaUrl` deja de aceptar URLs externas | CAR-CUR-07, SEG-19 | be-b (+ fe-b) | **Rechazado** (A: se mantiene) |
+| 11.10 | H5 | **Sí** | Los roles se leen de la base en cada petición (un token antiguo deja de recibir 403 tras la aprobación) | CAR-SOL-12 | be-a | Aceptado (B) |
+| 11.11 | H6 | **Sí** | Los IDs rechazan `1e3`, `0x10`, ` 7 ` y `7.0` (pasan a 400) | Paquete ID (`PLAN_PRUEBAS.md` §2.2) | be-a / be-b | Aceptado (B) |
 
 Los identificadores de las pruebas son los de `RIESGOS.md` y `PLAN_PRUEBAS.md` (`qa-edge`). Si cambian, manda el registro de `qa-edge`.
 
@@ -178,6 +178,8 @@ Una portada que solo pase la regla laxa (por ejemplo, insertada por semilla o di
 **Pruebas que actualiza:** CAR-CUR-07 y SEG-19.
 
 ## 11.9 Portada externa (S6)
+
+> **Decisión (Puerta 1, 19-10-2026): rechazado.** Se mantiene la opción A: `portadaUrl` sigue aceptando URLs `http(s)` externas, y CAR-CUR-07 y SEG-19 siguen fijando ese comportamiento. La regla única del 11.8 conserva esa aceptación.
 
 **Problema.** `portadaUrl` acepta cualquier URL `http(s)` externa: la imagen se carga desde terceros (rastreo y contenido mixto).
 

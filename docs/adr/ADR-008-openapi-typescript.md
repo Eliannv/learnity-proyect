@@ -1,10 +1,10 @@
 # ADR-008: Dependencia candidata `openapi-typescript` (D9)
 
-- **Estado:** Propuesto. Es una de las tres candidatas de D9 = A; el usuario la aprueba o la rechaza en la Puerta 1.
+- **Estado:** Aceptado (19-10-2026, Puerta 1, decisión P1-2). Antes de la primera generación se corrigen C-08–C-11 y C-18 en `openapi*.ts`.
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
 - **Cambia el contrato:** No
-- **Dónde iría:** `devDependencies` de `frontend/package.json` (de `arquitecto`). **No se añade nada hasta que se apruebe.**
+- **Dónde va:** `devDependencies` de `frontend/package.json` (de `arquitecto`), en versión exacta.
 
 ## Contexto
 
@@ -56,7 +56,7 @@ A cuesta 0 en dependencias, pero mantiene el problema que motiva el ADR-007. C y
 
 ## Acciones
 
-1. [ ] Si se aprueba: `arquitecto` lo añade en `frontend/package.json` con el script `api:tipos` (Fase 2A).
+1. [ ] `arquitecto` lo añade en `frontend/package.json` con el script `api:tipos` (Fase 2A).
 2. [ ] Cerrar C-08 a C-11 y C-18 en `openapi*.ts` antes de la primera generación (`arquitecto`, Fase 2A).
 3. [ ] `fe-b` crea `core/api/contrato.ts` a partir del archivo generado.
 

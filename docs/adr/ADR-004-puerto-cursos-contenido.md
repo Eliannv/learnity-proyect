@@ -1,6 +1,6 @@
 # ADR-004: Ruptura del ciclo Cursos ⇄ Contenido mediante un puerto
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado (19-10-2026, Puerta 1, decisión P1-1)
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
 - **Cambia el contrato:** No

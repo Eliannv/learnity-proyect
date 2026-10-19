@@ -1,6 +1,6 @@
 # ADR-010: Extensión candidata `pg_trgm` (D9)
 
-- **Estado:** Propuesto. Es una de las tres candidatas de D9 = A; el usuario la aprueba o la rechaza en la Puerta 1.
+- **Estado:** Aceptado, opción A (aplazar) (19-10-2026, Puerta 1, decisión P1-2). No se instala la extensión en este refactor; la migración queda en `database/migraciones/propuestas/pg_trgm.*.sql`, sin aplicar.
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`; la migración, si se aprueba, es de `db`
 - **Cambia el contrato:** No (Opción B). La Opción C sí lo cambiaría.
@@ -77,8 +77,8 @@ B no cambia nada que se vea desde fuera y es reversible, pero hoy su beneficio e
 
 ## Acciones
 
-1. [ ] El usuario decide A o B en la Puerta 1.
-2. [ ] Si B: `db` comprueba `pg_available_extensions` en `learnity_test`, escribe la migración y anota el plan antes y después con `EXPLAIN ANALYZE`.
+1. [x] El usuario decide A o B en la Puerta 1: **A** (19-10-2026).
+2. [ ] Solo si se reconsidera (umbral de arriba) y se aprueba B: `db` comprueba `pg_available_extensions` en `learnity_test`, escribe la migración y anota el plan antes y después con `EXPLAIN ANALYZE`.
 
 ## Cómo se verifica (si B)
 

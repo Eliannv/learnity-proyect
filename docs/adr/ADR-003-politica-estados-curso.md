@@ -1,6 +1,6 @@
 # ADR-003: Política de estados del curso
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado (19-10-2026, Puerta 1, decisión P1-1)
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
 - **Cambia el contrato:** No. Los mensajes, los códigos (`SIN_PERMISO`, `NO_ENCONTRADO`, `CURSO_BLOQUEADO`) y los estados HTTP se conservan textualmente.

@@ -2,21 +2,23 @@
 
 Lo mantiene `arquitecto`. Todo ADR nace **Propuesto** y pasa a **Aceptado** o **Rechazado** cuando el usuario lo decide en una puerta (la Puerta 1 para los de la Fase 1). Mientras siga *Propuesto*, nadie implementa lo que describe.
 
+**Puerta 1 (19-10-2026):** decisiones P1-1 (001–007), P1-2 (008–010) y P1-3 (011, punto por punto) de `docs/refactor/ESTADO.md`.
+
 ## Índice
 
 | ADR | Título | Estado | Puerta | Cambia el contrato |
 |---|---|---|---|---|
-| [001](ADR-001-monolito-modular-api-publica.md) | Monolito modular en capas con API pública por módulo | Propuesto | 1 | No |
-| [002](ADR-002-catalogo-modulo-lectura-vistas.md) | Catálogo como módulo de lectura sobre vistas SQL (D8 = A) | Propuesto (D8 ya decidida) | 1 | No |
-| [003](ADR-003-politica-estados-curso.md) | Política de estados del curso | Propuesto | 1 | No |
-| [004](ADR-004-puerto-cursos-contenido.md) | Ruptura del ciclo Cursos ⇄ Contenido mediante un puerto | Propuesto | 1 | No |
-| [005](ADR-005-estrategia-correo-almacenamiento.md) | Strategy de transporte de correo e interfaz de almacenamiento | Propuesto | 1 | No |
-| [006](ADR-006-validacion-uniforme-logger-correlacion.md) | Validación uniforme y logger con ID de correlación | Propuesto (2 puntos) | 1 | No (solo añade el encabezado `X-Request-Id`; lo que cambia el contrato está en el 011) |
-| [007](ADR-007-features-angular-cliente-tipado.md) | *Features* en Angular y cliente HTTP tipado | Propuesto | 1 | No |
-| [008](ADR-008-openapi-typescript.md) | Dependencia candidata: `openapi-typescript` (D9) | Propuesto | 1 | No |
-| [009](ADR-009-playwright.md) | Dependencia candidata: `@playwright/test` (D9) | Propuesto | 1 | No |
-| [010](ADR-010-pg-trgm.md) | Extensión candidata: `pg_trgm` (D9) | Propuesto | 1 | No |
-| [011](ADR-011-endurecimiento-contrato.md) | Endurecimiento con impacto en el contrato | Propuesto (11 puntos que se aprueban por separado) | 1 | Sí (todos menos 11.5) |
+| [001](ADR-001-monolito-modular-api-publica.md) | Monolito modular en capas con API pública por módulo | Aceptado (P1-1) | 1 | No |
+| [002](ADR-002-catalogo-modulo-lectura-vistas.md) | Catálogo como módulo de lectura sobre vistas SQL (D8 = A) | Aceptado (P1-1; enfoque D8 = A) | 1 | No |
+| [003](ADR-003-politica-estados-curso.md) | Política de estados del curso | Aceptado (P1-1) | 1 | No |
+| [004](ADR-004-puerto-cursos-contenido.md) | Ruptura del ciclo Cursos ⇄ Contenido mediante un puerto | Aceptado (P1-1) | 1 | No |
+| [005](ADR-005-estrategia-correo-almacenamiento.md) | Strategy de transporte de correo e interfaz de almacenamiento | Aceptado (P1-1; 5.1 y 5.2) | 1 | No |
+| [006](ADR-006-validacion-uniforme-logger-correlacion.md) | Validación uniforme y logger con ID de correlación | Aceptado (P1-1; 6.1 y 6.2) | 1 | No (solo añade el encabezado `X-Request-Id`; lo que cambia el contrato está en el 011) |
+| [007](ADR-007-features-angular-cliente-tipado.md) | *Features* en Angular y cliente HTTP tipado | Aceptado (P1-1) | 1 | No |
+| [008](ADR-008-openapi-typescript.md) | Dependencia candidata: `openapi-typescript` (D9) | Aceptado (P1-2) | 1 | No |
+| [009](ADR-009-playwright.md) | Dependencia candidata: `@playwright/test` (D9) | Aceptado (P1-2; `e2e/package.json` de `qa-edge`) | 1 | No |
+| [010](ADR-010-pg-trgm.md) | Extensión candidata: `pg_trgm` (D9) | Aceptado, opción A: aplazar (P1-2) | 1 | No |
+| [011](ADR-011-endurecimiento-contrato.md) | Endurecimiento con impacto en el contrato | Aceptado parcialmente (P1-3): 11.1–11.8, 11.10 y 11.11 aceptados; **11.9 rechazado** (se mantiene el comportamiento actual) | 1 | Sí (todos los aceptados menos 11.5) |
 
 Pendiente para la Fase 2B: el ADR del CRUD de categorías (D1), que amplía el contrato con rutas nuevas (ver `docs/arquitectura/CONTRATOS_SERVICIO.md`).
 
