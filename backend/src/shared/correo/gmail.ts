@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { env } from '../config/env.js';
 import type { Correo } from './correo.js';
+import type { TransporteCorreo } from './transporte.js';
 
 // Gmail API (users.messages.send) con OAuth 2.0 de servidor.
 // La cuenta emisora autoriza una sola vez (npm run correo:autorizar) y el backend guarda su
@@ -78,3 +79,5 @@ export async function enviarConGmail(correo: Correo): Promise<void> {
     throw new Error(`Gmail API respondió ${respuesta.status} (${datos.error?.status ?? 'sin detalle'})`);
   }
 }
+
+export const transporteGmail: TransporteCorreo = { enviar: enviarConGmail };

@@ -6,6 +6,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './shared/config/env.js';
 import { consultar } from './shared/database/pool.js';
 import { registrarVerificadorSesion } from './shared/auth/middlewares.js';
+import { correlacion, ENCABEZADO_ID_PETICION } from './shared/http/correlacion.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-errores.js';
 import { openApi } from './shared/http/openapi.js';
 import { identidadRoutes } from './modules/identidad/identidad.routes.js';
@@ -16,6 +17,15 @@ import { aprendizajeRoutes } from './modules/aprendizaje/aprendizaje.routes.js';
 import { evaluacionesRoutes } from './modules/evaluaciones/evaluaciones.routes.js';
 import { administracionRoutes } from './modules/administracion/administracion.routes.js';
 
+/**
+ * Puertos: contratos que `shared` o un módulo define y otro módulo implementa (ADR-001, ADR-004).
+ * `app.ts` es el único sitio que los conecta; cada puerto nuevo se registra aquí, una sola vez.
+ */
+function registrarPuertos(): void {
+  // `autenticar` (shared) pregunta a Identidad si la sesión del access token sigue vigente.
+  registrarVerificadorSesion((usuario) => identidadService.sesionVigente(usuario));
+}
+
 export function crearApp() {
   const app = express();
 
@@ -23,13 +33,13 @@ export function crearApp() {
   app.set('trust proxy', env.TRUST_PROXY);
   app.disable('x-powered-by');
 
+  app.use(correlacion);
   app.use(helmet());
-  app.use(cors({ origin: env.ORIGENES, credentials: true }));
+  app.use(cors({ origin: env.ORIGENES, credentials: true, exposedHeaders: [ENCABEZADO_ID_PETICION] }));
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
-  // `autenticar` (shared) pregunta a Identidad si la sesión del access token sigue vigente.
-  registrarVerificadorSesion((usuario) => identidadService.sesionVigente(usuario));
+  registrarPuertos();
 
   // Comprobación rápida: ¿el servidor responde y llega a PostgreSQL?
   app.get('/api/salud', async (_req, res) => {
