@@ -61,7 +61,10 @@ const correo = {
   description: 'Se recortan los espacios y se pasa a minúsculas antes de validar.',
 };
 
-const nombre = (ejemplo: string) => ({ type: 'string', minLength: 1, maxLength: 80, example: ejemplo });
+/** Texto de Identidad validado con `textoSeguro` (ADR-011, 11.7). */
+const sinNul = 'No admite el carácter NUL (U+0000): 400 SOLICITUD_INVALIDA con el detalle del campo.';
+
+const nombre = (ejemplo: string) => ({ type: 'string', minLength: 1, maxLength: 80, example: ejemplo, description: sinNul });
 
 const cuerpo = (propiedades: Record<string, unknown>, requeridos: string[]) => ({
   required: true,
@@ -151,7 +154,8 @@ export const openApi = {
       '',
       '**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.',
       'Cualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es',
-      '409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK o clave foránea).',
+      '409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK, clave foránea o un texto con el carácter NUL, 22021, que la',
+      'validación no rechazó antes; ADR-011, 11.7).',
       'Los errores del parser JSON responden sin `detalles` (ADR-011, 11.6): 400 SOLICITUD_INVALIDA si el cuerpo no es un JSON válido,',
       '413 CUERPO_DEMASIADO_GRANDE si supera 1 MB y 415 TIPO_NO_ADMITIDO si el charset no es UTF o el `Content-Encoding` no es',
       'identity, gzip, deflate ni br. El parser actúa antes que las rutas, así que cualquier petición con `Content-Type: application/json`',
@@ -368,8 +372,8 @@ export const openApi = {
           {
             nombres: nombre('Rosa'),
             apellidos: nombre('Vera Chávez'),
-            ciudad: { type: 'string', nullable: true, maxLength: 60 },
-            biografia: { type: 'string', nullable: true, maxLength: 300 },
+            ciudad: { type: 'string', nullable: true, maxLength: 60, description: sinNul },
+            biografia: { type: 'string', nullable: true, maxLength: 300, description: sinNul },
           },
           ['nombres', 'apellidos'],
         ),
