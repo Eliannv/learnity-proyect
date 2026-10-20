@@ -60,6 +60,9 @@ async function subirValidado(
     // sección bloqueada (H3). Si la transacción falla, la reserva de `programarNuevo` lo retira.
     await almacenLocal.guardar(nombre, origen);
 
+    // Los demás PDF del curso se comprueban en disco antes de bloquear (D-01).
+    const prevalidados = await cursosApi.prevalidarPdfDeLeccion(id);
+
     resultado = await cursosApi.conLeccionEditable(
       id,
       usuario,
@@ -110,7 +113,9 @@ async function subirValidado(
         }
 
         await repo.cancelarRetiro(cliente, nombre);
-        return cursosApi.detallePrivado(cliente, contexto.id);
+        // El PDF nuevo ya se validó al guardarlo: se añade su clave sin volver a leer el disco.
+        const conNuevo = new Set(prevalidados).add(`${archivoId}:${nombre}:${tamano}`);
+        return cursosApi.detallePrivado(cliente, contexto.id, conNuevo);
       },
     );
   } catch (error) {

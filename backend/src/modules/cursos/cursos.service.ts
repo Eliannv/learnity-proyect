@@ -31,7 +31,12 @@ export interface ServicioCursos {
     trabajo: (contexto: ContextoLeccion, cliente: PoolClient) => Promise<T>,
   ): Promise<T>;
   asociarPdfPrincipal(cliente: PoolClient, contexto: ContextoLeccion, archivoId: number): Promise<void>;
-  detallePrivado(cliente: PoolClient, idCurso: number): Promise<CursoDetalle>;
+  detallePrivado(
+    cliente: PoolClient,
+    idCurso: number,
+    prevalidados?: ReadonlySet<string>,
+  ): Promise<CursoDetalle>;
+  prevalidarPdfDeLeccion(idLeccion: number): Promise<ReadonlySet<string>>;
   autorizarLectura(idLeccion: number, idCursoArchivo: number, usuario: UsuarioSesion): Promise<void>;
 
   // Para modules/revision (CONTRATOS_SERVICIO §2.1)
@@ -83,7 +88,7 @@ export const cursosService = {
 
       const idCurso = await fichaRepository.crearBorrador(cliente, idDocente, datos);
       return detallePrivado(cliente, idCurso);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async actualizarMiCurso(
@@ -112,7 +117,7 @@ export const cursosService = {
 
       await fichaRepository.actualizarCurso(cliente, idCurso, datos);
       return detallePrivado(cliente, idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async enviarCursoARevision(idCurso: number, usuario: UsuarioSesion): Promise<CursoDetalle> {
@@ -141,7 +146,7 @@ export const cursosService = {
       }
 
       return detallePrivado(cliente, idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
   },
 };
 

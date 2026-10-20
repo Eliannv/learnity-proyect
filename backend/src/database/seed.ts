@@ -128,7 +128,8 @@ async function main() {
     }
   });
 
-  console.log(`\nListo. Contraseña de las cuentas de prueba: ${contrasena}`);
+  // No se imprime la contraseña (S8): se fija con SEED_PASSWORD; sin ella rige la predeterminada del script.
+  console.log('\nListo. Las cuentas de prueba usan la contraseña de SEED_PASSWORD (o la predeterminada del script).');
 }
 
 main()

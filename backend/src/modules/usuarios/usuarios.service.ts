@@ -7,6 +7,7 @@ import type { EstadoSolicitud, SolicitudDocente } from './usuarios.modelo.js';
 import { usuariosRepository as repo } from './usuarios.repository.js';
 
 // Capa service: reglas del negocio de las solicitudes para ser docente.
+// Auditoría: toda transacción de escritura pasa `{ actor: idPersona }` del usuario autenticado.
 
 export const usuariosService = {
   /** RF-05 · Un estudiante pide el rol Docente. Solo una solicitud pendiente a la vez. */
@@ -20,7 +21,7 @@ export const usuariosService = {
         throw AppError.conflicto('Ya tienes una solicitud pendiente de revisión.', 'SOLICITUD_PENDIENTE');
       }
       return repo.crearSolicitud(cliente, usuario.idPersona, datos.especialidad, datos.motivo);
-    });
+   }, { actor: usuario.idPersona });
     registrarEvento('solicitud_docente_enviada', { idSolicitud: id, idUsuario: usuario.idUsuario });
     return (await repo.buscarSolicitud(id))!;
   },
@@ -51,7 +52,7 @@ export const usuariosService = {
       } else {
         await repo.marcarRevisada(cliente, id, 'RECHAZADA', datos.observacion, admin.idPersona);
       }
-    });
+   }, { actor: admin.idPersona });
     registrarEvento('solicitud_docente_decidida', { idSolicitud: id, decision: datos.decision, idAdmin: admin.idUsuario });
     return (await repo.buscarSolicitud(id))!;
   },

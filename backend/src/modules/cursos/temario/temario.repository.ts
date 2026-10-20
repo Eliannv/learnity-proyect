@@ -40,6 +40,27 @@ export const temarioRepository = {
     return rows;
   },
 
+  /** Lectura sin bloqueo (pool): sirve para prevalidar los PDF en disco antes de abrir la transacción. */
+  async idCursoDeModulo(idModulo: number): Promise<number | null> {
+    const { rows } = await consultar<{ idCurso: number }>(
+      `SELECT id_curso AS "idCurso" FROM modulo WHERE id_modulo = $1`,
+      [idModulo],
+    );
+    return rows[0]?.idCurso ?? null;
+  },
+
+  /** Igual que `idCursoDeModulo`, a partir de una lección. */
+  async idCursoDeLeccion(idLeccion: number): Promise<number | null> {
+    const { rows } = await consultar<{ idCurso: number }>(
+      `SELECT m.id_curso AS "idCurso"
+         FROM leccion l
+         JOIN modulo m ON m.id_modulo = l.id_modulo
+        WHERE l.id_leccion = $1`,
+      [idLeccion],
+    );
+    return rows[0]?.idCurso ?? null;
+  },
+
   async contarModulos(
     cliente: PoolClient,
     idCurso: number,
