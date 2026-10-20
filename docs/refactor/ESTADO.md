@@ -2,6 +2,15 @@
 
 > Solo lo escribe el lead. Los teammates informan por mensaje con el formato de `REGLAS_EQUIPO.md`.
 
+## Integración local a `main` (20-10-2026, Codex)
+
+- **Merge:** `integration/sprint-2` en `7c791fb` se integró en `main` mediante `22ed120` (`--no-ff`, sin conflictos). No se hizo push. El worktree de integración conservó los cambios ajenos sin confirmar en `PLAN_SPRINTS_LEARNITY.md` y `ROADMAP_SPRINTS_3_Y_4.md`.
+- **Verificación previa al merge:** backend `npm run typecheck` y `npm run build` → exit 0; `npm test` sobre `learnity_test` → **261/261**, 65 suites; Angular `npm run build` → exit 0 y `npm run test -- --watch=false` → **38/38**; Chromium `e2e/npm test` → **21/21** y 0 residuos. `npm audit --audit-level=high` → 0 vulnerabilidades en backend, frontend y E2E. `openapi.yaml` coincide con `openApi` (28 rutas); `git diff --check main...integration/sprint-2` → exit 0.
+- **Límites de módulos:** el SQL de negocio permanece en `*.repository.ts`, con datos de entrada parametrizados. Los fragmentos interpolados inspeccionados son cláusulas fijas, posiciones `$n` o valores de listas cerradas; `shared/database/pool.ts` concentra las órdenes de transacción y el actor de auditoría. Los imports entre módulos pasan por `index.ts`; Angular concentra HTTP en `core/**` o `features/**/*.api.ts`. Los cambios en contratos públicos y archivos compartidos aún requieren coordinación entre equipos.
+- **Pendientes fuera del P0 integrado:** CRUD de categorías (P1, ADR-012 todavía **Propuesto**) y confirmación de recepción del correo Gmail del Sprint 1. Los 3 cursos publicados heredados de `Learnity` sin metadatos de revisión siguen inventariados; el `CHECK` 023 permanece `NOT VALID` para esas filas. S6 y S10 continúan como riesgos aceptados. Ninguno se presenta como completado por este merge.
+
+Los apartados siguientes conservan el historial anterior a la integración a `main`.
+
 ## Puerta DB ejecutada en `Learnity` (20-10-2026, Codex)
 
 - **Autorización y alcance:** el usuario aprobó expresamente que se hiciera el respaldo y se aplicaran las migraciones pendientes a `Learnity`. Se aplicaron sobre la base existente; no se reconstruyó ni se borró. Las pruebas automatizadas siguieron reservadas para `learnity_test`.
