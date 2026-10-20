@@ -19,7 +19,7 @@ Hay dos caminos al mismo esquema final, con los mismos archivos y en el mismo or
 | `linea_base_permisos.sql` | Los `GRANT` de la sección 14 del README principal (`learnity_app` con DML en todo), último paso de la línea base en una base nueva. La 019 los retira |
 | `learnity_modelo.dbml` | Modelo para https://dbdiagram.io (Import → DBML) |
 | `migraciones/0NN_<nombre>.up.sql` / `.down.sql` | Cambios desde la 017, cada uno con su reversión. Detalle en PLAN_BD §6 |
-| `migraciones/RETENIDAS.txt` | Migraciones que todavía no se aplican (hoy, la 023: ver *Cursos `PUBLICADO` heredados*) |
+| `migraciones/RETENIDAS.txt` | Migraciones que todavía no se aplican. Hoy ninguna: la 023 salió el 20-10-2026 (ver *La 023 ya no está retenida*) |
 | `migraciones/propuestas/` | Migraciones sin número que esperan un ADR (hoy, `pg_trgm`) |
 | `verificacion/huella_esquema.sql` | Huella del esquema (solo lectura): comprueba que un `down` deja la base igual |
 | `verificacion/referencias/huella-*.txt` | Huellas de referencia de la prueba del 19-10-2026: línea base (H0), migrada sin la 023 (H4) y con la 023 (H1). Las compara `reconstruir-base.ps1` |
@@ -131,7 +131,7 @@ Con `-Simular` muestra el plan sin conectarse.
 | 1 | Comprueba, conectado a la base de mantenimiento `postgres`: superusuario, PostgreSQL 16 o superior y que exista `learnity_app`. Informa de los roles `learnity_*` que ya existen, de los logins que no podrán conectarse (R1) y, si la base existe, de sus migraciones, sus filas aproximadas y las conexiones que va a cerrar | Solo lectura |
 | 2 | `DROP DATABASE IF EXISTS "<base>" WITH (FORCE)` y `CREATE DATABASE "<base>" TEMPLATE template0 ENCODING 'UTF8'` | `crear-base.sql`, que el script escribe en la carpeta de salidas |
 | 3 | Línea base y su huella, que se compara con la de referencia H0 | `learnity_esquema.sql` (en una transacción), `015_…`, `016_…` y `linea_base_permisos.sql` |
-| 4 | Migraciones desde la 017, en orden, salvo las de `RETENIDAS.txt` (hoy la 023), y su huella, que se compara con la de referencia H4 | `migraciones/0NN_*.up.sql`, con la misma función que `aplicar-migraciones.ps1` |
+| 4 | Migraciones desde la 017, en orden, salvo las de `RETENIDAS.txt` (hoy ninguna), y su huella, que se compara con la de referencia H1 (con la 023) | `migraciones/0NN_*.up.sql`, con la misma función que `aplicar-migraciones.ps1` |
 | 5 | Solo si la base termina en `_test`: la 019b | `pruebas/privilegios_pruebas.sql` |
 | 6 | Verificación | `esquema_final.sql` y `matriz_privilegios.sql`; en `_test`, además, `pruebas_funcionales.sql` y `comparar_catalogo.sql`, que lo deshacen todo |
 
@@ -151,7 +151,7 @@ Al final imprime un resumen para pegar y deja las salidas completas en `%TEMP%\l
 |---|---|
 | `-Base` | Por defecto `learnity_test` |
 | `-ConfirmoBorrar <nombre>` | Obligatorio si la base no termina en `_test`. Debe ser el nombre exacto |
-| `-IncluirRetenidas` | Aplica también las de `RETENIDAS.txt` (hoy la 023), en orden numérico. La huella se compara entonces con la referencia H1 |
+| `-IncluirRetenidas` | Aplica también las de `RETENIDAS.txt` (hoy ninguna), en orden numérico |
 | `-SoloLineaBase` | Se detiene tras la línea base, sin migraciones ni 019b. Sirve para volver a pasar `probar-migraciones.ps1` |
 | `-Simular` | Muestra el plan y no se conecta |
 | `-SalidaDir` | Carpeta de las salidas |
@@ -160,21 +160,23 @@ Al final imprime un resumen para pegar y deja las salidas completas en `%TEMP%\l
 
 La reconstrucción **no** tiene un esquema propio. Ejecuta los mismos archivos, en el mismo orden en que llegaron a las bases existentes, y registra cada migración en `schema_migraciones` con su sha256 (el `Aplicar-Una` de `comun.ps1`). Una base reconstruida queda en el mismo estado que una base migrada:
 
-- `schema_migraciones`: `000`, `015` y `016` (línea base, sin checksum) y `017`–`022`, `024`–`026` con checksum.
-- `aplicar-migraciones.ps1` sigue funcionando sobre ella. Cuando la 023 salga de `RETENIDAS.txt`, se aplica así, sin reconstruir.
+- `schema_migraciones`: `000`, `015` y `016` (línea base, sin checksum) y `017`–`026` con checksum.
+- `aplicar-migraciones.ps1` sigue funcionando sobre ella: una migración nueva se aplica así, sin reconstruir. Por ejemplo, la `learnity_test` reconstruida el 20-10-2026 sin la 023 la recibe con `aplicar-migraciones.ps1 -Base learnity_test` (queda registrada después de la 026; el esquema es el mismo que reconstruyendo).
 - `revertir-migraciones.ps1 -Todas` la devuelve a la línea base (antes, `quitar_privilegios_pruebas.sql`).
 - Para repetir la prueba `up → down → up`: `reconstruir-base.ps1 -SoloLineaBase` y después `probar-migraciones.ps1`.
 
 `linea_base_permisos.sql` reproduce los permisos que tenían las bases antes de la 017 (los de la sección 14 del README principal). La 019 los retira. Se conservan para que la base reconstruida pase por el mismo estado que las existentes: así su huella se compara con la de referencia, y la 019 guarda en `reversion` los mismos permisos que su `down` restaura.
 
-### La 023 sigue retenida (comprobado el 20-10-2026)
+### La 023 ya no está retenida (20-10-2026)
 
-Para que la 023 salga de `RETENIDAS.txt`, ninguna prueba ni ningún fixture puede crear un curso `PUBLICADO` sin revisor o sin `publicado_en`. Hoy queda uno:
+La 023 podía salir de `RETENIDAS.txt` cuando ninguna prueba ni ningún fixture creara un curso `PUBLICADO` sin revisor o sin `publicado_en`:
 
-- `backend/test/caracterizacion/catalogo.test.ts:91` inserta el curso `c4` "Delta heredado" como `PUBLICADO` con `publicado_en` NULL. Con la 023, ese `INSERT` da 23514 y `CAR-CAT-15` (y el `before` de la suite) falla. La propia suite lo avisa (línea 4: "Vale hasta la migración 023 (RG-58)").
-- Los demás que citaba `RETENIDAS.txt` ya ponen revisor y fecha: `cursos-publicos.test.ts:47-53`, `cursos-gestion-http.test.ts:290-297`, `administracion-contenido.test.ts:263-267`, `caracterizacion/cursos.test.ts:81-82`, `caracterizacion/contenido.test.ts:28-29`, `scripts/sembrar-catalogo.ts:20-31` y `semillas.repository.ts`. Las E2E no insertan cursos.
+- El último caso era `CAR-CAT-15`: `backend/test/caracterizacion/catalogo.test.ts:91` creaba `c4` "Delta heredado" como `PUBLICADO` con `publicado_en` NULL. `qa-edge` lo retiró en `refactor/qa-edge` `5a853c3`: `c4` pasa a tener revisor y fecha (hace 10 días), sigue el último en `recientes` y el JSON de referencia no cambia.
+- Los demás ya ponen revisor y fecha: `cursos-publicos.test.ts:47-53`, `cursos-gestion-http.test.ts:290-297`, `administracion-contenido.test.ts:263-267`, `caracterizacion/cursos.test.ts:81-82`, `caracterizacion/contenido.test.ts:28-29`, `scripts/sembrar-catalogo.ts:20-31` y `semillas.repository.ts`. Los demás `UPDATE curso` de las pruebas solo pasan a `BORRADOR`, `EN_REVISION`, `RECHAZADO` o `ARCHIVADO`. Las E2E no insertan cursos (revisado con `git grep` el 20-10-2026).
 
-Cuando `qa-edge` retire o adapte `CAR-CAT-15` (RG-58), el lead puede quitar la 023 de `RETENIDAS.txt` y aplicarla con `aplicar-migraciones.ps1`.
+**Requisito de orden:** `5a853c3` tiene que estar integrado antes de reconstruir `learnity_test` con la 023. Si no, `caracterizacion/catalogo.test.ts` falla en su `before` con 23514.
+
+El comentario de cabecera de `023_check_curso_publicado.up.sql` todavía dice "RETENIDA". No se cambia: cambiaría su checksum, y la fuente de verdad es `RETENIDAS.txt`.
 
 ### Salida esperada en `learnity_test`
 
@@ -190,22 +192,22 @@ Con los roles `learnity_owner`, `learnity_lectura` y `learnity_pruebas` todavía
   Linea base            705|f15432412a68b46b4c6206746a7a31ef  (referencia H0 del 19-10-2026: 705|f15432412a68b46b4c6206746a7a31ef)
   Linea base = H0: IGUAL
 --- Migraciones ---
-  retenida 023_check_curso_publicado.up.sql (RETENIDAS.txt; sin -IncluirRetenidas)
   … NOTICE:  022: cursos PUBLICADO sin revisor o sin fecha en learnity_test: ninguno. No se modifican.
-  Migrada, sin 019b     836|5caf4cbd1442cbd0f01c40cd0f51b318  (referencia H4 del 19-10-2026: 836|5caf4cbd1442cbd0f01c40cd0f51b318)
-  Migrada = H4: IGUAL
-  schema_migraciones: 000, 015, 016, 017, 018, 019, 020, 021, 022, 024, 025, 026
+  … NOTICE:  023: CHECK añadido NOT VALID en learnity_test. Filas heredadas sin validar: ninguna.
+  Migrada, sin 019b     837|4065121d58902370030826a9460fe375  (referencia H1 del 19-10-2026: 837|4065121d58902370030826a9460fe375)
+  Migrada = H1: IGUAL
+  schema_migraciones: 000, 015, 016, 017, 018, 019, 020, 021, 022, 023, 024, 025, 026
 --- 019b: pruebas\privilegios_pruebas.sql ---
 --- Esquema final … ---   RESUMEN | learnity_test | 42 comprobaciones | 0 diferencias, 0 avisos | ESQUEMA OK
 --- Matriz de privilegios … ---   RESUMEN | learnity_test | 97 filas | 0 diferencias | MATRIZ OK
---- Pruebas funcionales … ---   999 | RESUMEN | learnity_test | 0 fallas | PRUEBAS OK   (22, 32 y 33: NO APLICA, sin la 023)
---- Catalogo … ---   RESUMEN | learnity_test | - | 0 | CATALOGO IGUAL
+--- Pruebas funcionales … ---   999 | RESUMEN | learnity_test | 0 fallas | PRUEBAS OK   (33 pruebas, todas OK: ya ninguna NO APLICA)
+--- Catalogo … ---   RESUMEN | learnity_test | - | 0 | CATALOGO IGUAL   (listado con 3 cursos: el "Publicado sin fecha" ya no se puede insertar)
 --- Resultado ---
   esquema: ESQUEMA OK
   matriz: MATRIZ OK
   funcionales: PRUEBAS OK
   catalogo: CATALOGO IGUAL
---- Estado final de learnity_test: 000, 015, 016, 017, 018, 019, 020, 021, 022, 024, 025, 026 + 019b ---
+--- Estado final de learnity_test: 000, 015, 016, 017, 018, 019, 020, 021, 022, 023, 024, 025, 026 + 019b ---
 ```
 
 Si los roles ya existían (por ejemplo, al repetir la reconstrucción), las dos comparaciones de huellas dicen `DISTINTO (roles) - solo difieren los roles del cluster`: es lo esperado y no cuenta como fallo. Cualquier otra categoría distinta sí es un fallo.
@@ -227,7 +229,7 @@ $cx = @('-X', '-h', 'localhost', '-U', 'postgres', '-d', 'learnity_test', '-v', 
 & $psql @cx -f ..\015_sesiones_y_recuperacion.sql
 & $psql @cx -f ..\016_limpieza_pdf.sql
 & $psql @cx -f ..\linea_base_permisos.sql
-foreach ($v in '017', '018', '019', '020', '021', '022', '024', '025', '026') {   # sin la 023 (retenida)
+foreach ($v in '017', '018', '019', '020', '021', '022', '023', '024', '025', '026') {
   & $psql @cx -f (Get-ChildItem "${v}_*.up.sql").Name
   if ($LASTEXITCODE -ne 0) { throw "Fallo la $v" }
 }
@@ -264,7 +266,7 @@ powershell -ExecutionPolicy Bypass -File database\scripts\reconstruir-base.ps1 -
 |---|---|
 | Datos | **Se pierden todos**: cuentas, docentes, categorías, cursos (los 3 `PUBLICADO` heredados sin revisor incluidos), temarios, sesiones y las 2 filas de `archivo`. Solo quedan las 3 filas de `rol`. El respaldo del paso 1 es la única copia |
 | PDF en disco | Los archivos de `backend/uploads/pdf` (o de `PDF_DIR`) quedan huérfanos: ninguna fila los referencia. El script no toca el disco; se pueden borrar a mano o dejar |
-| Esquema | El mismo que `learnity_test`: línea base, 017–022 y 024–026, con la 023 retenida. Al no quedar cursos heredados, la vista `curso_publicado_sin_revision` queda vacía |
+| Esquema | El mismo que `learnity_test`: línea base y 017–026, incluido el `CHECK` de la 023 (`NOT VALID`). Al no quedar cursos heredados, la vista `curso_publicado_sin_revision` queda vacía y el `CHECK` se cumple en todas las filas, aunque sigue `NOT VALID`: validarlo sería una migración nueva |
 | 019b | **No se aplica**: `Learnity` no termina en `_test`. `learnity_pruebas` no tiene ningún permiso en `Learnity` (lo comprueban `esquema_final.sql`, fila "019b aplicada", y la matriz) |
 | Verificación | Solo `esquema_final.sql` y `matriz_privilegios.sql`, que solo leen. `pruebas_funcionales.sql` y `comparar_catalogo.sql` se niegan a correr fuera de `_test` |
 | Roles | Se reutilizan los del clúster. `learnity_app` y su contraseña no cambian: `backend/.env` no necesita cambios |
@@ -304,7 +306,7 @@ Qué hace:
 2. `up` de todas, incluidas las retenidas, guardando la huella previa a cada una → **H1**. Justo antes de la 022 ejecuta `pruebas_heredadas.sql` dentro de una transacción que se deshace, y comprueba que la huella no cambia.
 3. `down` de todas. Cada `down` debe dejar la huella previa a su `up`. Al final → **H2**, que debe ser igual a H0.
 4. `up` de todas otra vez → **H3**, que debe ser igual a H1. Pruebas funcionales con todas aplicadas, incluida la 023.
-5. Estado migrado, con la 023 (retenida) sin aplicar → **H4**.
+5. Estado migrado sin las retenidas → **H4**. Desde el 20-10-2026 no hay retenidas, así que H4 = H3 (el 19-10-2026, con la 023 retenida, fue H3 sin la 023).
 6. Resultados de las filas heredadas y de las pruebas funcionales en H3; después, sobre H4, matriz de privilegios, pruebas funcionales y comparación del catálogo.
 7. Aplica la 019b y repite la matriz y las pruebas funcionales.
 8. Estado final, según `-EstadoFinal`:
@@ -379,7 +381,7 @@ $fecha = Get-Date -Format 'yyyyMMdd-HHmm'
 powershell -ExecutionPolicy Bypass -File database\scripts\aplicar-migraciones.ps1 -Base Learnity -ConfirmoRespaldo
 ```
 
-Para ver antes qué se aplicaría, añade `-Simular`. La 023 está retenida: no se aplica sin `-IncluirRetenidas`, y eso solo cuando el lead la quite de `RETENIDAS.txt`. Entonces se aplica después de la 026, que es el orden que simula `pruebas_heredadas.sql`.
+Para ver antes qué se aplicaría, añade `-Simular`. Desde el 20-10-2026 la 023 ya no está retenida: en `Learnity`, que no tiene ninguna migración, se aplica en orden numérico, entre la 022 y la 024. Con los 3 cursos heredados, el `CHECK NOT VALID` no los revisa ni los cambia (ver *Cursos `PUBLICADO` heredados*); `pruebas_heredadas.sql` probó ese caso el 19-10-2026.
 
 ### Paso 5. Cada integrante, en su base local
 
