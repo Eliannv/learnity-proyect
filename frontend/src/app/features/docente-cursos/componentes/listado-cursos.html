@@ -1,0 +1,106 @@
+<div class="pagina">
+  <header class="cabecera">
+    <div>
+      <h1 class="titulo-pagina">
+        {{ admin() ? 'Revisión de cursos' : 'Mis cursos' }}
+      </h1>
+
+      <p>
+        {{
+          admin()
+            ? 'Cursos pendientes de una decisión administrativa.'
+            : 'Prepara tu curso y envíalo a Administración para su publicación.'
+        }}
+      </p>
+    </div>
+
+    <div class="acciones">
+      <button type="button" class="btn btn-contorno" [disabled]="p.ocupada()" (click)="cargar()">
+        Actualizar
+      </button>
+      @if (!admin()) {
+        <a class="btn btn-acento" routerLink="/docente/cursos/nuevo/editar">
+          Nuevo curso
+        </a>
+      }
+    </div>
+  </header>
+
+  @if (!admin()) {
+    <div class="filtros" aria-label="Filtrar cursos por estado">
+      @for (f of filtros; track f.valor) {
+        <button
+          type="button"
+          class="btn btn-contorno"
+          [attr.aria-pressed]="filtro() === f.valor"
+          (click)="filtro.set(f.valor)"
+        >
+          {{ f.texto }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (p.ocupada()) {
+    <p class="mensaje" role="status">Cargando cursos…</p>
+  } @else if (p.error()) {
+    <div class="mensaje error" role="alert">
+      <p>{{ p.error() }}</p>
+      <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else {
+    <ul class="lista">
+      @for (c of visibles(); track c.id) {
+        <li class="tarjeta bloque">
+          <div class="cabecera">
+            <h2>{{ c.titulo }}</h2>
+            <app-estado-curso [estado]="c.estado" />
+          </div>
+
+          <p>
+            {{ c.modulos }} {{ c.modulos === 1 ? 'módulo' : 'módulos' }}
+            @if (admin()) { · {{ c.docente }} }
+          </p>
+
+          @if (c.estado === 'RECHAZADO' && c.motivoRechazo) {
+            <p class="mensaje error">
+              <strong>Motivo del rechazo:</strong> {{ c.motivoRechazo }}
+            </p>
+          }
+
+          <div class="acciones">
+            <a
+              class="btn btn-contorno"
+              [routerLink]="
+                admin()
+                  ? ['/admin/revision', c.id]
+                  : ['/docente/cursos', c.id, 'editar']
+              "
+            >
+              {{
+                admin()
+                  ? 'Revisar curso'
+                  : editable(c.estado)
+                    ? 'Editar curso'
+                    : 'Ver curso'
+              }}
+            </a>
+            @if (c.estado === 'PUBLICADO') {
+              <a class="btn btn-texto" [routerLink]="['/cursos', c.id]">
+                Ver en el catálogo
+              </a>
+            }
+          </div>
+        </li>
+      } @empty {
+        <li class="mensaje">
+          {{
+            admin()
+              ? 'No hay cursos pendientes de revisión.'
+              : 'No tienes cursos en este estado. Puedes crear un curso nuevo.'
+          }}
+        </li>
+      }
+    </ul>
+  }
+</div>

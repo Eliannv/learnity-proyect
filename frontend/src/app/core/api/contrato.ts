@@ -9,6 +9,21 @@ type Esquemas = components['schemas'];
 export type ProblemaCampo = Esquemas['ProblemaCampo'];
 export type CuerpoErrorApi = Esquemas['ErrorApi'];
 
+export type CategoriaPublica = Esquemas['CategoriaPublica'];
+export type CursoPublico = Esquemas['CursoPublico'];
+export type CursoPublicoDetalle = Esquemas['CursoPublicoDetalle'];
+export type NivelCursoPublico = CursoPublico['nivel'];
+export type TipoLeccionPublica =
+  CursoPublicoDetalle['temario'][number]['lecciones'][number]['tipo'];
+export type ModuloPublico = CursoPublicoDetalle['temario'][number];
+export type LeccionPublica = ModuloPublico['lecciones'][number];
+export type PaginaCatalogo =
+  paths['/cursos']['get']['responses'][200]['content']['application/json'];
+export type ConsultaCatalogo = NonNullable<
+  paths['/cursos']['get']['parameters']['query']
+>;
+export type OrdenCatalogo = NonNullable<ConsultaCatalogo['orden']>;
+
 export type DatosCurso = Esquemas['DatosCurso'];
 export type DatosModulo = Esquemas['DatosModulo'];
 export type DatosLeccion = Esquemas['DatosLeccion'];
@@ -23,7 +38,8 @@ export type CursoDetalle = Esquemas['CursoDetalle'];
 export type EstadoCurso = CursoDetalle['estado'];
 export type NivelCurso = CursoDetalle['nivel'];
 
-export type ListaCursos = paths['/docente/cursos']['get']['responses'][200]['content']['application/json'];
+export type ListaCursos =
+  paths['/docente/cursos']['get']['responses'][200]['content']['application/json'];
 
 export type DecisionRevision =
   paths['/admin/cursos/{id}/revision']['put']['requestBody']['content']['application/json'];

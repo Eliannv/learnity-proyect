@@ -54,7 +54,7 @@ const rutasAprendizaje: Routes = [
 const rutasDocenteFuturas: Routes = [
   {
     path: 'cursos/:id/evaluacion',
-    title: 'Editor de evaluación · Learnity',
+    title: 'Evaluación del módulo · Learnity',
     data: { seccion: 'Editor de evaluación' },
     loadComponent: () =>
       import('./pages/docente/editor-evaluacion/editor-evaluacion').then(
@@ -133,21 +133,10 @@ export const routes: Routes = [
       },
       {
         path: 'cursos',
-        title: 'Mis cursos · Learnity',
-        data: { seccion: 'Mis cursos' },
-        loadComponent: () =>
-          import(
-            './pages/docente/mis-cursos/mis-cursos'
-          ).then((m) => m.MisCursosDocente),
-      },
-      {
-        path: 'cursos/:id/editar',
-        title: 'Editar curso · Learnity',
-        data: { seccion: 'Constructor de curso' },
-        loadComponent: () =>
-          import(
-            './pages/docente/editor-curso/editor-curso'
-          ).then((m) => m.EditorCurso),
+        loadChildren: () =>
+          import('./features/docente-cursos/docente-cursos.routes').then(
+            (m) => m.rutasDocenteCursos,
+          ),
       },
       ...(environment.sprint34Habilitado ? rutasDocenteFuturas : []),
       {
@@ -177,21 +166,8 @@ export const routes: Routes = [
       },
       {
         path: 'revision',
-        title: 'Cursos pendientes · Learnity',
-        data: { seccion: 'Revisión de cursos' },
-        loadComponent: () =>
-          import(
-            './pages/admin/revision-cursos/revision-cursos'
-          ).then((m) => m.RevisionCursos),
-      },
-      {
-        path: 'revision/:id',
-        title: 'Revisión de curso · Learnity',
-        data: { seccion: 'Revisión de cursos' },
-        loadComponent: () =>
-          import(
-            './pages/admin/revision-curso/revision-curso'
-          ).then((m) => m.RevisionCurso),
+        loadChildren: () =>
+          import('./features/revision/revision.routes').then((m) => m.rutasRevision),
       },
       {
         path: 'categorias',

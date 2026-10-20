@@ -7,6 +7,6 @@ export const rutasAdminCategorias: Routes = [
     title: 'Categorías · Learnity',
     data: { seccion: 'Categorías' },
     loadComponent: () =>
-      import('../../pages/admin/categorias/categorias').then((m) => m.Categorias),
+      import('./paginas/categorias/categorias').then((m) => m.Categorias),
   },
 ];

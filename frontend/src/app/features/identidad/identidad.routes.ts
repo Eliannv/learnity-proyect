@@ -9,7 +9,7 @@ export const rutasLogin: Routes = [
     path: '',
     canActivate: [invitadoGuard],
     title: 'Iniciar sesión · Learnity',
-    loadComponent: () => import('../../pages/auth/login/login').then((m) => m.Login),
+    loadComponent: () => import('./paginas/login/login').then((m) => m.Login),
   },
 ];
 
@@ -18,7 +18,7 @@ export const rutasRegistro: Routes = [
     path: '',
     canActivate: [invitadoGuard],
     title: 'Crear cuenta · Learnity',
-    loadComponent: () => import('../../pages/auth/registro/registro').then((m) => m.Registro),
+    loadComponent: () => import('./paginas/registro/registro').then((m) => m.Registro),
   },
 ];
 
@@ -27,7 +27,7 @@ export const rutasRecuperar: Routes = [
     path: '',
     canActivate: [invitadoGuard],
     title: 'Recuperar contraseña · Learnity',
-    loadComponent: () => import('../../pages/auth/recuperar/recuperar').then((m) => m.Recuperar),
+    loadComponent: () => import('./paginas/recuperar/recuperar').then((m) => m.Recuperar),
   },
 ];
 
@@ -36,7 +36,7 @@ export const rutasRestablecer: Routes = [
     path: '',
     title: 'Crear nueva contraseña · Learnity',
     loadComponent: () =>
-      import('../../pages/auth/restablecer/restablecer').then((m) => m.Restablecer),
+      import('./paginas/restablecer/restablecer').then((m) => m.Restablecer),
   },
 ];
 
@@ -47,7 +47,7 @@ export const rutasPerfilEstudiante: Routes = [
     canActivate: [autenticadoGuard, perfilEstudianteGuard],
     title: 'Mi perfil · Learnity',
     loadComponent: () =>
-      import('../../pages/estudiante/perfil/perfil').then((m) => m.PerfilEstudiante),
+      import('../usuarios/paginas/perfil/perfil').then((m) => m.PerfilEstudiante),
   },
 ];
 
@@ -58,6 +58,6 @@ export const rutasAjustesPerfil: Routes = [
     title: 'Ajustes y perfil · Learnity',
     data: { seccion: 'Ajustes y perfil' },
     loadComponent: () =>
-      import('../../pages/cuenta/ajustes-perfil/ajustes-perfil').then((m) => m.AjustesPerfil),
+      import('./paginas/ajustes-perfil/ajustes-perfil').then((m) => m.AjustesPerfil),
   },
 ];

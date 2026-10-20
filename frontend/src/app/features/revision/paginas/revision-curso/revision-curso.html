@@ -1,0 +1,129 @@
+<div class="pagina">
+  <a routerLink="/admin/revision">← Cursos pendientes</a>
+
+  <h1 class="titulo-pagina">Revisión del curso</h1>
+
+  @if (carga.ocupada()) {
+    <p class="mensaje" role="status">Cargando revisión…</p>
+  } @else if (carga.error()) {
+    <div class="mensaje error" role="alert">
+      <p>{{ carga.error() }}</p>
+      <button type="button" class="btn btn-contorno" (click)="cargar()">
+        Reintentar
+      </button>
+    </div>
+  } @else if (curso(); as c) {
+    <section class="tarjeta bloque">
+      <div class="cabecera">
+        <h2>{{ c.titulo }}</h2>
+        <app-estado-curso [estado]="c.estado" />
+      </div>
+
+      <p>{{ c.docente }} · {{ c.categoriaNombre }} · {{ c.nivel | titlecase }}</p>
+
+      <h3>{{ c.subtitulo }}</h3>
+
+      @if (c.portadaUrl) {
+        <img class="portada" [src]="c.portadaUrl" alt="Portada del curso" />
+      }
+
+      <p class="multilinea">{{ c.descripcion }}</p>
+
+      <h3>Objetivos</h3>
+      <ul>
+        @for (objetivo of c.objetivos; track $index) {
+          <li>{{ objetivo }}</li>
+        }
+      </ul>
+
+      <h3>Requisitos</h3>
+      <ul>
+        @for (requisito of c.requisitos; track $index) {
+          <li>{{ requisito }}</li>
+        } @empty {
+          <li>Sin requisitos.</li>
+        }
+      </ul>
+
+      @if (c.motivoRechazo) {
+        <p class="mensaje">Motivo del rechazo: {{ c.motivoRechazo }}</p>
+      }
+    </section>
+
+    <section class="tarjeta bloque">
+      <h2>Temario y PDF</h2>
+
+      <app-arbol-temario
+        [curso]="c"
+        [bloqueado]="p.ocupada() || p.requiereRecarga()"
+        [subirArchivoFn]="subirArchivoFn"
+        [descargarArchivoFn]="descargarArchivoFn"
+        (ocupado)="descargando.set($event)"
+        (recargar)="cargar()"
+      />
+    </section>
+
+    <section class="tarjeta bloque">
+      <h2>Verificación del servidor</h2>
+
+      @if (c.validacion.completo) {
+        <p>El curso cumple la validación de contenido.</p>
+      } @else {
+        <ul>
+          @for (problema of c.validacion.problemas; track $index) {
+            <li>{{ problema.mensaje }}</li>
+          }
+        </ul>
+      }
+
+      @if (p.error()) {
+        <p class="mensaje error" role="alert">{{ p.error() }}</p>
+      }
+      @if (p.exito()) {
+        <p class="mensaje exito" role="status">{{ p.exito() }}</p>
+      }
+
+      @if (p.requiereRecarga()) {
+        <p>El curso o tus permisos cambiaron. Actualiza antes de continuar.</p>
+        <button type="button" class="btn btn-contorno" (click)="cargar()">
+          Actualizar curso
+        </button>
+      } @else if (c.estado !== 'EN_REVISION') {
+        <p class="mensaje">Este curso ya no está pendiente de revisión.</p>
+      } @else {
+        <label class="campo">
+          Motivo del rechazo (obligatorio al rechazar, máximo 300 caracteres)
+
+          <textarea
+            class="control"
+            [(ngModel)]="motivo"
+            maxlength="300"
+            [disabled]="p.ocupada() || descargando()"
+          ></textarea>
+
+          <small class="error-campo">{{ p.campo('motivo') }}</small>
+        </label>
+
+        <div class="acciones">
+          <button
+            type="button"
+            class="btn btn-primario"
+            (click)="decidir('APROBAR')"
+            [disabled]="p.ocupada() || descargando() || !c.validacion.completo"
+          >
+            Aprobar y publicar
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-peligro"
+            (click)="decidir('RECHAZAR')"
+            [disabled]="p.ocupada() || descargando()"
+          >
+            Rechazar con motivo
+          </button>
+        </div>
+      }
+    </section>
+  }
+</div>

@@ -88,6 +88,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -103,7 +104,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description ID inválido (SOLICITUD_INVALIDA) */
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -167,6 +168,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -194,7 +196,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description ID o decisión inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Decisión inválida (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -262,13 +264,14 @@ export interface paths {
         put?: never;
         /**
          * Subir o reemplazar el PDF principal (DOCENTE propietario)
-         * @description Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido.
+         * @description Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido. Límite: 30 subidas cada 15 minutos por IP (ADR-011, 11.4).
          */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -294,7 +297,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description ID, formulario o PDF inválidos, o lección que no es DOCUMENTO (SOLICITUD_INVALIDA) */
+                /** @description Formulario o PDF inválidos, o lección que no es DOCUMENTO (SOLICITUD_INVALIDA), o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -357,6 +360,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
+                /** @description Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After) */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
                 500: components["responses"]["ErrorInterno"];
             };
         };
@@ -379,6 +391,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -397,7 +410,7 @@ export interface paths {
                         "application/pdf": string;
                     };
                 };
-                /** @description ID inválido (SOLICITUD_INVALIDA) */
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -514,6 +527,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -529,7 +543,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -657,7 +671,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -708,6 +722,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -723,7 +738,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoPublicoDetalle"];
                     };
                 };
-                /** @description ID inválido */
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -750,6 +765,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -769,7 +785,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -841,6 +857,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -860,7 +877,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -930,6 +947,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -949,7 +967,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1006,6 +1024,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -1021,7 +1040,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1089,6 +1108,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -1108,7 +1128,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1178,6 +1198,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -1197,7 +1218,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1254,6 +1275,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -1269,7 +1291,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1340,6 +1362,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -1355,7 +1378,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos o ID inválidos (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1630,13 +1653,14 @@ export interface paths {
         get?: never;
         /**
          * Aprobar o rechazar una solicitud (administrador)
-         * @description APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol llega a la sesión del estudiante en su próxima renovación. RECHAZAR exige `observacion` (máximo 300 caracteres).
+         * @description APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol se aplica de inmediato en la siguiente petición autenticada (ADR-011, 11.10). RECHAZAR exige `observacion` (máximo 300 caracteres).
          */
         put: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
                     id: number;
                 };
                 cookie?: never;
@@ -1664,7 +1688,7 @@ export interface paths {
                         "application/json": components["schemas"]["SolicitudDocente"];
                     };
                 };
-                /** @description Datos inválidos. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;

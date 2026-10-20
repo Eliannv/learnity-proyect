@@ -6,7 +6,7 @@ export const rutasInicio: Routes = [
     path: '',
     pathMatch: 'full',
     title: 'Learnity · Cursos en línea',
-    loadComponent: () => import('../../pages/publico/inicio/inicio').then((m) => m.Inicio),
+    loadComponent: () => import('./paginas/inicio/inicio').then((m) => m.Inicio),
   },
 ];
 
@@ -15,12 +15,12 @@ export const rutasCatalogo: Routes = [
   {
     path: '',
     title: 'Catálogo de cursos · Learnity',
-    loadComponent: () => import('../../pages/publico/catalogo/catalogo').then((m) => m.Catalogo),
+    loadComponent: () => import('./paginas/catalogo/catalogo').then((m) => m.Catalogo),
   },
   {
     path: ':id',
     title: 'Detalle del curso · Learnity',
     loadComponent: () =>
-      import('../../pages/publico/detalle-curso/detalle-curso').then((m) => m.DetalleCurso),
+      import('./paginas/detalle-curso/detalle-curso').then((m) => m.DetalleCurso),
   },
 ];

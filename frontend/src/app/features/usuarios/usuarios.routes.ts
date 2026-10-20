@@ -7,6 +7,6 @@ export const rutasSolicitudes: Routes = [
     title: 'Solicitudes de docente · Learnity',
     data: { seccion: 'Solicitudes de docente' },
     loadComponent: () =>
-      import('../../pages/admin/solicitudes/solicitudes').then((m) => m.Solicitudes),
+      import('./paginas/solicitudes/solicitudes').then((m) => m.Solicitudes),
   },
 ];
