@@ -229,7 +229,7 @@ Rutas: `GET /cursos/:id`, `GET /docente/cursos/:id`, `PUT /cursos/:id`, `POST /c
 | CAR-CAT-12 | C | Sin resultados | 200 `items: []`, `total: 0`, `totalPaginas: 0` | RG-53 | `cursos-publicos.test.ts:122` (parcial) |
 | CAR-CAT-13 | S | `q` con `%`, `_`, `\` | Se buscan literales (`ESCAPE`) | RG-39 | — |
 | CAR-CAT-14 | E | Solo PUBLICADO cuenta y se lista | BORRADOR, EN_REVISION, RECHAZADO y ARCHIVADO quedan fuera del `total` | RG-53 | `cursos-publicos.test.ts:122` |
-| CAR-CAT-15 | E | PUBLICADO sin `publicado_en` (dato heredado) | `publicadoEn` = `creado_en` en ISO; va **al final** en `recientes` (NULLS LAST). Vale **hasta la migración 023** (CHECK de PUBLICADO): se retira en el mismo commit que la aplica a `learnity_test` (RG-58) | RG-07, RG-53, RG-58 | — |
+| CAR-CAT-15 | RETIRADO | PUBLICADO sin `publicado_en` (dato heredado) | `publicadoEn` = `creado_en` en ISO; va **al final** en `recientes` (NULLS LAST). **Retirado** con la migración 023 (c4 pasa a curso publicado con revisor y fecha; JSON de referencia sin cambios). Valía **hasta la migración 023** (CHECK de PUBLICADO): se retira en el mismo commit que la aplica a `learnity_test` (RG-58) | RG-07, RG-53, RG-58 | — |
 | CAR-CAT-16 | E | PUBLICADO en una categoría inactiva; PUBLICADO de un docente inactivo | **Aparecen** hoy: no hay filtro (`cursos.repository.ts:48-67`); **capturar** | RG-53 | — |
 | CAR-CAT-17 | C | `minutos` | `Math.round(segundos / 60)` con la suma de `archivo.duracion_seg` (DOCUMENTO sin duración → 0) | RG-53 | — |
 

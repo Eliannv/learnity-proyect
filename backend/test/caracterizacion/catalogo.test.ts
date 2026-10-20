@@ -1,7 +1,8 @@
 // Caracterización del catálogo público (CAR-CAT-01..22) y JSON de referencia para D8 (migración a vistas SQL).
 // La referencia (referencias/catalogo.json) se compara con deepStrictEqual y con el JSON textual (el orden
 // de las claves importa). Se regenera SOLO a propósito: CAPTURAR_REFERENCIA=1 (comportamiento actual).
-// Vale hasta la migración 023 (RG-58): el curso PUBLICADO sin publicado_en deja de poder existir.
+// CAR-CAT-15 (PUBLICADO sin publicado_en) se retiró con la migración 023 (RG-58): ese estado ya no puede existir.
+// c4 sigue como el curso publicado más antiguo (con revisor y fecha), para conservar el orden y el JSON de referencia.
 import '../ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -88,7 +89,7 @@ before(async () => {
   await curso('c1', d1.idDocente!, 'A', 'Alfa 100%', 'PRINCIPIANTE', 'PUBLICADO', 3);
   await curso('c2', d1.idDocente!, 'A', 'Beta', 'INTERMEDIO', 'PUBLICADO', 2);
   await curso('c3', d1.idDocente!, 'B', 'Gamma', 'AVANZADO', 'PUBLICADO', 1);
-  await curso('c4', d1.idDocente!, 'B', 'Delta heredado', 'PRINCIPIANTE', 'PUBLICADO', null);
+  await curso('c4', d1.idDocente!, 'B', 'Delta heredado', 'PRINCIPIANTE', 'PUBLICADO', 10);
   await curso('c5', d1.idDocente!, 'A', 'Epsilon borrador', 'PRINCIPIANTE', 'BORRADOR', null);
   await curso('c6', d1.idDocente!, 'A', 'Zeta revision', 'PRINCIPIANTE', 'EN_REVISION', null);
   await curso('c7', d1.idDocente!, 'C', 'Eta categoria inactiva', 'PRINCIPIANTE', 'PUBLICADO', 5);
@@ -150,14 +151,14 @@ describe('GET /api/cursos (CAR-CAT-04..17)', () => {
     assert.deepEqual(sinRutasPrivadas(r.json), []);
   });
 
-  it('CAR-CAT-14, 15, 16: solo PUBLICADO; heredado con creado_en y al final; sin filtro por categoría o docente inactivos', async () => {
+  it('CAR-CAT-14, 16: solo PUBLICADO, con publicado_en; el más antiguo va al final; sin filtro por categoría o docente inactivos', async () => {
     const r = await lista();
     assert.equal(r.json.total, 6);
     assert.deepEqual([...idsDe(r)].sort((a, b) => a - b), [...publicados()].sort((a, b) => a - b));
     const ids = idsDe(r);
-    assert.equal(ids[ids.length - 1], cursos['c4'], 'el heredado va al final en recientes (NULLS LAST)');
-    const heredado = r.json.items.find((x: any) => x.id === cursos['c4']);
-    assert.match(heredado.publicadoEn, /^\d{4}-\d{2}-\d{2}T/);
+    assert.equal(ids[ids.length - 1], cursos['c4'], 'el más antiguo (c4) va al final en recientes');
+    const antiguo = r.json.items.find((x: any) => x.id === cursos['c4']);
+    assert.match(antiguo.publicadoEn, /^\d{4}-\d{2}-\d{2}T/);
     assert.ok(ids.includes(cursos['c7']!) && ids.includes(cursos['c8']!), 'categoría o docente inactivos siguen apareciendo hoy');
   });
 
