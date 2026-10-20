@@ -1,8 +1,13 @@
 -- =====================================================================
--- Matriz de privilegios de learnity_app y learnity_lectura (solo lectura).
+-- Matriz de privilegios de learnity_app, learnity_lectura y learnity_pruebas
+-- (solo lectura).
 --
 -- Compara los permisos PROPIOS de cada rol (relacl/attacl, sin contar los que
 -- hereda por pertenencia) con la matriz esperada de docs/bd/PLAN_BD.md §4.
+-- learnity_pruebas (019b) solo se espera en una base _test donde la 019b está
+-- aplicada, lo que se reconoce porque tiene SELECT en schema_migraciones; ahí
+-- se exige todo lo que concede privilegios_pruebas.sql, incluidas sus
+-- secuencias. En cualquier otro caso no debe tener ningún permiso.
 -- Además comprueba que learnity_app no tiene CREATE en public, que no es dueño
 -- de ninguna relación y que su pertenencia a learnity_pruebas (019b) es sin
 -- herencia.
@@ -73,10 +78,42 @@ esperado_columna (rol, objeto, columna) AS (
   SELECT 'learnity_lectura', 'archivo', unnest(ARRAY['id_archivo', 'id_curso', 'tipo', 'nombre_original',
                                                       'tamano_bytes', 'alto_px', 'duracion_seg'])
 ),
+-- 019b: DML en las tablas del dominio y SELECT en auditoría, migraciones y vistas.
+esperado_pruebas (objeto, privilegios) AS (
+  SELECT unnest(ARRAY['persona', 'usuario', 'rol', 'usuario_rol', 'solicitud_docente', 'docente',
+                      'categoria', 'curso', 'modulo', 'archivo', 'leccion', 'recurso_adjunto',
+                      'inscripcion', 'progreso_leccion', 'evaluacion', 'pregunta', 'opcion',
+                      'intento_evaluacion', 'respuesta', 'sesion', 'token_recuperacion',
+                      'archivo_borrado_pendiente']),
+         'DELETE,INSERT,SELECT,UPDATE'
+  UNION ALL
+  SELECT unnest(ARRAY['schema_migraciones', 'auditoria_cambio', 'catalogo_categoria', 'catalogo_curso',
+                      'catalogo_temario']),
+         'SELECT'
+),
+con_019b AS (
+  SELECT current_database() ~ '_test$'
+         AND EXISTS (SELECT 1
+                       FROM pg_class c
+                            CROSS JOIN LATERAL aclexplode(c.relacl) a
+                      WHERE c.oid = to_regclass('public.schema_migraciones')
+                        AND a.grantee = (SELECT oid FROM pg_roles WHERE rolname = 'learnity_pruebas')) AS si
+),
 esperado AS (
   SELECT rol, objeto, privilegios
     FROM esperado_tabla
    WHERE to_regclass('public.' || objeto) IS NOT NULL
+  UNION ALL
+  SELECT 'learnity_pruebas', objeto, privilegios
+    FROM esperado_pruebas
+   WHERE (SELECT si FROM con_019b)
+     AND to_regclass('public.' || objeto) IS NOT NULL
+  UNION ALL
+  SELECT 'learnity_pruebas', c.relname || ' (secuencia)', 'SELECT,USAGE'
+    FROM pg_class c
+   WHERE (SELECT si FROM con_019b)
+     AND c.relnamespace = 'public'::regnamespace
+     AND c.relkind = 'S'
   UNION ALL
   SELECT rol, objeto || '(SELECT por columna)', string_agg(columna, ',' ORDER BY columna)
     FROM esperado_columna e
@@ -93,7 +130,7 @@ concedido AS (
          CROSS JOIN LATERAL aclexplode(c.relacl) a
    WHERE c.relnamespace = 'public'::regnamespace
      AND c.relkind IN ('r', 'v', 'm', 'S')
-     AND pg_get_userbyid(a.grantee) IN ('learnity_app', 'learnity_lectura')
+     AND pg_get_userbyid(a.grantee) IN ('learnity_app', 'learnity_lectura', 'learnity_pruebas')
    GROUP BY 1, 2
   UNION ALL
   SELECT pg_get_userbyid(a.grantee),
@@ -104,7 +141,7 @@ concedido AS (
                          AND NOT att.attisdropped AND att.attacl IS NOT NULL
          CROSS JOIN LATERAL aclexplode(att.attacl) a
    WHERE c.relnamespace = 'public'::regnamespace
-     AND pg_get_userbyid(a.grantee) IN ('learnity_app', 'learnity_lectura')
+     AND pg_get_userbyid(a.grantee) IN ('learnity_app', 'learnity_lectura', 'learnity_pruebas')
    GROUP BY 1, 2, a.privilege_type
 ),
 comparacion AS (

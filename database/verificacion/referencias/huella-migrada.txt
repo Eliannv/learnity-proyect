@@ -1,0 +1,16 @@
+# Huella con 017-022 y 024-026, sin la 023 ni la 019b (H4), misma ejecucion. La lee reconstruir-base.ps1 (lineas categoria|filas|md5).
+acl_base|7|fdc35dd954a71208ba97192962534629
+acl_columnas|15|28e0963ca14187f2365f5eb211bd7497
+acl_esquema|6|37a21e86ab616bd10eee92cecdf717f6
+acl_funciones|2|3ce5eecd6e6e1c29838934e68be02802
+acl_relaciones|362|5b0ee47f43c2416ffad5f536b31d0b42
+columnas|196|210b60189b048fa495b267333cecfb70
+extensiones|1|cdc64044d6311e96dd5b5ecff5c60047
+funciones|2|482af4873fa6648587b1313b42824936
+indices|61|58a4cad646ad7c02ab937dacbd420dba
+relaciones|50|6f9b40653a78b549064d025e3ecb0b4b
+restricciones|106|2b219a62afab7180821cd920e002c921
+roles|4|2e821ad349b0c169ca586b89530c5959
+TOTAL|836|5caf4cbd1442cbd0f01c40cd0f51b318
+triggers|20|ab6dda2b75a05887bac2b76aacd7ffb2
+vistas|4|cde75f2d5e44c0505818e97f0d4d554c
