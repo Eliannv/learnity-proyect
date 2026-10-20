@@ -19,15 +19,16 @@ import { Router, provideRouter } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { authInterceptor } from '../auth/auth.interceptor';
 
-import { GestionCursosApi } from './gestion-cursos.api';
 import { CursoDetalle } from './gestion-cursos.model';
 
-import { ListadoCursos } from '../../shared/cursos/listado-cursos';
-import { PdfLeccion } from '../../shared/cursos/pdf-leccion';
-import { TemarioCurso } from '../../shared/cursos/temario-curso';
-
-import { EditorCurso } from '../../pages/docente/editor-curso/editor-curso';
-import { RevisionCurso } from '../../pages/admin/revision-curso/revision-curso';
+import { ContenidoApi } from '../../features/contenido/contenido.api';
+import { PdfLeccion } from '../../features/contenido/componentes/pdf-leccion';
+import { DocenteCursosApi } from '../../features/docente-cursos/docente-cursos.api';
+import { ArbolTemario } from '../../features/docente-cursos/componentes/arbol-temario';
+import { EditorCurso } from '../../features/docente-cursos/paginas/editor-curso/editor-curso';
+import { MisCursosDocente } from '../../features/docente-cursos/paginas/mis-cursos/mis-cursos';
+import { RevisionCurso } from '../../features/revision/paginas/revision-curso/revision-curso';
+import { RevisionCursos } from '../../features/revision/paginas/revision-cursos/revision-cursos';
 
 // Datos utilizados exclusivamente por las pruebas.
 function curso(
@@ -106,7 +107,8 @@ function boton<T>(
 
 describe('Flujo docente y ADMIN: API y pantallas', () => {
   let http: HttpTestingController;
-  let api: GestionCursosApi;
+  let api: ContenidoApi;
+  let docenteApi: DocenteCursosApi;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -131,7 +133,8 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     });
 
     http = TestBed.inject(HttpTestingController);
-    api = TestBed.inject(GestionCursosApi);
+    api = TestBed.inject(ContenidoApi);
+    docenteApi = TestBed.inject(DocenteCursosApi);
   });
 
   afterEach(() => {
@@ -159,7 +162,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
   });
 
   it('muestra un error y reintenta la lista sin inventar cursos', async () => {
-    const f = TestBed.createComponent(ListadoCursos);
+    const f = TestBed.createComponent(MisCursosDocente);
     f.detectChanges();
 
     http.expectOne('/api/docente/cursos').flush(
@@ -182,9 +185,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
   });
 
   it('la cola pide solo EN_REVISION y enlaza el ID real', async () => {
-    const f = TestBed.createComponent(ListadoCursos);
-
-    f.componentRef.setInput('admin', true);
+    const f = TestBed.createComponent(RevisionCursos);
     f.detectChanges();
 
     http.expectOne(
@@ -250,7 +251,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     expect(f.nativeElement.querySelector('form')).toBeNull();
 
     expect(
-      f.nativeElement.querySelector('app-temario-curso'),
+      f.nativeElement.querySelector('app-arbol-temario'),
     ).toBeNull();
   });
 
@@ -268,6 +269,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
   });
 
   it('envía a revisión solo al confirmar la API y conserva BORRADOR si falla', async () => {
+    vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
     const f = await editor(curso());
 
     boton(f, 'Enviar a revisión').click();
@@ -372,7 +374,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     );
 
     expect(
-      f.nativeElement.querySelector('app-temario-curso'),
+      f.nativeElement.querySelector('app-arbol-temario'),
     ).toBeNull();
 
     const navegar = vi
@@ -408,8 +410,18 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function configurarPdfLeccion(f: ComponentFixture<PdfLeccion>): void {
+    f.componentRef.setInput('subirArchivo', (id: number, arch: File) =>
+      api.subirPdf(id, arch),
+    );
+    f.componentRef.setInput('descargarArchivo', (id: number) =>
+      api.descargarPdf(id),
+    );
+  }
+
   it('sube multipart con progreso y espera la respuesta antes de asociar el PDF', async () => {
     const f = TestBed.createComponent(PdfLeccion);
+    configurarPdfLeccion(f);
 
     f.componentRef.setInput('leccion', {
       ...curso().modulos[0].lecciones[0],
@@ -471,6 +483,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
 
   it('un fallo de subida conserva el archivo anterior y no confirma una asociación', async () => {
     const f = TestBed.createComponent(PdfLeccion);
+    configurarPdfLeccion(f);
 
     f.componentRef.setInput(
       'leccion',
@@ -510,6 +523,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
 
   it('rechaza PDF de más de 10 MB antes de enviarlo', async () => {
     const f = TestBed.createComponent(PdfLeccion);
+    configurarPdfLeccion(f);
 
     f.componentRef.setInput(
       'leccion',
@@ -534,10 +548,21 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
   });
 
   it('no agrega un módulo si el servidor rechaza el orden duplicado', async () => {
-    const f = TestBed.createComponent(TemarioCurso);
+    const f = TestBed.createComponent(ArbolTemario);
 
     f.componentRef.setInput('curso', curso());
     f.componentRef.setInput('editable', true);
+    f.componentRef.setInput(
+      'guardarModuloFn',
+      (cursoId: number, id: number | null, datos: { titulo: string; orden: number }) =>
+        docenteApi.guardarModulo(cursoId, id, datos),
+    );
+    f.componentRef.setInput('subirArchivoFn', (id: number, arch: File) =>
+      api.subirPdf(id, arch),
+    );
+    f.componentRef.setInput('descargarArchivoFn', (id: number) =>
+      api.descargarPdf(id),
+    );
 
     const recibir = vi.fn();
     f.componentInstance.actualizado.subscribe(recibir);
@@ -591,6 +616,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
 
   // Prepara la pantalla de revisión del administrador.
   async function revision(): Promise<ComponentFixture<RevisionCurso>> {
+    vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
     const f = TestBed.createComponent(RevisionCurso);
 
     f.componentRef.setInput('id', '41');

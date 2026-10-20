@@ -1,0 +1,270 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  max-width: 840px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.titulo {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pestanas {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  border-bottom: 1px solid var(--gris-200);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  button {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0 4px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    background: none;
+    color: var(--gris-500);
+    font-weight: 600;
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--tinta-900);
+    }
+    &.activa {
+      color: var(--tinta-900);
+      border-bottom-color: var(--tinta-900);
+    }
+  }
+}
+
+.panel {
+  padding-top: 20px;
+}
+
+.columnas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.columna {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#nombres,
+#apellidos,
+#ciudad {
+  max-width: 320px;
+}
+
+input[readonly] {
+  background: var(--gris-100);
+  color: var(--gris-500);
+}
+
+.con-contador {
+  position: relative;
+  .control {
+    padding-right: 52px;
+  }
+}
+
+.contador-texto {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--gris-500);
+}
+
+textarea.control {
+  min-height: 112px;
+}
+
+.vista-docente {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--azul-200);
+  border-radius: var(--radio-md);
+  background: var(--azul-050);
+
+  strong {
+    display: block;
+  }
+  small {
+    font-size: 13px;
+    color: var(--gris-500);
+  }
+  p {
+    font-size: 14px;
+    color: var(--tinta-700);
+    overflow-wrap: anywhere;
+  }
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+
+  .aviso {
+    flex: 1;
+    min-width: 260px;
+  }
+}
+
+.foto {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+.foto-vista {
+  flex-shrink: 0;
+  img {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+}
+
+.foto-acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 480px;
+
+  h2 {
+    font-size: 20px;
+  }
+  label.btn {
+    cursor: pointer;
+  }
+  label.btn:focus-within {
+    outline: 2px solid var(--azul-600);
+    outline-offset: 2px;
+  }
+  .aviso {
+    align-self: stretch;
+  }
+}
+
+.guardar-foto {
+  margin-top: 8px;
+}
+
+.angosto {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 480px;
+
+  .pie {
+    margin-top: 8px;
+  }
+}
+
+.cuenta {
+  display: flex;
+  flex-direction: column;
+  max-width: 720px;
+}
+
+.bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--gris-200);
+
+  &:first-child {
+    padding-top: 0;
+  }
+  &:last-child {
+    border-bottom: 0;
+  }
+  h2 {
+    font-size: 18px;
+  }
+  .btn {
+    align-self: flex-start;
+    margin-top: 6px;
+  }
+}
+
+.roles {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  li {
+    display: flex;
+    gap: 12px;
+  }
+  lucide-icon {
+    color: var(--verde-700);
+    margin-top: 2px;
+  }
+  div {
+    display: flex;
+    flex-direction: column;
+  }
+  span {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .titulo {
+    font-size: 26px;
+  }
+  .pestanas {
+    gap: 18px;
+    margin-top: 16px;
+  }
+  .panel {
+    padding-top: 20px;
+  }
+  .columnas {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .pie .btn {
+    flex: 1;
+  }
+  .foto {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+  }
+  .foto-acciones {
+    align-items: center;
+  }
+}
+
+@media (max-width: 600px) {
+  #nombres,
+  #apellidos,
+  #ciudad {
+    max-width: none;
+  }
+}

@@ -2,15 +2,16 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
-import { CATEGORIAS } from '../../data/datos-demo';
+import { CatalogoApi } from '../../features/catalogo/catalogo.api';
 import { Logo } from '../ui/logo';
 import { MenuCuenta } from './menu-cuenta';
 import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
+import { environment } from '../../../environments/environment';
 
 /**
  * Header del sitio (HeaderPublic). Cambia según la sesión:
  *  - Visitante: Iniciar sesión + Crear cuenta
- *  - Con sesión: Enseña en Learnity (solo Estudiante), Mi aprendizaje (con vista previa)
+ *  - Con sesión: Enseña en Learnity (solo Estudiante), Mi aprendizaje si está habilitado
  *    y la foto de perfil, cuyo menú es el único acceso a los paneles de Docente y Administración.
  */
 @Component({
@@ -32,7 +33,7 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
           </button>
           @if (menuCategorias()) {
             <div class="desplegable">
-              @for (c of categorias; track c) {
+              @for (c of categorias(); track c) {
                 <a routerLink="/cursos" [queryParams]="{ categoria: c }" (click)="cerrarMenus()">{{ c }}</a>
               }
             </div>
@@ -49,7 +50,9 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
             @if (!auth.esDocente() && !auth.esAdmin()) {
               <a class="enlace-marca oculto-movil" routerLink="/perfil" [queryParams]="{ solicitud: 1 }">Enseña en Learnity</a>
             }
-            <app-vista-previa-aprendizaje class="oculto-movil" />
+            @if (sprint34Habilitado) {
+              <app-vista-previa-aprendizaje class="oculto-movil" />
+            }
             <app-menu-cuenta />
           } @else {
             <a class="enlace-marca oculto-movil" routerLink="/login">Iniciar sesión</a>
@@ -63,12 +66,14 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
           <a routerLink="/" (click)="cerrarMenus()">Inicio</a>
           <a routerLink="/cursos" (click)="cerrarMenus()">Catálogo de cursos</a>
           <span class="eyebrow">Categorías</span>
-          @for (c of categorias; track c) {
+          @for (c of categorias(); track c) {
             <a class="sub" routerLink="/cursos" [queryParams]="{ categoria: c }" (click)="cerrarMenus()">{{ c }}</a>
           }
           <hr class="separador" />
           @if (auth.autenticado()) {
-            <a routerLink="/mi-aprendizaje" (click)="cerrarMenus()">Mi aprendizaje</a>
+            @if (sprint34Habilitado) {
+              <a routerLink="/mi-aprendizaje" (click)="cerrarMenus()">Mi aprendizaje</a>
+            }
             <a [routerLink]="auth.rutaPerfil()" (click)="cerrarMenus()">Mi perfil</a>
             <button type="button" (click)="auth.cerrarSesion()">Cerrar sesión</button>
           } @else {
@@ -83,10 +88,25 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
 })
 export class HeaderSitio {
   protected readonly auth = inject(AuthService);
+  protected readonly sprint34Habilitado = environment.sprint34Habilitado;
   private readonly router = inject(Router);
-  protected readonly categorias = CATEGORIAS;
+  private readonly catalogoApi = inject(CatalogoApi);
+  protected readonly categorias = signal<string[]>([]);
   protected readonly menuMovil = signal(false);
   protected readonly menuCategorias = signal(false);
+
+  constructor() {
+    void this.cargarCategorias();
+  }
+
+  private async cargarCategorias(): Promise<void> {
+    try {
+      const lista = await this.catalogoApi.categorias();
+      this.categorias.set(lista.map((c) => c.nombre));
+    } catch {
+      this.categorias.set([]);
+    }
+  }
 
   protected buscar(evento: Event, termino: string) {
     evento.preventDefault();

@@ -125,6 +125,10 @@ function avisarCambioContrasena(cuenta: CuentaConRoles): void {
   );
 }
 
+// Actor de la auditoría (`enTransaccion(..., { actor })`): las operaciones autenticadas y el restablecimiento
+// de contraseña (el titular del token actúa sobre su propia cuenta) pasan el `idPersona`. El registro no lo
+// pasa: la persona aún no existe cuando empieza la transacción. Rotar sesión y pedir recuperación solo
+// tocan tablas sin auditoría.
 export const identidadService = {
   /** RF-01 · Registro: toda cuenta nueva es Estudiante (RN-01) y entra con sesión abierta. */
   async registrar(datos: RegistroDto, ctx: Contexto): Promise<SesionEmitida> {
@@ -258,9 +262,12 @@ export const identidadService = {
     registrarEvento('logout', { idUsuario: fila.idUsuario, ip: ctx.ip });
   },
 
-  /** Lo usa `autenticar` en cada petición: el access token deja de valer si su sesión se revocó. */
-  async sesionVigente(usuario: UsuarioSesion): Promise<boolean> {
-    return UUID.test(usuario.sid) && repo.sesionVigente(usuario.sid, usuario.idUsuario);
+  /**
+   * Lo usa `autenticar` en cada petición: el access token deja de valer si su sesión se revocó, y los roles
+   * salen de la base (no del token), así un rol nuevo o retirado aplica de inmediato (ADR-011, 11.10).
+   */
+  async sesionVigente(usuario: UsuarioSesion): Promise<Rol[] | null> {
+    return UUID.test(usuario.sid) ? repo.rolesDeSesionVigente(usuario.sid, usuario.idUsuario) : null;
   },
 
   /**
@@ -326,7 +333,7 @@ export const identidadService = {
       await repo.actualizarContrasena(cuenta.idUsuario, contrasenaHash, cliente);
       await repo.invalidarTokensRecuperacion(cuenta.idUsuario, cliente);
       return repo.revocarSesionesUsuario(cuenta.idUsuario, 'RESTABLECIMIENTO', null, cliente);
-    });
+   }, { actor: cuenta.idPersona });
     if (revocadas === null) throw invalido(); // otra petición usó el enlace primero
 
     registrarEvento('contrasena_restablecida', { idUsuario: cuenta.idUsuario, sesionesCerradas: revocadas, ip: ctx.ip });
@@ -343,7 +350,9 @@ export const identidadService = {
 
   /** RF-04 · Actualizar nombres, apellidos, ciudad y biografía (el correo no se cambia aquí). */
   async actualizarPerfil(usuario: UsuarioSesion, datos: ActualizarPerfilDto): Promise<Perfil> {
-    await repo.actualizarPersona(usuario.idPersona, datos);
+    await enTransaccion((cliente) => repo.actualizarPersona(usuario.idPersona, datos, cliente), {
+      actor: usuario.idPersona,
+    });
     registrarEvento('perfil_actualizado', { idUsuario: usuario.idUsuario });
     return this.obtenerPerfil(usuario);
   },
@@ -368,7 +377,7 @@ export const identidadService = {
       await repo.actualizarContrasena(cuenta.idUsuario, contrasenaHash, cliente);
       await repo.invalidarTokensRecuperacion(cuenta.idUsuario, cliente);
       return repo.revocarSesionesUsuario(cuenta.idUsuario, 'CAMBIO_CONTRASENA', usuario.sid, cliente);
-    });
+   }, { actor: usuario.idPersona });
     registrarEvento('contrasena_cambiada', { idUsuario: cuenta.idUsuario, sesionesCerradas: revocadas, ip: ctx.ip });
     avisarCambioContrasena(cuenta);
     return { mensaje: 'Tu contraseña se actualizó. Cerramos tus sesiones en otros dispositivos.' };
@@ -378,4 +387,17 @@ export const identidadService = {
   async esperarTareas(): Promise<void> {
     await Promise.all([...tareas]);
   },
+};
+
+/** Lo único del servicio que ven `app.ts`, `server.ts` y otros módulos (vía `index.ts`). */
+export interface ServicioIdentidad {
+  /** Roles actuales si la sesión del access token sigue vigente (no revocada y cuenta activa); `null` si no. */
+  sesionVigente(usuario: UsuarioSesion): Promise<Rol[] | null>;
+  /** Espera los correos en segundo plano: cierre ordenado y pruebas. */
+  esperarTareas(): Promise<void>;
+}
+
+export const identidadApi: ServicioIdentidad = {
+  sesionVigente: (usuario) => identidadService.sesionVigente(usuario),
+  esperarTareas: () => identidadService.esperarTareas(),
 };

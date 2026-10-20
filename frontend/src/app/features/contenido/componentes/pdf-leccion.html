@@ -1,0 +1,55 @@
+<div class="pdf">
+  @if (leccion().archivo; as a) {
+    <p>
+      PDF asociado: {{ a.nombreOriginal }} · {{ (a.tamanoBytes / 1048576).toFixed(2) }} MB
+    </p>
+
+    <button
+      type="button"
+      class="btn btn-contorno"
+      [disabled]="p.ocupada() || bloqueado() || p.requiereRecarga()"
+      (click)="descargar()"
+    >
+      Descargar PDF
+    </button>
+  } @else {
+    <p class="texto-suave">Esta lección todavía no tiene PDF.</p>
+  }
+
+  @if (editable()) {
+    <label class="campo">
+      {{ leccion().archivo ? 'Reemplazar PDF' : 'Subir PDF' }}
+
+      <input
+        type="file"
+        accept="application/pdf,.pdf"
+        [disabled]="p.ocupada() || bloqueado() || p.requiereRecarga()"
+        (change)="subir($event)"
+      />
+
+      <small>PDF de hasta 10 MB. El servidor comprobará el contenido.</small>
+    </label>
+  }
+
+  @if (subiendo()) {
+    <progress max="100" [attr.value]="progreso()" aria-label="Progreso de subida del PDF"></progress>
+
+    <p role="status">
+      {{ progreso() === null ? 'Subiendo PDF…' : progreso() + '% enviado; esperando confirmación…' }}
+    </p>
+  }
+
+  @if (p.error()) {
+    <p class="mensaje error" role="alert">{{ p.error() }}</p>
+  }
+
+  @if (p.requiereRecarga()) {
+    <button type="button" class="btn btn-contorno" (click)="recargar.emit()">
+      Actualizar curso
+    </button>
+  }
+
+  @if (p.exito()) {
+    <p class="mensaje exito" role="status">{{ p.exito() }}</p>
+  }
+</div>

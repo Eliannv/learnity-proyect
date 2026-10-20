@@ -1,3 +1,5 @@
+import './ayudas/guardia-bd.js';
+
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
@@ -16,6 +18,7 @@ import path from 'node:path';
 import {
   after,
   before,
+  beforeEach,
   describe,
   it,
 } from 'node:test';
@@ -46,34 +49,38 @@ const { crearApp } = await import('../src/app.js');
 
 const {
   pool,
-  enTransaccion,
 } = await import('../src/shared/database/pool.js');
+
+const {
+  crearFixtures,
+} = await import('./ayudas/bd-fixtures.js');
+
+const {
+  reiniciarLimites,
+} = await import('../src/shared/http/limite-peticiones.js');
 
 const {
   firmarAccessToken,
 } = await import('../src/shared/auth/jwt.js');
 
 const {
-  cursosService,
-} = await import('../src/modules/cursos/cursos.service.js');
+  cursosApi: cursosService,
+} = await import('../src/modules/cursos/index.js');
 
 const {
-  contenidoService,
-} = await import('../src/modules/contenido/contenido.service.js');
+  contenidoApi: contenidoService,
+  liberadorArchivos: limpiezaPdfService,
+} = await import('../src/modules/contenido/index.js');
 
 const {
-  limpiezaPdfService,
-} = await import('../src/modules/contenido/contenido-limpieza.service.js');
-
-const {
-  almacenPdf,
-} = await import('../src/shared/archivos/almacen-pdf.js');
+  almacenLocal,
+} = await import('../src/shared/archivos/almacen.js');
 
 const {
   MAX_PDF_BYTES,
 } = await import('../src/shared/archivos/pdf-validacion.js');
 
-const marca = 'i3_' + randomUUID().slice(0, 8);
+const marca = 'rev_' + randomUUID().slice(0, 8);
 
 const personas: number[] = [];
 const cursos: number[] = [];
@@ -81,6 +88,7 @@ const cursos: number[] = [];
 let categoriaId = 0;
 let base = '';
 let pdf: Buffer;
+let f: Awaited<ReturnType<typeof crearFixtures>>;
 
 let servidor:
   | ReturnType<ReturnType<typeof crearApp>['listen']>
@@ -99,7 +107,7 @@ let admin2: Cuenta;
 let estudiante: Cuenta;
 
 async function cuenta(rol: Rol): Promise<Cuenta> {
-  const p = await pool.query<{ id: number }>(
+  const p = await f.query<{ id: number }>(
     `
       INSERT INTO persona (nombres, apellidos)
       VALUES ($1, $2)
@@ -114,7 +122,7 @@ async function cuenta(rol: Rol): Promise<Cuenta> {
   const correo =
     marca + '_' + idPersona + '@pruebas.test';
 
-  const u = await pool.query<{ id: number }>(
+  const u = await f.query<{ id: number }>(
     `
       INSERT INTO usuario (
         id_persona,
@@ -134,7 +142,7 @@ async function cuenta(rol: Rol): Promise<Cuenta> {
       ? ['ESTUDIANTE']
       : ['ESTUDIANTE', rol];
 
-  await pool.query(
+  await f.query(
     `
       INSERT INTO usuario_rol (id_usuario, id_rol)
       SELECT $1, id_rol
@@ -147,7 +155,7 @@ async function cuenta(rol: Rol): Promise<Cuenta> {
   let docenteId: number | null = null;
 
   if (rol === 'DOCENTE') {
-    const d = await pool.query<{ id: number }>(
+    const d = await f.query<{ id: number }>(
       `
         INSERT INTO docente (
           id_persona,
@@ -164,7 +172,7 @@ async function cuenta(rol: Rol): Promise<Cuenta> {
 
   const sid = randomUUID();
 
-  await pool.query(
+  await f.query(
     `
       INSERT INTO sesion (
         id_usuario,
@@ -207,7 +215,7 @@ async function escenario(
   estado = 'BORRADOR',
   tipo = 'DOCUMENTO',
 ) {
-  const c = await pool.query<{ id: number }>(
+  const c = await f.query<{ id: number }>(
     `
       INSERT INTO curso (
         id_docente,
@@ -219,7 +227,9 @@ async function escenario(
         portada_url,
         objetivos,
         estado,
-        motivo_rechazo
+        motivo_rechazo,
+        revisado_por,
+        publicado_en
       )
       VALUES (
         $1,
@@ -231,7 +241,9 @@ async function escenario(
         '/img/portada-mi-curso.jpg',
         $4,
         $5,
-        $6
+        $6,
+        $7::int,
+        $8::timestamptz
       )
       RETURNING id_curso AS id
     `,
@@ -248,13 +260,18 @@ async function escenario(
       estado === 'RECHAZADO'
         ? 'Completa el material.'
         : null,
+      // Un curso PUBLICADO exige quién lo revisó y cuándo se publicó (migración 023).
+      estado === 'PUBLICADO'
+        ? admin.sesion.idPersona
+        : null,
+      estado === 'PUBLICADO' ? new Date() : null,
     ],
   );
 
   const id = c.rows[0]!.id;
   cursos.push(id);
 
-  const m = await pool.query<{ id: number }>(
+  const m = await f.query<{ id: number }>(
     `
       INSERT INTO modulo (
         id_curso,
@@ -267,7 +284,7 @@ async function escenario(
     [id],
   );
 
-  const l = await pool.query<{ id: number }>(
+  const l = await f.query<{ id: number }>(
     `
       INSERT INTO leccion (
         id_modulo,
@@ -357,7 +374,7 @@ async function subir(
 async function rutaArchivo(
   id: number,
 ): Promise<string> {
-  const { rows } = await pool.query<{
+  const { rows } = await f.query<{
     ruta: string;
   }>(
     'SELECT ruta FROM archivo WHERE id_archivo = $1',
@@ -367,7 +384,10 @@ async function rutaArchivo(
   return rows[0]!.ruta;
 }
 
+beforeEach(() => reiniciarLimites());
+
 before(async () => {
+  f = await crearFixtures();
   const documento = await PDFDocument.create();
 
   documento.addPage();
@@ -380,7 +400,7 @@ before(async () => {
   admin2 = await cuenta('ADMIN');
   estudiante = await cuenta('ESTUDIANTE');
 
-  const c = await pool.query<{ id: number }>(
+  const c = await f.query<{ id: number }>(
     `
       INSERT INTO categoria (nombre, creada_por)
       VALUES ($1, $2)
@@ -412,7 +432,7 @@ after(async () => {
   const nombres = await readdir(carpeta);
 
   if (nombres.length) {
-    await pool.query(
+    await f.query(
       `
         DELETE FROM archivo_borrado_pendiente
         WHERE nombre = ANY($1::text[])
@@ -422,36 +442,37 @@ after(async () => {
   }
 
   if (cursos.length) {
-    await pool.query(
+    await f.query(
       'DELETE FROM curso WHERE id_curso = ANY($1::int[])',
       [cursos],
     );
   }
 
   if (categoriaId) {
-    await pool.query(
+    await f.query(
       'DELETE FROM categoria WHERE id_categoria = $1',
       [categoriaId],
     );
   }
 
   if (personas.length) {
-    await pool.query(
+    await f.query(
       'DELETE FROM docente WHERE id_persona = ANY($1::int[])',
       [personas],
     );
 
-    await pool.query(
+    await f.query(
       'DELETE FROM usuario WHERE id_persona = ANY($1::int[])',
       [personas],
     );
 
-    await pool.query(
+    await f.query(
       'DELETE FROM persona WHERE id_persona = ANY($1::int[])',
       [personas],
     );
   }
 
+  await f.cerrar();
   await pool.end();
 
   await rm(carpeta, {
@@ -482,7 +503,7 @@ describe(
           );
         }
 
-        await pool.query(
+        await f.query(
           `
             UPDATE sesion
             SET
@@ -498,7 +519,7 @@ describe(
           401,
         );
 
-        await pool.query(
+        await f.query(
           `
             UPDATE sesion
             SET
@@ -857,7 +878,7 @@ describe(
         );
 
         assert.equal(
-          (await pool.query(
+          (await f.query(
             'SELECT 1 FROM archivo WHERE id_archivo = $1',
             [archivo.id],
           )).rowCount,
@@ -902,7 +923,7 @@ describe(
           cursosService.asociarPdfPrincipal = asociar;
         }
 
-        const guardado = await pool.query<{ id: number }>(
+        const guardado = await f.query<{ id: number }>(
           `
             SELECT id_archivo AS id
             FROM leccion
@@ -922,7 +943,7 @@ describe(
         );
 
         assert.deepEqual(
-          await almacenPdf.leer(
+          await almacenLocal.leer(
             await rutaArchivo(archivo.id),
             archivo.tamanoBytes,
           ),
@@ -936,9 +957,9 @@ describe(
       async () => {
         const c = await escenario();
 
-        const guardar = almacenPdf.guardar;
+        const guardar = almacenLocal.guardar;
 
-        almacenPdf.guardar = async () => {
+        almacenLocal.guardar = async () => {
           throw new Error('sin espacio');
         };
 
@@ -948,7 +969,7 @@ describe(
             500,
           );
         } finally {
-          almacenPdf.guardar = guardar;
+          almacenLocal.guardar = guardar;
         }
 
         const primero = await subir(c.leccion);
@@ -957,9 +978,9 @@ describe(
           primero.json.modulos[0].lecciones[0].archivo.id,
         );
 
-        const eliminar = almacenPdf.eliminar;
+        const eliminar = almacenLocal.eliminar;
 
-        almacenPdf.eliminar = async () => {
+        almacenLocal.eliminar = async () => {
           throw new Error(
             'limpieza temporalmente bloqueada',
           );
@@ -971,11 +992,11 @@ describe(
             200,
           );
         } finally {
-          almacenPdf.eliminar = eliminar;
+          almacenLocal.eliminar = eliminar;
         }
 
         assert.equal(
-          (await pool.query(
+          (await f.query(
             `
               SELECT 1
               FROM archivo_borrado_pendiente
@@ -999,7 +1020,7 @@ describe(
         );
 
         assert.equal(
-          (await pool.query(
+          (await f.query(
             `
               SELECT 1
               FROM archivo_borrado_pendiente
@@ -1054,7 +1075,7 @@ describe(
           'Mejora los ejemplos.',
         );
 
-        const fila = await pool.query<{
+        const fila = await f.query<{
           revisado_por: number;
           publicado_en: Date | null;
         }>(
@@ -1108,7 +1129,7 @@ describe(
           409,
         );
 
-        await pool.query(
+        await f.query(
           `
             UPDATE curso
             SET estado = 'BORRADOR'
@@ -1127,7 +1148,7 @@ describe(
           await rutaArchivo(archivo.id),
         );
 
-        await pool.query(
+        await f.query(
           `
             UPDATE curso
             SET estado = 'EN_REVISION'
@@ -1173,7 +1194,7 @@ describe(
           200,
         );
 
-        const fila = await pool.query(
+        const fila = await f.query(
           `
             SELECT publicado_en, revisado_por
             FROM curso
@@ -1241,7 +1262,7 @@ describe(
           docente.sesion,
         );
 
-        await pool.query(
+        await f.query(
           `
             UPDATE curso
             SET estado = 'EN_REVISION'
@@ -1262,7 +1283,7 @@ describe(
           (error: any) => error.status === 409,
         );
 
-        const { rows } = await pool.query(
+        const { rows } = await f.query(
           `
             SELECT id_archivo
             FROM leccion
@@ -1285,7 +1306,7 @@ describe(
           200,
         );
 
-        await pool.query(
+        await f.query(
           `
             UPDATE curso
             SET
@@ -1343,7 +1364,7 @@ describe(
 
         const original = await rutaArchivo(id);
 
-        await pool.query(
+        await f.query(
           `
             UPDATE archivo
             SET ruta = '../archivo-privado.pdf'
@@ -1360,7 +1381,7 @@ describe(
           404,
         );
 
-        await pool.query(
+        await f.query(
           `
             UPDATE archivo
             SET ruta = $2
@@ -1369,7 +1390,7 @@ describe(
           [id, original],
         );
 
-        await pool.query(
+        await f.query(
           `
             UPDATE curso
             SET estado = 'EN_REVISION'
@@ -1378,7 +1399,7 @@ describe(
           [c.id],
         );
 
-        await pool.query(
+        await f.query(
           `
             UPDATE categoria
             SET activa = false
@@ -1403,7 +1424,7 @@ describe(
             ),
           );
         } finally {
-          await pool.query(
+          await f.query(
             `
               UPDATE categoria
               SET activa = true
@@ -1416,7 +1437,7 @@ describe(
     );
 
     it(
-      'ofrece al integrante 2 una limpieza transaccional después de borrar una lección',
+      'ofrece al módulo de cursos una limpieza transaccional después de borrar una lección',
       async () => {
         const c = await escenario();
         const subida = await subir(c.leccion);
@@ -1426,7 +1447,7 @@ describe(
 
         const nombre = await rutaArchivo(id);
 
-        await enTransaccion(async cliente => {
+        await f.transaccion(async cliente => {
           await cliente.query(
             `
               SELECT id_curso
@@ -1437,7 +1458,7 @@ describe(
             [c.id],
           );
 
-          await limpiezaPdfService.retirarPdfSinUso(
+          await limpiezaPdfService.retirarSinUso(
             cliente,
             c.id,
             [id],
@@ -1445,14 +1466,14 @@ describe(
         });
 
         assert.equal(
-          (await pool.query(
+          (await f.query(
             'SELECT 1 FROM archivo WHERE id_archivo = $1',
             [id],
           )).rowCount,
           1,
         );
 
-        await enTransaccion(async cliente => {
+        await f.transaccion(async cliente => {
           await cliente.query(
             `
               SELECT id_curso
@@ -1468,7 +1489,7 @@ describe(
             [c.leccion],
           );
 
-          await limpiezaPdfService.retirarPdfSinUso(
+          await limpiezaPdfService.retirarSinUso(
             cliente,
             c.id,
             [id],
@@ -1476,7 +1497,7 @@ describe(
         });
 
         assert.equal(
-          (await pool.query(
+          (await f.query(
             'SELECT 1 FROM archivo WHERE id_archivo = $1',
             [id],
           )).rowCount,
@@ -1488,7 +1509,7 @@ describe(
           pdf,
         );
 
-        await limpiezaPdfService.limpiarPendientes();
+        await limpiezaPdfService.ejecutarPendientes();
 
         await assert.rejects(
           readFile(path.join(carpeta, nombre)),

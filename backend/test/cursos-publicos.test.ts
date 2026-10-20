@@ -1,3 +1,4 @@
+import './ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import { after, before, describe, it } from 'node:test';
@@ -10,11 +11,13 @@ if (process.env['NODE_ENV'] !== 'test' || (!baseAislada && !desarrolloAutorizado
 
 const { crearApp } = await import('../src/app.js');
 const { pool } = await import('../src/shared/database/pool.js');
+const { crearFixtures } = await import('./ayudas/bd-fixtures.js');
 
 const marca = `catalogo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const ids = { personas: [] as number[], categorias: [] as number[], cursos: [] as number[] };
 let base = '';
 let servidor: ReturnType<ReturnType<typeof crearApp>['listen']> | undefined;
+let f: Awaited<ReturnType<typeof crearFixtures>>;
 let publicadoA = 0;
 let publicadoB = 0;
 let publicadoC = 0;
@@ -23,7 +26,7 @@ let categoriaA = '';
 let categoriaB = '';
 
 async function persona(nombre: string) {
-  const { rows } = await pool.query<{ id_persona: number }>(
+  const { rows } = await f.query<{ id_persona: number }>(
     'INSERT INTO persona (nombres, apellidos) VALUES ($1, $2) RETURNING id_persona', [marca, nombre],
   );
   const id = rows[0]!.id_persona;
@@ -32,7 +35,7 @@ async function persona(nombre: string) {
 }
 
 async function categoria(nombre: string, activa: boolean, creadaPor: number) {
-  const { rows } = await pool.query<{ id_categoria: number }>(
+  const { rows } = await f.query<{ id_categoria: number }>(
     'INSERT INTO categoria (nombre, activa, creada_por) VALUES ($1, $2, $3) RETURNING id_categoria',
     [nombre, activa, creadaPor],
   );
@@ -41,11 +44,12 @@ async function categoria(nombre: string, activa: boolean, creadaPor: number) {
   return id;
 }
 
-async function curso(docente: number, cat: number, sufijo: string, nivel: string, estado: string, dias: number) {
-  const { rows } = await pool.query<{ id_curso: number }>(
-    `INSERT INTO curso (id_docente, id_categoria, titulo, subtitulo, descripcion, nivel, estado, publicado_en)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, now() - $8::int * interval '1 day') RETURNING id_curso`,
-    [docente, cat, `${marca} ${sufijo}`, `Subtítulo ${sufijo}`, `Descripción ${sufijo}`, nivel, estado, dias],
+// Un curso PUBLICADO exige revisor y fecha de publicación (CHECK de la migración 023).
+async function curso(docente: number, cat: number, sufijo: string, nivel: string, estado: string, dias: number, revisor: number) {
+  const { rows } = await f.query<{ id_curso: number }>(
+    `INSERT INTO curso (id_docente, id_categoria, titulo, subtitulo, descripcion, nivel, estado, publicado_en, revisado_por)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, now() - $8::int * interval '1 day', $9) RETURNING id_curso`,
+    [docente, cat, `${marca} ${sufijo}`, `Subtítulo ${sufijo}`, `Descripción ${sufijo}`, nivel, estado, dias, estado === 'PUBLICADO' ? revisor : null],
   );
   const id = rows[0]!.id_curso;
   ids.cursos.push(id);
@@ -58,9 +62,10 @@ async function pedir(ruta: string) {
 }
 
 before(async () => {
+  f = await crearFixtures();
   const autor = await persona('Docente');
   const estudiante = await persona('Estudiante');
-  const { rows: docentes } = await pool.query<{ id_docente: number }>(
+  const { rows: docentes } = await f.query<{ id_docente: number }>(
     'INSERT INTO docente (id_persona, especialidad) VALUES ($1, $2) RETURNING id_docente',
     [autor, 'Pruebas públicas'],
   );
@@ -70,25 +75,25 @@ before(async () => {
   const catA = await categoria(categoriaA, true, autor);
   const catB = await categoria(categoriaB, true, autor);
   await categoria(`${marca} Inactiva`, false, autor);
-  publicadoA = await curso(docente, catA, 'A Python', 'PRINCIPIANTE', 'PUBLICADO', 3);
-  publicadoB = await curso(docente, catB, 'B Diseño', 'INTERMEDIO', 'PUBLICADO', 2);
-  publicadoC = await curso(docente, catA, 'C Python', 'AVANZADO', 'PUBLICADO', 1);
-  borrador = await curso(docente, catA, 'D Borrador', 'PRINCIPIANTE', 'BORRADOR', 0);
-  const { rows: modulos } = await pool.query<{ id_modulo: number }>(
+  publicadoA = await curso(docente, catA, 'A Python', 'PRINCIPIANTE', 'PUBLICADO', 3, autor);
+  publicadoB = await curso(docente, catB, 'B Diseño', 'INTERMEDIO', 'PUBLICADO', 2, autor);
+  publicadoC = await curso(docente, catA, 'C Python', 'AVANZADO', 'PUBLICADO', 1, autor);
+  borrador = await curso(docente, catA, 'D Borrador', 'PRINCIPIANTE', 'BORRADOR', 0, autor);
+  const { rows: modulos } = await f.query<{ id_modulo: number }>(
     'INSERT INTO modulo (id_curso, titulo, orden) VALUES ($1, $2, 1) RETURNING id_modulo',
     [publicadoA, 'Introducción'],
   );
-  const { rows: archivos } = await pool.query<{ id_archivo: number }>(
+  const { rows: archivos } = await f.query<{ id_archivo: number }>(
     `INSERT INTO archivo (id_curso, tipo, nombre_original, ruta, tamano_bytes, alto_px, duracion_seg)
      VALUES ($1, 'VIDEO', 'video.mp4', $2, 1024, 480, 240) RETURNING id_archivo`,
     [publicadoA, `${marca}/privado.mp4`],
   );
-  await pool.query(
+  await f.query(
     `INSERT INTO leccion (id_modulo, id_archivo, titulo, tipo, orden)
      VALUES ($1, $2, 'Primera lección', 'VIDEO', 1)`,
     [modulos[0]!.id_modulo, archivos[0]!.id_archivo],
   );
-  await pool.query('INSERT INTO inscripcion (id_persona, id_curso) VALUES ($1, $2), ($3, $4)',
+  await f.query('INSERT INTO inscripcion (id_persona, id_curso) VALUES ($1, $2), ($3, $4)',
     [autor, publicadoB, estudiante, publicadoB]);
   const app = crearApp();
   servidor = app.listen(0);
@@ -99,14 +104,15 @@ before(async () => {
 after(async () => {
   if (servidor) await new Promise<void>((resolve) => servidor!.close(() => resolve()));
   if (ids.cursos.length) {
-    await pool.query('DELETE FROM inscripcion WHERE id_curso = ANY($1::int[])', [ids.cursos]);
-    await pool.query('DELETE FROM curso WHERE id_curso = ANY($1::int[])', [ids.cursos]);
+    await f.query('DELETE FROM inscripcion WHERE id_curso = ANY($1::int[])', [ids.cursos]);
+    await f.query('DELETE FROM curso WHERE id_curso = ANY($1::int[])', [ids.cursos]);
   }
-  if (ids.categorias.length) await pool.query('DELETE FROM categoria WHERE id_categoria = ANY($1::int[])', [ids.categorias]);
+  if (ids.categorias.length) await f.query('DELETE FROM categoria WHERE id_categoria = ANY($1::int[])', [ids.categorias]);
   if (ids.personas.length) {
-    await pool.query('DELETE FROM docente WHERE id_persona = ANY($1::int[])', [ids.personas]);
-    await pool.query('DELETE FROM persona WHERE id_persona = ANY($1::int[])', [ids.personas]);
+    await f.query('DELETE FROM docente WHERE id_persona = ANY($1::int[])', [ids.personas]);
+    await f.query('DELETE FROM persona WHERE id_persona = ANY($1::int[])', [ids.personas]);
   }
+  await f.cerrar();
   await pool.end();
 });
 

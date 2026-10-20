@@ -7,4 +7,6 @@ export const environment = {
    * Actívalo únicamente para presentar pantallas sin backend.
    */
   modoDemo: false,
+  /** Pantallas aún no implementadas de los sprints 3 y 4. */
+  sprint34Habilitado: false,
 };

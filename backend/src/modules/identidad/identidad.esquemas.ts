@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MAX_BYTES_BCRYPT } from '../../shared/auth/contrasena.js';
+import { textoSeguro } from '../../shared/http/esquemas.js';
 
 // Esquemas de entrada (DTO) del módulo Identidad. Se validan en routes con `validarCuerpo`.
 
@@ -27,7 +28,7 @@ const contrasenaNueva = texto
 /** Contraseña que se comprueba (login, actual): sin política, solo un tope para no procesar textos enormes. */
 const contrasenaEscrita = texto.pipe(z.string().min(1, 'Ingresa tu contraseña').max(256));
 
-const nombre = (campo: string) => z.string().trim().min(1, `Ingresa tus ${campo}`).max(80);
+const nombre = (campo: string) => textoSeguro().trim().min(1, `Ingresa tus ${campo}`).max(80);
 
 export const registroSchema = z.object({
   nombres: nombre('nombres'),
@@ -48,8 +49,8 @@ export const restablecerSchema = z.object({
 export const actualizarPerfilSchema = z.object({
   nombres: nombre('nombres'),
   apellidos: nombre('apellidos'),
-  ciudad: z.string().trim().max(60).nullable().optional(),
-  biografia: z.string().trim().max(300).nullable().optional(),
+  ciudad: textoSeguro().trim().max(60).nullable().optional(),
+  biografia: textoSeguro().trim().max(300).nullable().optional(),
 });
 
 export const cambiarContrasenaSchema = z.object({

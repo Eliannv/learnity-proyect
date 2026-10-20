@@ -1,0 +1,26 @@
+<section class="tarjeta bloque">
+  <h2>3. Enviar a revisión</h2>
+
+  @if (curso().validacion.completo) {
+    <p>
+      Los datos guardados cumplen la verificación del servidor. Al enviar, dejarás de poder editar.
+    </p>
+  } @else {
+    <p>Antes de enviar, completa lo siguiente:</p>
+
+    <ul>
+      @for (problema of curso().validacion.problemas; track $index) {
+        <li>{{ problema.mensaje }}</li>
+      }
+    </ul>
+  }
+
+  <button
+    type="button"
+    class="btn btn-acento"
+    [disabled]="deshabilitado() || !curso().validacion.completo"
+    (click)="enviar.emit()"
+  >
+    Enviar a revisión
+  </button>
+</section>

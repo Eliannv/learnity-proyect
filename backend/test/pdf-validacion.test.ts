@@ -1,3 +1,4 @@
+import './ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 
 import {

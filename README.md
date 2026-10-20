@@ -13,8 +13,9 @@ La gestión administrativa de usuarios continúa como prototipo con datos de eje
 | Carpeta     | Contenido                                                        |
 | ----------- | ---------------------------------------------------------------- |
 | `backend/`  | API REST con Express, TypeScript y conexión directa a PostgreSQL |
-| `frontend/` | Aplicación web Angular                                           |
-| `database/` | Modelo SQL y scripts de cambios que se aplican mediante pgAdmin  |
+| `frontend/` | Aplicación web Angular organizada por *features*                 |
+| `database/` | Modelo SQL, migraciones numeradas y scripts de verificación      |
+| `e2e/`      | Suite de pruebas extremo a extremo con Playwright (Chromium)     |
 
 ## 1. Requisitos
 
@@ -37,7 +38,7 @@ Con la base `learnity` y el esquema principal preparados, aplica estos scripts e
 
 Comprueba que Query Tool esté conectado a `learnity` antes de ejecutarlos. Si el esquema o una migración ya están aplicados, conserva sus tablas y datos y aplica únicamente los cambios que falten.
 
-La documentación de la base está en [`database/README.md`](database/README.md).
+La documentación de la base está en [`database/README.md`](database/README.md). Allí está también el procedimiento de las migraciones numeradas del refactor (`database/migraciones/`): qué hace cada script, cómo aplicarlo con `psql` o con los `.ps1`, el respaldo previo con `pg_dump` y cómo lo aplica cada integrante en su base local. Este README no lo repite.
 
 Las pruebas automáticas utilizan una base exclusiva llamada `learnity_test`. Su preparación está explicada en la sección 14.
 
@@ -64,7 +65,8 @@ Completa `backend/.env` con:
 
 - La conexión a PostgreSQL y la contraseña de `learnity_app`.
 - Un `JWT_SECRET` aleatorio de al menos 32 caracteres. El comando para generarlo está en `.env.example`.
-- `SEED_PASSWORD`, utilizada para crear las cuentas de prueba.
+- `SEED_PASSWORD`, obligatoria para crear y comprobar las cuentas de prueba; no hay contraseña predeterminada.
+- `DB_SSL=true` verifica el certificado de PostgreSQL. Si el servidor usa una CA privada, configúrala mediante `NODE_EXTRA_CA_CERTS`.
 
 Configura también el directorio privado de PDF:
 
@@ -91,7 +93,7 @@ Estos comandos:
 Enlaces del backend:
 
 - Estado del servidor y conexión a PostgreSQL: [http://localhost:3000/api/salud](http://localhost:3000/api/salud).
-- Documentación interactiva de la API: [http://localhost:3000/api/docs](http://localhost:3000/api/docs).
+- Documentación interactiva de la API: [http://localhost:3000/api/docs](http://localhost:3000/api/docs). Solo existe con `NODE_ENV=development` (el valor por defecto); en `test` y `production` responde 404. El contrato publicado es [`docs/api/openapi.yaml`](docs/api/openapi.yaml).
 
 Al arrancar, la consola informa la conexión a PostgreSQL, si falta la tabla de sesiones y qué transporte de correo se utiliza.
 
@@ -138,9 +140,8 @@ Accesos de navegación:
 - Al pasar el mouse sobre la foto de perfil aparece el menú con los paneles disponibles, Mi aprendizaje, Mi perfil y Cerrar sesión.
 - Al pasar el mouse sobre Mi aprendizaje se muestran los cursos recientes del prototipo.
 - Si un Docente o Administrador abre `/perfil`, se le dirige al perfil de su panel.
-- El panel docente, en `/docente`, muestra un resumen con accesos directos.
-- La gestión de cursos está en **Mis cursos**, en `/docente/cursos`.
-- La revisión administrativa de cursos está en `/admin/revision`.
+- La gestión de cursos está en **Mis cursos**, en `/docente/cursos`; `/docente` redirige ahí.
+- La revisión administrativa de cursos está en `/admin/revision`; `/admin` redirige ahí.
 
 El visitante puede acceder al inicio, catálogo, detalle público, login, registro y recuperación de contraseña.
 
@@ -303,14 +304,16 @@ Para crear la estructura de un módulo:
 npm run crear-modulo -- nombre "descripción"
 ```
 
-| Módulo           | Responsabilidad y estado                                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------------------- |
-| `identidad`      | Registro, login, sesiones, perfil y recuperación implementados                                          |
-| `cursos`         | Categorías públicas, catálogo, gestión privada, envío a revisión e integración implementados            |
-| `contenido`      | PDF privado implementado; otros formatos previstos para siguientes entregas                             |
-| `aprendizaje`    | Inscripciones y progreso previstos para Sprint 3                                                        |
-| `evaluaciones`   | Preguntas, intentos y notas previstos para Sprint 4                                                     |
-| `administracion` | Revisión de cursos y solicitudes de docente implementadas; gestión de usuarios pendiente de integración |
+| Módulo         | Responsabilidad y estado                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------- |
+| `identidad`    | Registro, login, sesiones con roles vigentes por petición, perfil y recuperación         |
+| `catalogo`     | Categorías públicas, catálogo paginado y detalle público sobre vistas SQL de solo lectura |
+| `cursos`       | Gestión privada de ficha y `temario/`, política de estados (`politica-curso.ts`) y envío |
+| `contenido`    | Subida con límite por IP, descarga y limpieza de PDF privado mediante `LiberadorArchivos`|
+| `revision`     | Revisión administrativa de cursos (`EN_REVISION` → `PUBLICADO` / `RECHAZADO`)            |
+| `usuarios`     | Solicitudes de docente y revisión administrativa de solicitudes                          |
+| `aprendizaje`  | Inscripciones y progreso previstos para Sprint 3                                         |
+| `evaluaciones` | Preguntas, intentos y notas previstos para Sprint 4                                      |
 
 ## 10. Sprint 1: estado
 
@@ -356,7 +359,7 @@ Endpoints implementados:
 | GET    | `/api/cursos`     | Consultar el catálogo         |
 | GET    | `/api/cursos/:id` | Consultar el detalle público  |
 
-El contrato de filtros, paginación y respuestas está disponible en:
+El contrato de filtros, paginación y respuestas está en [`docs/api/openapi.yaml`](docs/api/openapi.yaml) y, con `NODE_ENV=development`, en:
 
 [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
@@ -516,6 +519,9 @@ Reglas:
 - Curso en `BORRADOR` o `RECHAZADO`.
 - Lección de tipo `DOCUMENTO`.
 - Un PDF principal por lección.
+- Como máximo 30 subidas cada 15 minutos por IP. La siguiente responde 429 `DEMASIADAS_PETICIONES` con `Retry-After` (ADR-011, punto 11.4).
+
+El archivo se recibe en un temporal dentro de `PDF_DIR/.tmp` y, una vez validado, se mueve a su nombre definitivo. Así la memoria del servidor no crece mientras se recibe (ADR-011, punto 11.5). Los temporales de más de una hora, que deja un proceso interrumpido, se borran al arrancar y en cada limpieza de PDF pendientes.
 
 Si un reemplazo falla antes de confirmarse, se conserva el archivo anterior.
 
@@ -593,31 +599,30 @@ Las reservas de subidas interrumpidas son elegibles después de una hora. Los fa
 
 Al desplegar el backend debe programarse la ejecución periódica del comando en el entorno de despliegue.
 
-### Integración entre Cursos, Administración y Contenido
+### Integración entre Cursos, Revisión y Contenido
 
-Cursos expone las operaciones compartidas mediante `cursosService`.
+Cada módulo expone únicamente su API pública en `index.ts` (ADR-001):
 
-Administración y Contenido utilizan ese servicio, manteniendo cada módulo la responsabilidad de su repositorio.
+- `cursos` expone `cursosApi` (`ServicioCursos`) y registra el puerto `LiberadorArchivos` (ADR-004) para romper el ciclo entre `cursos` y `contenido`.
+- `revision` y `contenido` consumen `cursosApi` desde `../cursos/index.js`, manteniendo cada módulo la responsabilidad exclusiva de su repositorio.
 
 La integración permite:
 
-- Resolver el curso, propietario y estado de una lección.
-- Comprobar si el curso admite edición.
-- Obtener `CursoDetalle` con su validación.
-- Asociar un PDF a una lección.
-- Aplicar una decisión administrativa de forma atómica.
-
-Las escrituras y los envíos a revisión bloquean la misma fila de curso y comparten el cliente de transacción cuando corresponde.
-
-El servicio de limpieza de Contenido ofrece `retirarPdfSinUso` para coordinar la eliminación de PDF al borrar módulos o lecciones. La eliminación física se reintenta después de confirmar los cambios.
+- Resolver el curso, propietario y estado de una lección fuera de secciones `FOR UPDATE` antes de validar el binario PDF.
+- Comprobar si el curso admite edición mediante la política pura `politica-curso.ts` (ADR-003).
+- Obtener `CursoDetalle` con su validación en `detalle-privado.service.ts`.
+- Asociar un PDF a una lección y encolar el reemplazo o retiro mediante `liberadorArchivos`.
+- Aplicar una decisión administrativa de forma atómica desde `modules/revision`.
 
 Los once endpoints privados del integrante 2 están implementados. Al reenviar un curso rechazado se limpia el motivo anterior.
 
-El recorrido completo se comprobó por HTTP con PostgreSQL y manualmente desde Angular en la instalación local del equipo.
+El recorrido completo se comprobó por HTTP con PostgreSQL y desde Angular en la instalación local del equipo.
 
 ## 14. Pruebas locales
 
 Las pruebas crean y eliminan datos. Utiliza exclusivamente la base `learnity_test`, separada de la base de desarrollo.
+
+Para aplicar a `learnity_test` las migraciones del refactor (`database/migraciones/`), sigue el procedimiento de [`database/README.md`](database/README.md).
 
 La configuración se encuentra en:
 
@@ -827,12 +832,12 @@ Se corrigieron los siguientes puntos:
 
 El backend reutiliza:
 
-- Las operaciones compartidas de `cursosService`.
+- Las operaciones compartidas de `cursosApi` (`modules/cursos/index.ts`).
 - La validación de contenido y PDF existente.
-- La limpieza de archivos de Contenido.
-- La revisión administrativa de cursos.
+- La limpieza de archivos de Contenido a través del puerto `LiberadorArchivos`.
+- La revisión administrativa de cursos en `modules/revision`.
 
-Angular consume los endpoints mediante `gestion-cursos.api.ts`.
+Angular consume los endpoints mediante clientes tipados por *feature* (`docente-cursos.api.ts`, `contenido.api.ts`, `revision.api.ts` y `catalogo.api.ts`) respaldados por `ClienteApi` y `esquema.d.ts` (ADR-007 y ADR-008).
 
 ### Pruebas
 
@@ -856,10 +861,10 @@ Cinco pruebas de regresión comprueban:
 Los once endpoints están documentados en:
 
 ```text
-backend/src/shared/http/openapi-integrante2.ts
+backend/src/shared/http/openapi-gestion-cursos.ts
 ```
 
-La documentación interactiva está disponible con el backend iniciado:
+El contrato publicado es [`docs/api/openapi.yaml`](docs/api/openapi.yaml). La documentación interactiva está disponible con el backend iniciado con `NODE_ENV=development`:
 
 [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 

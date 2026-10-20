@@ -4,7 +4,12 @@
  * en los siguientes sprints cada lista se reemplaza por su llamada a la API.
  */
 
-export type Tono = 1 | 2 | 3;
+import type { Tono } from '../shared/ui/tipos-ui';
+
+// Reexportados para los importadores que aún leen estos tipos desde aquí.
+export { ICONO_CATEGORIA } from '../shared/ui/tipos-ui';
+export type { Tono };
+
 export type EstadoCurso = 'BORRADOR' | 'EN_REVISION' | 'PUBLICADO' | 'RECHAZADO' | 'ARCHIVADO';
 export type TipoLeccion = 'VIDEO' | 'DOCUMENTO' | 'PRESENTACION' | 'EVALUACION';
 
@@ -40,16 +45,6 @@ export const CURSOS: CursoCatalogo[] = [
 
 export const DESTACADOS = CURSOS.slice(0, 4);
 export const RECIENTES = CURSOS.filter((c) => c.nuevo);
-
-/** Ícono de Lucide de cada categoría (portadas y accesos por categoría). */
-export const ICONO_CATEGORIA: Record<string, string> = {
-  Programación: 'code',
-  Diseño: 'pen-tool',
-  Idiomas: 'languages',
-  Negocios: 'briefcase',
-  Ofimática: 'monitor',
-  Marketing: 'megaphone',
-};
 
 export const INDICADORES_PUBLICOS = [
   { valor: '34', etiqueta: 'Cursos disponibles' },

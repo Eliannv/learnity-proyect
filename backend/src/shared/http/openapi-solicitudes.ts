@@ -1,25 +1,15 @@
 // OpenAPI · Solicitudes para ser docente (RF-05 estudiante, RF-22 administrador).
+import { error, errorInterno, erroresCuerpoJson, idInvalido, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
-const ref = (nombre: string) => ({ $ref: `#/components/schemas/${nombre}` });
-const json = (schema: unknown, description = 'Correcto') => ({ description, content: { 'application/json': { schema } } });
-const error = (description: string) => json(ref('ErrorApi'), description);
-const seguridad = [{ bearer: [] }];
+const ESTADOS = ['PENDIENTE', 'APROBADA', 'RECHAZADA'];
 
 export const esquemasSolicitudes = {
-  ErrorApi: {
-    type: 'object',
-    properties: {
-      error: {
-        type: 'object',
-        properties: { codigo: { type: 'string' }, mensaje: { type: 'string' }, detalles: {} },
-      },
-    },
-  },
   SolicitudDocente: {
     type: 'object',
+    required: ['id', 'estado', 'especialidad', 'motivo', 'observacion', 'enviadaEn', 'revisadaEn', 'solicitante'],
     properties: {
       id: { type: 'integer', example: 4 },
-      estado: { type: 'string', enum: ['PENDIENTE', 'APROBADA', 'RECHAZADA'] },
+      estado: { type: 'string', enum: ESTADOS },
       especialidad: { type: 'string', example: 'Programación web' },
       motivo: { type: 'string' },
       observacion: { type: 'string', nullable: true, description: 'Motivo del rechazo (solo RECHAZADA).' },
@@ -27,6 +17,7 @@ export const esquemasSolicitudes = {
       revisadaEn: { type: 'string', format: 'date-time', nullable: true },
       solicitante: {
         type: 'object',
+        required: ['nombres', 'apellidos', 'correo', 'estudianteDesde', 'cursosCompletados'],
         properties: {
           nombres: { type: 'string' },
           apellidos: { type: 'string' },
@@ -52,7 +43,9 @@ export const rutasSolicitudes = {
           'application/json': {
             schema: {
               type: 'object',
+              additionalProperties: false,
               required: ['especialidad', 'motivo'],
+              description: 'Se recortan los espacios de los extremos antes de validar.',
               properties: {
                 especialidad: { type: 'string', minLength: 3, maxLength: 100 },
                 motivo: { type: 'string', minLength: 50, maxLength: 2000 },
@@ -63,10 +56,12 @@ export const rutasSolicitudes = {
       },
       responses: {
         201: json(ref('SolicitudDocente'), 'Solicitud creada'),
-        400: error('Datos inválidos'),
+        ...erroresCuerpoJson('Datos inválidos'),
         401: error('Sin sesión'),
+        403: error('La cuenta no tiene el rol ESTUDIANTE (SIN_PERMISO)'),
         409: error('YA_ES_DOCENTE o SOLICITUD_PENDIENTE'),
         429: error('Demasiadas peticiones'),
+        500: errorInterno,
       },
     },
   },
@@ -76,8 +71,13 @@ export const rutasSolicitudes = {
       summary: 'Estado de mi última solicitud',
       security: seguridad,
       responses: {
-        200: json({ type: 'object', properties: { solicitud: { ...ref('SolicitudDocente'), nullable: true } } }),
+        200: json({
+          type: 'object',
+          required: ['solicitud'],
+          properties: { solicitud: { ...ref('SolicitudDocente'), nullable: true } },
+        }),
         401: error('Sin sesión'),
+        500: errorInterno,
       },
     },
   },
@@ -85,14 +85,19 @@ export const rutasSolicitudes = {
     get: {
       tags: ['Solicitudes de docente'],
       summary: 'Listar solicitudes por estado (administrador)',
+      description:
+        'Devuelve como máximo 200, sin paginar. Las pendientes, de la más antigua a la más reciente; ' +
+        'las revisadas, de la más reciente a la más antigua. Un parámetro de consulta desconocido da 400.',
       security: seguridad,
       parameters: [
-        { name: 'estado', in: 'query', schema: { type: 'string', enum: ['PENDIENTE', 'APROBADA', 'RECHAZADA'], default: 'PENDIENTE' } },
+        { name: 'estado', in: 'query', schema: { type: 'string', enum: ESTADOS, default: 'PENDIENTE' } },
       ],
       responses: {
-        200: json({ type: 'array', items: ref('SolicitudDocente') }),
+        200: json({ type: 'array', maxItems: 200, items: ref('SolicitudDocente') }),
+        400: error('Estado o parámetro de consulta inválido (SOLICITUD_INVALIDA)'),
         401: error('Sin sesión'),
         403: error('No es administrador'),
+        500: errorInterno,
       },
     },
   },
@@ -101,21 +106,35 @@ export const rutasSolicitudes = {
       tags: ['Solicitudes de docente'],
       summary: 'Aprobar o rechazar una solicitud (administrador)',
       description:
-        'APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol llega a la sesión del ' +
-        'estudiante en su próxima renovación. RECHAZAR exige `observacion` (máximo 300 caracteres).',
+        'APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol se aplica de inmediato ' +
+        'en la siguiente petición autenticada (ADR-011, 11.10). RECHAZAR exige `observacion` (máximo 300 caracteres).',
       security: seguridad,
-      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      parameters: [idRuta],
       requestBody: {
         required: true,
         content: {
           'application/json': {
             schema: {
               oneOf: [
-                { type: 'object', required: ['decision'], properties: { decision: { type: 'string', enum: ['APROBAR'] } } },
                 {
                   type: 'object',
+                  additionalProperties: false,
+                  required: ['decision'],
+                  properties: { decision: { type: 'string', enum: ['APROBAR'] } },
+                },
+                {
+                  type: 'object',
+                  additionalProperties: false,
                   required: ['decision', 'observacion'],
-                  properties: { decision: { type: 'string', enum: ['RECHAZAR'] }, observacion: { type: 'string', maxLength: 300 } },
+                  properties: {
+                    decision: { type: 'string', enum: ['RECHAZAR'] },
+                    observacion: {
+                      type: 'string',
+                      minLength: 1,
+                      maxLength: 300,
+                      description: 'Se recortan los espacios de los extremos antes de validar.',
+                    },
+                  },
                 },
               ],
             },
@@ -124,10 +143,12 @@ export const rutasSolicitudes = {
       },
       responses: {
         200: json(ref('SolicitudDocente'), 'Solicitud decidida'),
-        400: error('Datos inválidos'),
+        ...erroresCuerpoJson(`Datos inválidos o ${idInvalido}`),
+        401: error('Sin sesión'),
         403: error('No es administrador o es su propia solicitud'),
         404: error('No existe'),
         409: error('SOLICITUD_YA_REVISADA'),
+        500: errorInterno,
       },
     },
   },

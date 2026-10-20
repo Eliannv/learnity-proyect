@@ -1,4 +1,4 @@
-
+import './ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -6,9 +6,9 @@ import {
   datosCursoSchema,
   datosModuloSchema,
   datosLeccionSchema,
-} from '../src/modules/cursos/cursos-gestion.esquemas.js';
+} from '../src/modules/cursos/cursos.esquemas.js';
 
-describe('Integrante 2 - Backend de Cursos', () => {
+describe('Esquemas de gestión de cursos', () => {
   const cursoValido = {
     titulo: 'Introducción a la programación',
     subtitulo: 'Aprende desde cero',

@@ -5,7 +5,10 @@ import { identidadRepository } from '../src/modules/identidad/identidad.reposito
 import { compararContrasena } from '../src/shared/auth/contrasena.js';
 import { pool } from '../src/shared/database/pool.js';
 
-const contrasena = process.env.SEED_PASSWORD ?? 'Learnity2026!';
+const contrasena = process.env.SEED_PASSWORD;
+if (!contrasena) {
+  throw new Error('Configura SEED_PASSWORD antes de comprobar las cuentas de prueba.');
+}
 let fallas = 0;
 
 for (const correo of ['ana.torres@learnity.com', 'carlos.mendoza@correo.com', 'rosa.vera@correo.com']) {

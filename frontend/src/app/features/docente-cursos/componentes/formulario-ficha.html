@@ -1,0 +1,126 @@
+<form
+  class="tarjeta bloque"
+  [formGroup]="form()"
+  (ngSubmit)="guardar.emit()"
+  (input)="cambio.emit()"
+  (change)="cambio.emit()"
+>
+  <h2>1. Datos del curso</h2>
+
+  <p>
+    Para crear el borrador necesitas título, categoría y nivel. Completa los demás datos antes de enviarlo.
+  </p>
+
+  <fieldset class="campos" [disabled]="!editable() || deshabilitado()">
+    <label class="campo">
+      Título (máximo 150 caracteres)
+
+      <input class="control" formControlName="titulo" maxlength="150" />
+
+      <small class="error-campo">{{ errorCampo('titulo') }}</small>
+    </label>
+
+    <label class="campo">
+      Subtítulo (máximo 200 caracteres)
+
+      <input class="control" formControlName="subtitulo" maxlength="200" />
+
+      <small class="error-campo">{{ errorCampo('subtitulo') }}</small>
+    </label>
+
+    <label class="campo">
+      Descripción (máximo 10 000 caracteres)
+
+      <textarea class="control" formControlName="descripcion" maxlength="10000"></textarea>
+
+      <small class="error-campo">{{ errorCampo('descripcion') }}</small>
+    </label>
+
+    <div class="rejilla">
+      <label class="campo">
+        Categoría
+
+        <select class="control" formControlName="categoriaId">
+          <option [ngValue]="0">Selecciona una categoría</option>
+
+          @if (curso(); as c) {
+            <option [ngValue]="c.categoriaId">{{ c.categoriaNombre }}</option>
+          }
+
+          @for (c of categorias(); track c.id) {
+            @if (c.id !== curso()?.categoriaId) {
+              <option [ngValue]="c.id">{{ c.nombre }}</option>
+            }
+          }
+        </select>
+
+        <small class="error-campo">{{ errorCampo('categoriaId') }}</small>
+      </label>
+
+      <label class="campo">
+        Nivel
+
+        <select class="control" formControlName="nivel">
+          <option value="PRINCIPIANTE">Principiante</option>
+          <option value="INTERMEDIO">Intermedio</option>
+          <option value="AVANZADO">Avanzado</option>
+        </select>
+
+        <small class="error-campo">{{ errorCampo('nivel') }}</small>
+      </label>
+    </div>
+
+    <label class="campo">
+      URL de portada
+
+      <input
+        class="control"
+        formControlName="portadaUrl"
+        maxlength="255"
+        placeholder="https://… o /img/portada.jpg"
+      />
+
+      <small>Usa una imagen horizontal de 16:9 disponible para los visitantes.</small>
+
+      <small class="error-campo">{{ errorCampo('portadaUrl') }}</small>
+    </label>
+
+    <div class="rejilla">
+      <label class="campo">
+        Objetivos: uno por línea, al menos 3 para revisión
+
+        <textarea class="control" formControlName="objetivos"></textarea>
+
+        <small>Hasta 10 objetivos de 200 caracteres cada uno.</small>
+
+        <small class="error-campo">{{ errorCampo('objetivos') }}</small>
+      </label>
+
+      <label class="campo">
+        Requisitos: uno por línea (opcional)
+
+        <textarea class="control" formControlName="requisitos"></textarea>
+
+        <small>Hasta 10 requisitos de 200 caracteres cada uno.</small>
+
+        <small class="error-campo">{{ errorCampo('requisitos') }}</small>
+      </label>
+    </div>
+  </fieldset>
+
+  @if (editable()) {
+    <button
+      type="submit"
+      class="btn btn-primario"
+      [disabled]="form().invalid || deshabilitado()"
+    >
+      {{
+        guardando()
+          ? 'Guardando…'
+          : curso()
+            ? 'Guardar cambios'
+            : 'Crear borrador'
+      }}
+    </button>
+  }
+</form>

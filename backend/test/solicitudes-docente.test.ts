@@ -1,5 +1,6 @@
 // Pruebas de integración: solicitud para ser docente (estudiante) y su revisión (administrador).
 // Requiere NODE_ENV=test y una base cuyo nombre termine en _test (ver .env.test.example).
+import './ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
@@ -12,6 +13,7 @@ if (process.env['NODE_ENV'] !== 'test' || !process.env['DB_NAME']?.endsWith('_te
 
 const { crearApp } = await import('../src/app.js');
 const { pool } = await import('../src/shared/database/pool.js');
+const { crearFixtures } = await import('./ayudas/bd-fixtures.js');
 const { firmarAccessToken } = await import('../src/shared/auth/jwt.js');
 const { reiniciarLimites } = await import('../src/shared/http/limite-peticiones.js');
 
@@ -19,6 +21,7 @@ const marca = 'sd_' + randomUUID().slice(0, 8);
 const personas: number[] = [];
 let base = '';
 let servidor: ReturnType<ReturnType<typeof crearApp>['listen']> | undefined;
+let f: Awaited<ReturnType<typeof crearFixtures>>;
 
 interface Cuenta {
   sesion: UsuarioSesion;
@@ -28,24 +31,24 @@ interface Cuenta {
 const MOTIVO = 'Enseño programación web desde hace cinco años y quiero publicar un curso para principiantes.';
 
 async function cuenta(roles: Rol[]): Promise<Cuenta> {
-  const p = await pool.query<{ id: number }>(
+  const p = await f.query<{ id: number }>(
     'INSERT INTO persona (nombres, apellidos) VALUES ($1, $2) RETURNING id_persona AS id',
     [marca, roles.join(' ')],
   );
   const idPersona = p.rows[0]!.id;
   personas.push(idPersona);
   const correo = `${marca}_${idPersona}@pruebas.test`;
-  const u = await pool.query<{ id: number }>(
+  const u = await f.query<{ id: number }>(
     'INSERT INTO usuario (id_persona, correo, contrasena_hash) VALUES ($1, $2, $3) RETURNING id_usuario AS id',
     [idPersona, correo, 'x'.repeat(60)],
   );
   const idUsuario = u.rows[0]!.id;
-  await pool.query(
+  await f.query(
     'INSERT INTO usuario_rol (id_usuario, id_rol) SELECT $1, id_rol FROM rol WHERE nombre = ANY($2::text[])',
     [idUsuario, roles],
   );
   const sid = randomUUID();
-  await pool.query(
+  await f.query(
     `INSERT INTO sesion (id_usuario, familia, token_hash, iniciada_en, expira_en)
      VALUES ($1, $2, $3, now(), now() + interval '1 day')`,
     [idUsuario, sid, randomUUID().replaceAll('-', '').repeat(2)],
@@ -70,6 +73,7 @@ const enviar = (quien: Cuenta | null, cuerpo: unknown = { especialidad: 'Program
 beforeEach(() => reiniciarLimites());
 
 before(async () => {
+  f = await crearFixtures();
   servidor = crearApp().listen(0);
   await new Promise<void>((r) => servidor!.once('listening', r));
   base = `http://127.0.0.1:${(servidor.address() as AddressInfo).port}`;
@@ -78,14 +82,15 @@ before(async () => {
 after(async () => {
   if (servidor) await new Promise<void>((r) => servidor!.close(() => r()));
   if (personas.length) {
-    await pool.query(
+    await f.query(
       'DELETE FROM solicitud_docente WHERE id_persona = ANY($1::int[]) OR revisada_por = ANY($1::int[])',
       [personas],
     );
-    await pool.query('DELETE FROM docente WHERE id_persona = ANY($1::int[])', [personas]);
-    await pool.query('DELETE FROM usuario WHERE id_persona = ANY($1::int[])', [personas]);
-    await pool.query('DELETE FROM persona WHERE id_persona = ANY($1::int[])', [personas]);
+    await f.query('DELETE FROM docente WHERE id_persona = ANY($1::int[])', [personas]);
+    await f.query('DELETE FROM usuario WHERE id_persona = ANY($1::int[])', [personas]);
+    await f.query('DELETE FROM persona WHERE id_persona = ANY($1::int[])', [personas]);
   }
+  await f.cerrar();
   await pool.end();
 });
 
@@ -123,7 +128,7 @@ describe('Solicitud para ser docente', () => {
     const est = await cuenta(['ESTUDIANTE']);
     const estados = (await Promise.all([enviar(est), enviar(est), enviar(est)])).map((r) => r.status).sort();
     assert.deepEqual(estados, [201, 409, 409]);
-    const n = await pool.query("SELECT count(*)::int AS n FROM solicitud_docente WHERE id_persona = $1 AND estado = 'PENDIENTE'", [
+    const n = await f.query("SELECT count(*)::int AS n FROM solicitud_docente WHERE id_persona = $1 AND estado = 'PENDIENTE'", [
       est.sesion.idPersona,
     ]);
     assert.equal(n.rows[0].n, 1);
@@ -167,7 +172,7 @@ describe('Solicitud para ser docente', () => {
     const mia = await pedir('/api/solicitudes-docente/mia', est);
     assert.equal(mia.json.solicitud.estado, 'RECHAZADA');
     assert.equal(mia.json.solicitud.observacion, 'Agrega un ejemplo del curso que quieres publicar.');
-    const roles = await pool.query(
+    const roles = await f.query(
       "SELECT 1 FROM usuario_rol ur JOIN rol r USING (id_rol) WHERE ur.id_usuario = $1 AND r.nombre = 'DOCENTE'",
       [est.sesion.idUsuario],
     );
@@ -183,13 +188,13 @@ describe('Solicitud para ser docente', () => {
     assert.equal(r.status, 200);
     assert.equal(r.json.estado, 'APROBADA');
 
-    const roles = await pool.query<{ nombre: string; asignado_por: number | null }>(
+    const roles = await f.query<{ nombre: string; asignado_por: number | null }>(
       'SELECT r.nombre, ur.asignado_por FROM usuario_rol ur JOIN rol r USING (id_rol) WHERE ur.id_usuario = $1 ORDER BY r.nombre',
       [est.sesion.idUsuario],
     );
     assert.deepEqual(roles.rows.map((f) => f.nombre), ['DOCENTE', 'ESTUDIANTE']);
     assert.equal(roles.rows.find((f) => f.nombre === 'DOCENTE')!.asignado_por, adm.sesion.idPersona);
-    const docente = await pool.query('SELECT especialidad, estado FROM docente WHERE id_persona = $1', [est.sesion.idPersona]);
+    const docente = await f.query('SELECT especialidad, estado FROM docente WHERE id_persona = $1', [est.sesion.idPersona]);
     assert.deepEqual(docente.rows[0], { especialidad: 'Programación web', estado: 'ACTIVO' });
 
     const otraVez = await pedir(`/api/admin/solicitudes/${s.json.id}`, adm, 'PUT', { decision: 'RECHAZAR', observacion: 'x' });

@@ -22,7 +22,7 @@
         "archivos:limpiar": "tsx scripts/limpiar-pdf.ts",
         "test:pdf": "tsx --test test/pdf-validacion.test.ts",
         "test:integrante3": "tsx --env-file=.env.test --test --test-concurrency=1 test/pdf-validacion.test.ts test/administracion-contenido.test.ts",
-        "test:local": "tsx --env-file=.env.test --test --test-concurrency=1 --test-skip-pattern=\"Have I Been Pwned\" test/identidad.test.ts test/cursos-publicos.test.ts test/pdf-validacion.test.ts test/administracion-contenido.test.ts test/cursos-gestion.test.ts test/cursos-gestion-http.test.ts test/solicitudes-docente.test.ts"
+        "test:local": "tsx --env-file=.env.test --test --test-concurrency=1 --test-skip-pattern=\"Have I Been Pwned\" \"test/**/*.test.ts\""
     },
     "dependencies": {
         "bcrypt": "^6.0.0",

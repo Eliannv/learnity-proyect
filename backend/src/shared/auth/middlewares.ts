@@ -4,10 +4,11 @@ import { verificarAccessToken } from './jwt.js';
 import type { Rol, UsuarioSesion } from './tipos.js';
 
 /**
- * Comprueba que la sesión del token siga vigente (no se cerró ni se revocó por un cambio de contraseña).
+ * Comprueba que la sesión del token siga vigente (no se cerró ni se revocó por un cambio de contraseña)
+ * y devuelve los roles ACTUALES de la cuenta, o `null` si la sesión ya no vale (ADR-011, 11.10).
  * Lo registra el módulo Identidad al armar la aplicación: así `shared` no depende de un módulo.
  */
-type VerificadorSesion = (usuario: UsuarioSesion) => Promise<boolean>;
+type VerificadorSesion = (usuario: UsuarioSesion) => Promise<Rol[] | null>;
 let verificadorSesion: VerificadorSesion | null = null;
 
 export function registrarVerificadorSesion(verificador: VerificadorSesion): void {
@@ -27,10 +28,11 @@ export const autenticar: RequestHandler = async (req, _res, next) => {
   } catch {
     throw AppError.noAutenticado('Tu sesión expiró o no es válida.', 'TOKEN_INVALIDO');
   }
-  if (!verificadorSesion || !(await verificadorSesion(usuario))) {
+  const roles = verificadorSesion ? await verificadorSesion(usuario) : null;
+  if (!roles) {
     throw AppError.noAutenticado('Tu sesión se cerró. Inicia sesión otra vez.', 'SESION_REVOCADA');
   }
-  req.usuario = usuario;
+  req.usuario = { ...usuario, roles };
   next();
 };
 

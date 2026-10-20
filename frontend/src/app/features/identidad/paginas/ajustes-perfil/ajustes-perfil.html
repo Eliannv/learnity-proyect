@@ -1,0 +1,220 @@
+<h1 class="titulo">Ajustes y perfil</h1>
+
+<div class="pestanas" role="tablist" aria-label="Ajustes de la cuenta">
+  @for (p of pestanas; track p.id) {
+    <button
+      type="button"
+      role="tab"
+      [id]="'tab-' + p.id"
+      [attr.aria-selected]="pestana() === p.id"
+      [attr.aria-controls]="'panel-' + p.id"
+      [class.activa]="pestana() === p.id"
+      (click)="pestana.set(p.id)"
+    >
+      {{ p.texto }}
+    </button>
+  }
+</div>
+
+@switch (pestana()) {
+  @case ('perfil') {
+    <form class="panel" id="panel-perfil" role="tabpanel" aria-labelledby="tab-perfil" [formGroup]="form" (ngSubmit)="guardarPerfil()" novalidate>
+      <div class="columnas">
+        <div class="columna">
+          <div class="campo">
+            <label class="etiqueta" for="nombres">Nombres</label>
+            <input id="nombres" class="control" formControlName="nombres" autocomplete="given-name" [class.invalido]="invalido(form.controls.nombres)" />
+            @if (invalido(form.controls.nombres)) {
+              <span class="error-campo">Escribe tus nombres.</span>
+            }
+          </div>
+          <div class="campo">
+            <label class="etiqueta" for="apellidos">Apellidos</label>
+            <input id="apellidos" class="control" formControlName="apellidos" autocomplete="family-name" [class.invalido]="invalido(form.controls.apellidos)" />
+            @if (invalido(form.controls.apellidos)) {
+              <span class="error-campo">Escribe tus apellidos.</span>
+            }
+          </div>
+          <div class="campo">
+            <label class="etiqueta" for="biografia">Biografía</label>
+            <textarea id="biografia" class="control" formControlName="biografia" maxlength="300" placeholder="Cuéntanos algo sobre ti"></textarea>
+            <span class="ayuda">
+              @if (auth.esDocente()) {
+                Aparece en el detalle de tus cursos. Cuenta tu experiencia y qué enseñas; sin enlaces.
+              } @else {
+                Opcional. Solo la ven tú y los administradores.
+              }
+              {{ valores().biografia?.length ?? 0 }}/300
+            </span>
+          </div>
+        </div>
+
+        <div class="columna">
+          <div class="campo">
+            <label class="etiqueta" for="correo">Correo electrónico</label>
+            <input id="correo" class="control" [value]="auth.usuario()?.correo" readonly />
+            <span class="ayuda">Con este correo inicias sesión y recuperas tu contraseña. No se puede cambiar.</span>
+          </div>
+          <div class="campo">
+            <label class="etiqueta" for="ciudad">Ciudad</label>
+            <input id="ciudad" class="control" formControlName="ciudad" autocomplete="address-level2" />
+          </div>
+
+          @if (auth.esDocente()) {
+            <section class="vista-docente" aria-label="Vista previa">
+              <span class="eyebrow">Así te ven tus estudiantes</span>
+              <div class="fila">
+                <app-avatar [texto]="auth.iniciales()" [tamano]="48" />
+                <div>
+                  <strong>{{ valores().nombres }} {{ valores().apellidos }}</strong>
+                  <small>Docente en Learnity</small>
+                </div>
+              </div>
+              <p>{{ valores().biografia || 'Aún no escribes tu biografía.' }}</p>
+            </section>
+          } @else {
+            <div class="aviso">
+              <lucide-icon name="lock" [size]="18" />
+              <span>Tu perfil es privado: nadie más ve qué cursos tomas ni tu avance.</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="pie">
+        <button type="submit" class="btn btn-primario btn-lg" [disabled]="form.pristine || guardandoPerfil()">
+          {{ guardandoPerfil() ? 'Guardando…' : 'Guardar' }}
+        </button>
+        @if (perfilMensaje()) {
+          <div class="aviso exito" role="status">
+            <lucide-icon name="circle-check" [size]="18" />
+            <span>{{ perfilMensaje() }}</span>
+          </div>
+        }
+        @if (perfilError()) {
+          <div class="aviso error" role="alert">
+            <lucide-icon name="circle-alert" [size]="18" />
+            <span>{{ perfilError() }}</span>
+          </div>
+        }
+      </div>
+    </form>
+  }
+
+  @case ('foto') {
+    <section class="panel foto" id="panel-foto" role="tabpanel" aria-labelledby="tab-foto">
+      <div class="foto-vista">
+        @if (fotoVista()) {
+          <img [src]="fotoVista()" alt="Vista previa de tu nueva foto" width="160" height="160" />
+        } @else {
+          <app-avatar [texto]="auth.iniciales()" [tamano]="160" />
+        }
+      </div>
+      <div class="foto-acciones">
+        <h2>Tu foto de perfil</h2>
+        <p class="texto-suave">JPG, PNG o WEBP de hasta 500 KB. Se ve en tu menú de la cuenta; si eres docente, también en tus cursos.
+          Puedes ver la vista previa; guardar la foto estará disponible muy pronto.</p>
+        <div class="fila botones">
+          <label class="btn btn-contorno">
+            <lucide-icon name="camera" [size]="18" /> Elegir imagen
+            <input class="visualmente-oculto" type="file" accept="image/jpeg,image/png,image/webp" (change)="elegirFoto($event)" />
+          </label>
+          @if (fotoVista()) {
+            <button type="button" class="btn btn-texto" (click)="quitarFoto()">Quitar</button>
+          }
+        </div>
+        @if (fotoError()) {
+          <div class="aviso error" role="alert">
+            <lucide-icon name="circle-alert" [size]="18" />
+            <span>{{ fotoError() }}</span>
+          </div>
+        }
+        <button type="button" class="btn btn-primario btn-lg guardar-foto" disabled>Guardar foto</button>
+      </div>
+    </section>
+  }
+
+  @case ('contrasena') {
+    <form class="panel angosto" id="panel-contrasena" role="tabpanel" aria-labelledby="tab-contrasena" [formGroup]="formContrasena" (ngSubmit)="cambiarContrasena()" novalidate>
+      <div class="campo">
+        <label class="etiqueta" for="actual">Contraseña actual</label>
+        <input id="actual" class="control" [type]="verContrasenas() ? 'text' : 'password'" formControlName="actual" autocomplete="current-password" [class.invalido]="invalido(formContrasena.controls.actual)" />
+        @if (invalido(formContrasena.controls.actual)) {
+          <span class="error-campo" role="alert">{{ formContrasena.controls.actual.errors?.['servidor'] ?? 'Escribe tu contraseña actual.' }}</span>
+        }
+      </div>
+      <div class="campo">
+        <label class="etiqueta" for="nueva">Nueva contraseña</label>
+        <input id="nueva" class="control" [type]="verContrasenas() ? 'text' : 'password'" formControlName="nueva" autocomplete="new-password" [class.invalido]="invalido(formContrasena.controls.nueva)" />
+        @if (invalido(formContrasena.controls.nueva)) {
+          <span class="error-campo" role="alert">{{ mensajeContrasena(formContrasena.controls.nueva.errors) }}</span>
+        } @else {
+          <span class="ayuda">{{ ayudaContrasena }}</span>
+        }
+      </div>
+      <div class="campo">
+        <label class="etiqueta" for="confirmar">Repite la nueva contraseña</label>
+        <input
+          id="confirmar"
+          class="control"
+          [type]="verContrasenas() ? 'text' : 'password'"
+          formControlName="confirmar"
+          autocomplete="new-password"
+          [class.invalido]="formContrasena.hasError('distintas') && formContrasena.controls.confirmar.touched"
+        />
+        @if (formContrasena.hasError('distintas') && formContrasena.controls.confirmar.touched) {
+          <span class="error-campo">Las contraseñas no coinciden.</span>
+        }
+      </div>
+      <label class="casilla">
+        <input type="checkbox" [checked]="verContrasenas()" (change)="verContrasenas.set(!verContrasenas())" />
+        Mostrar contraseñas
+      </label>
+      <div class="pie">
+        <button type="submit" class="btn btn-primario btn-lg" [disabled]="guardandoContrasena()">
+          {{ guardandoContrasena() ? 'Guardando…' : 'Cambiar contraseña' }}
+        </button>
+        @if (contrasenaMensaje()) {
+          <div class="aviso exito" role="status">
+            <lucide-icon name="circle-check" [size]="18" />
+            <span>{{ contrasenaMensaje() }}</span>
+          </div>
+        }
+        @if (contrasenaError()) {
+          <div class="aviso error" role="alert">
+            <lucide-icon name="circle-alert" [size]="18" />
+            <span>{{ contrasenaError() }}</span>
+          </div>
+        }
+      </div>
+    </form>
+  }
+
+  @case ('cuenta') {
+    <section class="panel cuenta" id="panel-cuenta" role="tabpanel" aria-labelledby="tab-cuenta">
+      <div class="bloque">
+        <h2>Tus roles</h2>
+        <p class="texto-suave">Los roles se suman: toda cuenta es Estudiante. Administración aprueba el rol de Docente.</p>
+        <ul class="roles">
+          @for (r of roles(); track r.nombre) {
+            <li>
+              <lucide-icon name="circle-check" [size]="20" />
+              <div>
+                <strong>{{ r.nombre }}</strong>
+                <span class="texto-suave">{{ r.descripcion }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="bloque">
+        <h2>Sesión</h2>
+        <p class="texto-suave">Cuenta activa{{ activaDesde() ? ' desde el ' + activaDesde() : '' }}. Cierra la sesión si usas una computadora compartida.</p>
+        <button type="button" class="btn btn-peligro salir" (click)="auth.cerrarSesion()">
+          <lucide-icon name="log-out" [size]="18" /> Cerrar sesión
+        </button>
+      </div>
+    </section>
+  }
+}

@@ -1,0 +1,95 @@
+<div class="pagina">
+  <a routerLink="/docente/cursos">← Mis cursos</a>
+
+  <header class="cabecera">
+    <h1 class="titulo-pagina">
+      {{ id() === 'nuevo' ? 'Crear curso' : 'Contenido del curso' }}
+    </h1>
+
+    @if (curso(); as c) {
+      <app-estado-curso [estado]="c.estado" />
+    }
+  </header>
+
+  @if (carga.ocupada()) {
+    <p class="mensaje" role="status">Cargando editor…</p>
+  } @else if (carga.error()) {
+    <div class="mensaje error" role="alert">
+      <p>{{ carga.error() }}</p>
+      <button type="button" class="btn btn-contorno" (click)="cargar()">
+        Reintentar
+      </button>
+    </div>
+  } @else {
+    @if (!editable()) {
+      <p class="mensaje">Este curso no permite cambios en su estado actual.</p>
+    }
+    @if (curso()?.motivoRechazo; as motivo) {
+      <p class="mensaje error">
+        <strong>Motivo del rechazo:</strong> {{ motivo }}
+      </p>
+    }
+    @if (p.error()) {
+      <p class="mensaje error" role="alert">{{ p.error() }}</p>
+    }
+    @if (p.exito()) {
+      <p class="mensaje exito" role="status">{{ p.exito() }}</p>
+    }
+    @if (p.requiereRecarga()) {
+      <button type="button" class="btn btn-contorno" (click)="cargar()">
+        Actualizar curso
+      </button>
+    }
+
+    <app-formulario-ficha
+      [form]="form"
+      [curso]="curso()"
+      [categorias]="categorias()"
+      [editable]="editable()"
+      [deshabilitado]="bloqueado() || formularioContenido()"
+      [guardando]="p.ocupada()"
+      [errores]="p.campos()"
+      (guardar)="guardar()"
+      (cambio)="sucio.set(true)"
+    />
+
+    @if (curso(); as c) {
+      <section class="tarjeta bloque">
+        <h2>2. Módulos, lecciones y PDF</h2>
+
+        @if (sucio()) {
+          <p class="mensaje">
+            Guarda los datos del curso antes de modificar su contenido o enviarlo a revisión.
+          </p>
+        }
+
+        <app-arbol-temario
+          [curso]="c"
+          [editable]="editable()"
+          [bloqueado]="p.ocupada() || sucio() || p.requiereRecarga()"
+          [guardarModuloFn]="guardarModuloFn"
+          [guardarLeccionFn]="guardarLeccionFn"
+          [eliminarContenidoFn]="eliminarContenidoFn"
+          [subirArchivoFn]="subirArchivoFn"
+          [descargarArchivoFn]="descargarArchivoFn"
+          (actualizado)="aplicar($event)"
+          (ocupado)="contenidoOcupado.set($event)"
+          (formularioAbierto)="formularioContenido.set($event)"
+          (recargar)="cargar()"
+        />
+      </section>
+
+      @if (editable()) {
+        <app-panel-publicacion
+          [curso]="c"
+          [deshabilitado]="bloqueado() || sucio() || formularioContenido()"
+          (enviar)="enviar()"
+        />
+      }
+    } @else {
+      <p class="mensaje">
+        Crea el borrador para empezar a agregar módulos y lecciones.
+      </p>
+    }
+  }
+</div>

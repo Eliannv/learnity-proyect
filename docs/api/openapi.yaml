@@ -1,0 +1,4038 @@
+# Contrato de la API de Learnity: describe lo que la API hace hoy.
+# Generado desde backend/src/shared/http/openapi*.ts y versionado en el mismo commit. No se edita a mano:
+# se regenera desde openapi*.ts con el mismo procedimiento (ver docs/api/COMPARACION_RUTAS.md).
+# El cuerpo es JSON, que también es YAML 1.2 válido.
+# Diferencias con las rutas reales: docs/api/COMPARACION_RUTAS.md (hallazgos C-nn).
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Learnity API",
+    "version": "0.3.0",
+    "description": "API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.\n\n**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie\n`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.\nCerrar sesión, cambiar o restablecer la contraseña revocan las sesiones y sus access tokens dejan de valer de inmediato;\nlos roles vigentes de la cuenta se leen al verificar la sesión en cada petición (ADR-011, 11.10).\n\n**CSRF.** Las rutas que usan la cookie (`/auth/refresh`, `/auth/logout`) exigen el encabezado `X-XSRF-TOKEN`\ncon el valor de la cookie `XSRF-TOKEN` (Angular lo envía solo). Todas las rutas `/auth/*` rechazan otros orígenes.\n\n**Límites.** Por IP: login 20/15 min, registro 10/h, recuperar 5/15 min, restablecer 10/15 min, refresh 120/15 min,\nlogout 60/15 min, cambiar la contraseña 10/15 min, subida de PDF 30/15 min y solicitudes de docente 10/h.\nPor cuenta: 5 inicios fallidos seguidos la bloquean 15 minutos (con el mismo mensaje genérico); una sola solicitud de docente pendiente.\nContenido: un curso tiene hasta 10 módulos, cada módulo hasta 12 lecciones y cada PDF hasta 10 MiB. Cuerpos JSON de hasta 1 MB.\n\n**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.\nCualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es\n409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK, clave foránea o un texto con el carácter NUL, 22021, que la\nvalidación no rechazó antes; ADR-011, 11.7).\nLos errores del parser JSON responden sin `detalles` (ADR-011, 11.6): 400 SOLICITUD_INVALIDA si el cuerpo no es un JSON válido,\n413 CUERPO_DEMASIADO_GRANDE si supera 1 MB y 415 TIPO_NO_ADMITIDO si el charset no es UTF o el `Content-Encoding` no es\nidentity, gzip, deflate ni br. El parser actúa antes que las rutas, así que cualquier petición con `Content-Type: application/json`\npuede recibirlos, aunque la operación no tenga cuerpo. Las operaciones con cuerpo JSON los declaran.\n\n**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta\nresponde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto."
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "ProblemaCampo": {
+        "type": "object",
+        "required": [
+          "campo",
+          "mensaje"
+        ],
+        "properties": {
+          "campo": {
+            "type": "string",
+            "description": "Ruta del campo con puntos (`objetivos.0`); vacía si el problema es del cuerpo entero."
+          },
+          "mensaje": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorApi": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "codigo",
+              "mensaje"
+            ],
+            "properties": {
+              "codigo": {
+                "type": "string",
+                "example": "SOLICITUD_INVALIDA",
+                "description": "Código estable para el cliente: SOLICITUD_INVALIDA, NO_AUTENTICADO, TOKEN_INVALIDO, SESION_REVOCADA, SIN_PERMISO, NO_ENCONTRADO, CONFLICTO, CURSO_BLOQUEADO, DEMASIADAS_PETICIONES, CUERPO_DEMASIADO_GRANDE, TIPO_NO_ADMITIDO, ERROR_INTERNO y los propios de cada operación."
+              },
+              "mensaje": {
+                "type": "string",
+                "description": "Texto para mostrar a la persona usuaria."
+              },
+              "detalles": {
+                "description": "Opcional. Una lista de problemas por campo (errores de validación 400, 409 CURSO_INCOMPLETO y algunos 413 y 415 de la subida de PDF); `{ reintentarEnSegundos }` en el 429; un texto con el error original en el 500, solo con `NODE_ENV=development`. En los demás casos no se envía (por ejemplo, en el 409 CONFLICTO de PostgreSQL).",
+                "oneOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProblemaCampo"
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "reintentarEnSegundos"
+                    ],
+                    "properties": {
+                      "reintentarEnSegundos": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "CategoriaPublica": {
+        "type": "object",
+        "required": [
+          "id",
+          "nombre"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "nombre": {
+            "type": "string"
+          }
+        }
+      },
+      "CursoPublico": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "subtitulo",
+          "categoria",
+          "docente",
+          "nivel",
+          "portadaUrl",
+          "modulos",
+          "lecciones",
+          "minutos",
+          "publicadoEn",
+          "estado"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "subtitulo": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaPublica"
+          },
+          "docente": {
+            "type": "string"
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "PRINCIPIANTE",
+              "INTERMEDIO",
+              "AVANZADO"
+            ]
+          },
+          "portadaUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "modulos": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lecciones": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minutos": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "publicadoEn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de publicación; si el curso no la tiene, su fecha de creación."
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "PUBLICADO"
+            ]
+          }
+        }
+      },
+      "CursoPublicoDetalle": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CursoPublico"
+          },
+          {
+            "type": "object",
+            "required": [
+              "descripcion",
+              "docenteBio",
+              "objetivos",
+              "requisitos",
+              "temario"
+            ],
+            "properties": {
+              "descripcion": {
+                "type": "string",
+                "description": "Cadena vacía si no tiene."
+              },
+              "docenteBio": {
+                "type": "string",
+                "nullable": true
+              },
+              "objetivos": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requisitos": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "temario": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "orden",
+                    "titulo",
+                    "lecciones"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "orden": {
+                      "type": "integer"
+                    },
+                    "titulo": {
+                      "type": "string"
+                    },
+                    "lecciones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "orden",
+                          "titulo",
+                          "tipo",
+                          "minutos"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "orden": {
+                            "type": "integer"
+                          },
+                          "titulo": {
+                            "type": "string"
+                          },
+                          "tipo": {
+                            "type": "string",
+                            "enum": [
+                              "VIDEO",
+                              "DOCUMENTO",
+                              "EVALUACION"
+                            ]
+                          },
+                          "minutos": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "DatosCurso": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "titulo",
+          "categoriaId",
+          "nivel"
+        ],
+        "description": "En `PUT /cursos/{id}` el curso se reemplaza entero: los campos omitidos toman su valor por defecto.",
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Se recortan los espacios de los extremos antes de validar."
+          },
+          "subtitulo": {
+            "type": "string",
+            "maxLength": 200,
+            "default": ""
+          },
+          "descripcion": {
+            "type": "string",
+            "maxLength": 10000,
+            "default": ""
+          },
+          "categoriaId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Categoría existente y activa (si no, 400)."
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "PRINCIPIANTE",
+              "INTERMEDIO",
+              "AVANZADO"
+            ]
+          },
+          "portadaUrl": {
+            "type": "string",
+            "maxLength": 255,
+            "default": "",
+            "description": "Vacía, una ruta propia que empieza por `/` (sin `//`, `\\`, `..`, espacios, `?` ni `#`) o una URL `http(s)` con host y sin usuario ni contraseña."
+          },
+          "objetivos": {
+            "type": "array",
+            "maxItems": 10,
+            "default": [],
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "requisitos": {
+            "type": "array",
+            "maxItems": 10,
+            "default": [],
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        }
+      },
+      "DatosModulo": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "titulo",
+          "orden"
+        ],
+        "description": "Un curso tiene como máximo 10 módulos y cada orden se usa una sola vez (si no, 400).",
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Se recortan los espacios de los extremos antes de validar."
+          },
+          "orden": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        }
+      },
+      "DatosLeccion": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "titulo",
+          "orden",
+          "tipo"
+        ],
+        "description": "Un módulo tiene como máximo 12 lecciones y cada orden se usa una sola vez (si no, 400). Solo se editan lecciones DOCUMENTO.",
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 150,
+            "description": "Se recortan los espacios de los extremos antes de validar."
+          },
+          "orden": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTO"
+            ]
+          }
+        }
+      },
+      "ArchivoPdf": {
+        "type": "object",
+        "required": [
+          "id",
+          "tipo",
+          "nombreOriginal",
+          "tamanoBytes"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "PDF"
+            ]
+          },
+          "nombreOriginal": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "tamanoBytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10485760
+          }
+        }
+      },
+      "LeccionPrivada": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "orden",
+          "tipo",
+          "archivo"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "orden": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTO",
+              "VIDEO",
+              "EVALUACION"
+            ]
+          },
+          "archivo": {
+            "type": "object",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchivoPdf"
+              }
+            ]
+          }
+        }
+      },
+      "ModuloPrivado": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "orden",
+          "lecciones"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "orden": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "lecciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeccionPrivada"
+            }
+          }
+        }
+      },
+      "ValidacionCurso": {
+        "type": "object",
+        "required": [
+          "completo",
+          "problemas"
+        ],
+        "properties": {
+          "completo": {
+            "type": "boolean"
+          },
+          "problemas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProblemaCampo"
+            }
+          }
+        }
+      },
+      "CursoResumen": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "estado",
+          "motivoRechazo",
+          "docente",
+          "modulos"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "EN_REVISION",
+              "PUBLICADO",
+              "RECHAZADO",
+              "ARCHIVADO"
+            ]
+          },
+          "motivoRechazo": {
+            "type": "string",
+            "nullable": true
+          },
+          "docente": {
+            "type": "string"
+          },
+          "modulos": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "CursoDetalle": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "subtitulo",
+          "descripcion",
+          "categoriaId",
+          "categoriaNombre",
+          "nivel",
+          "portadaUrl",
+          "objetivos",
+          "requisitos",
+          "estado",
+          "motivoRechazo",
+          "docente",
+          "modulos",
+          "validacion"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "subtitulo": {
+            "type": "string",
+            "description": "Cadena vacía si no tiene."
+          },
+          "descripcion": {
+            "type": "string",
+            "description": "Cadena vacía si no tiene."
+          },
+          "categoriaId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "categoriaNombre": {
+            "type": "string"
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "PRINCIPIANTE",
+              "INTERMEDIO",
+              "AVANZADO"
+            ]
+          },
+          "portadaUrl": {
+            "type": "string",
+            "description": "Cadena vacía si no tiene."
+          },
+          "objetivos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requisitos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "BORRADOR",
+              "EN_REVISION",
+              "PUBLICADO",
+              "RECHAZADO",
+              "ARCHIVADO"
+            ]
+          },
+          "motivoRechazo": {
+            "type": "string",
+            "nullable": true
+          },
+          "docente": {
+            "type": "string"
+          },
+          "modulos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModuloPrivado"
+            }
+          },
+          "validacion": {
+            "$ref": "#/components/schemas/ValidacionCurso"
+          }
+        }
+      },
+      "SolicitudDocente": {
+        "type": "object",
+        "required": [
+          "id",
+          "estado",
+          "especialidad",
+          "motivo",
+          "observacion",
+          "enviadaEn",
+          "revisadaEn",
+          "solicitante"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 4
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "PENDIENTE",
+              "APROBADA",
+              "RECHAZADA"
+            ]
+          },
+          "especialidad": {
+            "type": "string",
+            "example": "Programación web"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "observacion": {
+            "type": "string",
+            "nullable": true,
+            "description": "Motivo del rechazo (solo RECHAZADA)."
+          },
+          "enviadaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revisadaEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "solicitante": {
+            "type": "object",
+            "required": [
+              "nombres",
+              "apellidos",
+              "correo",
+              "estudianteDesde",
+              "cursosCompletados"
+            ],
+            "properties": {
+              "nombres": {
+                "type": "string"
+              },
+              "apellidos": {
+                "type": "string"
+              },
+              "correo": {
+                "type": "string"
+              },
+              "estudianteDesde": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "cursosCompletados": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "ErrorInterno": {
+        "description": "Error inesperado (ERROR_INTERNO). Puede darse en cualquier operación",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorApi"
+            }
+          }
+        }
+      },
+      "CuerpoDemasiadoGrande": {
+        "description": "El cuerpo JSON supera 1 MB (CUERPO_DEMASIADO_GRANDE), sin detalles",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorApi"
+            }
+          }
+        }
+      },
+      "TipoNoAdmitido": {
+        "description": "El charset de `Content-Type` no es UTF (se espera UTF-8) o el `Content-Encoding` no es identity, gzip, deflate ni br (TIPO_NO_ADMITIDO), sin detalles",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorApi"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "cookieRefresh": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "learnity_rt"
+      },
+      "csrf": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-XSRF-TOKEN"
+      }
+    }
+  },
+  "paths": {
+    "/admin/cursos": {
+      "get": {
+        "tags": [
+          "Administración"
+        ],
+        "summary": "Cursos pendientes de revisión (ADMIN)",
+        "description": "Ordenados del más antiguo al más reciente. Un parámetro de consulta desconocido o un `estado` distinto de EN_REVISION dan 400.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "estado",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EN_REVISION"
+              ],
+              "default": "EN_REVISION"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CursoResumen"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Filtro inválido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente, inválida o revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/cursos/{id}": {
+      "get": {
+        "tags": [
+          "Administración"
+        ],
+        "summary": "Detalle privado, incluso si ya fue decidido (ADMIN)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Curso completo, directamente en la raíz",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente, inválida o revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/cursos/{id}/revision": {
+      "put": {
+        "tags": [
+          "Administración"
+        ],
+        "summary": "Aprobar o rechazar una revisión pendiente (ADMIN)",
+        "description": "La operación es atómica; una segunda decisión responde 409. Aprobar revalida el contenido y sus PDF.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "decision"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "APROBAR"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "decision",
+                      "motivo"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "RECHAZAR"
+                        ]
+                      },
+                      "motivo": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "description": "Se recortan los espacios de los extremos antes de validar."
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Curso completo, directamente en la raíz",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Decisión inválida (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente, inválida o revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Curso ya decidido (CONFLICTO) o incompleto al aprobar (CURSO_INCOMPLETO, con los problemas en detalles)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/lecciones/{id}/archivo": {
+      "post": {
+        "tags": [
+          "Contenido"
+        ],
+        "summary": "Subir o reemplazar el PDF principal (DOCENTE propietario)",
+        "description": "Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido. Límite: 30 subidas cada 15 minutos por IP (ADR-011, 11.4).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF de hasta 10 MiB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Curso completo, directamente en la raíz",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Formulario o PDF inválidos, o lección que no es DOCUMENTO (SOLICITUD_INVALIDA), o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente, inválida o revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE o la lección no es de un curso propio (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Curso bloqueado (CURSO_BLOQUEADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Supera 10 MiB (ARCHIVO_DEMASIADO_GRANDE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Tipo o formato de envío no admitido (TIPO_ARCHIVO_INVALIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/archivos/{id}": {
+      "get": {
+        "tags": [
+          "Contenido"
+        ],
+        "summary": "Descargar PDF privado (ADMIN o DOCENTE propietario)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bytes del PDF, sin publicar su ruta física",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "private, no-store"
+                }
+              },
+              "Content-Disposition": {
+                "description": "Descarga con el nombre original del PDF.",
+                "schema": {
+                  "type": "string",
+                  "example": "attachment; filename=\"tema-1.pdf\""
+                }
+              }
+            },
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente, inválida o revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permiso sobre el curso del archivo (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El archivo no existe o no es un PDF de una lección (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/cursos": {
+      "get": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Listar los cursos del docente autenticado",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CursoResumen"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/cursos/{id}": {
+      "get": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Consultar el detalle de un curso propio",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/cursos": {
+      "post": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Crear curso en estado BORRADOR",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosCurso"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Cursos"
+        ],
+        "summary": "Catálogo público: solo cursos publicados",
+        "description": "Los valores repetidos de categoría o nivel se combinan con OR dentro del grupo y AND entre grupos. La búsqueda consulta título, subtítulo y descripción. El total solo cuenta publicados y `totalPaginas` vale 0 si no hay resultados. El catálogo no excluye los cursos de categorías inactivas ni de docentes inactivos. Un parámetro de consulta desconocido da 400.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "description": "Se recortan los espacios; vacío no filtra.",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "categoria",
+            "description": "Nombre exacto; repetible.",
+            "schema": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "in": "query",
+            "name": "nivel",
+            "description": "Repetible.",
+            "schema": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "PRINCIPIANTE",
+                  "INTERMEDIO",
+                  "AVANZADO"
+                ]
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "in": "query",
+            "name": "orden",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "recientes",
+                "populares",
+                "az"
+              ],
+              "default": "recientes"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 9
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "pagina",
+                    "limite",
+                    "total",
+                    "totalPaginas"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CursoPublico"
+                      }
+                    },
+                    "pagina": {
+                      "type": "integer"
+                    },
+                    "limite": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "totalPaginas": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Filtros o paginación inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/cursos/{id}": {
+      "put": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Actualizar un curso BORRADOR o RECHAZADO",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosCurso"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Cursos"
+        ],
+        "summary": "Detalle público de un curso publicado",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoPublicoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El ID no existe o el curso no está publicado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/cursos/{id}/modulos": {
+      "post": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Crear módulo dentro de un curso propio",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosModulo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/modulos/{id}": {
+      "put": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Actualizar un módulo",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosModulo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Eliminar un módulo y coordinar limpieza de PDF",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/modulos/{id}/lecciones": {
+      "post": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Crear una lección DOCUMENTO",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosLeccion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/lecciones/{id}": {
+      "put": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Actualizar una lección DOCUMENTO",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosLeccion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Eliminar una lección y coordinar limpieza de PDF",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/cursos/{id}/enviar-revision": {
+      "post": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Validar y enviar curso a revisión administrativa",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso, el módulo o la lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "description": "Exige curso completo, docente propietario y estado BORRADOR o RECHAZADO. Si faltan requisitos devuelve 400 con detalles. Si es válido cambia el estado a EN_REVISION en una transacción.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ]
+      }
+    },
+    "/solicitudes-docente": {
+      "post": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Enviar la solicitud para ser docente (estudiante)",
+        "description": "Solo una solicitud pendiente por cuenta. Tras un rechazo se puede enviar otra. Límite: 10 por hora por IP.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "especialidad",
+                  "motivo"
+                ],
+                "description": "Se recortan los espacios de los extremos antes de validar.",
+                "properties": {
+                  "especialidad": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 100
+                  },
+                  "motivo": {
+                    "type": "string",
+                    "minLength": 50,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Solicitud creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "La cuenta no tiene el rol ESTUDIANTE (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "YA_ES_DOCENTE o SOLICITUD_PENDIENTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Demasiadas peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/solicitudes-docente/mia": {
+      "get": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Estado de mi última solicitud",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "solicitud"
+                  ],
+                  "properties": {
+                    "solicitud": {
+                      "$ref": "#/components/schemas/SolicitudDocente",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/solicitudes": {
+      "get": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Listar solicitudes por estado (administrador)",
+        "description": "Devuelve como máximo 200, sin paginar. Las pendientes, de la más antigua a la más reciente; las revisadas, de la más reciente a la más antigua. Un parámetro de consulta desconocido da 400.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "estado",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDIENTE",
+                "APROBADA",
+                "RECHAZADA"
+              ],
+              "default": "PENDIENTE"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 200,
+                  "items": {
+                    "$ref": "#/components/schemas/SolicitudDocente"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Estado o parámetro de consulta inválido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/solicitudes/{id}": {
+      "put": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Aprobar o rechazar una solicitud (administrador)",
+        "description": "APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol se aplica de inmediato en la siguiente petición autenticada (ADR-011, 11.10). RECHAZAR exige `observacion` (máximo 300 caracteres).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "decision"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "APROBAR"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "decision",
+                      "observacion"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "RECHAZAR"
+                        ]
+                      },
+                      "observacion": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "description": "Se recortan los espacios de los extremos antes de validar."
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud decidida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador o es su propia solicitud",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SOLICITUD_YA_REVISADA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/salud": {
+      "get": {
+        "tags": [
+          "General"
+        ],
+        "summary": "Estado del servidor y conexión a PostgreSQL",
+        "description": "Hace un `SELECT 1` y no devuelve ningún dato de la base (ADR-011, 11.1). Si PostgreSQL no responde, devuelve 503 `{ estado: \"sin_bd\" }` y registra el evento `salud_sin_bd` (ADR-011, 11.2).",
+        "responses": {
+          "200": {
+            "description": "El servidor responde y PostgreSQL también",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "estado"
+                  ],
+                  "properties": {
+                    "estado": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          },
+          "503": {
+            "description": "El servidor responde, pero PostgreSQL no. No usa `ErrorApi`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "estado"
+                  ],
+                  "properties": {
+                    "estado": {
+                      "type": "string",
+                      "enum": [
+                        "sin_bd"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categorias": {
+      "get": {
+        "tags": [
+          "Cursos"
+        ],
+        "summary": "Categorías activas ordenadas por nombre",
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoriaPublica"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/auth/registro": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-01 · Crear cuenta (rol ESTUDIANTE) y abrir sesión",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombres",
+                  "apellidos",
+                  "correo",
+                  "contrasena"
+                ],
+                "properties": {
+                  "nombres": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "example": "Rosa",
+                    "description": "No admite el carácter NUL (U+0000): 400 SOLICITUD_INVALIDA con el detalle del campo."
+                  },
+                  "apellidos": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "example": "Vera Chávez",
+                    "description": "No admite el carácter NUL (U+0000): 400 SOLICITUD_INVALIDA con el detalle del campo."
+                  },
+                  "correo": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 120,
+                    "example": "rosa.vera@correo.com",
+                    "description": "Se recortan los espacios y se pasa a minúsculas antes de validar."
+                  },
+                  "contrasena": {
+                    "type": "string",
+                    "minLength": 15,
+                    "description": "Mínimo 15 caracteres y máximo 72 bytes UTF-8 (límite de bcrypt), sin reglas de composición. Se rechazan contraseñas comunes, basadas en el nombre o el correo, y las expuestas en filtraciones (Have I Been Pwned, k-anonimato)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cuenta creada y sesión abierta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT de 15 minutos. Guardarlo SOLO en memoria y enviarlo como Authorization: Bearer <token>."
+                    },
+                    "expiraEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "idUsuario": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "idPersona": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "nombres": {
+                          "type": "string",
+                          "example": "Rosa"
+                        },
+                        "apellidos": {
+                          "type": "string",
+                          "example": "Vera Chávez"
+                        },
+                        "correo": {
+                          "type": "string",
+                          "example": "rosa.vera@correo.com"
+                        },
+                        "fotoUrl": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ESTUDIANTE",
+                              "DOCENTE",
+                              "ADMIN"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "`learnity_rt` (refresh token opaco, HttpOnly, SameSite=Lax, Path=/api/auth, Secure en HTTPS) y `XSRF-TOKEN` (token CSRF legible por JavaScript).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o contraseña rechazada por la política. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origen no permitido (ORIGEN_NO_PERMITIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Correo ya registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-02 · Iniciar sesión",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "correo",
+                  "contrasena"
+                ],
+                "properties": {
+                  "correo": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 120,
+                    "example": "rosa.vera@correo.com",
+                    "description": "Se recortan los espacios y se pasa a minúsculas antes de validar."
+                  },
+                  "contrasena": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión abierta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT de 15 minutos. Guardarlo SOLO en memoria y enviarlo como Authorization: Bearer <token>."
+                    },
+                    "expiraEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "idUsuario": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "idPersona": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "nombres": {
+                          "type": "string",
+                          "example": "Rosa"
+                        },
+                        "apellidos": {
+                          "type": "string",
+                          "example": "Vera Chávez"
+                        },
+                        "correo": {
+                          "type": "string",
+                          "example": "rosa.vera@correo.com"
+                        },
+                        "fotoUrl": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ESTUDIANTE",
+                              "DOCENTE",
+                              "ADMIN"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "`learnity_rt` (refresh token opaco, HttpOnly, SameSite=Lax, Path=/api/auth, Secure en HTTPS) y `XSRF-TOKEN` (token CSRF legible por JavaScript).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correo no válido o contraseña vacía o de más de 256 caracteres (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Mensaje genérico: correo inexistente, contraseña errónea o cuenta bloqueada (CREDENCIALES_INVALIDAS)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cuenta desactivada (CUENTA_INACTIVA, solo con la contraseña correcta) u origen no permitido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "Renovar la sesión: rota el refresh token y entrega un access token nuevo",
+        "description": "El frontend lo llama al cargar la página (restaurar la sesión) y cuando el access token vence.",
+        "security": [
+          {
+            "cookieRefresh": [],
+            "csrf": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sesión renovada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT de 15 minutos. Guardarlo SOLO en memoria y enviarlo como Authorization: Bearer <token>."
+                    },
+                    "expiraEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "idUsuario": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "idPersona": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "nombres": {
+                          "type": "string",
+                          "example": "Rosa"
+                        },
+                        "apellidos": {
+                          "type": "string",
+                          "example": "Vera Chávez"
+                        },
+                        "correo": {
+                          "type": "string",
+                          "example": "rosa.vera@correo.com"
+                        },
+                        "fotoUrl": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "roles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "ESTUDIANTE",
+                              "DOCENTE",
+                              "ADMIN"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "`learnity_rt` (refresh token opaco, HttpOnly, SameSite=Lax, Path=/api/auth, Secure en HTTPS) y `XSRF-TOKEN` (token CSRF legible por JavaScript).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, vencida, revocada o reutilizada (SESION_INVALIDA); se borran las cookies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token CSRF ausente o inválido (CSRF_INVALIDO) u origen no permitido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Otra pestaña renovó la sesión hace instantes (REFRESCO_CONCURRENTE): reintentar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "Cerrar sesión: revoca el refresh token y los access tokens de esa sesión",
+        "security": [
+          {
+            "cookieRefresh": [],
+            "csrf": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sesión cerrada y cookies borradas"
+          },
+          "403": {
+            "description": "Token CSRF ausente o inválido (CSRF_INVALIDO) u origen no permitido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/auth/recuperar": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-06 · Enviar enlace para recuperar la contraseña",
+        "description": "Responde siempre lo mismo y al instante, exista o no el correo. Si existe, envía (Gmail API) un enlace de un solo uso que vence en 15–30 minutos (RECUPERACION_MINUTOS). Máximo 3 enlaces por cuenta y hora.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "correo"
+                ],
+                "properties": {
+                  "correo": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 120,
+                    "example": "rosa.vera@correo.com",
+                    "description": "Se recortan los espacios y se pasa a minúsculas antes de validar."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensaje": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correo no válido (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origen no permitido (ORIGEN_NO_PERMITIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/auth/restablecer": {
+      "post": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-06 · Guardar la nueva contraseña con el token del enlace",
+        "description": "Consume el enlace (un solo uso), cambia la contraseña y revoca todas las sesiones anteriores de la cuenta.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token",
+                  "contrasena"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Valor tras #token= en el enlace del correo"
+                  },
+                  "contrasena": {
+                    "type": "string",
+                    "minLength": 15,
+                    "description": "Mínimo 15 caracteres y máximo 72 bytes UTF-8 (límite de bcrypt), sin reglas de composición. Se rechazan contraseñas comunes, basadas en el nombre o el correo, y las expuestas en filtraciones (Have I Been Pwned, k-anonimato)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensaje": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Enlace inválido, usado o vencido, o contraseña rechazada. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origen no permitido (ORIGEN_NO_PERMITIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/perfil": {
+      "get": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-04 · Ver mi perfil",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idUsuario": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "idPersona": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "nombres": {
+                      "type": "string",
+                      "example": "Rosa"
+                    },
+                    "apellidos": {
+                      "type": "string",
+                      "example": "Vera Chávez"
+                    },
+                    "correo": {
+                      "type": "string",
+                      "example": "rosa.vera@correo.com"
+                    },
+                    "fotoUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "ESTUDIANTE",
+                          "DOCENTE",
+                          "ADMIN"
+                        ]
+                      }
+                    },
+                    "ciudad": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Machala"
+                    },
+                    "biografia": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "creadoEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La cuenta ya no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-04 · Editar mi perfil",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nombres",
+                  "apellidos"
+                ],
+                "properties": {
+                  "nombres": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "example": "Rosa",
+                    "description": "No admite el carácter NUL (U+0000): 400 SOLICITUD_INVALIDA con el detalle del campo."
+                  },
+                  "apellidos": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "example": "Vera Chávez",
+                    "description": "No admite el carácter NUL (U+0000): 400 SOLICITUD_INVALIDA con el detalle del campo."
+                  },
+                  "ciudad": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 60,
+                    "description": "No admite el carácter NUL (U+0000): 400 SOLICITUD_INVALIDA con el detalle del campo."
+                  },
+                  "biografia": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 300,
+                    "description": "No admite el carácter NUL (U+0000): 400 SOLICITUD_INVALIDA con el detalle del campo."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idUsuario": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "idPersona": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "nombres": {
+                      "type": "string",
+                      "example": "Rosa"
+                    },
+                    "apellidos": {
+                      "type": "string",
+                      "example": "Vera Chávez"
+                    },
+                    "correo": {
+                      "type": "string",
+                      "example": "rosa.vera@correo.com"
+                    },
+                    "fotoUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "ESTUDIANTE",
+                          "DOCENTE",
+                          "ADMIN"
+                        ]
+                      }
+                    },
+                    "ciudad": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Machala"
+                    },
+                    "biografia": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "creadoEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La cuenta ya no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/perfil/contrasena": {
+      "put": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "RF-04 · Cambiar mi contraseña (cierra las demás sesiones)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "actual",
+                  "nueva"
+                ],
+                "properties": {
+                  "actual": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "nueva": {
+                    "type": "string",
+                    "minLength": 15,
+                    "description": "Mínimo 15 caracteres y máximo 72 bytes UTF-8 (límite de bcrypt), sin reglas de composición. Se rechazan contraseñas comunes, basadas en el nombre o el correo, y las expuestas en filtraciones (Have I Been Pwned, k-anonimato)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mensaje": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Contraseña actual incorrecta o nueva rechazada. También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    }
+  }
+}

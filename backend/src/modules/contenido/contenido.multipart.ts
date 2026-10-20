@@ -1,3 +1,5 @@
+import { createWriteStream } from 'node:fs';
+
 import multer from 'multer';
 
 import type {
@@ -7,12 +9,77 @@ import type {
 import { AppError } from '../../shared/http/app-error.js';
 
 import {
+  almacenLocal,
+} from '../../shared/archivos/almacen.js';
+
+import {
   MAX_PDF_BYTES,
   nombreOriginalPdf,
 } from '../../shared/archivos/pdf-validacion.js';
 
+import {
+  registrarEvento,
+} from '../../shared/log/registro.js';
+
+// Recibe el archivo en un temporal del mismo volumen que el almacén (ADR-011, 11.5): la memoria
+// queda acotada mientras se recibe. El servicio valida el temporal y lo renombra al nombre definitivo.
+const almacenamientoTemporal: multer.StorageEngine = {
+  _handleFile(_req, archivo, callback) {
+    almacenLocal
+      .reservarTemporal()
+      .then(ruta => {
+        const salida = createWriteStream(ruta, {
+          flags: 'wx',
+          mode: 0o600,
+        });
+
+        let fallado = false;
+
+        const fallar = (error: Error) => {
+          if (fallado) {
+            return;
+          }
+
+          fallado = true;
+
+          archivo.stream.unpipe(salida);
+          salida.destroy();
+
+          almacenLocal
+            .descartarTemporal(ruta)
+            .catch(() => undefined)
+            .finally(() => callback(error));
+        };
+
+        archivo.stream.once('error', fallar);
+        salida.once('error', fallar);
+
+        salida.once('finish', () => {
+          callback(null, {
+            path: ruta,
+            size: salida.bytesWritten,
+          } as Partial<Express.Multer.File>);
+        });
+
+        archivo.stream.pipe(salida);
+      })
+      .catch(callback);
+  },
+
+  _removeFile(_req, archivo, callback) {
+    if (!archivo.path) {
+      callback(null);
+      return;
+    }
+
+    almacenLocal
+      .descartarTemporal(archivo.path)
+      .then(() => callback(null), callback);
+  },
+};
+
 const recibir = multer({
-  storage: multer.memoryStorage(),
+  storage: almacenamientoTemporal,
 
   limits: {
     fileSize: MAX_PDF_BYTES,
@@ -62,6 +129,15 @@ const recibir = multer({
   },
 }).single('archivo');
 
+function esErrorDeDisco(
+  error: unknown,
+): error is NodeJS.ErrnoException {
+  return (
+    error instanceof Error &&
+    typeof (error as NodeJS.ErrnoException).syscall === 'string'
+  );
+}
+
 export const recibirPdf: RequestHandler = (
   req,
   res,
@@ -87,6 +163,17 @@ export const recibirPdf: RequestHandler = (
   }
 
   recibir(req, res, (error: unknown) => {
+    // Al terminar la respuesta ya no hace falta el temporal (si se movió, no hay nada que borrar).
+    const temporal = req.file?.path;
+
+    if (temporal) {
+      res.once('close', () => {
+        void almacenLocal
+          .descartarTemporal(temporal)
+          .catch(() => undefined);
+      });
+    }
+
     if (error instanceof multer.MulterError) {
       const grande =
         error.code === 'LIMIT_FILE_SIZE';
@@ -116,6 +203,21 @@ export const recibirPdf: RequestHandler = (
       );
     } else if (error instanceof AppError) {
       next(error);
+    } else if (esErrorDeDisco(error)) {
+      // Disco lleno, sin permisos…: es un fallo del servidor, no del formulario.
+      registrarEvento(
+        'archivo.recepcion_fallida',
+        { codigo: error.code },
+        'error',
+      );
+
+      next(
+        new AppError(
+          500,
+          'No se pudo guardar el PDF. Inténtalo nuevamente.',
+          'ERROR_INTERNO',
+        ),
+      );
     } else if (error) {
       next(
         AppError.solicitudInvalida(
