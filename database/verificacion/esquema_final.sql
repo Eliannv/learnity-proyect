@@ -4,16 +4,17 @@
 -- Comprueba y resume el estado que deja scripts/reconstruir-base.ps1 (o
 -- aplicar-migraciones.ps1 sobre una base existente): tablas, vistas y sus
 -- columnas (sin archivo.ruta), restricciones (incluido el CHECK de PUBLICADO
--- según la 023), índices, FK sin índice, triggers de auditoría y de
+-- de la 023, NOT VALID), índices, FK sin índice, triggers de auditoría y de
 -- actualizado_en, funciones, dueños, roles, CONNECT de la base, la 019b y
 -- schema_migraciones. La matriz de privilegios por tabla de learnity_app,
 -- learnity_lectura y learnity_pruebas está en matriz_privilegios.sql.
 --
 -- Solo lee pg_catalog, schema_migraciones, rol y curso: no cambia nada y sirve
 -- en cualquier base (también en Learnity). Requiere la 017.
--- Los números esperados salen de la huella H4 de probar-migraciones del
--- 19-10-2026 (verificacion/referencias/). Al añadir una migración, actualiza
--- este archivo.
+-- Los números esperados salen de la huella H1 (todas las migraciones, 017 a
+-- 026) de probar-migraciones del 19-10-2026 (verificacion/referencias/). Desde
+-- el 20-10-2026 la 023 ya no está retenida y forma parte del esquema final. Al
+-- añadir una migración, actualiza este archivo.
 --
 -- Salida: seccion | elemento | esperado | obtenido | resultado
 --   OK / DISTINTO: comprobación (DISTINTO cuenta como diferencia)
@@ -33,9 +34,8 @@ END $$;
 
 WITH
 ctx AS (
-  SELECT current_database() ~ '_test$'                                          AS es_test,
-         EXISTS (SELECT 1 FROM public.schema_migraciones WHERE version = '023') AS con_023,
-         (SELECT oid FROM pg_roles WHERE rolname = 'learnity_pruebas')          AS oid_pruebas
+  SELECT current_database() ~ '_test$'                                 AS es_test,
+         (SELECT oid FROM pg_roles WHERE rolname = 'learnity_pruebas') AS oid_pruebas
 ),
 rel AS (
   SELECT c.oid, c.relname, c.relkind::TEXT AS relkind, pg_get_userbyid(c.relowner) AS dueno, c.reloptions
@@ -196,8 +196,7 @@ chequeos (orden, seccion, elemento, esperado, obtenido, tipo) AS (
                       AND a.attname = 'ruta'), '-'), 'comparar'
   UNION ALL
   -- Restricciones.
-  SELECT 40, 'restricciones', 'número en public',
-         CASE WHEN (SELECT con_023 FROM ctx) THEN '107' ELSE '106' END,
+  SELECT 40, 'restricciones', 'número en public', '107',
          (SELECT count(*) FROM pg_constraint WHERE connamespace = 'public'::regnamespace)::TEXT, 'comparar'
   UNION ALL
   SELECT 41, 'restricciones', 'por tipo (c=CHECK, f=FK, p=PK, u=UNIQUE)', '-',
@@ -205,8 +204,8 @@ chequeos (orden, seccion, elemento, esperado, obtenido, tipo) AS (
             FROM (SELECT contype, count(*) AS n FROM pg_constraint
                    WHERE connamespace = 'public'::regnamespace GROUP BY contype) t), 'info'
   UNION ALL
-  SELECT 42, 'restricciones', 'curso_publicado_revisado (023; ausente mientras siga retenida)',
-         CASE WHEN (SELECT con_023 FROM ctx) THEN 'NOT VALID' ELSE 'ausente' END,
+  -- NOT VALID a propósito (BD-022): VALIDADA también es una diferencia que hay que mirar.
+  SELECT 42, 'restricciones', 'curso_publicado_revisado (023)', 'NOT VALID',
          COALESCE((SELECT CASE WHEN convalidated THEN 'VALIDADA' ELSE 'NOT VALID' END
                      FROM pg_constraint
                     WHERE conrelid = 'public.curso'::regclass AND conname = 'curso_publicado_revisado'), 'ausente'), 'comparar'
@@ -333,9 +332,7 @@ chequeos (orden, seccion, elemento, esperado, obtenido, tipo) AS (
   UNION ALL
   -- schema_migraciones.
   SELECT 100, 'migraciones', 'versiones aplicadas (por versión)',
-         CASE WHEN (SELECT con_023 FROM ctx)
-              THEN '000,015,016,017,018,019,020,021,022,023,024,025,026'
-              ELSE '000,015,016,017,018,019,020,021,022,024,025,026' END,
+         '000,015,016,017,018,019,020,021,022,023,024,025,026',
          (SELECT string_agg(version, ',' ORDER BY version) FROM public.schema_migraciones), 'comparar'
   UNION ALL
   SELECT 101, 'migraciones', 'desde la 017, con checksum (sin él, se aplicaron a mano con psql -f)',

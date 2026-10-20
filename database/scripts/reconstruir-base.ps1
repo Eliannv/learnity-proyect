@@ -19,9 +19,9 @@
        principal). Huella comparada con la de referencia H0.
     4. Migraciones desde la 017, en orden, con la misma funcion que
        aplicar-migraciones.ps1: cada una se registra en schema_migraciones con
-       su sha256. Las de RETENIDAS.txt no se aplican salvo con
-       -IncluirRetenidas. Huella comparada con la de referencia H4 (o H1 si
-       queda aplicada la 023).
+       su sha256. Las de RETENIDAS.txt (hoy ninguna) no se aplican salvo
+       con -IncluirRetenidas. Huella comparada con la de referencia H1 (con la
+       023) o, si la 023 quedara sin aplicar, H4.
     5. Solo en bases _test: pruebas\privilegios_pruebas.sql (019b).
     6. Verificacion: esquema_final.sql y matriz_privilegios.sql; en bases
        _test, ademas pruebas_funcionales.sql y comparar_catalogo.sql (las dos
