@@ -22,7 +22,7 @@ import { Logo } from '../../../shared/ui/logo';
         <lucide-icon name="arrow-left" [size]="24" />
       </button>
 
-      <div class="tarjeta-acceso">
+      <main class="tarjeta-acceso">
         <section class="presentacion oculto-movil">
           <a routerLink="/"><app-logo [tamano]="26" /></a>
           <h1>
@@ -56,7 +56,7 @@ import { Logo } from '../../../shared/ui/logo';
           </a>
           <ng-content />
         </section>
-      </div>
+      </main>
     </div>
   `,
   styleUrl: './marco-acceso.scss',

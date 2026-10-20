@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 
-/** Círculo con iniciales. `solido`: azul con texto blanco; por defecto, azul claro. */
+/** Círculo con iniciales. `solido`: azul con texto blanco; por defecto, azul claro (azul-800 sobre azul-100: 5,5:1, AA). */
 @Component({
   selector: 'app-avatar',
   template: `<span class="avatar" [class.solido]="solido()" [style.--t.px]="tamano()">{{ texto() }}</span>`,
@@ -13,7 +13,7 @@ import { Component, input } from '@angular/core';
       height: var(--t);
       border-radius: 50%;
       background: var(--azul-100);
-      color: var(--azul-700);
+      color: var(--azul-800);
       font-weight: 600;
       font-size: calc(var(--t) * 0.38);
     }
