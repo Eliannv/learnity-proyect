@@ -11,7 +11,7 @@ async function violaciones(page: Page, ruta: string): Promise<string[]> {
   await page.waitForLoadState('networkidle');
   const resultado = await new AxeBuilder({ page: page as never }).withTags(ETIQUETAS_AA).analyze();
   return resultado.violations.map(
-    (v) => `${ruta} · ${v.id} (${v.impact}) · ${v.nodes.length} nodo(s) · ${v.nodes[0]?.target.join(' ')} · ${v.help}`,
+    (v) => `${ruta} · ${v.id} (${v.impact}) · ${v.nodes.length} nodo(s) · ${v.nodes[0]?.target.join(' ')} · ${v.help} · ${v.nodes[0]?.any[0]?.message ?? ""}`,
   );
 }
 
@@ -74,6 +74,10 @@ test.describe('E2E-05: accesibilidad AA (axe) y teclado', () => {
       const nombre = await campo.evaluate((el) => (el as HTMLInputElement).labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label'));
       expect(nombre, 'campo con etiqueta asociada').toBeTruthy();
     }
+  });
+
+  test('landmarks: el login tiene región principal <main>', async ({ page }) => {
+    await page.goto('/login');
     await expect(page.getByRole('main')).toBeVisible();
   });
 });

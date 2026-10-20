@@ -56,6 +56,7 @@ test.describe('Catálogo público y recuperación de contraseña', () => {
     await expect(page.getByRole('status')).toBeVisible();
 
     // El enlace solo sirve una vez.
+    await page.goto('about:blank'); // el mismo enlace con #token no recarga la página
     await page.goto(enlace!);
     await page.getByLabel('Nueva contraseña').fill(nueva + '-2');
     await page.getByLabel('Confirmar contraseña').fill(nueva + '-2');

@@ -31,13 +31,13 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
     await iniciarSesionPorUI(page, docente.correo);
     await page.goto('/docente/cursos/nuevo/editar');
     await expect(page.getByRole('heading', { name: 'Crear curso' })).toBeVisible();
-    await page.getByLabel(/^Título \(máximo 150/).fill(TITULO);
-    await page.getByLabel(/^Subtítulo/).fill('Subtítulo de prueba E2E');
-    await page.getByLabel(/^Descripción/).fill('Descripción del curso de prueba E2E con contenido suficiente.');
+    await page.getByLabel(/Título \(máximo 150/).fill(TITULO);
+    await page.getByLabel(/Subtítulo/).fill('Subtítulo de prueba E2E');
+    await page.getByLabel(/Descripción/).fill('Descripción del curso de prueba E2E con contenido suficiente.');
     await page.getByLabel('Categoría').selectOption({ label: categoria });
     await page.getByLabel('Nivel').selectOption('INTERMEDIO');
     await page.getByLabel('URL de portada').fill('/img/portada-mi-curso.jpg');
-    await page.getByLabel(/^Objetivos/).fill('Objetivo uno\nObjetivo dos\nObjetivo tres');
+    await page.getByLabel(/Objetivos/).fill('Objetivo uno\nObjetivo dos\nObjetivo tres');
     await page.getByRole('button', { name: 'Crear borrador' }).click();
     await expect(page.getByRole('heading', { name: 'Contenido del curso' })).toBeVisible();
     await expect(page).toHaveURL(/\/docente\/cursos\/\d+\/editar$/);
@@ -45,14 +45,14 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
 
     // 2. Módulo y lección PDF.
     await page.getByRole('button', { name: 'Agregar módulo' }).click();
-    await page.getByLabel(/^Título \(obligatorio/).fill('Módulo uno');
-    await page.getByLabel(/^Orden/).fill('1');
+    await page.getByLabel(/Título \(obligatorio/).fill('Módulo uno');
+    await page.getByLabel(/Orden/).fill('1');
     await page.getByRole('button', { name: 'Guardar módulo' }).click();
     await expect(page.getByText(/1\. Módulo uno/)).toBeVisible();
 
     await page.getByRole('button', { name: 'Agregar lección PDF' }).click();
-    await page.getByLabel(/^Título \(obligatorio/).fill('Apunte de redes');
-    await page.getByLabel(/^Orden/).fill('1');
+    await page.getByLabel(/Título \(obligatorio/).fill('Apunte de redes');
+    await page.getByLabel(/Orden/).fill('1');
     await page.getByRole('button', { name: 'Guardar lección' }).click();
     await expect(page.getByText(/1\. Apunte de redes/)).toBeVisible();
 
@@ -90,7 +90,7 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
     await expect(page.getByRole('button', { name: 'Guardar cambios' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Agregar módulo' })).toHaveCount(0);
     await expect(page.getByText(/Subir PDF|Reemplazar PDF/)).toHaveCount(0);
-    await expect(page.getByLabel(/^Título \(máximo 150/)).toBeDisabled();
+    await expect(page.getByLabel(/Título \(máximo 150/)).toBeDisabled();
 
     // 7. El administrador revisa y aprueba.
     const { contexto, pagina } = await otroContexto(context);

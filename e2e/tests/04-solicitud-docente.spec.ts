@@ -41,13 +41,13 @@ test.describe('E2E-03: solicitud de rol docente (estudiante → administrador)',
       await iniciarSesionPorUI(pagina, admin.correo);
       await pagina.goto('/admin/solicitudes');
       await pagina.getByRole('button', { name: /Aspirante/ }).first().click();
-      await expect(pagina.getByText(ESPECIALIDAD_XSS)).toBeVisible();
+      await expect(pagina.locator('strong', { hasText: ESPECIALIDAD_XSS })).toBeVisible();
       await expect(pagina.getByText('<script>window.__xss=2</script>', { exact: false })).toBeVisible();
       await expect(pagina.locator('img[src="x"]')).toHaveCount(0);
       expect(await xssEjecutado(pagina)).toBe(false);
 
       await pagina.getByRole('button', { name: /Aprobar y asignar rol Docente/ }).click();
-      await expect(pagina.getByText(/Aprobada el/)).toBeVisible();
+      await expect(pagina.getByText(/ya es docente/)).toBeVisible();
     } finally {
       await contexto.close();
     }

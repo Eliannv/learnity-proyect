@@ -6,7 +6,7 @@ import { CONTRASENA_PRUEBA, MARCA } from './bd';
 let n = 0;
 /** Correo único de la ejecución para cuentas creadas desde la interfaz. */
 export function correoNuevo(etiqueta: string): string {
-  return `${MARCA}.${etiqueta}ui${++n}@qa-edge.test`.toLowerCase();
+  return `${MARCA}.${etiqueta}ui${++n}x${Math.random().toString(36).slice(2, 7)}@qa-edge.test`.toLowerCase();
 }
 
 /** Registro por la interfaz. Nombres = marca para que la limpieza encuentre la cuenta. */
@@ -34,7 +34,8 @@ export async function iniciarSesionPorUI(page: Page, correo: string, contrasena 
 export async function cerrarSesionPorUI(page: Page): Promise<void> {
   await page.getByRole('link', { name: /^Mi perfil,/ }).focus();
   await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
-  await expect(page).toHaveURL(/\/login/);
+  // Al salir la app vuelve al inicio público, donde reaparece "Iniciar sesión".
+  await expect(page.getByRole('link', { name: 'Iniciar sesión' }).first()).toBeVisible();
 }
 
 /** Todo lo que guardan localStorage y sessionStorage, para comprobar que no hay tokens. */

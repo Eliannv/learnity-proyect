@@ -26,7 +26,7 @@ export async function crearCuenta(roles: RolPrueba[], etiqueta: string): Promise
   return conFixtures((f) => {
     const { crearCuenta: crear } = fabricaCuentas(f, {} as Servidor, MARCA);
     // La marca ya identifica al grupo; el contador evita choques entre llamadas del mismo rol.
-    const correo = `${MARCA}.${etiqueta}${++contador}@qa-edge.test`.toLowerCase();
+    const correo = `${MARCA}.${etiqueta}${++contador}x${Math.random().toString(36).slice(2, 7)}@qa-edge.test`.toLowerCase();
     return crear(roles, { correo, sinSesion: true });
   });
 }
