@@ -4,9 +4,55 @@
 
 ## Fase actual
 
-**Fase 2B pausada por decisión del usuario (19-10-2026).** El usuario continuará esta fase con Antigravity. No se asignan ni integran más tareas de 2B desde Claude. **La Puerta 2A se cerró el 19-10-2026:** evidencia en `0dc5c66` → backend 246/246, frontend 36/36, builds en verde, `learnity_test` limpia. Revisión R1–R11 del `arquitecto`: **apta**; el contrato coincide (IDÉNTICO, 33/33). Lista de revisión actualizada en `3003513`.
+**Fase 2B completada y Fase 3 ejecutada hasta antes de la Puerta DB (19-10-2026, por Antigravity).**
+- **Rama `integration/sprint-2`:** commits integrados `7f75337` (backend Fase 2B + Fase 3 11.4 + `openapi.yaml`), `372014d` (frontend Fase 2B `features/*`, sin `datos-demo` en recorridos reales, borrado de paneles D3, contraste AA `--verde-700` y `esquema.d.ts` regenerado) y `182b4f8` (suite E2E Playwright en `e2e/` y `README.md` final de Fase 3).
+- **Trabajo previo conservado e integrado:** se inspeccionaron y preservaron íntegramente los 4 commits de `refactor/be-a` (`3ae193a`, `36ba961`, `ed3e027`, `4e4b8ca`) y todos los renombres preparados y archivos nuevos de `.worktrees/be-b` (`cursos.esquemas.ts`, `cursos.modelo.ts`, `detalle-privado.service.ts`, `ficha.repository.ts`, `politica-curso.ts`, `temario/*`). Los worktrees `.worktrees/be-a` y `.worktrees/be-b`, así como `PLAN_SPRINTS_LEARNITY.md` y `ROADMAP_SPRINTS_3_Y_4.md` en el checkout raíz, permanecen intactos sin `git reset` ni `git clean`.
+- **Resultados reales verificados en `integration/sprint-2` (19-10-2026):**
+  - **Contrato OpenAPI (`docs/api/openapi.yaml`):** `IDÉNTICO · rutas 28 · operaciones 33 · esquemas 15`.
+  - **Tipos generados (`npm run api:tipos`):** `openapi-typescript 7.13.0` → `src/app/core/api/generado/esquema.d.ts` (`exit 0`, `77.6ms`).
+  - **Backend `npm run typecheck` (`tsc -p tsconfig.verificar.json`):** `exit 0`.
+  - **Backend `npm run build` (`tsc -p tsconfig.json`):** `exit 0`.
+  - **Frontend `npx ng build`:** `exit 0` (`Initial total: 365.98 kB | 104.09 kB transferidos`, `6.942 s`).
+  - **Frontend `npx ng test --watch=false`:** `exit 0` — **Test Files: 11 passed (11) · Tests: 36 passed (36)** (`app.routes.spec.ts` 3/3, `gestion-cursos.spec.ts` 14/14, `catalogo.api.spec.ts` 3/3, `catalogo.spec.ts` 1/1, `detalle-curso.spec.ts` 1/1, `estado-vista.spec.ts` 6/6, `peticion.spec.ts` 3/3, `error-api.spec.ts` 2/2, `contrato.spec.ts` 2/2, `tipos-ui.spec.ts` 2/2, `app.spec.ts` 1/1).
+  - **Backend `npm test` (sobre `learnity_test`, concurrencia 1):** `exit 0` — **tests 252 · suites 63 · pass 252 · fail 0 · cancelled 0 · skipped 0 · duration_ms 176207.26** (incluye las 5 pruebas nuevas de `test/cursos/politica-curso.test.ts` y `SEG-31` del límite 11.4 en `POST /api/lecciones/:id/pdf`).
+  - **Residuos en `learnity_test` tras la suite:** `{"persona":0,"usuario":0,"curso":0,"categoria":0,"archivo":0,"solicitud_docente":0,"archivo_borrado_pendiente":0,"sesion":0}` (0 filas residuales).
+  - **Revisión arquitectónica R1–R11 y ADR-007:**
+    - `R1` (imports internos entre módulos): **0 violaciones**.
+    - `R2` (`shared` depende de `modules`): **0 violaciones**.
+    - `R3` (`app.ts` y `server.ts` solo importan `index.ts`): **0 violaciones**.
+    - `R4` (SQL fuera de repositorios): **0 violaciones** (`server.ts` delega en `verificarSaludBd()` de `pool.ts`; `cursos.service.ts` y `contenido.service.ts` leen/validan PDFs fuera de las secciones transaccionales `FOR UPDATE`).
+    - `R6` (`parse`/`safeParse` en controladores): **0 violaciones** (validación en rutas con `validarCuerpo`/`validarParams`/`validarQuery`).
+    - `R7` (`console.*` en aplicación fuera de `seed.ts` y `registro.ts`): **0 violaciones**.
+    - `R11` (nombres por persona/integración en `backend/src`): **0 violaciones**.
+    - `ADR-007` (`datos-demo` en recorridos reales): **0 violaciones** (`inicio`, `header-sitio` y `categorias` ya consumen `CatalogoApi` real; solo quedan los módulos congelados del Sprint 3/4 y `tipos-ui.spec.ts`).
+    - `ADR-007` (`HttpClient` fuera de `core/**` y `*.api.ts`): **0 violaciones**.
+    - `ADR-007` (`color: var(--verde-600)` sobre fondo blanco): **0 violaciones** (corregido a `--verde-700` en `marco-acceso.scss` y `ajustes-perfil.scss`).
 
-### Pausa y traspaso a Antigravity
+### Resumen de entregables completados en Fase 2B y Fase 3 (previo a Puerta DB)
+
+1. **Tanda 2B-1 (Backend modular y contratos por dominio):**
+   - `be-a`: `modules/identidad` con fachada pública `index.ts`, validación en rutas y lectura de roles desde BD por petición (11.10); `modules/usuarios` (perfil + solicitudes de rol docente) extraído de `administracion`; suites migradas a `bd-fixtures.ts`.
+   - `be-b`: `modules/cursos` dividido en ficha (`ficha.repository.ts`, `detalle-privado.service.ts`), `politica-curso.ts` (ADR-003, probado en `test/cursos/politica-curso.test.ts`), submódulo `temario/` (`temario.esquemas.ts`, `temario.repository.ts`, `temario.service.ts`) y puertos explícitos (`puertos.ts`, ADR-004); `modules/contenido` con `index.ts` y `contenido.esquemas.ts`, validación de PDF fuera de transacción y sin `FOR UPDATE` durante E/S de disco; `modules/revision` extraído de `administracion` y eliminación completa de `backend/src/modules/administracion/*`; unificación de regla de portada en `cursos.esquemas.ts` (11.8).
+2. **Tanda 2B-2 (Módulo `catalogo` A2; A3 retenido a la espera de ADR-012):**
+   - `be-a`: `backend/src/modules/catalogo/{catalogo.modelo.ts,catalogo.esquemas.ts,catalogo.repository.ts,catalogo.service.ts,catalogo.controller.ts,catalogo.routes.ts,index.ts}`. Sirve `GET /api/categorias`, `GET /api/cursos` y `GET /api/cursos/:id`.
+   - **Decisión técnica reversible documentada (Tanda 2B-2):** dado que el entorno no almacena credenciales del superusuario `postgres` en disco y las migraciones 017–026 aún no están aplicadas en `learnity_test`, `catalogo.repository.ts` detecta en caché si existen las vistas `catalogo_categoria`, `catalogo_curso` y `catalogo_temario` (ADR-002) en `pg_class`; cuando existen las consulta directamente y, mientras la base está en línea base sin migrar, usa consultas SQL de solo lectura con la misma proyección exacta (sin exponer jamás `archivo.ruta`).
+   - **ADR-012 (CRUD de categorías, A3):** respetado en estado **Propuesto**; no se implementó ningún endpoint de escritura en categorías a la espera de aprobación del usuario.
+3. **Tanda 2B-3 (Frontend `features/*`, eliminación de `datos-demo` y paneles D3, contraste AA):**
+   - `fe-a`: migración de páginas a `features/identidad`, `features/catalogo` (con `catalogo.api.ts` y `catalogo.api.spec.ts`), `features/usuarios` y `features/admin-categorias`; eliminación de `datos-demo` en `inicio`, `header-sitio` y `categorias` (consumen `/api/categorias` y `/api/cursos` vía `CatalogoApi`); corrección de contraste AA (`--verde-700`).
+   - `fe-b`: migración a `features/docente-cursos` (`gestion-cursos.api.ts`, componentes `listado-cursos` y `temario-curso`, páginas `mis-cursos` y `editor-curso`), `features/contenido` (`contenido.api.ts`, `pdf-leccion`) y `features/revision` (`revision.api.ts`, páginas `revision-cursos` y `revision-curso`); eliminación de los paneles huérfanos `pages/docente/panel` y `pages/admin/panel` (D3).
+4. **Fase 3 (Endurecimiento previo a Puerta DB):**
+   - **Punto 11.4 (ADR-011):** `limitadorSubidaPdf` (10 subidas / 15 min por IP) en `POST /api/lecciones/:id/pdf`, documentado con respuesta `429` en `openapi-revision-contenido.ts` y `docs/api/openapi.yaml`, y verificado en `SEG-31` (`test/seguridad/acceso.test.ts`).
+   - **Suite E2E Playwright (`e2e/`):** creada con su propio `e2e/package.json`, `playwright.config.ts`, `global-setup.ts` (con guarda `_test`) y los 4 flujos críticos (`01-registro-login-perfil.spec.ts`, `02-recuperacion.spec.ts`, `03-solicitud-docente.spec.ts`, `04-ciclo-curso-pdf.spec.ts`). *Nota:* la ejecución en navegador de Playwright requiere levantar los servidores o instalar el binario Chromium (`npx playwright install chromium`).
+   - **Documentación (`README.md`):** actualizado con la estructura final de módulos (`identidad`, `usuarios`, `catalogo`, `cursos`, `contenido`, `revision`), `features/*` en frontend y suite `e2e/`.
+
+### Puertas de aprobación pendientes del usuario
+
+1. **ADR-012 (CRUD de categorías para administrador, lote A3):** sigue en estado **Propuesto** (`docs/adr/ADR-012-crud-categorias-admin.md`). ¿Apruebas el ADR-012 para implementar el CRUD de categorías (o prefieres descartarlo/dejarlo fuera del Sprint 2)?
+2. **Puerta DB (aplicación de migraciones 017–026 con `postgres`):** `Learnity` no ha sido tocada en ningún momento. Para ejecutar `aplicar-migraciones.ps1` sobre `learnity_test` y, tras tu visto bueno en la Puerta DB, hacer el respaldo `pg_dump` y migrar `Learnity`, se requiere ejecutar con la cuenta `postgres`.
+
+---
+
+### Histórico: Pausa y traspaso previo a Antigravity (19-10-2026)
 
 Inventario de solo lectura al corte del 19-10-2026. No se ejecutaron pruebas nuevas ni se modificó `Learnity` para este inventario.
 
