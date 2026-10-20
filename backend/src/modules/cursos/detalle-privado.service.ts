@@ -269,7 +269,7 @@ export const detallePrivadoService = {
       }
       exigirEdicionLeccion(contexto, usuario);
       return trabajo(contexto, cliente);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async asociarPdfPrincipal(
@@ -361,6 +361,6 @@ export const detallePrivadoService = {
         estado,
         motivoRechazo: motivo,
       };
-    });
+    }, { actor: usuario.idPersona });
   },
 };

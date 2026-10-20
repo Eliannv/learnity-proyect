@@ -158,8 +158,9 @@ export const identidadRepository = {
   async actualizarPersona(
     idPersona: number,
     datos: { nombres: string; apellidos: string; ciudad?: string | null; biografia?: string | null },
+    cliente: Ejecutor = pool,
   ): Promise<void> {
-    await consultar(
+    await cliente.query(
       'UPDATE persona SET nombres = $2, apellidos = $3, ciudad = $4, biografia = $5 WHERE id_persona = $1',
       [idPersona, datos.nombres, datos.apellidos, datos.ciudad ?? null, datos.biografia ?? null],
     );

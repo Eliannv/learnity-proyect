@@ -88,7 +88,7 @@ export const cursosService = {
 
       const idCurso = await fichaRepository.crearBorrador(cliente, idDocente, datos);
       return detallePrivado(cliente, idCurso);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async actualizarMiCurso(
@@ -117,7 +117,7 @@ export const cursosService = {
 
       await fichaRepository.actualizarCurso(cliente, idCurso, datos);
       return detallePrivado(cliente, idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async enviarCursoARevision(idCurso: number, usuario: UsuarioSesion): Promise<CursoDetalle> {
@@ -146,7 +146,7 @@ export const cursosService = {
       }
 
       return detallePrivado(cliente, idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
   },
 };
 

@@ -67,7 +67,7 @@ export const temarioService = {
 
       await temarioRepository.crearModulo(cliente, idCurso, datos);
       return detallePrivado(cliente, idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async actualizarModulo(
@@ -122,7 +122,7 @@ export const temarioService = {
       }
 
       return detallePrivado(cliente, modulo.idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async crearLeccion(
@@ -167,7 +167,7 @@ export const temarioService = {
 
       await temarioRepository.crearLeccion(cliente, idModulo, datos);
       return detallePrivado(cliente, modulo.idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async actualizarLeccion(
@@ -220,7 +220,7 @@ export const temarioService = {
       }
 
       return detallePrivado(cliente, leccion.idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
   },
 
   async eliminarLeccion(
@@ -258,7 +258,7 @@ export const temarioService = {
       }
 
       return detallePrivado(cliente, leccion.idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
 
     await limpiarPendientesFueraDeTransaccion();
     return resultado;
@@ -295,7 +295,7 @@ export const temarioService = {
       }
 
       return detallePrivado(cliente, modulo.idCurso, prevalidados);
-    });
+    }, { actor: usuario.idPersona });
 
     await limpiarPendientesFueraDeTransaccion();
     return resultado;
