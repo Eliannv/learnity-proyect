@@ -30,7 +30,7 @@ export async function crearFixtures(): Promise<Fixtures> {
     database: env['DB_NAME'],
     user: env['DB_USER'],
     password: env['DB_PASSWORD'],
-    ssl: env['DB_SSL'] === 'true' ? { rejectUnauthorized: false } : undefined,
+    ssl: env['DB_SSL'] === 'true' ? { rejectUnauthorized: true } : undefined,
     max: 3,
   });
   pool.on('error', () => { /* conexión inactiva caída: se reabre en la siguiente operación */ });

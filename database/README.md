@@ -212,6 +212,8 @@ Con los roles `learnity_owner`, `learnity_lectura` y `learnity_pruebas` todavía
 
 Si los roles ya existían (por ejemplo, al repetir la reconstrucción), las dos comparaciones de huellas dicen `DISTINTO (roles) - solo difieren los roles del cluster`: es lo esperado y no cuenta como fallo. Cualquier otra categoría distinta sí es un fallo.
 
+La reconstrucción del 20-10-2026 mostró además `DISTINTO (funciones, roles)` en H1 aunque las 42 comprobaciones del esquema pasaron: `pg_get_functiondef` había conservado CRLF de los archivos SQL de Windows, mientras la huella de referencia usaba LF. `verificacion/huella_esquema.sql` normaliza ahora CRLF a LF antes del `md5` de cada función. La huella normalizada de `funciones` es `482af4873fa6648587b1313b42824936`, igual a H1, y las restantes categorías (aparte de `roles` y el total derivado) también coinciden. No cambia ninguna migración, función de la base ni dato; solo evita este falso positivo en la comparación futura.
+
 Después de reconstruir, el lead comprueba `.env.test` y ejecuta `npm test`: es la primera vez que la suite corre con las migraciones aplicadas (pool de fixtures con `SET ROLE learnity_pruebas`, catálogo leyendo las vistas).
 
 ### Equivalente con `psql -f`

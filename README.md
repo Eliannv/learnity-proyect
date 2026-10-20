@@ -65,7 +65,8 @@ Completa `backend/.env` con:
 
 - La conexión a PostgreSQL y la contraseña de `learnity_app`.
 - Un `JWT_SECRET` aleatorio de al menos 32 caracteres. El comando para generarlo está en `.env.example`.
-- `SEED_PASSWORD`, utilizada para crear las cuentas de prueba.
+- `SEED_PASSWORD`, obligatoria para crear y comprobar las cuentas de prueba; no hay contraseña predeterminada.
+- `DB_SSL=true` verifica el certificado de PostgreSQL. Si el servidor usa una CA privada, configúrala mediante `NODE_EXTRA_CA_CERTS`.
 
 Configura también el directorio privado de PDF:
 

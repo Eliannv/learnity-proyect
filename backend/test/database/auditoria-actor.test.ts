@@ -43,7 +43,7 @@ async function sesion(roles: Rol[], conDocente: boolean): Promise<UsuarioSesion>
 async function actoresDe(tabla: string, columnaId: string, id: number, operacion: string): Promise<(number | null)[]> {
   const { rows } = await f.query<{ actor: number | null }>(
     `SELECT id_persona_actor AS actor FROM auditoria_cambio
-      WHERE tabla = $1 AND operacion = $2 AND despues->>$3 = $4`,
+      WHERE tabla = $1 AND operacion = $2 AND COALESCE(despues, antes)->>$3 = $4`,
     [tabla, operacion, columnaId, String(id)],
   );
   return rows.map((r) => r.actor);
@@ -51,9 +51,12 @@ async function actoresDe(tabla: string, columnaId: string, id: number, operacion
 
 before(async () => {
   f = await crearFixtures();
-  const c = await f.query<{ id: number }>('SELECT id_categoria AS id FROM categoria WHERE activa LIMIT 1');
-  assert.ok(c.rows[0], 'learnity_test necesita al menos una categoría activa.');
-  idCategoria = c.rows[0].id;
+  const admin = await sesion(['ESTUDIANTE', 'ADMIN'], false);
+  const c = await f.query<{ id: number }>(
+    'INSERT INTO categoria (nombre, creada_por) VALUES ($1, $2) RETURNING id_categoria AS id',
+    [marca, admin.idPersona],
+  );
+  idCategoria = c.rows[0]!.id;
 });
 
 after(async () => {
@@ -67,6 +70,7 @@ after(async () => {
       `DELETE FROM curso WHERE id_docente IN (SELECT id_docente FROM docente WHERE id_persona = ANY($1::int[]))`,
       [personas],
     );
+    await f.query('DELETE FROM categoria WHERE id_categoria = $1', [idCategoria]);
     await f.query('DELETE FROM solicitud_docente WHERE id_persona = ANY($1::int[])', [personas]);
     await f.query('DELETE FROM docente WHERE id_persona = ANY($1::int[])', [personas]);
     await f.query('DELETE FROM usuario WHERE id_persona = ANY($1::int[])', [personas]);

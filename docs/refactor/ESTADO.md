@@ -2,6 +2,19 @@
 
 > Solo lo escribe el lead. Los teammates informan por mensaje con el formato de `REGLAS_EQUIPO.md`.
 
+## Cierre verificado de la Fase 3 (20-10-2026, Codex)
+
+- **Punto de partida:** `integration/sprint-2` en `8a14d8d`. Se preservaron sin editar `PLAN_SPRINTS_LEARNITY.md` y `ROADMAP_SPRINTS_3_Y_4.md`, así como el respaldo `respaldo/be-b-wip-2b`. Sin push ni merge a `main`.
+- **Base de pruebas:** el usuario ejecutó `database/scripts/reconstruir-base.ps1 -Base learnity_test`. Resultado informado: migraciones 000, 015, 016 y 017–026, incluida la 023, más 019b; **ESQUEMA OK** (42 comprobaciones, 0 diferencias), **MATRIZ OK** (97 filas, 0 diferencias), **PRUEBAS OK** (0 fallas) y **CATALOGO IGUAL** (0 diferencias). H0 difirió en roles existentes del clúster; H1 también señaló funciones, porque `pg_get_functiondef` conservó CRLF de Windows. Se normalizó CRLF a LF en `verificacion/huella_esquema.sql`: la huella de funciones coincide con H1 y las demás categorías, aparte de roles, también. El script ya no dará ese falso positivo en la próxima ejecución. `Learnity` no se modificó.
+- **Correcciones finales:** `backend/test/database/auditoria-actor.test.ts` crea su propia categoría y consulta `antes` para auditar un `DELETE`; `backend/test/seguridad/bloqueo-pdf.test.ts` fija que las lecturas de PDF de siete operaciones no mantienen bloqueada la fila `curso` (D-01). La aplicación ya tenía la corrección D-01 y el actor de auditoría integrados en `d647c29`.
+- **Verificación sobre la base con 023:** backend `npm run typecheck` y `npm run build` → exit 0; `npm test` → **261/261**, 65 suites, 0 fallas (175 s). Incluye las 2 pruebas del actor y las 7 de bloqueo del PDF. La caracterización del catálogo con vistas pasó. Frontend `npx ng build` → exit 0 (365,98 kB) y `npx ng test --watch=false` → **38/38**.
+- **Navegador real:** `e2e/npm test` con Chromium → **21/21** (1,3 min): sesión, roles, recuperación, solicitud docente, creación y publicación del curso con PDF, XSS, accesibilidad AA y vista de 390 px. La limpieza E2E informó 0 residuos en `persona`, `usuario`, `curso`, `categoria` y `solicitud_docente`.
+- **Dependencias E2E:** `@playwright/test` pasó de 1.52.0 a 1.64.1, fijado en `package.json` y lockfile. `npm audit --audit-level=high` → 0 vulnerabilidades; `npx playwright test --list` → 21 pruebas cargadas. Node 24.12.0 cumple el mínimo de esta versión.
+- **Endurecimiento final:** S8 cerrado: `db:seed` y `db:probar` exigen `SEED_PASSWORD`, sin contraseña predeterminada ni impresión de su valor. S9 cerrado en código: con `DB_SSL=true`, tanto el pool de la app como el de fixtures verifican el certificado (`rejectUnauthorized: true`); una CA privada se configura con `NODE_EXTRA_CA_CERTS`. Backend build/typecheck → exit 0 tras S9. `npm audit --audit-level=high` en backend, frontend y E2E → 0 vulnerabilidades en cada paquete.
+- **Estado:** Fase 3 **cerrada hasta la Puerta DB**. S2 queda pendiente únicamente en `Learnity`; S6 y S10 son riesgos aceptados por decisión anterior. ADR-012 continúa **Propuesto** y fuera de este encargo. Aplicar migraciones a `Learnity` requiere aprobación explícita, respaldo previo y ejecución separada.
+
+Los apartados siguientes conservan el historial de fases anteriores y sus pendientes tal como se registraron en cada momento; el estado vigente es este cierre.
+
 ## Fase actual
 
 **Cierre de la Fase 3 (desde el 20-10-2026, lead Claude Code con agent team).** Punto de partida verificado: `integration/sprint-2` en `8507238` (integra backend `7f75337`, frontend `372014d`, E2E `182b4f8` y estado `8507238`). Antigravity ya no está editando (último cambio el 19-10 a las 19:25; no hay ningún proceso suyo activo). Se conservan los cambios del usuario en `PLAN_SPRINTS_LEARNITY.md` y `ROADMAP_SPRINTS_3_Y_4.md`.

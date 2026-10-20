@@ -110,7 +110,10 @@ async function main() {
   if (env.NODE_ENV === 'production') {
     throw new Error('El seed de cuentas de prueba no debe ejecutarse en producción.');
   }
-  const contrasena = process.env.SEED_PASSWORD ?? 'Learnity2026!';
+  const contrasena = process.env.SEED_PASSWORD;
+  if (!contrasena) {
+    throw new Error('Configura SEED_PASSWORD antes de crear cuentas de prueba.');
+  }
   const hash = await cifrarContrasena(contrasena);
 
   await enTransaccion(async (cliente) => {
@@ -128,8 +131,7 @@ async function main() {
     }
   });
 
-  // No se imprime la contraseña (S8): se fija con SEED_PASSWORD; sin ella rige la predeterminada del script.
-  console.log('\nListo. Las cuentas de prueba usan la contraseña de SEED_PASSWORD (o la predeterminada del script).');
+  console.log('\nListo. Las cuentas de prueba usan la contraseña configurada en SEED_PASSWORD.');
 }
 
 main()

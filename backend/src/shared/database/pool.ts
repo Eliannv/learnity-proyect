@@ -10,7 +10,7 @@ export const pool = new pg.Pool({
   database: env.DB_NAME,
   user: env.DB_USER,
   password: env.DB_PASSWORD,
-  ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
+  ssl: env.DB_SSL ? { rejectUnauthorized: true } : undefined,
   max: 10,
 });
 

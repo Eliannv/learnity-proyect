@@ -19,6 +19,9 @@
 --   (decisión BD-022).
 -- * Las columnas "char" del catálogo (relkind, contype, attidentity…) se
 --   convierten con ::TEXT antes de concatenar: text || "char" es ambiguo.
+-- * pg_get_functiondef conserva los saltos de línea de los archivos de origen.
+--   Se normaliza CRLF a LF para que una reconstrucción en Windows y la
+--   referencia generada con LF tengan la misma huella de funciones.
 -- =====================================================================
 WITH
 rel AS (
@@ -68,7 +71,8 @@ lineas AS (
   UNION ALL
   SELECT 'funciones',
          p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')|' ||
-         pg_get_userbyid(p.proowner) || '|' || md5(pg_get_functiondef(p.oid))
+         pg_get_userbyid(p.proowner) || '|' ||
+         md5(replace(pg_get_functiondef(p.oid), chr(13) || chr(10), chr(10)))
     FROM pg_proc p
    WHERE p.pronamespace = 'public'::regnamespace
      AND p.prokind IN ('f', 'p')

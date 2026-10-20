@@ -1,5 +1,7 @@
 # Revisión de seguridad y arquitectura: cierre de la Fase 3
 
+> **Actualización de cierre (20-10-2026):** este informe documenta la revisión inicial sobre `b15f308`; sus estados "abierto" y "NO VERIFICADO" describen ese corte. Después se integraron D-01, el actor de auditoría y las correcciones de accesibilidad. S8 quedó cerrado al eliminar la contraseña predeterminada de los scripts de seed y verificación; S9, al exigir certificado válido cuando `DB_SSL=true`. Con `learnity_test` reconstruida incluyendo la 023, backend `npm test` pasó **261/261**, Angular **38/38** y Chromium E2E **21/21**. Las 7 pruebas de `backend/test/seguridad/bloqueo-pdf.test.ts` fijan D-01; `backend/test/database/auditoria-actor.test.ts` comprueba el actor en INSERT y DELETE. La reconstrucción informó ESQUEMA/MATRIZ/PRUEBAS OK y CATALOGO IGUAL. El estado vigente y la Puerta DB se detallan en `docs/refactor/ESTADO.md`; `Learnity` sigue sin migrar.
+
 - **Autor:** `revisor` (Opus). Rama `refactor/revisor`, worktree `.worktrees/revisor`, base `b15f308` (= `integration/sprint-2`).
 - **Fecha:** 20-10-2026.
 - **Alcance:** S2–S9 de `AUDITORIA_INICIAL.md` §4.2, H1–H11 y RG-01–RG-60 de `RIESGOS.md`, lista R1–R11 y R9b de `PLANTILLA_MODULO.md` §5, y el contrato (`openapi*.ts` ↔ `openapi.yaml` ↔ 33 rutas). La Fase 2B y el punto 11.4 los integró Antigravity (`7f75337`, `372014d`, `182b4f8`); su autorrevisión no la había contrastado nadie.
