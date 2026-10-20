@@ -1,4 +1,4 @@
 # Migraciones que aplicar-migraciones.ps1 NO aplica salvo con -IncluirRetenidas.
 # Una versión por línea; lo que va después de '#' es el motivo.
 # Se borra la línea cuando desaparece el motivo (y lo aprueba el lead).
-023  # CHECK de PUBLICADO (NOT VALID, BD-022): rechaza los fixtures que insertan PUBLICADO sin revisor hasta que be-a/be-b los ajusten en la Fase 2A (PLAN_BD §2.1, punto 2)
+023  # CHECK de PUBLICADO (NOT VALID, BD-022): CAR-CAT-15 (backend/test/caracterizacion/catalogo.test.ts:91) inserta un PUBLICADO sin publicado_en y fallaría con 23514. Sale de aquí cuando qa-edge retire o adapte ese caso (RG-58). Los demás fixtures ya ponen revisor y fecha (comprobado el 20-10-2026)

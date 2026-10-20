@@ -2,7 +2,12 @@
 
 La base **no** se crea con Prisma ni con el backend. Se crea con los scripts SQL de esta carpeta, ejecutados con `psql` o en pgAdmin.
 
-El diagnóstico, la matriz de privilegios, las decisiones pendientes y los riesgos están en [`docs/bd/PLAN_BD.md`](../docs/bd/PLAN_BD.md). Este documento explica **cómo** aplicar, probar y revertir.
+El diagnóstico, la matriz de privilegios, las decisiones pendientes y los riesgos están en [`docs/bd/PLAN_BD.md`](../docs/bd/PLAN_BD.md). Este documento explica **cómo** reconstruir, aplicar, probar y revertir.
+
+Hay dos caminos al mismo esquema final, con los mismos archivos y en el mismo orden:
+
+- **Reconstruir** una base desde cero (`reconstruir-base.ps1`): borra la base y la crea con la línea base y las migraciones. Es el camino para `learnity_test`, cuyos datos son desechables (decisión del usuario del 20-10-2026). Ver [Reconstruir una base desde cero](#reconstruir-una-base-desde-cero).
+- **Migrar** una base existente conservando sus datos (`aplicar-migraciones.ps1`). Ver [Procedimiento](#procedimiento).
 
 ## Archivos
 
@@ -11,16 +16,20 @@ El diagnóstico, la matriz de privilegios, las decisiones pendientes y los riesg
 | `learnity_esquema.sql` | Las 19 tablas, restricciones e índices del modelo inicial (línea base) |
 | `015_sesiones_y_recuperacion.sql` | Sprint 1: `sesion` y `token_recuperacion` (línea base) |
 | `016_limpieza_pdf.sql` | Sprint 2: `archivo_borrado_pendiente` (línea base) |
+| `linea_base_permisos.sql` | Los `GRANT` de la sección 14 del README principal (`learnity_app` con DML en todo), último paso de la línea base en una base nueva. La 019 los retira |
 | `learnity_modelo.dbml` | Modelo para https://dbdiagram.io (Import → DBML) |
 | `migraciones/0NN_<nombre>.up.sql` / `.down.sql` | Cambios desde la 017, cada uno con su reversión. Detalle en PLAN_BD §6 |
 | `migraciones/RETENIDAS.txt` | Migraciones que todavía no se aplican (hoy, la 023: ver *Cursos `PUBLICADO` heredados*) |
 | `migraciones/propuestas/` | Migraciones sin número que esperan un ADR (hoy, `pg_trgm`) |
 | `verificacion/huella_esquema.sql` | Huella del esquema (solo lectura): comprueba que un `down` deja la base igual |
-| `verificacion/matriz_privilegios.sql` | Compara los permisos reales de `learnity_app` y `learnity_lectura` con los esperados (solo lectura) |
+| `verificacion/referencias/huella-*.txt` | Huellas de referencia de la prueba del 19-10-2026: línea base (H0), migrada sin la 023 (H4) y con la 023 (H1). Las compara `reconstruir-base.ps1` |
+| `verificacion/esquema_final.sql` | Resume y comprueba el esquema final (solo lectura, sirve en cualquier base): tablas, vistas y sus columnas, restricciones, índices, FK sin índice, triggers, funciones, dueños, roles, `CONNECT`, 019b y `schema_migraciones` |
+| `verificacion/matriz_privilegios.sql` | Compara los permisos reales de `learnity_app`, `learnity_lectura` y `learnity_pruebas` con los esperados (solo lectura) |
 | `verificacion/pruebas_funcionales.sql` | Prueba permisos, auditoría, `actualizado_en`, `CHECK`, índice único y vistas, y lo deshace todo (solo bases `_test`) |
 | `verificacion/pruebas_heredadas.sql` | Prueba la decisión BD-022 con cursos `PUBLICADO` heredados sin revisor: aplica 022–026 dentro de una transacción y lo deshace todo. No se ejecuta suelto: lo compone `probar-migraciones.ps1` (solo bases `_test`) |
 | `verificacion/comparar_catalogo.sql` | Comprueba que las vistas del catálogo devuelven lo mismo que las consultas actuales, y lo deshace todo (solo bases `_test`) |
 | `pruebas/privilegios_pruebas.sql` y `quitar_privilegios_pruebas.sql` | 019b: rol de los fixtures (`learnity_pruebas`), del que `learnity_app` es miembro sin herencia; solo en bases `_test` (decisión D-BD2) |
+| `scripts/reconstruir-base.ps1` | Borra y crea una base con el esquema final (línea base, migraciones y, solo en `_test`, la 019b) y la verifica |
 | `scripts/aplicar-migraciones.ps1` | Aplica las pendientes en orden y registra su checksum |
 | `scripts/revertir-migraciones.ps1` | Revierte desde la última hacia atrás |
 | `scripts/probar-migraciones.ps1` | Ciclo completo `up → down → up` con huellas y verificaciones, solo en bases `_test` |
@@ -50,9 +59,9 @@ CREATE ROLE learnity_app LOGIN;
   1. prueba `up → down → up` en `learnity_test`;
   2. Puerta DB;
   3. respaldo con `pg_dump`;
-  4. aplicar a `Learnity` con aprobación del usuario;
+  4. aplicar a `Learnity` con aprobación del usuario (migrando, o reconstruyendo si el usuario lo aprueba explícitamente: ver [Reconstruir `Learnity`](#reconstruir-learnity-solo-con-aprobación-del-usuario));
   5. cada integrante aplica lo mismo en su base local.
-- Los scripts históricos (`learnity_esquema.sql`, 015 y 016) no se vuelven a ejecutar. La 017 los registra como línea base.
+- Los scripts históricos (`learnity_esquema.sql`, 015 y 016) no se vuelven a ejecutar sobre una base que ya los tiene. Solo los ejecuta `reconstruir-base.ps1`, sobre una base recién creada y vacía. La 017 los registra como línea base.
 - Nada de contraseñas en archivos, scripts ni commits.
 
 ## Cómo ejecutar los scripts
@@ -79,7 +88,7 @@ Parámetros comunes:
 - si no, el script la pide **una vez**, sin eco, y la deja solo en `PGPASSWORD` de ese proceso. Al terminar restaura el valor anterior;
 - con `-PedirEnCadaPaso` el script no la pide y es `psql` quien la pide en cada llamada.
 
-En una base cuyo nombre no termina en `_test`, `aplicar-migraciones.ps1` y `revertir-migraciones.ps1` se niegan a correr sin `-ConfirmoRespaldo`.
+En una base cuyo nombre no termina en `_test`, `aplicar-migraciones.ps1` y `revertir-migraciones.ps1` se niegan a correr sin `-ConfirmoRespaldo`, y `reconstruir-base.ps1` sin `-ConfirmoBorrar <nombre exacto de la base>`.
 
 ### Equivalente con `psql -f`
 
@@ -105,7 +114,181 @@ Compare-Object (Get-Content H0.txt) (Get-Content H2.txt)     # vacío = huellas 
 
 Guarda los archivos de huella fuera del repositorio (por ejemplo en `%TEMP%`).
 
+## Reconstruir una base desde cero
+
+Deja una base vacía con el esquema final, la verifica y no carga datos (solo las 3 filas de `rol`). La ejecuta el lead con `postgres` y con turno de `learnity_test`. Antes, detén el backend y las pruebas: `WITH (FORCE)` cierra cualquier conexión abierta a esa base.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File database\scripts\reconstruir-base.ps1 -Base learnity_test
+```
+
+Con `-Simular` muestra el plan sin conectarse.
+
+### Qué hace
+
+| Paso | Qué | Con qué |
+|---|---|---|
+| 1 | Comprueba, conectado a la base de mantenimiento `postgres`: superusuario, PostgreSQL 16 o superior y que exista `learnity_app`. Informa de los roles `learnity_*` que ya existen, de los logins que no podrán conectarse (R1) y, si la base existe, de sus migraciones, sus filas aproximadas y las conexiones que va a cerrar | Solo lectura |
+| 2 | `DROP DATABASE IF EXISTS "<base>" WITH (FORCE)` y `CREATE DATABASE "<base>" TEMPLATE template0 ENCODING 'UTF8'` | `crear-base.sql`, que el script escribe en la carpeta de salidas |
+| 3 | Línea base y su huella, que se compara con la de referencia H0 | `learnity_esquema.sql` (en una transacción), `015_…`, `016_…` y `linea_base_permisos.sql` |
+| 4 | Migraciones desde la 017, en orden, salvo las de `RETENIDAS.txt` (hoy la 023), y su huella, que se compara con la de referencia H4 | `migraciones/0NN_*.up.sql`, con la misma función que `aplicar-migraciones.ps1` |
+| 5 | Solo si la base termina en `_test`: la 019b | `pruebas/privilegios_pruebas.sql` |
+| 6 | Verificación | `esquema_final.sql` y `matriz_privilegios.sql`; en `_test`, además, `pruebas_funcionales.sql` y `comparar_catalogo.sql`, que lo deshacen todo |
+
+Al final imprime un resumen para pegar y deja las salidas completas en `%TEMP%\learnity-reconstruir-<base>-<fecha>`. Termina con código 1 si algo falla, si una verificación no da su resultado esperado o si una huella difiere en algo más que los roles.
+
+**Reglas que cumple:**
+
+- Si el nombre no termina en `_test`, se niega a correr salvo con `-ConfirmoBorrar <nombre exacto>` (por ejemplo `-ConfirmoBorrar Learnity`). Tampoco acepta `postgres`, `template0` ni `template1`, ni nombres con caracteres que no sean letras ASCII, dígitos o `_`.
+- La contraseña de `postgres` sale de `PGPASSWORD`, de `pgpass.conf` o de `Read-Host -AsSecureString`, igual que en los demás scripts. Nunca se escribe ni se imprime.
+- Los roles son del clúster y `DROP DATABASE` no los borra. La 018 crea solo los que faltan, así que el script se puede repetir.
+- **No crea `learnity_app`, no lo modifica y no toca su contraseña.** Si falta, se detiene (ver [Rol `learnity_app`](#rol-learnity_app-en-un-servidor-nuevo)). La 019b sí le concede la pertenencia sin herencia a `learnity_pruebas`, igual que hasta ahora.
+- Si falla a mitad de camino, basta con repetirlo: siempre empieza borrando la base.
+
+**Parámetros propios** (los de conexión son los comunes):
+
+| Parámetro | Para qué |
+|---|---|
+| `-Base` | Por defecto `learnity_test` |
+| `-ConfirmoBorrar <nombre>` | Obligatorio si la base no termina en `_test`. Debe ser el nombre exacto |
+| `-IncluirRetenidas` | Aplica también las de `RETENIDAS.txt` (hoy la 023), en orden numérico. La huella se compara entonces con la referencia H1 |
+| `-SoloLineaBase` | Se detiene tras la línea base, sin migraciones ni 019b. Sirve para volver a pasar `probar-migraciones.ps1` |
+| `-Simular` | Muestra el plan y no se conecta |
+| `-SalidaDir` | Carpeta de las salidas |
+
+### Relación con las migraciones
+
+La reconstrucción **no** tiene un esquema propio. Ejecuta los mismos archivos, en el mismo orden en que llegaron a las bases existentes, y registra cada migración en `schema_migraciones` con su sha256 (el `Aplicar-Una` de `comun.ps1`). Una base reconstruida queda en el mismo estado que una base migrada:
+
+- `schema_migraciones`: `000`, `015` y `016` (línea base, sin checksum) y `017`–`022`, `024`–`026` con checksum.
+- `aplicar-migraciones.ps1` sigue funcionando sobre ella. Cuando la 023 salga de `RETENIDAS.txt`, se aplica así, sin reconstruir.
+- `revertir-migraciones.ps1 -Todas` la devuelve a la línea base (antes, `quitar_privilegios_pruebas.sql`).
+- Para repetir la prueba `up → down → up`: `reconstruir-base.ps1 -SoloLineaBase` y después `probar-migraciones.ps1`.
+
+`linea_base_permisos.sql` reproduce los permisos que tenían las bases antes de la 017 (los de la sección 14 del README principal). La 019 los retira. Se conservan para que la base reconstruida pase por el mismo estado que las existentes: así su huella se compara con la de referencia, y la 019 guarda en `reversion` los mismos permisos que su `down` restaura.
+
+### La 023 sigue retenida (comprobado el 20-10-2026)
+
+Para que la 023 salga de `RETENIDAS.txt`, ninguna prueba ni ningún fixture puede crear un curso `PUBLICADO` sin revisor o sin `publicado_en`. Hoy queda uno:
+
+- `backend/test/caracterizacion/catalogo.test.ts:91` inserta el curso `c4` "Delta heredado" como `PUBLICADO` con `publicado_en` NULL. Con la 023, ese `INSERT` da 23514 y `CAR-CAT-15` (y el `before` de la suite) falla. La propia suite lo avisa (línea 4: "Vale hasta la migración 023 (RG-58)").
+- Los demás que citaba `RETENIDAS.txt` ya ponen revisor y fecha: `cursos-publicos.test.ts:47-53`, `cursos-gestion-http.test.ts:290-297`, `administracion-contenido.test.ts:263-267`, `caracterizacion/cursos.test.ts:81-82`, `caracterizacion/contenido.test.ts:28-29`, `scripts/sembrar-catalogo.ts:20-31` y `semillas.repository.ts`. Las E2E no insertan cursos.
+
+Cuando `qa-edge` retire o adapte `CAR-CAT-15` (RG-58), el lead puede quitar la 023 de `RETENIDAS.txt` y aplicarla con `aplicar-migraciones.ps1`.
+
+### Salida esperada en `learnity_test`
+
+Con los roles `learnity_owner`, `learnity_lectura` y `learnity_pruebas` todavía sin crear en el clúster (como al cerrar la prueba del 19-10-2026):
+
+```text
+=== reconstruir-base | learnity_test | localhost:5432 | <fecha> ===
+  PostgreSQL 170010 | roles learnity_* que ya existen: learnity_app (LOGIN)
+  Logins sin CONNECT en la base nueva (riesgo R1; la 018 lo retira a PUBLIC): <normalmente ->
+  La base learnity_test existe: migraciones sin schema_migraciones (linea base) | filas aprox.: … | conexiones que se cierran: 0
+  Base learnity_test creada vacia (UTF8, <collation del clúster>).
+--- Huellas (TOTAL: filas|md5) ---
+  Linea base            705|f15432412a68b46b4c6206746a7a31ef  (referencia H0 del 19-10-2026: 705|f15432412a68b46b4c6206746a7a31ef)
+  Linea base = H0: IGUAL
+--- Migraciones ---
+  retenida 023_check_curso_publicado.up.sql (RETENIDAS.txt; sin -IncluirRetenidas)
+  … NOTICE:  022: cursos PUBLICADO sin revisor o sin fecha en learnity_test: ninguno. No se modifican.
+  Migrada, sin 019b     836|5caf4cbd1442cbd0f01c40cd0f51b318  (referencia H4 del 19-10-2026: 836|5caf4cbd1442cbd0f01c40cd0f51b318)
+  Migrada = H4: IGUAL
+  schema_migraciones: 000, 015, 016, 017, 018, 019, 020, 021, 022, 024, 025, 026
+--- 019b: pruebas\privilegios_pruebas.sql ---
+--- Esquema final … ---   RESUMEN | learnity_test | 42 comprobaciones | 0 diferencias, 0 avisos | ESQUEMA OK
+--- Matriz de privilegios … ---   RESUMEN | learnity_test | 97 filas | 0 diferencias | MATRIZ OK
+--- Pruebas funcionales … ---   999 | RESUMEN | learnity_test | 0 fallas | PRUEBAS OK   (22, 32 y 33: NO APLICA, sin la 023)
+--- Catalogo … ---   RESUMEN | learnity_test | - | 0 | CATALOGO IGUAL
+--- Resultado ---
+  esquema: ESQUEMA OK
+  matriz: MATRIZ OK
+  funcionales: PRUEBAS OK
+  catalogo: CATALOGO IGUAL
+--- Estado final de learnity_test: 000, 015, 016, 017, 018, 019, 020, 021, 022, 024, 025, 026 + 019b ---
+```
+
+Si los roles ya existían (por ejemplo, al repetir la reconstrucción), las dos comparaciones de huellas dicen `DISTINTO (roles) - solo difieren los roles del cluster`: es lo esperado y no cuenta como fallo. Cualquier otra categoría distinta sí es un fallo.
+
+Después de reconstruir, el lead comprueba `.env.test` y ejecuta `npm test`: es la primera vez que la suite corre con las migraciones aplicadas (pool de fixtures con `SET ROLE learnity_pruebas`, catálogo leyendo las vistas).
+
+### Equivalente con `psql -f`
+
+Mismo orden, desde `database\migraciones`. El modo manual no registra checksums (`esquema_final.sql` lo marca como AVISO, no como diferencia) y no compara huellas.
+
+```powershell
+$psql = 'C:\Program Files\PostgreSQL\17\bin\psql.exe'
+Set-Location database\migraciones
+# Cambia learnity_test por la base. Si el nombre tiene mayúsculas, ponlo entre comillas dobles en el DROP/CREATE.
+& $psql -X -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'DROP DATABASE IF EXISTS learnity_test WITH (FORCE)'
+& $psql -X -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE learnity_test TEMPLATE template0 ENCODING 'UTF8'"
+$cx = @('-X', '-h', 'localhost', '-U', 'postgres', '-d', 'learnity_test', '-v', 'ON_ERROR_STOP=1')
+& $psql @cx -1 -f ..\learnity_esquema.sql
+& $psql @cx -f ..\015_sesiones_y_recuperacion.sql
+& $psql @cx -f ..\016_limpieza_pdf.sql
+& $psql @cx -f ..\linea_base_permisos.sql
+foreach ($v in '017', '018', '019', '020', '021', '022', '024', '025', '026') {   # sin la 023 (retenida)
+  & $psql @cx -f (Get-ChildItem "${v}_*.up.sql").Name
+  if ($LASTEXITCODE -ne 0) { throw "Fallo la $v" }
+}
+& $psql @cx -f ..\pruebas\privilegios_pruebas.sql                                  # solo en bases _test
+& $psql @cx -q -At -F ' | ' -f ..\verificacion\esquema_final.sql
+& $psql @cx -q -At -F ' | ' -f ..\verificacion\matriz_privilegios.sql
+& $psql @cx -q -At -F ' | ' -f ..\verificacion\pruebas_funcionales.sql            # solo en bases _test
+& $psql @cx -q -At -F ' | ' -f ..\verificacion\comparar_catalogo.sql              # solo en bases _test
+```
+
+## Reconstruir `Learnity` (solo con aprobación del usuario)
+
+**No se ejecuta sin una aprobación explícita y única del usuario**, después de haber reconstruido y probado `learnity_test` con este mismo procedimiento. Esto es exactamente lo que se haría.
+
+**1. Respaldo** (con `postgres`, fuera del repositorio; los comandos completos están en el [paso 3](#paso-3-consulta-previa-y-respaldo-de-learnity-lo-ejecuta-el-usuario)):
+
+```powershell
+& "$pg\pg_dump.exe" -h localhost -p 5432 -U postgres -d Learnity -F c -f "$dir\Learnity-antes-reconstruir-$fecha.dump"
+& "$pg\pg_restore.exe" --list "$dir\Learnity-antes-reconstruir-$fecha.dump" | Select-Object -First 10
+```
+
+**2. Detener** el backend de desarrollo y cerrar pgAdmin sobre `Learnity`.
+
+**3. Simular y reconstruir:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File database\scripts\reconstruir-base.ps1 -Base Learnity -Simular
+powershell -ExecutionPolicy Bypass -File database\scripts\reconstruir-base.ps1 -Base Learnity -ConfirmoBorrar Learnity
+```
+
+**Efectos:**
+
+| Qué | Resultado |
+|---|---|
+| Datos | **Se pierden todos**: cuentas, docentes, categorías, cursos (los 3 `PUBLICADO` heredados sin revisor incluidos), temarios, sesiones y las 2 filas de `archivo`. Solo quedan las 3 filas de `rol`. El respaldo del paso 1 es la única copia |
+| PDF en disco | Los archivos de `backend/uploads/pdf` (o de `PDF_DIR`) quedan huérfanos: ninguna fila los referencia. El script no toca el disco; se pueden borrar a mano o dejar |
+| Esquema | El mismo que `learnity_test`: línea base, 017–022 y 024–026, con la 023 retenida. Al no quedar cursos heredados, la vista `curso_publicado_sin_revision` queda vacía |
+| 019b | **No se aplica**: `Learnity` no termina en `_test`. `learnity_pruebas` no tiene ningún permiso en `Learnity` (lo comprueban `esquema_final.sql`, fila "019b aplicada", y la matriz) |
+| Verificación | Solo `esquema_final.sql` y `matriz_privilegios.sql`, que solo leen. `pruebas_funcionales.sql` y `comparar_catalogo.sql` se niegan a correr fuera de `_test` |
+| Roles | Se reutilizan los del clúster. `learnity_app` y su contraseña no cambian: `backend/.env` no necesita cambios |
+| Conexiones | Se cierran las abiertas a `Learnity`. Los logins que no sean `learnity_app` ni superusuarios pierden `CONNECT` (R1): el script los lista en el paso 1 |
+| Otras bases | No cambian: ni `learnity_test` ni ninguna otra |
+
+Salida esperada: como la de `learnity_test`, sin la 019b, sin pruebas funcionales ni comparación del catálogo, y con `esquema: ESQUEMA OK` y `matriz: MATRIZ OK` (la matriz con 48 filas; la fila de la pertenencia de `learnity_app` a `learnity_pruebas` es del clúster y sale `inherit=false,set=true` si `learnity_test` tiene la 019b). Las huellas dicen `DISTINTO (roles)` porque los roles ya existen: no es un fallo.
+
+**4. Datos de desarrollo** (con el backend detenido, desde `backend`, con su `.env`, que ya apunta a `Learnity` y usa `learnity_app`):
+
+```powershell
+npm run db:seed            # cuentas de prueba, docente, categorías y solicitud
+npm run db:seed-publico    # opcional: 3 cursos [Prueba Sprint 2] publicados con revisor y fecha
+```
+
+Las semillas solo hacen `INSERT` en tablas donde la 019 se lo permite a `learnity_app` (persona, usuario, usuario_rol, solicitud_docente, docente, categoria, curso, modulo y leccion), y ponen revisor y fecha a los cursos publicados. **NO VERIFICADO** con la 019 aplicada: `test/database/semillas.test.ts` lo comprobará en `learnity_test` cuando la suite corra sobre la base reconstruida.
+
+**Alternativa sin perder datos:** migrar `Learnity` en su sitio con `aplicar-migraciones.ps1 -Base Learnity -ConfirmoRespaldo` ([paso 4](#paso-4-aplicar-a-learnity-solo-con-aprobación-del-usuario)). Conserva los datos y los 3 cursos heredados (que quedan listados en `curso_publicado_sin_revision`), y deja el mismo esquema. Ese camino no compara huellas: la verificación es `esquema_final.sql` y `matriz_privilegios.sql`, ejecutadas a mano con `psql` como en el equivalente de arriba.
+
+**Volver atrás:** restaurar el respaldo en una base nueva, como en [Revertir](#revertir).
+
 ## Procedimiento
+
+Este es el camino para **migrar una base existente** conservando sus datos. Para `learnity_test`, desde el 20-10-2026, lo normal es [reconstruirla](#reconstruir-una-base-desde-cero).
 
 ### Paso 1. Probar en `learnity_test` (con turno del lead)
 
@@ -246,12 +429,12 @@ Lo que un `down` no devuelve, por definición: las filas de `auditoria_cambio` y
 
 ## Historial: scripts 015 y 016
 
-Se aplicaron a mano, antes de existir `schema_migraciones`, con la cuenta dueña de las tablas (Query Tool de pgAdmin). La 017 los registra como línea base. Para una base nueva:
+Se aplicaron a mano, antes de existir `schema_migraciones`, con la cuenta dueña de las tablas (Query Tool de pgAdmin). La 017 los registra como línea base. Para una base nueva, `reconstruir-base.ps1` hace todo esto en orden:
 
 1. `learnity_esquema.sql`.
 2. `015_sesiones_y_recuperacion.sql` (repetible, `IF NOT EXISTS`). Sin la 015, el backend avisa al arrancar ("Falta la tabla sesion").
 3. `016_limpieza_pdf.sql`. Sin la 016, falla eliminar lecciones con PDF.
-4. Los `GRANT` de la sección 14 del README principal.
-5. Las migraciones desde la 017 (`aplicar-migraciones.ps1`).
+4. `linea_base_permisos.sql` (los `GRANT` de la sección 14 del README principal).
+5. Las migraciones desde la 017.
 
 Las tablas nunca guardan tokens en claro, solo su hash SHA-256.

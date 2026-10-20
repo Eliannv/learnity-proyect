@@ -1,7 +1,7 @@
 # Plan de base de datos (Fase 1 del refactor)
 
 > Dueño: `db`. Fuente del estado inicial: `docs/refactor/AUDITORIA_INICIAL.md` (§2.5, §4.2 S1/S2 y §6) y `docs/refactor/VERIFICACION_AUDITORIA.md` (§7, filas BD-*), verificadas el 18/19-10-2026.
-> Procedimiento operativo (respaldo, aplicar, revertir y probar): [`database/README.md`](../../database/README.md).
+> Procedimiento operativo (reconstruir, respaldo, aplicar, revertir y probar): [`database/README.md`](../../database/README.md).
 
 ## 1. Reglas que sigue este plan
 
@@ -10,6 +10,7 @@
 - Todo lo que requiere `postgres` lo ejecuta el usuario (D7). `db` prepara los scripts; no se conecta a ninguna base.
 - La app usa `learnity_app` (mínimo privilegio). Nadie usa `postgres` desde la app.
 - Ninguna migración cambia rutas, cuerpos JSON, códigos HTTP ni códigos de error.
+- **Decisión del usuario (20-10-2026):** los datos de `Learnity` y `learnity_test` son desechables. Se autoriza **reconstruir `learnity_test`** con un procedimiento reproducible (§12). `Learnity` no se borra ni se reconstruye sin una aprobación explícita y única del usuario, una vez probado el procedimiento en `learnity_test`.
 
 ## 2. Diagnóstico (estado verificado el 18/19-10-2026)
 
@@ -35,6 +36,7 @@ Idéntico en `Learnity` y `learnity_test`:
 
 1. **Las pruebas se conectan como `learnity_app` y borran más que la app.** La app solo hace `DELETE` en `modulo`, `leccion`, `archivo`, `archivo_borrado_pendiente`, `sesion` y `token_recuperacion`. Los fixtures de `backend/test/*.test.ts`, en cambio, hacen `DELETE` en `persona`, `usuario`, `usuario_rol`, `curso`, `categoria`, `docente`, `solicitud_docente` e `inscripcion`, `INSERT` en `inscripcion` y `UPDATE` en `archivo` y `categoria`. Ver la decisión D-BD2 (§7).
 2. **El `CHECK` de `PUBLICADO` rompe fixtures que crean cursos publicados sin revisor:** `cursos-publicos.test.ts:46`, `cursos-gestion-http.test.ts:285`, `administracion-contenido.test.ts:209` (`escenario('PUBLICADO')`) y `scripts/sembrar-catalogo.ts:42`. Aunque sea `NOT VALID`, el `CHECK` rechaza esos `INSERT` nuevos. El lead lo registró como tarea de la Fase 2A (`be-a` y `be-b`): solo se ajustan los datos de prueba, nunca las aserciones. **La 023 queda retenida hasta entonces.**
+   **Revisado el 20-10-2026:** esos cuatro ya ponen revisor y fecha, igual que `caracterizacion/cursos.test.ts`, `caracterizacion/contenido.test.ts` y `semillas.repository.ts`. Queda uno: `caracterizacion/catalogo.test.ts:91` crea `c4` "Delta heredado" como `PUBLICADO` sin `publicado_en` para `CAR-CAT-15`, y con la 023 ese `INSERT` da 23514. **La 023 sigue retenida** hasta que `qa-edge` retire o adapte `CAR-CAT-15` (RG-58).
 3. `seed.ts` inserta en `persona`, `usuario`, `usuario_rol`, `docente`, `categoria` (`ON CONFLICT DO NOTHING`, que solo exige `INSERT`) y `solicitud_docente`.
 4. Una violación de `UNIQUE` (23505) se responde como 409 `CONFLICTO` (`manejador-errores.ts:34`).
 5. Ningún repositorio usa `SELECT *`, `RETURNING *`, `to_jsonb` ni `INSERT … VALUES` sin lista de columnas: agregar `actualizado_en` no cambia ningún JSON ni ningún `INSERT`.
@@ -99,7 +101,8 @@ Matriz de la §6 de la auditoría, con la operación SQL real de cada repositori
 - Cada `down` comprueba que es **la última migración aplicada** (`orden` máximo, no el número de versión) y borra su fila.
 - Desde la 019, cada archivo hace `SET LOCAL ROLE learnity_owner` después de las comprobaciones, para que los objetos nuevos sean de `learnity_owner`.
 - Lo que un `down` necesita restaurar (dueños, ACL o datos originales) lo guarda el `up` en `schema_migraciones.reversion` (`jsonb`). Así el `down` no depende de suposiciones sobre la base: los dueños originales pueden variar entre integrantes.
-- **Migraciones retenidas:** `database/migraciones/RETENIDAS.txt` lista las versiones que `aplicar-migraciones.ps1` no aplica salvo con `-IncluirRetenidas`. Hoy contiene la 023 (ver §2.1, punto 2).
+- **Migraciones retenidas:** `database/migraciones/RETENIDAS.txt` lista las versiones que `aplicar-migraciones.ps1` y `reconstruir-base.ps1` no aplican salvo con `-IncluirRetenidas`. Hoy contiene la 023 (ver §2.1, punto 2).
+- **Una base nueva** no tiene un esquema propio: `reconstruir-base.ps1` ejecuta la línea base (`learnity_esquema.sql`, 015, 016 y `linea_base_permisos.sql`) y después las mismas migraciones, en el mismo orden y registradas con su checksum (§12).
 
 ## 6. Migraciones
 
@@ -240,6 +243,8 @@ La búsqueda `ILIKE '%q%'` recorre la tabla completa. La propuesta `database/mig
 
 Lo que un `down` no devuelve, por definición: las filas de `auditoria_cambio` y los valores de `actualizado_en` desaparecen con su tabla o columna. Los roles del clúster se conservan si otra base los usa (lo avisa con NOTICE). Si el `down` de la 018 sí puede borrarlos, H2 = H0 también en la categoría `roles`.
 
+**Huellas de referencia.** Las de la ejecución que probó las migraciones actuales (lead, 19-10-2026 10:04, `b9e7ba3`) están en `database/verificacion/referencias/`: línea base H0 `705|f15432412a68…`, migrada sin la 023 H4 `836|5caf4cbd1442…` y con la 023 H1 `837|4065121d5890…`. `reconstruir-base.ps1` compara con ellas la base que construye (§12).
+
 ## 9. Riesgos para la Puerta DB
 
 | # | Riesgo | Mitigación |
@@ -280,16 +285,47 @@ SELECT r.rolname AS login_que_hoy_depende_de_public
 
 El detalle, con los comandos exactos de PowerShell y `psql`, está en [`database/README.md`](../../database/README.md).
 
-1. **Prueba en `learnity_test`** (turno del lead): `probar-migraciones.ps1 -Base learnity_test`. Deja la base en la línea base; `npm test` debe seguir en 78/78. La suite con las migraciones aplicadas (`-EstadoFinal Migrada`) se ejecuta cuando los fixtures usen el pool de `learnity_pruebas` (Fase 2A).
-2. **Puerta DB:** el usuario revisa H0–H4, la matriz y la suite.
-3. **Respaldo de `Learnity`:** `pg_dump -F c` y `pg_dumpall --roles-only`, fuera del repositorio. El de roles contiene hashes de contraseñas.
-4. **Aplicar a `Learnity`** con aprobación del usuario: `aplicar-migraciones.ps1 -Base Learnity`.
-5. **Cada integrante**, en su base local: la consulta de R1, su propio respaldo y `aplicar-migraciones.ps1 -Base <su base>`.
+1. **Prueba del ciclo en `learnity_test`** (hecha el 19-10-2026): `probar-migraciones.ps1 -Base learnity_test`, todo IGUAL. Para repetirla sobre una base reconstruida: `reconstruir-base.ps1 -SoloLineaBase` y después `probar-migraciones.ps1`.
+2. **Reconstruir `learnity_test`** (turno del lead, autorizado el 20-10-2026): `reconstruir-base.ps1 -Base learnity_test` (§12). Después, la guarda de `.env.test` y `npm test`: es la primera vez que la suite corre con las migraciones aplicadas (fixtures con `SET ROLE learnity_pruebas` y catálogo sobre las vistas).
+3. **Puerta DB:** el usuario revisa el resumen de la reconstrucción (huellas, `ESQUEMA OK`, `MATRIZ OK`, `PRUEBAS OK`, `CATALOGO IGUAL`) y el resultado de `npm test`, y decide para `Learnity` entre reconstruir (pierde los datos) o migrar en su sitio (los conserva).
+4. **Respaldo de `Learnity`:** `pg_dump -F c` y `pg_dumpall --roles-only`, fuera del repositorio. El de roles contiene hashes de contraseñas.
+5. **`Learnity`**, solo con la aprobación explícita del usuario:
+   - **reconstruir:** `reconstruir-base.ps1 -Base Learnity -ConfirmoBorrar Learnity`, y después `npm run db:seed` (y, si se quiere, `npm run db:seed-publico`) desde `backend`; o
+   - **migrar en su sitio:** `aplicar-migraciones.ps1 -Base Learnity -ConfirmoRespaldo`.
+6. **Cada integrante**, en su base local: la consulta de R1, su propio respaldo y lo mismo que se decida para `Learnity`.
 
 ## 11. Pendiente y NO VERIFICADO
+
+- **Reconstrucción (§12): NO VERIFICADA.** `db` no se conecta a ninguna base: `reconstruir-base.ps1`, `linea_base_permisos.sql`, `esquema_final.sql` y la ampliación de `matriz_privilegios.sql` (filas de `learnity_pruebas`) se prueban en la primera ejecución del lead en `learnity_test`. Solo se comprobó, sin conectarse, que el `.ps1` no tiene errores de sintaxis y que `-Simular` muestra el plan correcto.
+- Que las semillas (`npm run db:seed`, `db:seed-publico`) funcionen con la 019 aplicada: por la lectura del código, solo hacen `INSERT` permitidos a `learnity_app`. Lo comprobará `test/database/semillas.test.ts` sobre la base reconstruida.
 
 - 022 y 023 rediseñadas (D-BD1) y `verificacion/pruebas_heredadas.sql`: **NO VERIFICADO** hasta el próximo turno de `probar-migraciones.ps1` en `learnity_test`. El resto se probó el 19-10-2026 (ver `docs/refactor/ESTADO.md`, *Prueba de migraciones*).
 - Opinión de `qa-edge` sobre D-BD2: recibida (opción 3, §7). El pool de fixtures con `SET ROLE learnity_pruebas` es de `qa-edge` (`backend/test/ayudas/`); el cambio de import en cada suite, de `be-a` y `be-b` (Fase 2A).
 - `arquitecto` confirmó las tres vistas, sus columnas y que `catalogo_categoria` filtra `activa` dentro de la vista (ADR-002).
 - Puerta 1 cerrada: D-BD1 decidida (BD-022, §7); D-BD2, opción 3 (BD-019b); D-BD3, `pg_trgm` aplazado (ADR-010, P1-2).
 - Las 3 lecciones `DOCUMENTO` sin PDF de cursos publicados: no hay `CHECK` posible (es una regla entre tablas). Quedan en el servicio, como hoy.
+
+## 12. Reconstrucción reproducible (20-10-2026)
+
+**Por qué.** El usuario decidió que los datos de `Learnity` y `learnity_test` son desechables y autorizó reconstruir `learnity_test`. Hasta ahora las migraciones nunca habían quedado aplicadas en `learnity_test`: el ciclo `up → down → up` se probó y la base volvió a la línea base. Por eso el catálogo siempre usó la ruta de respaldo de `catalogo.repository.ts:108`.
+
+**Qué se añade** (detalle y comandos en `database/README.md`, *Reconstruir una base desde cero*):
+
+| Archivo | Para qué |
+|---|---|
+| `database/scripts/reconstruir-base.ps1` | `DROP DATABASE … WITH (FORCE)` y `CREATE DATABASE … TEMPLATE template0 ENCODING 'UTF8'`; línea base; migraciones desde la 017 (sin las retenidas); 019b solo en `_test`; verificación; resumen. Se niega a tocar una base que no termine en `_test` sin `-ConfirmoBorrar <nombre exacto>` |
+| `database/linea_base_permisos.sql` | Los `GRANT` de la sección 14 del README principal, último paso de la línea base |
+| `database/verificacion/esquema_final.sql` | Comprobación y resumen del esquema final, de solo lectura y válida en cualquier base |
+| `database/verificacion/matriz_privilegios.sql` | Ahora también `learnity_pruebas`: en una base `_test` con la 019b se exige todo lo que concede; en cualquier otra, nada |
+| `database/verificacion/referencias/huella-*.txt` | Huellas H0, H4 y H1 de la prueba del 19-10-2026 |
+
+**Decisiones (reversibles):**
+
+- **Reutilizar las migraciones en vez de un volcado del esquema final.** Un `pg_dump --schema-only` sería un segundo origen del esquema que podría divergir de las migraciones. Ejecutando los mismos archivos, la base reconstruida queda en el mismo estado que una migrada, con `schema_migraciones` y los checksums, y `aplicar`, `revertir` y `probar` siguen funcionando sobre ella.
+- **Reproducir los permisos de la línea base aunque la 019 los retire** (`linea_base_permisos.sql`). La base pasa por el mismo estado H0 que las existentes, su huella se compara con la de referencia y la 019 guarda en `reversion` lo que su `down` restaura.
+- **`learnity_esquema.sql` no incluye todo:** no tiene `sesion`, `token_recuperacion` ni `archivo_borrado_pendiente` (015 y 016), ni permisos, roles, dueños, auditoría, `actualizado_en`, vistas ni los índices de la 024 y la 025 (comprobado leyendo el archivo). Por eso la reconstrucción es la línea base completa más las migraciones.
+- **`TEMPLATE template0 ENCODING 'UTF8'`.** `template0` no arrastra objetos añadidos a `template1`. Con UTF-8, la base acepta los textos con tildes de las semillas y de las pruebas (en Windows, UTF-8 es compatible con cualquier configuración regional). La collation es la del clúster y el script la imprime.
+- **Comparar huellas con tolerancia solo en `roles`.** Los roles son del clúster: al repetir la reconstrucción, `learnity_owner`, `learnity_lectura`, `learnity_pruebas` y la pertenencia de la 019b ya existen. Cualquier otra categoría distinta es un fallo.
+- **La 023 sigue retenida** (§2.1, punto 2): queda `CAR-CAT-15`.
+
+**Lo que se haría en `Learnity`** (solo con aprobación explícita del usuario): respaldo `pg_dump -F c`; detener el backend; `reconstruir-base.ps1 -Base Learnity -Simular` y después `-ConfirmoBorrar Learnity`; `npm run db:seed`. **Efectos:** se pierden todos los datos (cuentas, cursos, los 3 `PUBLICADO` heredados y las 2 filas de `archivo`; los PDF del disco quedan huérfanos); el esquema queda igual que el de `learnity_test`, sin la 019b; `learnity_pruebas` no tiene permisos en `Learnity`; `learnity_app` y su contraseña no cambian; los logins ajenos pierden `CONNECT` (R1). La alternativa que conserva los datos es migrar en su sitio con `aplicar-migraciones.ps1 -ConfirmoRespaldo`. La tabla completa de efectos está en `database/README.md`, *Reconstruir `Learnity`*.
