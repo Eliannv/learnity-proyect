@@ -13,8 +13,9 @@ La gestión administrativa de usuarios continúa como prototipo con datos de eje
 | Carpeta     | Contenido                                                        |
 | ----------- | ---------------------------------------------------------------- |
 | `backend/`  | API REST con Express, TypeScript y conexión directa a PostgreSQL |
-| `frontend/` | Aplicación web Angular                                           |
-| `database/` | Modelo SQL y scripts de cambios que se aplican mediante pgAdmin  |
+| `frontend/` | Aplicación web Angular organizada por *features*                 |
+| `database/` | Modelo SQL, migraciones numeradas y scripts de verificación      |
+| `e2e/`      | Suite de pruebas extremo a extremo con Playwright (Chromium)     |
 
 ## 1. Requisitos
 
@@ -302,14 +303,16 @@ Para crear la estructura de un módulo:
 npm run crear-modulo -- nombre "descripción"
 ```
 
-| Módulo           | Responsabilidad y estado                                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------------------- |
-| `identidad`      | Registro, login, sesiones, perfil y recuperación implementados                                          |
-| `cursos`         | Categorías públicas, catálogo, gestión privada, envío a revisión e integración implementados            |
-| `contenido`      | PDF privado implementado; otros formatos previstos para siguientes entregas                             |
-| `aprendizaje`    | Inscripciones y progreso previstos para Sprint 3                                                        |
-| `evaluaciones`   | Preguntas, intentos y notas previstos para Sprint 4                                                     |
-| `administracion` | Revisión de cursos y solicitudes de docente implementadas; gestión de usuarios pendiente de integración |
+| Módulo         | Responsabilidad y estado                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------- |
+| `identidad`    | Registro, login, sesiones con roles vigentes por petición, perfil y recuperación         |
+| `catalogo`     | Categorías públicas, catálogo paginado y detalle público sobre vistas SQL de solo lectura |
+| `cursos`       | Gestión privada de ficha y `temario/`, política de estados (`politica-curso.ts`) y envío |
+| `contenido`    | Subida con límite por IP, descarga y limpieza de PDF privado mediante `LiberadorArchivos`|
+| `revision`     | Revisión administrativa de cursos (`EN_REVISION` → `PUBLICADO` / `RECHAZADO`)            |
+| `usuarios`     | Solicitudes de docente y revisión administrativa de solicitudes                          |
+| `aprendizaje`  | Inscripciones y progreso previstos para Sprint 3                                         |
+| `evaluaciones` | Preguntas, intentos y notas previstos para Sprint 4                                      |
 
 ## 10. Sprint 1: estado
 
@@ -592,27 +595,24 @@ Las reservas de subidas interrumpidas son elegibles después de una hora. Los fa
 
 Al desplegar el backend debe programarse la ejecución periódica del comando en el entorno de despliegue.
 
-### Integración entre Cursos, Administración y Contenido
+### Integración entre Cursos, Revisión y Contenido
 
-Cursos expone las operaciones compartidas mediante `cursosService`.
+Cada módulo expone únicamente su API pública en `index.ts` (ADR-001):
 
-Administración y Contenido utilizan ese servicio, manteniendo cada módulo la responsabilidad de su repositorio.
+- `cursos` expone `cursosApi` (`ServicioCursos`) y registra el puerto `LiberadorArchivos` (ADR-004) para romper el ciclo entre `cursos` y `contenido`.
+- `revision` y `contenido` consumen `cursosApi` desde `../cursos/index.js`, manteniendo cada módulo la responsabilidad exclusiva de su repositorio.
 
 La integración permite:
 
-- Resolver el curso, propietario y estado de una lección.
-- Comprobar si el curso admite edición.
-- Obtener `CursoDetalle` con su validación.
-- Asociar un PDF a una lección.
-- Aplicar una decisión administrativa de forma atómica.
-
-Las escrituras y los envíos a revisión bloquean la misma fila de curso y comparten el cliente de transacción cuando corresponde.
-
-El servicio de limpieza de Contenido ofrece `retirarPdfSinUso` para coordinar la eliminación de PDF al borrar módulos o lecciones. La eliminación física se reintenta después de confirmar los cambios.
+- Resolver el curso, propietario y estado de una lección fuera de secciones `FOR UPDATE` antes de validar el binario PDF.
+- Comprobar si el curso admite edición mediante la política pura `politica-curso.ts` (ADR-003).
+- Obtener `CursoDetalle` con su validación en `detalle-privado.service.ts`.
+- Asociar un PDF a una lección y encolar el reemplazo o retiro mediante `liberadorArchivos`.
+- Aplicar una decisión administrativa de forma atómica desde `modules/revision`.
 
 Los once endpoints privados del integrante 2 están implementados. Al reenviar un curso rechazado se limpia el motivo anterior.
 
-El recorrido completo se comprobó por HTTP con PostgreSQL y manualmente desde Angular en la instalación local del equipo.
+El recorrido completo se comprobó por HTTP con PostgreSQL y desde Angular en la instalación local del equipo.
 
 ## 14. Pruebas locales
 
@@ -828,12 +828,12 @@ Se corrigieron los siguientes puntos:
 
 El backend reutiliza:
 
-- Las operaciones compartidas de `cursosService`.
+- Las operaciones compartidas de `cursosApi` (`modules/cursos/index.ts`).
 - La validación de contenido y PDF existente.
-- La limpieza de archivos de Contenido.
-- La revisión administrativa de cursos.
+- La limpieza de archivos de Contenido a través del puerto `LiberadorArchivos`.
+- La revisión administrativa de cursos en `modules/revision`.
 
-Angular consume los endpoints mediante `gestion-cursos.api.ts`.
+Angular consume los endpoints mediante clientes tipados por *feature* (`docente-cursos.api.ts`, `contenido.api.ts`, `revision.api.ts` y `catalogo.api.ts`) respaldados por `ClienteApi` y `esquema.d.ts` (ADR-007 y ADR-008).
 
 ### Pruebas
 
