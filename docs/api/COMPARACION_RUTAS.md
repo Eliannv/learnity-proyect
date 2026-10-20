@@ -3,6 +3,7 @@
 - **Fecha:** 19-10-2026 · **Commit de origen:** `3c3c159` (`integration/sprint-2`) · **Autor:** `arquitecto` (Fase 1).
 - **Contrato:** `docs/api/openapi.yaml`, serializado sin cambios desde el objeto `openApi` de `backend/src/shared/http/openapi.ts`.
 - **Actualización (Fase 2A, 19-10-2026):** los hallazgos de *Documentación* se cerraron en `openapi*.ts` sin cambiar el comportamiento. Ver la §6. Las §1–§5 describen el estado de la Fase 1 (commit `3c3c159`), y sus números de línea de `openapi*.ts` son los de entonces: desde `b01296c`, `openapi-integrante2.ts` se llama `openapi-gestion-cursos.ts` y `openapi-integrante3.ts`, `openapi-revision-contenido.ts`.
+- **Verificación al cierre de la Fase 3 (20-10-2026):** el contrato sigue IDÉNTICO a `openapi*.ts` y las 33 operaciones coinciden con las rutas de los módulos de la Fase 2B. Ver la §7.
 - **Alcance (Fase 1):** solo se documenta. **Ningún hallazgo se corrige aquí.** Cada `C-nn` indica cómo se cerraría:
   - **Documentación:** se alinea `openapi*.ts` con lo que la API ya hace. No cambia el comportamiento. Lo hace `arquitecto` en la Fase 2A (tarea 4: mantener `openapi.yaml` y `openapi*.ts` alineados).
   - **Contrato:** cerrarlo cambia lo que la API responde. Necesita un ADR y la aprobación del usuario.
@@ -111,6 +112,8 @@ Además, todas las operaciones comparten C-08 (esquema de error), C-13 (500 y er
 
 ## 5. Relacionado, pero no es una diferencia del contrato
 
+> **Superado (Fase 2A y Fase 3):** los dos puntos de esta sección ya no describen el código. La subida tiene `limitarPorIp('subida-pdf', 30, 15)` y recibe el archivo en un temporal de disco (ADR-011, 11.4 y 11.5), y la consulta de arranque de `server.ts` está en `shared/http/salud.repository.ts`. Ver la §7.
+
 - `POST /lecciones/{id}/archivo` no tiene `limitarPorIp` y usa `multer.memoryStorage()` (S5; `contenido.routes.ts:18-25`, `contenido.multipart.ts:15`). El contrato coincide con el código; el cambio se propone en el ADR-011, que añadiría un 429.
 - `server.ts:36-47` consulta la base al arrancar (SQL fuera de repositorio). No forma parte del contrato; lo recoge el ADR-011.
 
@@ -153,3 +156,21 @@ en código y no en spec: 0 · en spec y no en código: 0
 `comparar-rutas.mjs` ya no informa de códigos que falten (antes: 403, 400 y 401 en solicitudes); solo anota "declara 500" en las 33 operaciones, que ahora es intencionado (C-13). `openapi-typescript` 7.13.0 genera los tipos sin errores ni avisos (2749 líneas, en un directorio temporal).
 
 **NO VERIFICADO:** una validación completa con un *linter* de OpenAPI (no se instaló ninguno; `openapi-typescript` resuelve todas las `$ref`, pero no valida todo el estándar).
+
+## 7. Verificación al cierre de la Fase 3 (`revisor`, 20-10-2026)
+
+Sobre `b15f308` (`integration/sprint-2`), con los mismos scripts de la §1 y cwd `backend/`. Detalle en `docs/revision/REVISION_FASE3.md` §3.
+
+```
+IDÉNTICO
+rutas 28 · operaciones 33 · esquemas 15
+serializar-openapi.mts + git diff --exit-code docs/api/openapi.yaml → exit 0
+sha256 del blob (LF): c46a9d9549f88fc333a095b24389e291192309e350623bb788561236a5e70914
+
+rutas reales: 33 · operaciones en el spec: 33
+en código y no en spec: 0 · en spec y no en código: 0
+
+openapi-typescript 7.13.0 → git diff --no-index --exit-code esquema.d.ts → exit 0 (R9b)
+```
+
+Tras la Fase 2B, `comparar-rutas.mjs` encuentra las rutas en sus módulos nuevos sin cambiar nada: identidad 9, catálogo 3 (`GET /categorias`, `GET /cursos` y `GET /cursos/{id}`, que antes eran de `cursos`), cursos 11, contenido 2, revisión 3 y usuarios 4 (antes las 7 de `administracion.routes.ts`), más `GET /salud` en `app.ts`. El 429 de `POST /lecciones/{id}/archivo` (ADR-011, 11.4) está declarado y coincide con `limitarPorIp` (30 subidas cada 15 minutos por IP).

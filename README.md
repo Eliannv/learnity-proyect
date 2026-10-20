@@ -518,6 +518,9 @@ Reglas:
 - Curso en `BORRADOR` o `RECHAZADO`.
 - Lección de tipo `DOCUMENTO`.
 - Un PDF principal por lección.
+- Como máximo 30 subidas cada 15 minutos por IP. La siguiente responde 429 `DEMASIADAS_PETICIONES` con `Retry-After` (ADR-011, punto 11.4).
+
+El archivo se recibe en un temporal dentro de `PDF_DIR/.tmp` y, una vez validado, se mueve a su nombre definitivo. Así la memoria del servidor no crece mientras se recibe (ADR-011, punto 11.5). Los temporales de más de una hora, que deja un proceso interrumpido, se borran al arrancar y en cada limpieza de PDF pendientes.
 
 Si un reemplazo falla antes de confirmarse, se conserva el archivo anterior.
 
