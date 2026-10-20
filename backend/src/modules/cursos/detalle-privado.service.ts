@@ -241,6 +241,12 @@ export const detallePrivadoService = {
     });
   },
 
+  /** PDF del curso de una lección, comprobados en disco; se llama antes de `conLeccionEditable` (D-01). */
+  async prevalidarPdfDeLeccion(idLeccion: number): Promise<ReadonlySet<string>> {
+    const idCurso = await temarioRepository.idCursoDeLeccion(idLeccion);
+    return idCurso === null ? new Set<string>() : prevalidarPdfCurso(idCurso);
+  },
+
   async verificarCarga(id: number, usuario: UsuarioSesion): Promise<void> {
     await enTransaccion(async (cliente) => {
       const contexto = await temarioRepository.leccion(cliente, id);

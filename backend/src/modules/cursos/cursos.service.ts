@@ -31,7 +31,12 @@ export interface ServicioCursos {
     trabajo: (contexto: ContextoLeccion, cliente: PoolClient) => Promise<T>,
   ): Promise<T>;
   asociarPdfPrincipal(cliente: PoolClient, contexto: ContextoLeccion, archivoId: number): Promise<void>;
-  detallePrivado(cliente: PoolClient, idCurso: number): Promise<CursoDetalle>;
+  detallePrivado(
+    cliente: PoolClient,
+    idCurso: number,
+    prevalidados?: ReadonlySet<string>,
+  ): Promise<CursoDetalle>;
+  prevalidarPdfDeLeccion(idLeccion: number): Promise<ReadonlySet<string>>;
   autorizarLectura(idLeccion: number, idCursoArchivo: number, usuario: UsuarioSesion): Promise<void>;
 
   // Para modules/revision (CONTRATOS_SERVICIO §2.1)

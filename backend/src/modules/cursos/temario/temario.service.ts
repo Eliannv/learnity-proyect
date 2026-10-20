@@ -20,6 +20,15 @@ async function limpiarPendientesFueraDeTransaccion(): Promise<void> {
   }
 }
 
+/**
+ * Lee del disco los PDF del curso del módulo o la lección ANTES de abrir la transacción: así
+ * `detallePrivado` no toca el disco con `FOR UPDATE OF c` tomado (D-01). Si el módulo o la lección no
+ * existen, no hay nada que validar y la transacción responde 404 como siempre.
+ */
+async function prevalidarDe(idCurso: number | null): Promise<ReadonlySet<string>> {
+  return idCurso === null ? new Set<string>() : prevalidarPdfCurso(idCurso);
+}
+
 export const temarioService = {
   async crearModulo(
     idCurso: number,
@@ -67,6 +76,7 @@ export const temarioService = {
     usuario: UsuarioSesion,
   ): Promise<CursoDetalle> {
     politicaCurso.exigirRol(usuario, 'DOCENTE');
+    const prevalidados = await prevalidarDe(await temarioRepository.idCursoDeModulo(idModulo));
 
     return enTransaccion(async (cliente) => {
       const modulo = await temarioRepository.buscarModulo(cliente, idModulo);
@@ -111,7 +121,7 @@ export const temarioService = {
         throw AppError.noEncontrado('Módulo no disponible.');
       }
 
-      return detallePrivado(cliente, modulo.idCurso);
+      return detallePrivado(cliente, modulo.idCurso, prevalidados);
     });
   },
 
@@ -121,6 +131,7 @@ export const temarioService = {
     usuario: UsuarioSesion,
   ): Promise<CursoDetalle> {
     politicaCurso.exigirRol(usuario, 'DOCENTE');
+    const prevalidados = await prevalidarDe(await temarioRepository.idCursoDeModulo(idModulo));
 
     return enTransaccion(async (cliente) => {
       const modulo = await temarioRepository.buscarModulo(cliente, idModulo);
@@ -155,7 +166,7 @@ export const temarioService = {
       }
 
       await temarioRepository.crearLeccion(cliente, idModulo, datos);
-      return detallePrivado(cliente, modulo.idCurso);
+      return detallePrivado(cliente, modulo.idCurso, prevalidados);
     });
   },
 
@@ -165,6 +176,7 @@ export const temarioService = {
     usuario: UsuarioSesion,
   ): Promise<CursoDetalle> {
     politicaCurso.exigirRol(usuario, 'DOCENTE');
+    const prevalidados = await prevalidarDe(await temarioRepository.idCursoDeLeccion(idLeccion));
 
     return enTransaccion(async (cliente) => {
       const leccion = await temarioRepository.buscarLeccionParaEditar(cliente, idLeccion);
@@ -207,7 +219,7 @@ export const temarioService = {
         throw AppError.noEncontrado('Lección no disponible.');
       }
 
-      return detallePrivado(cliente, leccion.idCurso);
+      return detallePrivado(cliente, leccion.idCurso, prevalidados);
     });
   },
 
@@ -216,6 +228,7 @@ export const temarioService = {
     usuario: UsuarioSesion,
   ): Promise<CursoDetalle> {
     politicaCurso.exigirRol(usuario, 'DOCENTE');
+    const prevalidados = await prevalidarDe(await temarioRepository.idCursoDeLeccion(idLeccion));
 
     const resultado = await enTransaccion(async (cliente) => {
       const leccion = await temarioRepository.buscarLeccionParaEditar(cliente, idLeccion);
@@ -244,7 +257,7 @@ export const temarioService = {
         await liberador.retirarSinUso(cliente, leccion.idCurso, idsPdf);
       }
 
-      return detallePrivado(cliente, leccion.idCurso);
+      return detallePrivado(cliente, leccion.idCurso, prevalidados);
     });
 
     await limpiarPendientesFueraDeTransaccion();
@@ -256,6 +269,7 @@ export const temarioService = {
     usuario: UsuarioSesion,
   ): Promise<CursoDetalle> {
     politicaCurso.exigirRol(usuario, 'DOCENTE');
+    const prevalidados = await prevalidarDe(await temarioRepository.idCursoDeModulo(idModulo));
 
     const resultado = await enTransaccion(async (cliente) => {
       const modulo = await temarioRepository.buscarModulo(cliente, idModulo);
@@ -280,7 +294,7 @@ export const temarioService = {
         await liberador.retirarSinUso(cliente, modulo.idCurso, idsPdf);
       }
 
-      return detallePrivado(cliente, modulo.idCurso);
+      return detallePrivado(cliente, modulo.idCurso, prevalidados);
     });
 
     await limpiarPendientesFueraDeTransaccion();
