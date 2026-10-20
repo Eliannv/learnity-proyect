@@ -10,21 +10,28 @@ import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-erro
 import { comprobarConexion } from './shared/http/salud.repository.js';
 import { registrarEvento } from './shared/log/registro.js';
 import { openApi } from './shared/http/openapi.js';
-import { identidadRoutes } from './modules/identidad/identidad.routes.js';
-import { identidadService } from './modules/identidad/identidad.service.js';
-import { cursosRoutes } from './modules/cursos/cursos.routes.js';
-import { contenidoRoutes } from './modules/contenido/contenido.routes.js';
-import { aprendizajeRoutes } from './modules/aprendizaje/aprendizaje.routes.js';
-import { evaluacionesRoutes } from './modules/evaluaciones/evaluaciones.routes.js';
-import { administracionRoutes } from './modules/administracion/administracion.routes.js';
+import { identidadApi, identidadRoutes } from './modules/identidad/index.js';
+import { catalogoRoutes } from './modules/catalogo/index.js';
+import {
+  cursosRoutes,
+  registrarLiberadorArchivos,
+} from './modules/cursos/index.js';
+import {
+  contenidoRoutes,
+  liberadorArchivos,
+} from './modules/contenido/index.js';
+import { revisionRoutes } from './modules/revision/index.js';
+import { usuariosRoutes } from './modules/usuarios/index.js';
 
 /**
  * Puertos: contratos que `shared` o un módulo define y otro módulo implementa (ADR-001, ADR-004).
  * `app.ts` es el único sitio que los conecta; cada puerto nuevo se registra aquí, una sola vez.
  */
 function registrarPuertos(): void {
-  // `autenticar` (shared) pregunta a Identidad si la sesión del access token sigue vigente.
-  registrarVerificadorSesion((usuario) => identidadService.sesionVigente(usuario));
+  // `autenticar` (shared) pregunta a Identidad si la sesión del access token sigue vigente y obtiene los roles actuales.
+  registrarVerificadorSesion((usuario) => identidadApi.sesionVigente(usuario));
+  // `cursos` pide a `contenido` retirar los PDF que queden sin referencia al borrar lecciones o módulos.
+  registrarLiberadorArchivos(liberadorArchivos);
 }
 
 export function crearApp() {
@@ -59,14 +66,15 @@ export function crearApp() {
     app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApi));
   }
 
-  // Módulos del monolito. Cada uno solo expone sus rutas; el resto queda dentro del módulo.
+  // Módulos del monolito. Cada uno solo expone su API pública desde `index.ts` (R3).
+  // `aprendizaje` y `evaluaciones` (Sprints 3 y 4, congelados) se montarán desde su `index.ts` al activarse.
   const api = express.Router();
   api.use(identidadRoutes);
+  api.use(catalogoRoutes);
   api.use(cursosRoutes);
   api.use(contenidoRoutes);
-  api.use(aprendizajeRoutes);
-  api.use(evaluacionesRoutes);
-  api.use(administracionRoutes);
+  api.use(revisionRoutes);
+  api.use(usuariosRoutes);
   app.use('/api', api);
 
   app.use(rutaNoEncontrada);

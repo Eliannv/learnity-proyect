@@ -246,7 +246,7 @@ describe('POST /api/cursos (CAR-CUR-06..10)', () => {
     assert.deepEqual(sinRutasPrivadas(r.json), []);
   });
 
-  it('CAR-CUR-07: portadaUrl', async () => {
+  it('CAR-CUR-07 y SEG-19 (ADR-011, 11.8): portadaUrl unificada en creación y validación privada', async () => {
     const validas = ['/img/a.png', 'https://externo.example/p.png'];
     const invalidas = ['//x', '/a/../b', '/a?b', 'javascript:x', 'https://u:p@x.example/a'];
     for (const p of validas) {
@@ -258,6 +258,12 @@ describe('POST /api/cursos (CAR-CUR-06..10)', () => {
       assert.equal(r.status, 400, p);
       assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA');
     }
+    // ADR-011, 11.8: si la base contiene una portada inválida (credenciales o traversal), la validación privada la rechaza.
+    const { idCurso } = await cursoCompleto();
+    await f.query('UPDATE curso SET portada_url = $2 WHERE id_curso = $1', [idCurso, 'https://u:p@x.example/a.png']);
+    const env = await como(docA, 'POST', `/api/cursos/${idCurso}/enviar-revision`);
+    assert.equal(env.status, 400);
+    assert.ok(env.json.error.detalles.some((d: any) => d.campo === 'portadaUrl'));
   });
 
   it('CAR-CUR-08 (ADR-011, 11.7): NUL en el título -> 400 SOLICITUD_INVALIDA (por ahora sin detalles)', async () => {

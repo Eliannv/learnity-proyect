@@ -1,19 +1,11 @@
 import { z } from 'zod';
 import { idRuta } from '../../shared/http/esquemas.js';
 
-export const identificador = z.object({ id: idRuta }).transform(({ id }) => id);
-
-export const filtroRevision = z.strictObject({
-  estado: z
-    .literal('EN_REVISION')
-    .default('EN_REVISION'),
-});
-
-// ---------------------------------------------------------------------
 // Solicitudes para ser docente (RF-05 y RF-22)
-// ---------------------------------------------------------------------
 
 export const ESTADOS_SOLICITUD = ['PENDIENTE', 'APROBADA', 'RECHAZADA'] as const;
+
+export const parametrosSolicitud = z.object({ id: idRuta }).transform(({ id }) => id);
 
 export const nuevaSolicitudDocente = z.strictObject({
   especialidad: z
@@ -45,28 +37,5 @@ export const decisionSolicitud = z.discriminatedUnion('decision', [
 ]);
 
 export type NuevaSolicitudDocente = z.infer<typeof nuevaSolicitudDocente>;
-export type EstadoSolicitud = (typeof ESTADOS_SOLICITUD)[number];
+export type FiltroSolicitudes = z.infer<typeof filtroSolicitudes>;
 export type DecisionSolicitud = z.infer<typeof decisionSolicitud>;
-
-export const decisionRevision =
-  z.discriminatedUnion('decision', [
-    z.strictObject({
-      decision: z.literal('APROBAR'),
-    }),
-
-    z.strictObject({
-      decision: z.literal('RECHAZAR'),
-
-      motivo: z
-        .string()
-        .trim()
-        .min(
-          1,
-          'Escribe el motivo del rechazo.',
-        )
-        .max(
-          300,
-          'El motivo debe tener como máximo 300 caracteres.',
-        ),
-    }),
-  ]);

@@ -23,14 +23,17 @@ const { crearApp } = await import('../src/app.js');
 const { pool } = await import(
   '../src/shared/database/pool.js'
 );
+const { crearFixtures } = await import(
+  './ayudas/bd-fixtures.js'
+);
 const { firmarAccessToken } = await import(
   '../src/shared/auth/jwt.js'
 );
-const { cursosIntegracionRepository } = await import(
-  '../src/modules/cursos/cursos-integracion.repository.js'
+const { temarioRepository } = await import(
+  '../src/modules/cursos/temario/temario.repository.js'
 );
 
-const marca = 'melissa_' + randomUUID().slice(0, 8);
+const marca = 'cursos_' + randomUUID().slice(0, 8);
 
 interface Cuenta {
   token: string;
@@ -40,6 +43,7 @@ interface Cuenta {
 let servidor: ReturnType<ReturnType<
   typeof crearApp
 >['listen']> | undefined;
+let f: Awaited<ReturnType<typeof crearFixtures>>;
 
 let base = '';
 let categoriaId = 0;
@@ -51,7 +55,7 @@ const personas: number[] = [];
 const cursos: number[] = [];
 
 async function crearCuenta(rol: Rol): Promise<Cuenta> {
-  const p = await pool.query<{ id: number }>(
+  const p = await f.query<{ id: number }>(
     `INSERT INTO persona (nombres, apellidos)
      VALUES ($1, $2)
      RETURNING id_persona AS id`,
@@ -63,7 +67,7 @@ async function crearCuenta(rol: Rol): Promise<Cuenta> {
 
   const correo = `${marca}_${idPersona}@pruebas.test`;
 
-  const u = await pool.query<{ id: number }>(
+  const u = await f.query<{ id: number }>(
     `INSERT INTO usuario
        (id_persona, correo, contrasena_hash)
      VALUES ($1, $2, $3)
@@ -77,7 +81,7 @@ async function crearCuenta(rol: Rol): Promise<Cuenta> {
     ? ['ESTUDIANTE']
     : ['ESTUDIANTE', rol];
 
-  await pool.query(
+  await f.query(
     `INSERT INTO usuario_rol (id_usuario, id_rol)
      SELECT $1, id_rol
      FROM rol
@@ -86,7 +90,7 @@ async function crearCuenta(rol: Rol): Promise<Cuenta> {
   );
 
   if (rol === 'DOCENTE') {
-    await pool.query(
+    await f.query(
       `INSERT INTO docente (id_persona, especialidad)
        VALUES ($1, 'Pruebas de cursos')`,
       [idPersona],
@@ -95,7 +99,7 @@ async function crearCuenta(rol: Rol): Promise<Cuenta> {
 
   const sid = randomUUID();
 
-  await pool.query(
+  await f.query(
     `INSERT INTO sesion (
        id_usuario, familia, token_hash,
        iniciada_en, expira_en
@@ -185,11 +189,12 @@ async function crearCurso() {
 }
 
 before(async () => {
+  f = await crearFixtures();
   docente = await crearCuenta('DOCENTE');
   otroDocente = await crearCuenta('DOCENTE');
   estudiante = await crearCuenta('ESTUDIANTE');
 
-  const cat = await pool.query<{ id: number }>(
+  const cat = await f.query<{ id: number }>(
     `INSERT INTO categoria (nombre, creada_por)
      VALUES ($1, $2)
      RETURNING id_categoria AS id`,
@@ -217,41 +222,42 @@ after(async () => {
     }
 
     if (cursos.length) {
-      await pool.query(
+      await f.query(
         'DELETE FROM curso WHERE id_curso = ANY($1::int[])',
         [cursos],
       );
     }
 
     if (categoriaId) {
-      await pool.query(
+      await f.query(
         'DELETE FROM categoria WHERE id_categoria = $1',
         [categoriaId],
       );
     }
 
     if (personas.length) {
-      await pool.query(
+      await f.query(
         'DELETE FROM docente WHERE id_persona = ANY($1::int[])',
         [personas],
       );
 
-      await pool.query(
+      await f.query(
         'DELETE FROM usuario WHERE id_persona = ANY($1::int[])',
         [personas],
       );
 
-      await pool.query(
+      await f.query(
         'DELETE FROM persona WHERE id_persona = ANY($1::int[])',
         [personas],
       );
     }
   } finally {
+    await f?.cerrar();
     await pool.end();
   }
 });
 
-describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
+describe('Seguridad HTTP de gestión de cursos', () => {
   it('rechaza a estudiantes y usuarios sin sesión', async () => {
     const datos = datosCurso('Curso no autorizado');
 
@@ -282,7 +288,7 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
   it('bloquea la edición de un curso publicado', async () => {
     const id = await crearCurso();
 
-    await pool.query(
+    await f.query(
       `UPDATE curso
        SET estado = 'PUBLICADO',
            revisado_por = $2,
@@ -323,7 +329,7 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
 
     assert.equal(duplicado.status, 400);
 
-    const { rows } = await pool.query<{ total: number }>(
+    const { rows } = await f.query<{ total: number }>(
       `SELECT count(*)::int AS total
        FROM modulo WHERE id_curso = $1`,
       [id],
@@ -345,7 +351,7 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
     assert.equal(r.status, 400);
     assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA');
 
-    const { rows } = await pool.query<{ estado: string }>(
+    const { rows } = await f.query<{ estado: string }>(
       'SELECT estado FROM curso WHERE id_curso = $1',
       [id],
     );
@@ -389,7 +395,7 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
 
   it('acepta el límite INTEGER como ID válido y responde 404 si no existe', async () => {
     const id = 2147483647;
-    const existente = await pool.query(
+    const existente = await f.query(
       'SELECT 1 FROM curso WHERE id_curso = $1',
       [id],
     );
@@ -508,7 +514,7 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
     assert.equal(creado.status, 201);
     const idModulo = creado.json.modulos[0].id as number;
 
-    const buscarOriginal = cursosIntegracionRepository.buscarModulo;
+    const buscarOriginal = temarioRepository.buscarModulo;
     let avisarEntrada!: () => void;
     let fallarEntrada!: (error: Error) => void;
     let continuar!: () => void;
@@ -527,7 +533,7 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
     }, 10000);
     limite.unref();
 
-    cursosIntegracionRepository.buscarModulo = async (cliente, id) => {
+    temarioRepository.buscarModulo = async (cliente, id) => {
       const resultado = await buscarOriginal(cliente, id);
 
       if (id === idModulo && !interceptado) {
@@ -568,7 +574,7 @@ describe('Integrante 2 - Seguridad HTTP de Cursos', () => {
       if (pendiente) {
         await pendiente.catch(() => undefined);
       }
-      cursosIntegracionRepository.buscarModulo = buscarOriginal;
+      temarioRepository.buscarModulo = buscarOriginal;
     }
   });
 });

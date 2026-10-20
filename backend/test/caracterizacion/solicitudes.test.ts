@@ -171,7 +171,7 @@ describe('Administración de solicitudes (CAR-SOL-07..12)', () => {
     return { est, id: rows[0]!.id };
   }
 
-  it('CAR-SOL-09 y 12: APROBAR asigna DOCENTE y crea perfil; el token viejo sigue sin DOCENTE hasta refresh (CONGELADO-INSEGURO, H5; ADR-011 11.10)', async () => {
+  it('CAR-SOL-09 y 12 (ADR-011, 11.10): APROBAR asigna DOCENTE y crea perfil; el rol aplica de inmediato en la sesión vigente', async () => {
     const { est, id } = await pendiente();
     const r = await como(admin, 'PUT', `/api/admin/solicitudes/${id}`, { decision: 'APROBAR' });
     assert.equal(r.status, 200, r.texto);
@@ -182,7 +182,7 @@ describe('Administración de solicitudes (CAR-SOL-07..12)', () => {
     const docente = await f.query('SELECT count(*)::int AS n FROM docente WHERE id_persona = $1', [est.idPersona]);
     assert.equal(docente.rows[0]!.n, 1);
     const viejo = await como(est, 'GET', '/api/docente/cursos');
-    assert.equal(viejo.status, 403, 'hoy el token viejo no incluye DOCENTE');
+    assert.equal(viejo.status, 200, 'ADR-011 11.10: el token vigente lee el nuevo rol DOCENTE desde la sesión');
     const nuevo = await iniciarSesion(srv, est.correo);
     assert.equal((await srv.pedir('/api/docente/cursos', { token: nuevo })).status, 200);
   });

@@ -1,59 +1,14 @@
-import type {
-  UsuarioSesion,
-} from '../../shared/auth/tipos.js';
-
+import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { registrarEvento } from '../../shared/log/registro.js';
+import type { DecisionSolicitud, NuevaSolicitudDocente } from './usuarios.esquemas.js';
+import type { EstadoSolicitud, SolicitudDocente } from './usuarios.modelo.js';
+import { usuariosRepository as repo } from './usuarios.repository.js';
 
-import type {
-  DecisionRevision,
-} from '../cursos/cursos-privados.model.js';
+// Capa service: reglas del negocio de las solicitudes para ser docente.
 
-import {
-  cursosService,
-} from '../cursos/cursos.service.js';
-
-import type {
-  DecisionSolicitud,
-  EstadoSolicitud,
-  NuevaSolicitudDocente,
-} from './administracion.esquemas.js';
-
-import {
-  administracionRepository as repo,
-  type SolicitudDocente,
-} from './administracion.repository.js';
-
-export const administracionService = {
-  listar: (
-    usuario: UsuarioSesion,
-  ) => cursosService.listarParaRevision(
-    usuario,
-  ),
-
-  detalle: (
-    id: number,
-    usuario: UsuarioSesion,
-  ) => cursosService.detalleParaRevision(
-    id,
-    usuario,
-  ),
-
-  decidir: (
-    id: number,
-    datos: DecisionRevision,
-    usuario: UsuarioSesion,
-  ) => cursosService.decidirRevision(
-    id,
-    datos,
-    usuario,
-  ),
-
-  // -------------------------------------------------------------------
-  // Solicitudes para ser docente
-  // -------------------------------------------------------------------
-
+export const usuariosService = {
   /** RF-05 · Un estudiante pide el rol Docente. Solo una solicitud pendiente a la vez. */
   async solicitarDocencia(usuario: UsuarioSesion, datos: NuevaSolicitudDocente): Promise<SolicitudDocente> {
     const id = await enTransaccion(async (cliente) => {
@@ -77,7 +32,7 @@ export const administracionService = {
 
   /**
    * RF-22 · Aprobar agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente;
-   * rechazar exige una observación. El nuevo rol llega a la sesión del estudiante en su próxima renovación.
+   * rechazar exige una observación. El rol nuevo vale desde la siguiente petición del estudiante (los roles se leen de la base, ADR-011 11.10).
    */
   async decidirSolicitud(id: number, datos: DecisionSolicitud, admin: UsuarioSesion): Promise<SolicitudDocente> {
     await enTransaccion(async (cliente) => {

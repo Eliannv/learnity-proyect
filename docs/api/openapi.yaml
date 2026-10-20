@@ -8,7 +8,7 @@
   "info": {
     "title": "Learnity API",
     "version": "0.3.0",
-    "description": "API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.\n\n**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie\n`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.\nCerrar sesión, cambiar o restablecer la contraseña revocan las sesiones y sus access tokens dejan de valer de inmediato.\n\n**CSRF.** Las rutas que usan la cookie (`/auth/refresh`, `/auth/logout`) exigen el encabezado `X-XSRF-TOKEN`\ncon el valor de la cookie `XSRF-TOKEN` (Angular lo envía solo). Todas las rutas `/auth/*` rechazan otros orígenes.\n\n**Límites.** Por IP: login 20/15 min, registro 10/h, recuperar 5/15 min, restablecer 10/15 min, refresh 120/15 min,\nlogout 60/15 min, cambiar la contraseña 10/15 min y solicitudes de docente 10/h.\nPor cuenta: 5 inicios fallidos seguidos la bloquean 15 minutos (con el mismo mensaje genérico); una sola solicitud de docente pendiente.\nContenido: un curso tiene hasta 10 módulos, cada módulo hasta 12 lecciones y cada PDF hasta 10 MiB. Cuerpos JSON de hasta 1 MB.\n\n**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.\nCualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es\n409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK, clave foránea o un texto con el carácter NUL, 22021, que la\nvalidación no rechazó antes; ADR-011, 11.7).\nLos errores del parser JSON responden sin `detalles` (ADR-011, 11.6): 400 SOLICITUD_INVALIDA si el cuerpo no es un JSON válido,\n413 CUERPO_DEMASIADO_GRANDE si supera 1 MB y 415 TIPO_NO_ADMITIDO si el charset no es UTF o el `Content-Encoding` no es\nidentity, gzip, deflate ni br. El parser actúa antes que las rutas, así que cualquier petición con `Content-Type: application/json`\npuede recibirlos, aunque la operación no tenga cuerpo. Las operaciones con cuerpo JSON los declaran.\n\n**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta\nresponde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto."
+    "description": "API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.\n\n**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie\n`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.\nCerrar sesión, cambiar o restablecer la contraseña revocan las sesiones y sus access tokens dejan de valer de inmediato;\nlos roles vigentes de la cuenta se leen al verificar la sesión en cada petición (ADR-011, 11.10).\n\n**CSRF.** Las rutas que usan la cookie (`/auth/refresh`, `/auth/logout`) exigen el encabezado `X-XSRF-TOKEN`\ncon el valor de la cookie `XSRF-TOKEN` (Angular lo envía solo). Todas las rutas `/auth/*` rechazan otros orígenes.\n\n**Límites.** Por IP: login 20/15 min, registro 10/h, recuperar 5/15 min, restablecer 10/15 min, refresh 120/15 min,\nlogout 60/15 min, cambiar la contraseña 10/15 min, subida de PDF 30/15 min y solicitudes de docente 10/h.\nPor cuenta: 5 inicios fallidos seguidos la bloquean 15 minutos (con el mismo mensaje genérico); una sola solicitud de docente pendiente.\nContenido: un curso tiene hasta 10 módulos, cada módulo hasta 12 lecciones y cada PDF hasta 10 MiB. Cuerpos JSON de hasta 1 MB.\n\n**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.\nCualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es\n409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK, clave foránea o un texto con el carácter NUL, 22021, que la\nvalidación no rechazó antes; ADR-011, 11.7).\nLos errores del parser JSON responden sin `detalles` (ADR-011, 11.6): 400 SOLICITUD_INVALIDA si el cuerpo no es un JSON válido,\n413 CUERPO_DEMASIADO_GRANDE si supera 1 MB y 415 TIPO_NO_ADMITIDO si el charset no es UTF o el `Content-Encoding` no es\nidentity, gzip, deflate ni br. El parser actúa antes que las rutas, así que cualquier petición con `Content-Type: application/json`\npuede recibirlos, aunque la operación no tenga cuerpo. Las operaciones con cuerpo JSON los declaran.\n\n**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta\nresponde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto."
   },
   "servers": [
     {
@@ -1083,7 +1083,7 @@
           "Contenido"
         ],
         "summary": "Subir o reemplazar el PDF principal (DOCENTE propietario)",
-        "description": "Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido.",
+        "description": "Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido. Límite: 30 subidas cada 15 minutos por IP (ADR-011, 11.4).",
         "security": [
           {
             "bearer": []
@@ -1197,6 +1197,16 @@
           },
           "415": {
             "description": "Tipo o formato de envío no admitido (TIPO_ARCHIVO_INVALIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2774,7 +2784,7 @@
           "Solicitudes de docente"
         ],
         "summary": "Aprobar o rechazar una solicitud (administrador)",
-        "description": "APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol llega a la sesión del estudiante en su próxima renovación. RECHAZAR exige `observacion` (máximo 300 caracteres).",
+        "description": "APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol se aplica de inmediato en la siguiente petición autenticada (ADR-011, 11.10). RECHAZAR exige `observacion` (máximo 300 caracteres).",
         "security": [
           {
             "bearer": []

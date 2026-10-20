@@ -1,26 +1,11 @@
 import type { PoolClient } from 'pg';
-
-import {
-  enTransaccion,
-} from '../../shared/database/pool.js';
-
+import { almacenLocal } from '../../shared/archivos/almacen.js';
+import { NOMBRE_PDF_INTERNO } from '../../shared/archivos/pdf-validacion.js';
+import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
-
-import {
-  registrarEvento,
-} from '../../shared/log/registro.js';
-
-import {
-  almacenLocal,
-} from '../../shared/archivos/almacen.js';
-
-import {
-  NOMBRE_PDF_INTERNO,
-} from '../../shared/archivos/pdf-validacion.js';
-
-import {
-  contenidoRepository as repo,
-} from './contenido.repository.js';
+import { registrarEvento } from '../../shared/log/registro.js';
+import type { LiberadorArchivos } from '../cursos/index.js';
+import { contenidoRepository as repo } from './contenido.repository.js';
 
 // Un temporal de subida con más de una hora es de un proceso que cayó a mitad de la recepción.
 const EDAD_TEMPORAL_HUERFANO_MS = 60 * 60 * 1000;
@@ -30,9 +15,7 @@ export const limpiezaPdfService = {
     let eliminados = 0;
 
     try {
-      await almacenLocal.limpiarTemporales(
-        EDAD_TEMPORAL_HUERFANO_MS,
-      );
+      await almacenLocal.limpiarTemporales(EDAD_TEMPORAL_HUERFANO_MS);
     } catch {
       // Se reintenta en la próxima limpieza; no impide retirar los PDF pendientes.
     }
@@ -41,43 +24,22 @@ export const limpiezaPdfService = {
 
     for (const nombre of pendientes) {
       try {
-        const retirado = await enTransaccion(
-          async cliente => {
-            await repo.bloquearNombre(
-              cliente,
-              nombre,
-            );
-
-            const puedeEliminarse =
-              await repo.pendienteSinReferencia(
-                cliente,
-                nombre,
-              );
-
-            if (!puedeEliminarse) {
-              return false;
-            }
-
-            await almacenLocal.eliminar(nombre);
-
-            await repo.cancelarRetiro(
-              cliente,
-              nombre,
-            );
-
-            return true;
-          },
-        );
+        const retirado = await enTransaccion(async (cliente) => {
+          await repo.bloquearNombre(cliente, nombre);
+          const puedeEliminarse = await repo.pendienteSinReferencia(cliente, nombre);
+          if (!puedeEliminarse) {
+            return false;
+          }
+          await almacenLocal.eliminar(nombre);
+          await repo.cancelarRetiro(cliente, nombre);
+          return true;
+        });
 
         if (retirado) {
           eliminados++;
         }
       } catch {
-        registrarEvento(
-          'archivo.limpieza_reintentar',
-          { archivo: 'pendiente' },
-          'aviso',
-        );
+        registrarEvento('archivo.limpieza_reintentar', { archivo: 'pendiente' }, 'aviso');
       }
     }
 
@@ -92,40 +54,29 @@ export const limpiezaPdfService = {
     ids: number[],
   ): Promise<void> {
     for (const id of new Set(ids)) {
-      const archivo = await repo.buscar(
-        id,
-        cliente,
-      );
+      const archivo = await repo.buscar(id, cliente);
 
-      if (
-        !archivo ||
-        archivo.idCurso !== idCurso ||
-        archivo.tipo !== 'PDF'
-      ) {
+      if (!archivo || archivo.idCurso !== idCurso || archivo.tipo !== 'PDF') {
         continue;
       }
 
-      if (
-        !NOMBRE_PDF_INTERNO.test(archivo.ruta)
-      ) {
-        throw AppError.conflicto(
-          'Un PDF antiguo requiere revisión antes de eliminarlo.',
-        );
+      if (!NOMBRE_PDF_INTERNO.test(archivo.ruta)) {
+        throw AppError.conflicto('Un PDF antiguo requiere revisión antes de eliminarlo.');
       }
 
-      const nombre =
-        await repo.retirarSiHuerfano(
-          cliente,
-          id,
-          idCurso,
-        );
-
+      const nombre = await repo.retirarSiHuerfano(cliente, id, idCurso);
       if (nombre) {
-        await repo.programarRetiro(
-          cliente,
-          nombre,
-        );
+        await repo.programarRetiro(cliente, nombre);
       }
     }
+  },
+};
+
+/** Implementación del puerto `LiberadorArchivos` definido por `cursos` (ADR-004). */
+export const liberadorArchivos: LiberadorArchivos = {
+  retirarSinUso: (cliente, idCurso, idsArchivos) =>
+    limpiezaPdfService.retirarPdfSinUso(cliente, idCurso, idsArchivos),
+  async ejecutarPendientes(): Promise<void> {
+    await limpiezaPdfService.limpiarPendientes();
   },
 };

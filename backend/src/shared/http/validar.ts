@@ -1,5 +1,6 @@
 import type { RequestHandler, Response } from 'express';
-import type { ZodType } from 'zod';
+import { ZodError, type ZodType } from 'zod';
+import { AppError } from './app-error.js';
 
 /**
  * Validación uniforme (ADR-006, 6.1): un middleware por cada origen de datos.
@@ -7,11 +8,21 @@ import type { ZodType } from 'zod';
  * Cualquier error de zod llega a `manejadorErrores` y se responde 400 SOLICITUD_INVALIDA con `detalles` por campo.
  */
 
-/** Valida el cuerpo y lo reemplaza por el resultado de zod. Uso: router.post('/auth/login', validarCuerpo(loginSchema), controller.login) */
-export function validarCuerpo(esquema: ZodType): RequestHandler {
+/** Valida el cuerpo y lo reemplaza por el resultado de zod. Admite mensaje específico cuando el contrato lo fija. */
+export function validarCuerpo(esquema: ZodType, mensaje?: string): RequestHandler {
   return (req, _res, next) => {
-    req.body = esquema.parse(req.body);
-    next();
+    try {
+      req.body = esquema.parse(req.body);
+      next();
+    } catch (error) {
+      if (mensaje && error instanceof ZodError) {
+        throw AppError.solicitudInvalida(
+          mensaje,
+          error.issues.map((i) => ({ campo: i.path.join('.'), mensaje: i.message })),
+        );
+      }
+      throw error;
+    }
   };
 }
 

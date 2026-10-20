@@ -22,7 +22,7 @@ const marca = crearMarca('seg_fal');
 const pdfDir = carpetaPdfPropia();
 const { almacenLocal } = await import('../../src/shared/archivos/almacen.js');
 const { pool } = await import('../../src/shared/database/pool.js');
-const { cursosService } = await import('../../src/modules/cursos/cursos.service.js');
+const { cursosApi: cursosService } = await import('../../src/modules/cursos/index.js');
 
 let f: Fixtures;
 let srv: Servidor;

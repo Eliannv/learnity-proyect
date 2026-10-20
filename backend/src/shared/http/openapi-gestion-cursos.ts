@@ -1,5 +1,5 @@
 // OpenAPI · Gestión privada de cursos del docente y modelos privados del curso
-// (cursos-privados.model.ts), que también usa la revisión administrativa.
+// (cursos.modelo.ts), que también usa la revisión administrativa.
 import { error, errorInterno, erroresCuerpoJson, idInvalido, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
 const entero = {

@@ -238,17 +238,20 @@ export const identidadRepository = {
     return rowCount ?? 0;
   },
 
-  /** ¿La familia tiene un token vigente y la cuenta sigue activa? (lo consulta `autenticar` en cada petición). */
-  async sesionVigente(familia: string, idUsuario: number): Promise<boolean> {
-    const { rows } = await consultar<{ vigente: boolean }>(
-      `SELECT EXISTS (
-         SELECT 1 FROM sesion s JOIN usuario u ON u.id_usuario = s.id_usuario
-          WHERE s.familia = $1 AND s.id_usuario = $2 AND u.estado = 'ACTIVO'
-            AND s.revocado_en IS NULL AND s.reemplazado_en IS NULL AND s.expira_en > now()
-       ) AS vigente`,
+  /**
+   * Si la familia tiene un token vigente y la cuenta sigue activa, devuelve los roles ACTUALES de la cuenta
+   * (se leen de la base, no del token); si no, `null`. Lo consulta `autenticar` en cada petición (ADR-011, 11.10).
+   */
+  async rolesDeSesionVigente(familia: string, idUsuario: number): Promise<Rol[] | null> {
+    const { rows } = await consultar<{ roles: Rol[] }>(
+      `SELECT ARRAY(SELECT r.nombre FROM usuario_rol ur JOIN rol r ON r.id_rol = ur.id_rol
+                     WHERE ur.id_usuario = u.id_usuario ORDER BY r.id_rol) AS roles
+         FROM sesion s JOIN usuario u ON u.id_usuario = s.id_usuario
+        WHERE s.familia = $1 AND s.id_usuario = $2 AND u.estado = 'ACTIVO'
+          AND s.revocado_en IS NULL AND s.reemplazado_en IS NULL AND s.expira_en > now()`,
       [familia, idUsuario],
     );
-    return rows[0]?.vigente ?? false;
+    return rows[0]?.roles ?? null;
   },
 
   /** Borra filas vencidas hace más de 30 días (las recientes se conservan para auditoría). */

@@ -30,10 +30,11 @@ for (const metodo of ['log', 'error', 'warn'] as const) {
 const express = (await import('express')).default;
 const { crearApp } = await import('../src/app.js');
 const { pool } = await import('../src/shared/database/pool.js');
+const { crearFixtures } = await import('./ayudas/bd-fixtures.js');
 const { autenticar, autorizar } = await import('../src/shared/auth/middlewares.js');
 const { manejadorErrores } = await import('../src/shared/http/manejador-errores.js');
 const { reiniciarLimites } = await import('../src/shared/http/limite-peticiones.js');
-const { identidadService } = await import('../src/modules/identidad/identidad.service.js');
+const { identidadApi } = await import('../src/modules/identidad/index.js');
 
 const ORIGEN = 'http://localhost:4200';
 const DOMINIO = '@pruebas.test';
@@ -43,6 +44,7 @@ const secretosUsados = new Set<string>([CLAVE, CLAVE_NUEVA]);
 
 let base = '';
 let servidor: ReturnType<ReturnType<typeof express>['listen']>;
+let f: Awaited<ReturnType<typeof crearFixtures>>;
 
 interface Respuesta {
   status: number;
@@ -112,8 +114,8 @@ let correlativo = 0;
 const correoNuevo = (prefijo: string) => `${prefijo}.${Date.now()}.${++correlativo}${DOMINIO}`;
 
 async function limpiarCuentasDePrueba() {
-  await pool.query(`DELETE FROM usuario_rol WHERE id_usuario IN (SELECT id_usuario FROM usuario WHERE correo LIKE '%' || $1)`, [DOMINIO]);
-  await pool.query(
+  await f.query(`DELETE FROM usuario_rol WHERE id_usuario IN (SELECT id_usuario FROM usuario WHERE correo LIKE '%' || $1)`, [DOMINIO]);
+  await f.query(
     `WITH u AS (DELETE FROM usuario WHERE correo LIKE '%' || $1 RETURNING id_persona)
      DELETE FROM persona WHERE id_persona IN (SELECT id_persona FROM u)`,
     [DOMINIO],
@@ -121,7 +123,7 @@ async function limpiarCuentasDePrueba() {
 }
 
 async function correosPara(correo: string): Promise<{ asunto: string; texto: string; html: string }[]> {
-  await identidadService.esperarTareas();
+  await identidadApi.esperarTareas();
   const archivos = (await readdir(BUZON)).sort();
   const mensajes = await Promise.all(archivos.map(async (a) => JSON.parse(await readFile(path.join(BUZON, a), 'utf8'))));
   return mensajes.filter((m) => m.para === correo);
@@ -134,9 +136,10 @@ function tokenDelEnlace(texto: string): string {
   return m[1]!;
 }
 
-const fila = async (sql: string, params: unknown[]) => (await pool.query(sql, params)).rows[0];
+const fila = async (sql: string, params: unknown[]) => (await f.query(sql, params)).rows[0];
 
 before(async () => {
+  f = await crearFixtures();
   await limpiarCuentasDePrueba();
   const app = crearApp();
   servidor = app.listen(0);
@@ -147,9 +150,10 @@ before(async () => {
 beforeEach(() => reiniciarLimites());
 
 after(async () => {
-  await identidadService.esperarTareas();
+  await identidadApi.esperarTareas();
   await limpiarCuentasDePrueba();
   await new Promise((r) => servidor.close(r));
+  await f.cerrar();
   await pool.end();
   await rm(BUZON, { recursive: true, force: true });
 });
@@ -245,7 +249,7 @@ describe('Inicio de sesión y bloqueo (RF-02)', () => {
     assert.ok(minutos > 14 && minutos <= 15, `bloqueo de ~15 min (${minutos.toFixed(1)})`);
 
     // Vencido el bloqueo, entra y los contadores vuelven a cero.
-    await pool.query(`UPDATE usuario SET bloqueado_hasta = now() - INTERVAL '1 second' WHERE correo = $1`, [correo]);
+    await f.query(`UPDATE usuario SET bloqueado_hasta = now() - INTERVAL '1 second' WHERE correo = $1`, [correo]);
     assert.equal((await new Navegador().login(correo)).status, 200);
     const despues = await fila('SELECT intentos_fallidos, bloqueado_hasta FROM usuario WHERE correo = $1', [correo]);
     assert.equal(despues.intentos_fallidos, 0);
@@ -255,7 +259,7 @@ describe('Inicio de sesión y bloqueo (RF-02)', () => {
   it('una cuenta desactivada no entra (403 solo con la contraseña correcta)', async () => {
     const correo = correoNuevo('inactiva');
     await new Navegador().registrar(correo);
-    await pool.query(`UPDATE usuario SET estado = 'INACTIVO' WHERE correo = $1`, [correo]);
+    await f.query(`UPDATE usuario SET estado = 'INACTIVO' WHERE correo = $1`, [correo]);
     assert.equal((await new Navegador().login(correo, 'contraseña equivocada larga')).status, 401);
     const r = await new Navegador().login(correo);
     assert.equal(r.status, 403);
@@ -319,12 +323,12 @@ describe('Perfil (RF-04) y permisos', () => {
       const comoEstudiante = await fetch(url, { headers: { authorization: `Bearer ${nav.access}` } });
       assert.equal(comoEstudiante.status, 403);
 
-      await pool.query(
+      await f.query(
         `INSERT INTO usuario_rol (id_usuario, id_rol)
          SELECT u.id_usuario, r.id_rol FROM usuario u, rol r WHERE u.correo = $1 AND r.nombre = 'ADMIN'`,
         [correo],
       );
-      // El rol nuevo llega al renovar la sesión, sin volver a escribir la contraseña.
+      // Con ADR-011 11.10 el rol nuevo aplica de inmediato en la sesión vigente, y también al renovar.
       const renovada = await nav.refresh();
       assert.deepEqual(renovada.json.usuario.roles, ['ESTUDIANTE', 'ADMIN']);
       const comoAdmin = await fetch(url, { headers: { authorization: `Bearer ${nav.access}` } });
@@ -364,7 +368,7 @@ describe('Refresh rotatorio, CSRF y cierre de sesión', () => {
     assert.equal((await nav.pedir('GET', '/api/perfil')).status, 200);
 
     // Fuera del margen: es un token robado. Se revoca toda la familia.
-    await pool.query(`UPDATE sesion SET reemplazado_en = now() - INTERVAL '1 minute' WHERE reemplazado_en IS NOT NULL AND token_hash = encode(sha256($1::bytea), 'hex')`, [viejo.rt]);
+    await f.query(`UPDATE sesion SET reemplazado_en = now() - INTERVAL '1 minute' WHERE reemplazado_en IS NOT NULL AND token_hash = encode(sha256($1::bytea), 'hex')`, [viejo.rt]);
     const robo = await pestana.refresh();
     assert.equal(robo.status, 401);
     assert.equal((await nav.refresh()).status, 401, 'el token legítimo también queda revocado');
@@ -472,7 +476,7 @@ describe('Recuperación de contraseña por correo (RF-06)', () => {
       new Navegador().pedir('POST', '/api/auth/restablecer', { cuerpo: { token, contrasena: CLAVE_NUEVA } });
 
     assert.equal((await restablecer(primero)).status, 400, 'el primer enlace quedó invalidado por el segundo');
-    await pool.query(
+    await f.query(
       `UPDATE token_recuperacion SET creado_en = now() - INTERVAL '40 minutes', expira_en = now() - INTERVAL '20 minutes'
         WHERE token_hash = encode(sha256($1::bytea), 'hex')`,
       [segundo],
@@ -510,7 +514,7 @@ describe('Cierre del Sprint 1', () => {
   });
 
   it('los logs registran eventos de seguridad sin contraseñas, tokens ni cookies', async () => {
-    await identidadService.esperarTareas();
+    await identidadApi.esperarTareas();
     const texto = logs.join('\n');
     assert.match(texto, /"evento":"login_fallido"/);
     assert.match(texto, /"evento":"cuenta_bloqueada"/);

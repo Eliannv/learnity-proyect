@@ -137,7 +137,7 @@ export const rutasRevisionContenido = {
       summary:
         'Subir o reemplazar el PDF principal (DOCENTE propietario)',
       description:
-        'Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido.',
+        'Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido. Límite: 30 subidas cada 15 minutos por IP (ADR-011, 11.4).',
       security: seguridad,
       parameters: [idRuta],
       requestBody: {
@@ -171,6 +171,7 @@ export const rutasRevisionContenido = {
         415: error(
           'Tipo o formato de envío no admitido (TIPO_ARCHIVO_INVALIDO)',
         ),
+        429: error('Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)'),
       },
     },
   },

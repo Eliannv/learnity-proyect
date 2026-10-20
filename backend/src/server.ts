@@ -1,13 +1,6 @@
-import {
-  contenidoService,
-} from './modules/contenido/contenido.service.js';
-
 import { crearApp } from './app.js';
-
-import {
-  identidadService,
-} from './modules/identidad/identidad.service.js';
-
+import { contenidoApi } from './modules/contenido/index.js';
+import { identidadApi } from './modules/identidad/index.js';
 import { env } from './shared/config/env.js';
 import { pool } from './shared/database/pool.js';
 import { verificarEsquema } from './shared/http/salud.repository.js';
@@ -49,7 +42,7 @@ const servidor = app.listen(
 );
 
 // Reintenta las limpiezas pendientes al arrancar.
-void contenidoService
+void contenidoApi
   .limpiarPendientes()
   .catch(() => {
     registrarEvento(
@@ -68,7 +61,7 @@ for (
 ) {
   process.on(senal, () => {
     servidor.close(() => {
-      void identidadService
+      void identidadApi
         .esperarTareas()
         .then(() => pool.end())
         .then(() => process.exit(0));

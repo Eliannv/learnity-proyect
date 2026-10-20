@@ -1,16 +1,16 @@
 import { Router } from 'express';
+import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
+import { validarCuerpo, validarParametros } from '../../shared/http/validar.js';
 import { cursosController } from './cursos.controller.js';
 import {
-  autenticar,
-  autorizar,
-} from '../../shared/auth/middlewares.js';
+  datosCursoSchema,
+  datosLeccionSchema,
+  datosModuloSchema,
+  idCursoRuta,
+} from './cursos.esquemas.js';
 
-// Cursos: catálogo público y gestión privada para docentes.
+// Capa routes: gestión privada de cursos, módulos y lecciones del docente.
 export const cursosRoutes = Router();
-
-cursosRoutes.get('/categorias', cursosController.categorias);
-cursosRoutes.get('/cursos', cursosController.catalogo);
-cursosRoutes.get('/cursos/:id', cursosController.detalle);
 
 cursosRoutes.get(
   '/docente/cursos',
@@ -23,6 +23,7 @@ cursosRoutes.get(
   '/docente/cursos/:id',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
   cursosController.obtenerMiCurso,
 );
 
@@ -30,6 +31,7 @@ cursosRoutes.post(
   '/cursos',
   autenticar,
   autorizar('DOCENTE'),
+  validarCuerpo(datosCursoSchema),
   cursosController.crearCurso,
 );
 
@@ -37,6 +39,8 @@ cursosRoutes.put(
   '/cursos/:id',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
+  validarCuerpo(datosCursoSchema),
   cursosController.actualizarMiCurso,
 );
 
@@ -44,6 +48,8 @@ cursosRoutes.post(
   '/cursos/:id/modulos',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
+  validarCuerpo(datosModuloSchema, 'Revisa los datos del módulo.'),
   cursosController.crearModulo,
 );
 
@@ -51,6 +57,8 @@ cursosRoutes.put(
   '/modulos/:id',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
+  validarCuerpo(datosModuloSchema, 'Revisa los datos del módulo.'),
   cursosController.actualizarModulo,
 );
 
@@ -58,6 +66,7 @@ cursosRoutes.delete(
   '/modulos/:id',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
   cursosController.eliminarModulo,
 );
 
@@ -65,6 +74,8 @@ cursosRoutes.post(
   '/modulos/:id/lecciones',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
+  validarCuerpo(datosLeccionSchema, 'Revisa los datos de la lección.'),
   cursosController.crearLeccion,
 );
 
@@ -72,6 +83,8 @@ cursosRoutes.put(
   '/lecciones/:id',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
+  validarCuerpo(datosLeccionSchema, 'Revisa los datos de la lección.'),
   cursosController.actualizarLeccion,
 );
 
@@ -79,6 +92,7 @@ cursosRoutes.delete(
   '/lecciones/:id',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
   cursosController.eliminarLeccion,
 );
 
@@ -86,5 +100,6 @@ cursosRoutes.post(
   '/cursos/:id/enviar-revision',
   autenticar,
   autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
   cursosController.enviarCursoARevision,
 );

@@ -258,9 +258,12 @@ export const identidadService = {
     registrarEvento('logout', { idUsuario: fila.idUsuario, ip: ctx.ip });
   },
 
-  /** Lo usa `autenticar` en cada petición: el access token deja de valer si su sesión se revocó. */
-  async sesionVigente(usuario: UsuarioSesion): Promise<boolean> {
-    return UUID.test(usuario.sid) && repo.sesionVigente(usuario.sid, usuario.idUsuario);
+  /**
+   * Lo usa `autenticar` en cada petición: el access token deja de valer si su sesión se revocó, y los roles
+   * salen de la base (no del token), así un rol nuevo o retirado aplica de inmediato (ADR-011, 11.10).
+   */
+  async sesionVigente(usuario: UsuarioSesion): Promise<Rol[] | null> {
+    return UUID.test(usuario.sid) ? repo.rolesDeSesionVigente(usuario.sid, usuario.idUsuario) : null;
   },
 
   /**
@@ -378,4 +381,17 @@ export const identidadService = {
   async esperarTareas(): Promise<void> {
     await Promise.all([...tareas]);
   },
+};
+
+/** Lo único del servicio que ven `app.ts`, `server.ts` y otros módulos (vía `index.ts`). */
+export interface ServicioIdentidad {
+  /** Roles actuales si la sesión del access token sigue vigente (no revocada y cuenta activa); `null` si no. */
+  sesionVigente(usuario: UsuarioSesion): Promise<Rol[] | null>;
+  /** Espera los correos en segundo plano: cierre ordenado y pruebas. */
+  esperarTareas(): Promise<void>;
+}
+
+export const identidadApi: ServicioIdentidad = {
+  sesionVigente: (usuario) => identidadService.sesionVigente(usuario),
+  esperarTareas: () => identidadService.esperarTareas(),
 };

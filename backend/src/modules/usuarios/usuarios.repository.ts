@@ -1,25 +1,8 @@
 import type { PoolClient } from 'pg';
 import { consultar } from '../../shared/database/pool.js';
-import type { EstadoSolicitud } from './administracion.esquemas.js';
+import type { EstadoSolicitud, SolicitudDocente } from './usuarios.modelo.js';
 
-// Capa repository del módulo Administracion: solo consultas SQL parametrizadas ($1, $2…).
-
-export interface SolicitudDocente {
-  id: number;
-  estado: EstadoSolicitud;
-  especialidad: string;
-  motivo: string;
-  observacion: string | null;
-  enviadaEn: string;
-  revisadaEn: string | null;
-  solicitante: {
-    nombres: string;
-    apellidos: string;
-    correo: string;
-    estudianteDesde: string;
-    cursosCompletados: number;
-  };
-}
+// Capa repository del módulo Usuarios (solicitudes de docente): solo consultas SQL parametrizadas ($1, $2…).
 
 interface FilaSolicitud {
   id: number;
@@ -65,7 +48,7 @@ function aSolicitud(f: FilaSolicitud): SolicitudDocente {
   };
 }
 
-export const administracionRepository = {
+export const usuariosRepository = {
   /** Serializa las solicitudes de una misma cuenta (evita dos PENDIENTE por doble clic). */
   async bloquearUsuario(cliente: PoolClient, idUsuario: number): Promise<void> {
     await cliente.query('SELECT 1 FROM usuario WHERE id_usuario = $1 FOR UPDATE', [idUsuario]);

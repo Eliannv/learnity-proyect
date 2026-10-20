@@ -106,8 +106,8 @@ export const rutasSolicitudes = {
       tags: ['Solicitudes de docente'],
       summary: 'Aprobar o rechazar una solicitud (administrador)',
       description:
-        'APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol llega a la sesión del ' +
-        'estudiante en su próxima renovación. RECHAZAR exige `observacion` (máximo 300 caracteres).',
+        'APROBAR agrega el rol DOCENTE (conserva ESTUDIANTE) y crea el perfil docente; el rol se aplica de inmediato ' +
+        'en la siguiente petición autenticada (ADR-011, 11.10). RECHAZAR exige `observacion` (máximo 300 caracteres).',
       security: seguridad,
       parameters: [idRuta],
       requestBody: {

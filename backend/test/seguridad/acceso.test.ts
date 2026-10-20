@@ -1,6 +1,6 @@
 // Seguridad por HTTP sin inyección de fallos: tokens (SEG-01..03), enumeración/IDOR (SEG-13), inyección (SEG-14),
-// XSS almacenado (SEG-15), concurrencia (SEG-10, 12, 22), subidas sin límite (SEG-28) y límites por IP (SEG-32).
-// Lo que usa fallos de disco o de BD (SEG-23..30) espera el seam acordado con be-b.
+// XSS almacenado (SEG-15), concurrencia (SEG-10, 12, 22), subidas con límite (SEG-28) y límites por IP (SEG-32, SEG-33).
+// Lo que usa fallos de disco o de BD (SEG-23..30) va en fallos.test.ts.
 import '../ayudas/guardia-bd.js';
 import assert from 'node:assert/strict';
 import jwt from 'jsonwebtoken';
@@ -189,16 +189,21 @@ describe('Concurrencia (SEG-10, 12, 22)', () => {
   });
 });
 
-describe('Sin límite de subidas y límites por IP (SEG-28, SEG-32)', () => {
-  it('SEG-28 CONGELADO-INSEGURO (S5, ADR-011 11.4): 20 subidas seguidas sin 429', async () => {
+describe('Límites por IP en subida de PDF y rutas sensibles (SEG-28, SEG-32, SEG-33)', () => {
+  it('SEG-28 (S5, ADR-011 11.4): 30 subidas de PDF en 15 min responden 200; la 31.ª responde 429 con Retry-After', async () => {
     reiniciar();
     const id = await c.crearCurso(docA);
     const m = await c.crearModulo(docA, id, 1);
     const l = await c.crearLeccion(docA, m, 1);
     const pdf = await pdfMinimo();
     const estados: number[] = [];
-    for (let i = 0; i < 20; i++) estados.push((await subirPdf(srv, l, docA.token, pdf, `s${i}.pdf`)).status);
+    for (let i = 0; i < 30; i++) estados.push((await subirPdf(srv, l, docA.token, pdf, `s${i}.pdf`)).status);
     assert.ok(estados.every((s) => s === 200), estados.join());
+    const limite = await subirPdf(srv, l, docA.token, pdf, 's30.pdf');
+    assert.equal(limite.status, 429);
+    assert.equal(limite.json.error.codigo, 'DEMASIADAS_PETICIONES');
+    assert.ok(Number(limite.headers.get('retry-after')) > 0);
+    reiniciar();
   });
 
   it('SEG-32: límites de registro (10), recuperar (5) y cambio de contraseña (10) devuelven 429 con Retry-After', async () => {
@@ -218,9 +223,40 @@ describe('Sin límite de subidas y límites por IP (SEG-28, SEG-32)', () => {
     }
     reiniciar();
   });
+
+  it('SEG-33: con TRUST_PROXY=false, X-Forwarded-For no evita el límite por IP (429)', async () => {
+    reiniciar();
+    for (let i = 0; i < 5; i++) {
+      await srv.pedir('/api/auth/recuperar', {
+        metodo: 'POST',
+        cuerpo: { correo: 'a@b.co' },
+        headers: { 'x-forwarded-for': `203.0.113.${i + 1}` },
+      });
+    }
+    const sexta = await srv.pedir('/api/auth/recuperar', {
+      metodo: 'POST',
+      cuerpo: { correo: 'a@b.co' },
+      headers: { 'x-forwarded-for': '198.51.100.99' },
+    });
+    assert.equal(sexta.status, 429);
+    reiniciar();
+  });
 });
 
-describe('Rutas privadas (SEG-31)', () => {
+describe('Rutas privadas y validación unificada de portada (SEG-19, SEG-31)', () => {
+  it('SEG-19 (ADR-011 11.8): portada inválida en BD bloquea enviar-revision (400) y aprobar revisión (409)', async () => {
+    const { idCurso } = await c.cursoCompleto(docA);
+    await f.query('UPDATE curso SET portada_url = $2 WHERE id_curso = $1', [idCurso, '/img/../secreto.png']);
+    const env = await c.como(docA, 'POST', `/api/cursos/${idCurso}/enviar-revision`);
+    assert.equal(env.status, 400);
+    assert.ok(env.json.error.detalles.some((d: any) => d.campo === 'portadaUrl'));
+    await f.query("UPDATE curso SET estado = 'EN_REVISION' WHERE id_curso = $1", [idCurso]);
+    const apr = await c.como(admin, 'PUT', `/api/admin/cursos/${idCurso}/revision`, { decision: 'APROBAR' });
+    assert.equal(apr.status, 409);
+    assert.equal(apr.json.error.codigo, 'CURSO_INCOMPLETO');
+    assert.ok(apr.json.error.detalles.some((d: any) => d.campo === 'portadaUrl'));
+  });
+
   it('ninguna respuesta de cursos, revisión o perfil contiene hash, contraseña ni ruta', async () => {
     const { idCurso } = await c.cursoCompleto(docA);
     await c.enviarARevision(docA, idCurso);

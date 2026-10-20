@@ -1,0 +1,289 @@
+import type { UsuarioSesion } from '../../../shared/auth/tipos.js';
+import { enTransaccion } from '../../../shared/database/pool.js';
+import { AppError } from '../../../shared/http/app-error.js';
+import { registrarEvento } from '../../../shared/log/registro.js';
+import type { CursoDetalle } from '../cursos.modelo.js';
+import { detallePrivado, prevalidarPdfCurso } from '../detalle-privado.service.js';
+import { fichaRepository } from '../ficha.repository.js';
+import { MENSAJES, politicaCurso } from '../politica-curso.js';
+import { obtenerLiberadorArchivos } from '../puertos.js';
+import type { DatosLeccion, DatosModulo } from './temario.esquemas.js';
+import { temarioRepository } from './temario.repository.js';
+
+async function limpiarPendientesFueraDeTransaccion(): Promise<void> {
+  const liberador = obtenerLiberadorArchivos();
+  if (!liberador) return;
+  try {
+    await liberador.ejecutarPendientes();
+  } catch {
+    registrarEvento('archivo.limpieza_reintentar', {}, 'aviso');
+  }
+}
+
+export const temarioService = {
+  async crearModulo(
+    idCurso: number,
+    datos: DatosModulo,
+    usuario: UsuarioSesion,
+  ): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'DOCENTE');
+    const prevalidados = await prevalidarPdfCurso(idCurso);
+
+    return enTransaccion(async (cliente) => {
+      const base = await fichaRepository.base(cliente, idCurso, true);
+      if (!base) {
+        throw AppError.noEncontrado('Curso no disponible.');
+      }
+      politicaCurso.exigirEditable(base, usuario, MENSAJES.crearModulo);
+
+      const cantidad = await temarioRepository.contarModulos(cliente, idCurso);
+      if (cantidad >= 10) {
+        throw AppError.solicitudInvalida('Un curso puede tener como máximo 10 módulos.', [
+          {
+            campo: 'modulos',
+            mensaje: 'Se alcanzó el límite de módulos.',
+          },
+        ]);
+      }
+
+      const ocupado = await temarioRepository.ordenModuloOcupado(cliente, idCurso, datos.orden);
+      if (ocupado) {
+        throw AppError.solicitudInvalida('El orden del módulo ya está ocupado.', [
+          {
+            campo: 'orden',
+            mensaje: 'Selecciona un orden disponible.',
+          },
+        ]);
+      }
+
+      await temarioRepository.crearModulo(cliente, idCurso, datos);
+      return detallePrivado(cliente, idCurso, prevalidados);
+    });
+  },
+
+  async actualizarModulo(
+    idModulo: number,
+    datos: DatosModulo,
+    usuario: UsuarioSesion,
+  ): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'DOCENTE');
+
+    return enTransaccion(async (cliente) => {
+      const modulo = await temarioRepository.buscarModulo(cliente, idModulo);
+      if (!modulo) {
+        throw AppError.noEncontrado('Módulo no disponible.');
+      }
+
+      const base = await fichaRepository.base(cliente, modulo.idCurso, true);
+      if (!base) {
+        throw AppError.noEncontrado('Curso no disponible.');
+      }
+      politicaCurso.exigirEditable(base, usuario, MENSAJES.actualizarModulo);
+
+      const moduloActual = await temarioRepository.buscarModulo(cliente, idModulo);
+      if (!moduloActual || moduloActual.idCurso !== base.id) {
+        throw AppError.noEncontrado('Módulo no disponible.');
+      }
+
+      const ocupado = await temarioRepository.ordenModuloOcupado(
+        cliente,
+        base.id,
+        datos.orden,
+        idModulo,
+      );
+      if (ocupado) {
+        throw AppError.solicitudInvalida('El orden del módulo ya está ocupado.', [
+          {
+            campo: 'orden',
+            mensaje: 'Selecciona otro orden.',
+          },
+        ]);
+      }
+
+      const actualizado = await temarioRepository.actualizarModulo(
+        cliente,
+        idModulo,
+        base.id,
+        datos.titulo,
+        datos.orden,
+      );
+      if (!actualizado) {
+        throw AppError.noEncontrado('Módulo no disponible.');
+      }
+
+      return detallePrivado(cliente, modulo.idCurso);
+    });
+  },
+
+  async crearLeccion(
+    idModulo: number,
+    datos: DatosLeccion,
+    usuario: UsuarioSesion,
+  ): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'DOCENTE');
+
+    return enTransaccion(async (cliente) => {
+      const modulo = await temarioRepository.buscarModulo(cliente, idModulo);
+      if (!modulo) {
+        throw AppError.noEncontrado('Módulo no disponible.');
+      }
+
+      const base = await fichaRepository.base(cliente, modulo.idCurso, true);
+      if (!base) {
+        throw AppError.noEncontrado('Curso no disponible.');
+      }
+      politicaCurso.exigirEditable(base, usuario, MENSAJES.crearLeccion);
+
+      const cantidad = await temarioRepository.contarLecciones(cliente, idModulo);
+      if (cantidad >= 12) {
+        throw AppError.solicitudInvalida('Un módulo admite como máximo 12 lecciones.', [
+          {
+            campo: 'lecciones',
+            mensaje: 'Se alcanzó el límite de lecciones.',
+          },
+        ]);
+      }
+
+      const ocupado = await temarioRepository.ordenLeccionOcupado(cliente, idModulo, datos.orden);
+      if (ocupado) {
+        throw AppError.solicitudInvalida('El orden de la lección ya está ocupado.', [
+          {
+            campo: 'orden',
+            mensaje: 'Selecciona un orden disponible.',
+          },
+        ]);
+      }
+
+      await temarioRepository.crearLeccion(cliente, idModulo, datos);
+      return detallePrivado(cliente, modulo.idCurso);
+    });
+  },
+
+  async actualizarLeccion(
+    idLeccion: number,
+    datos: DatosLeccion,
+    usuario: UsuarioSesion,
+  ): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'DOCENTE');
+
+    return enTransaccion(async (cliente) => {
+      const leccion = await temarioRepository.buscarLeccionParaEditar(cliente, idLeccion);
+      if (!leccion) {
+        throw AppError.noEncontrado('Lección no disponible.');
+      }
+
+      const base = await fichaRepository.base(cliente, leccion.idCurso, true);
+      if (!base) {
+        throw AppError.noEncontrado('Curso no disponible.');
+      }
+      politicaCurso.exigirEditable(base, usuario, MENSAJES.actualizarLeccion);
+
+      if (leccion.tipo !== 'DOCUMENTO') {
+        throw AppError.solicitudInvalida('En este sprint solo se editan lecciones DOCUMENTO.');
+      }
+
+      const ocupado = await temarioRepository.ordenLeccionOcupado(
+        cliente,
+        leccion.idModulo,
+        datos.orden,
+        idLeccion,
+      );
+      if (ocupado) {
+        throw AppError.solicitudInvalida('El orden de la lección ya está ocupado.', [
+          {
+            campo: 'orden',
+            mensaje: 'Selecciona otro orden.',
+          },
+        ]);
+      }
+
+      const actualizado = await temarioRepository.actualizarLeccion(
+        cliente,
+        idLeccion,
+        leccion.idModulo,
+        datos,
+      );
+      if (!actualizado) {
+        throw AppError.noEncontrado('Lección no disponible.');
+      }
+
+      return detallePrivado(cliente, leccion.idCurso);
+    });
+  },
+
+  async eliminarLeccion(
+    idLeccion: number,
+    usuario: UsuarioSesion,
+  ): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'DOCENTE');
+
+    const resultado = await enTransaccion(async (cliente) => {
+      const leccion = await temarioRepository.buscarLeccionParaEditar(cliente, idLeccion);
+      if (!leccion) {
+        throw AppError.noEncontrado('Lección no disponible.');
+      }
+
+      const base = await fichaRepository.base(cliente, leccion.idCurso, true);
+      if (!base) {
+        throw AppError.noEncontrado('Curso no disponible.');
+      }
+      politicaCurso.exigirEditable(base, usuario, MENSAJES.eliminarLeccion);
+
+      const idsPdf = await temarioRepository.pdfDeLeccion(cliente, idLeccion);
+      const eliminada = await temarioRepository.eliminarLeccion(
+        cliente,
+        idLeccion,
+        leccion.idModulo,
+      );
+      if (!eliminada) {
+        throw AppError.noEncontrado('Lección no disponible.');
+      }
+
+      const liberador = obtenerLiberadorArchivos();
+      if (liberador) {
+        await liberador.retirarSinUso(cliente, leccion.idCurso, idsPdf);
+      }
+
+      return detallePrivado(cliente, leccion.idCurso);
+    });
+
+    await limpiarPendientesFueraDeTransaccion();
+    return resultado;
+  },
+
+  async eliminarModulo(
+    idModulo: number,
+    usuario: UsuarioSesion,
+  ): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'DOCENTE');
+
+    const resultado = await enTransaccion(async (cliente) => {
+      const modulo = await temarioRepository.buscarModulo(cliente, idModulo);
+      if (!modulo) {
+        throw AppError.noEncontrado('Módulo no disponible.');
+      }
+
+      const base = await fichaRepository.base(cliente, modulo.idCurso, true);
+      if (!base) {
+        throw AppError.noEncontrado('Curso no disponible.');
+      }
+      politicaCurso.exigirEditable(base, usuario, MENSAJES.eliminarModulo);
+
+      const idsPdf = await temarioRepository.pdfDeModulo(cliente, idModulo);
+      const eliminado = await temarioRepository.eliminarModulo(cliente, idModulo, modulo.idCurso);
+      if (!eliminado) {
+        throw AppError.noEncontrado('Módulo no disponible.');
+      }
+
+      const liberador = obtenerLiberadorArchivos();
+      if (liberador) {
+        await liberador.retirarSinUso(cliente, modulo.idCurso, idsPdf);
+      }
+
+      return detallePrivado(cliente, modulo.idCurso);
+    });
+
+    await limpiarPendientesFueraDeTransaccion();
+    return resultado;
+  },
+};
