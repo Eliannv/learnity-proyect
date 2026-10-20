@@ -2,6 +2,18 @@
 
 > Solo lo escribe el lead. Los teammates informan por mensaje con el formato de `REGLAS_EQUIPO.md`.
 
+## Puerta DB ejecutada en `Learnity` (20-10-2026, Codex)
+
+- **Autorización y alcance:** el usuario aprobó expresamente que se hiciera el respaldo y se aplicaran las migraciones pendientes a `Learnity`. Se aplicaron sobre la base existente; no se reconstruyó ni se borró. Las pruebas automatizadas siguieron reservadas para `learnity_test`.
+- **Preflight de solo lectura:** `Learnity` tenía 5 cursos (1 `BORRADOR`, 4 `PUBLICADO`), carecía de `schema_migraciones` y de la vista `catalogo_curso`. Tres cursos publicados heredados no tenían `revisado_por` o `publicado_en`; se identificaron antes de migrar y se conservaron.
+- **Respaldo fuera del repositorio:** `C:\Users\ASUS VIVOBOOK\respaldos-learnity\Learnity-antes-017-20261020-022726.dump` (`pg_dump -F c`, 81 561 bytes) y `C:\Users\ASUS VIVOBOOK\respaldos-learnity\roles-antes-017-20261020-022726.sql` (`pg_dumpall --roles-only`, 1 474 bytes). `pg_restore --list` leyó el volcado correctamente (226 entradas). No se guardó ninguna credencial en esos documentos ni en el repositorio.
+- **Aplicación:** `database/scripts/aplicar-migraciones.ps1 -Base Learnity -ConfirmoRespaldo`; simulación previa y ejecución real terminaron con código 0. Se aplicaron 017–026 en orden. El inventario final de `schema_migraciones` fue 000, 015, 016 y 017–026.
+- **Verificación posterior de solo lectura:** `database/verificacion/esquema_final.sql` → **ESQUEMA OK** (42 comprobaciones, 0 diferencias, 0 avisos); `database/verificacion/matriz_privilegios.sql` → **MATRIZ OK** (48 filas, 0 diferencias). Con `learnity_app`, las vistas del catálogo respondieron: 4 cursos públicos, 5 categorías activas y 5 filas de temario; el rol no es superusuario.
+- **Dato heredado conservado:** los 3 cursos publicados sin revisor o fecha continúan en `curso_publicado_sin_revision`. La restricción de la 023 quedó `NOT VALID` para permitir esos registros antiguos y proteger las escrituras nuevas. Queda pendiente regularizar esos 3 registros antes de validar la restricción; no se hizo una corrección de datos automática.
+- **Estado vigente:** la Puerta DB y S2 están cerrados en `Learnity`. ADR-012 sigue **Propuesto** y fuera del alcance aprobado. S6 y S10 continúan como riesgos aceptados. No se hizo push ni merge a `main`; los archivos ajenos de planificación permanecen intactos.
+
+Los apartados siguientes documentan el estado anterior a esta Puerta DB y se conservan como historial.
+
 ## Cierre verificado de la Fase 3 (20-10-2026, Codex)
 
 - **Punto de partida:** `integration/sprint-2` en `8a14d8d`. Se preservaron sin editar `PLAN_SPRINTS_LEARNITY.md` y `ROADMAP_SPRINTS_3_Y_4.md`, así como el respaldo `respaldo/be-b-wip-2b`. Sin push ni merge a `main`.
