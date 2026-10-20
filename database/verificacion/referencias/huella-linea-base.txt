@@ -1,0 +1,11 @@
+# Huella de learnity_test en la linea base (H0), probar-migraciones del 19-10-2026 10:04, commit b9e7ba3. La lee reconstruir-base.ps1 (lineas categoria|filas|md5).
+acl_base|6|73abf1a4c6e303d824691fe09239d83e
+acl_esquema|4|df02601cd1fe498a2f036558bb262e33
+acl_relaciones|364|c5098fd421d048b16e47854e750d291c
+columnas|136|cca03d7f01997d3b241865ea80ded103
+extensiones|1|cdc64044d6311e96dd5b5ecff5c60047
+indices|50|a958ac6ea8c1fa5bb2fc099d6745c749
+relaciones|42|586c7ec94b8037a9fff6a36b6c80dca1
+restricciones|101|67c0cea5c573e832b2d032df7c65dab2
+roles|1|52e59c0650b3002ac94f70066f744c50
+TOTAL|705|f15432412a68b46b4c6206746a7a31ef
