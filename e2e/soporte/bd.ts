@@ -48,6 +48,12 @@ export async function residuos(): Promise<Record<string, number>> {
       persona: 'SELECT count(*) n FROM persona WHERE nombres = $1',
       usuario: `SELECT count(*) n FROM usuario WHERE id_persona IN ${sub}`,
       curso: "SELECT count(*) n FROM curso WHERE titulo LIKE $1 || '%'",
+      inscripcion: `SELECT count(*) n FROM inscripcion i JOIN curso c ON c.id_curso = i.id_curso
+        WHERE c.titulo LIKE $1 || '%' OR i.id_persona IN ${sub}`,
+      progreso_leccion: `SELECT count(*) n FROM progreso_leccion p
+        JOIN inscripcion i ON i.id_inscripcion = p.id_inscripcion
+        JOIN curso c ON c.id_curso = i.id_curso
+        WHERE c.titulo LIKE $1 || '%' OR i.id_persona IN ${sub}`,
       categoria: "SELECT count(*) n FROM categoria WHERE nombre LIKE $1 || '%'",
       solicitud_docente: `SELECT count(*) n FROM solicitud_docente WHERE id_persona IN ${sub}`,
     };

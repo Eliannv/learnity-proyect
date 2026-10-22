@@ -25,6 +25,7 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
 
     const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin');
     const docente = await crearCuenta(['ESTUDIANTE', 'DOCENTE'], 'docente');
+    const estudiante = await crearCuenta(['ESTUDIANTE'], 'estudiante');
     const categoria = await crearCategoria(admin.idPersona, 'Redes');
 
     // 1. El docente crea el borrador.
@@ -50,7 +51,8 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
     await page.getByRole('button', { name: 'Guardar módulo' }).click();
     await expect(page.getByText(/1\. Módulo uno/)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Agregar lección PDF' }).click();
+    await page.getByRole('button', { name: 'Agregar lección' }).click();
+    await expect(page.getByLabel('Tipo de lección')).toHaveValue('DOCUMENTO');
     await page.getByLabel(/Título \(obligatorio/).fill('Apunte de redes');
     await page.getByLabel(/Orden/).fill('1');
     await page.getByRole('button', { name: 'Guardar lección' }).click();
@@ -133,6 +135,30 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
     } finally {
       await anonimo.close();
     }
+
+    // 9. Un estudiante se inscribe, abre el PDF y conserva el avance tras recargar.
+    const { contexto: contextoEstudiante, pagina: paginaEstudiante } = await otroContexto(context);
+    try {
+      await iniciarSesionPorUI(paginaEstudiante, estudiante.correo);
+      await paginaEstudiante.goto(`/cursos/${idCurso}`);
+      await paginaEstudiante.getByRole('button', { name: 'Inscribirme gratis' }).click();
+      await expect(paginaEstudiante).toHaveURL(new RegExp(`/aprender/${idCurso}/\\d+$`));
+      await expect(paginaEstudiante.getByRole('link', { name: 'Descargar PDF' })).toBeVisible();
+      await paginaEstudiante.getByRole('button', { name: 'Marcar como completada' }).click();
+      await expect(paginaEstudiante.getByText('Lección completada. Tu avance quedó guardado.')).toBeVisible();
+      await paginaEstudiante.reload();
+      await expect(paginaEstudiante.getByRole('button', { name: 'Completada' })).toBeDisabled();
+      await paginaEstudiante.goto('/mi-aprendizaje');
+      await expect(paginaEstudiante.getByRole('heading', { name: 'Mi aprendizaje' })).toBeVisible();
+      await expect(paginaEstudiante.getByText(TITULO).first()).toBeVisible();
+    } finally {
+      await contextoEstudiante.close();
+    }
+
+    // 10. El docente ve una inscripción y el progreso guardado.
+    await page.goto(`/docente/estudiantes?curso=${idCurso}`);
+    await expect(page.getByRole('heading', { name: 'Estudiantes de mis cursos' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Estudiantes inscritos' }).getByText('100 %')).toBeVisible();
 
     expect(dialogos, 'ningún alert/prompt de la página').toEqual([]);
   });

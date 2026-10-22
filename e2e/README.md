@@ -32,9 +32,9 @@ El primer arranque de `ng serve` tarda (hasta ~4 min de margen). Los límites po
 | Spec | Caso del PLAN_PRUEBAS |
 |---|---|
 | `01-sesion` | E2E-01: cookies (`learnity_rt` HttpOnly, `XSRF-TOKEN`), sin token en `localStorage`/`sessionStorage`, refresh al recargar, logout |
-| `02-guards-roles` | E2E-02: visitante, estudiante, docente y admin; rutas del Sprint 3/4 inexistentes con el flag apagado |
+| `02-guards-roles` | E2E-02: visitante, estudiante, docente y admin; Mi aprendizaje y seguimiento docente accesibles por rol; rutas de evaluaciones y usuarios aún no disponibles |
 | `03-catalogo-recuperacion` | catálogo vacío/404 y recuperación de contraseña de punta a punta |
 | `04-solicitud-docente` | E2E-03: XSS como texto en perfil y bandeja admin; aprobación y rol nuevo |
-| `05-ciclo-curso-pdf` | E2E-04 y E2E-07: borrador → módulo → lección → PDF con progreso → descarga → revisión → publicación → catálogo; bloqueo en EN_REVISION y PUBLICADO |
+| `05-ciclo-curso-pdf` | E2E-04 y E2E-07: borrador → PDF → revisión → publicación → catálogo → inscripción del estudiante → PDF y progreso persistente → seguimiento docente; bloqueo en EN_REVISION y PUBLICADO |
 | `06-accesibilidad` | E2E-05: axe WCAG A/AA en públicas y paneles, foco visible, campos con etiqueta |
 | `07-responsive-390` | E2E-06: sin scroll horizontal a 390 px |
