@@ -1,20 +1,17 @@
-import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
-import { MIS_CURSOS, MIS_EVALUACIONES, RESUMEN_AVANCE, type CursoInscrito } from '../../../data/datos-demo';
+import { mensajeDeError } from '../../../core/http/error-api';
+import { AprendizajeApi, type CursoInscrito } from '../../../features/aprendizaje/aprendizaje.api';
 import { AnilloProgreso } from '../../../shared/ui/anillo-progreso';
 import { BarraProgreso } from '../../../shared/ui/barra-progreso';
 import { PortadaCurso } from '../../../shared/ui/portada-curso';
 
-type Pestana = 'cursos' | 'evaluaciones';
-type Progreso = '' | 'en-curso' | 'sin-empezar' | 'completados';
+type FiltroProgreso = '' | 'en-curso' | 'sin-empezar' | 'completados';
 type Orden = 'reciente' | 'avance' | 'titulo';
 
-/**
- * Mi aprendizaje: todos los cursos inscritos con su avance, filtros y búsqueda,
- * y el historial de evaluaciones. Sprint 3: GET /api/mis-cursos · Sprint 4: GET /api/mis-evaluaciones.
- */
+/** Cursos realmente inscritos: la API conserva el avance entre sesiones. */
 @Component({
   selector: 'app-mi-aprendizaje',
   imports: [RouterLink, LucideAngularModule, AnilloProgreso, BarraProgreso, PortadaCurso],
@@ -23,70 +20,85 @@ type Orden = 'reciente' | 'avance' | 'titulo';
 })
 export class MiAprendizaje {
   protected readonly auth = inject(AuthService);
+  private readonly api = inject(AprendizajeApi);
+  private readonly router = inject(Router);
+  private solicitud = 0;
 
-  /** /mi-aprendizaje?vista=evaluaciones abre directamente el historial. */
-  readonly vista = input<string>();
-  protected readonly pestana = linkedSignal<Pestana>(() => (this.vista() === 'evaluaciones' ? 'evaluaciones' : 'cursos'));
-
-  protected readonly cursos = MIS_CURSOS;
-  protected readonly evaluaciones = MIS_EVALUACIONES;
-  protected readonly resumen = RESUMEN_AVANCE;
-  /** El curso en curso con actividad más reciente: a él apunta el mensaje del resumen. */
-  protected readonly principal = MIS_CURSOS.find((i) => !i.completado && i.progreso > 0) ?? null;
-
-  protected readonly categorias = [...new Set(MIS_CURSOS.map((i) => i.curso.categoria))].sort();
-  protected readonly docentes = [...new Set(MIS_CURSOS.map((i) => i.curso.docente))].sort();
-
+  protected readonly cursos = signal<CursoInscrito[]>([]);
+  protected readonly cargando = signal(true);
+  protected readonly error = signal('');
+  protected readonly reintento = signal(0);
+  protected readonly navegando = signal<number | null>(null);
+  protected readonly errorNavegacion = signal('');
   protected readonly categoria = signal('');
-  protected readonly progreso = signal<Progreso>('');
+  protected readonly progreso = signal<FiltroProgreso>('');
   protected readonly docente = signal('');
   protected readonly busqueda = signal('');
   protected readonly orden = signal<Orden>('reciente');
 
-  protected readonly hayFiltros = computed(
-    () => !!(this.categoria() || this.progreso() || this.docente() || this.busqueda().trim()),
-  );
-
+  protected readonly categorias = computed(() => [...new Set(this.cursos().map((i) => i.curso.categoria.nombre))].sort());
+  protected readonly docentes = computed(() => [...new Set(this.cursos().map((i) => i.curso.docente))].sort());
+  protected readonly totalLecciones = computed(() => this.cursos().reduce((s, c) => s + c.totalLecciones, 0));
+  protected readonly completadas = computed(() => this.cursos().reduce((s, c) => s + c.leccionesCompletadas, 0));
+  protected readonly principal = computed(() => this.cursos().find((c) => c.inscripcion.estado !== 'COMPLETADA') ?? null);
+  protected readonly hayFiltros = computed(() => !!(this.categoria() || this.progreso() || this.docente() || this.busqueda().trim()));
   protected readonly lista = computed(() => {
-    const texto = this.busqueda().trim().toLowerCase();
-    const filtrados = MIS_CURSOS.filter(
-      (i) =>
-        (!this.categoria() || i.curso.categoria === this.categoria()) &&
-        (!this.docente() || i.curso.docente === this.docente()) &&
-        coincideProgreso(i, this.progreso()) &&
-        (!texto || i.curso.titulo.toLowerCase().includes(texto)),
+    const q = this.busqueda().trim().toLocaleLowerCase('es');
+    const cursos = this.cursos().filter((i) =>
+      (!this.categoria() || i.curso.categoria.nombre === this.categoria()) &&
+      (!this.docente() || i.curso.docente === this.docente()) &&
+      (!q || i.curso.titulo.toLocaleLowerCase('es').includes(q)) &&
+      (this.progreso() === '' ||
+        (this.progreso() === 'en-curso' && i.inscripcion.progresoPct > 0 && i.inscripcion.estado !== 'COMPLETADA') ||
+        (this.progreso() === 'sin-empezar' && i.inscripcion.progresoPct === 0) ||
+        (this.progreso() === 'completados' && i.inscripcion.estado === 'COMPLETADA')),
     );
-    switch (this.orden()) {
-      case 'avance':
-        return [...filtrados].sort((a, b) => b.progreso - a.progreso);
-      case 'titulo':
-        return [...filtrados].sort((a, b) => a.curso.titulo.localeCompare(b.curso.titulo, 'es'));
-      default:
-        return filtrados;
-    }
+    if (this.orden() === 'avance') return [...cursos].sort((a, b) => b.inscripcion.progresoPct - a.inscripcion.progresoPct);
+    if (this.orden() === 'titulo') return [...cursos].sort((a, b) => a.curso.titulo.localeCompare(b.curso.titulo, 'es'));
+    return [...cursos].sort((a, b) => Date.parse(b.inscripcion.inscritoEn) - Date.parse(a.inscripcion.inscritoEn));
   });
 
-  protected valor(evento: Event): string {
-    return (evento.target as HTMLInputElement | HTMLSelectElement).value;
+  constructor() {
+    effect(() => {
+      this.reintento();
+      void this.cargar();
+    });
   }
 
-  protected quitarFiltros() {
-    this.categoria.set('');
-    this.progreso.set('');
-    this.docente.set('');
-    this.busqueda.set('');
+  private async cargar(): Promise<void> {
+    const actual = ++this.solicitud;
+    this.cargando.set(true);
+    this.error.set('');
+    try {
+      const respuesta = await this.api.listar();
+      if (actual === this.solicitud) this.cursos.set(respuesta.items);
+    } catch (error) {
+      if (actual === this.solicitud) this.error.set(mensajeDeError(error, 'Cargar tus cursos'));
+    } finally {
+      if (actual === this.solicitud) this.cargando.set(false);
+    }
   }
-}
 
-function coincideProgreso(i: CursoInscrito, filtro: Progreso): boolean {
-  switch (filtro) {
-    case 'en-curso':
-      return !i.completado && i.progreso > 0;
-    case 'sin-empezar':
-      return i.progreso === 0;
-    case 'completados':
-      return !!i.completado;
-    default:
-      return true;
+  protected async abrir(curso: CursoInscrito): Promise<void> {
+    if (this.navegando() !== null) return;
+    this.navegando.set(curso.curso.id);
+    this.errorNavegacion.set('');
+    try {
+      const detalle = await this.api.detalle(curso.curso.id);
+      const primera = detalle.modulos.flatMap((modulo) => modulo.lecciones)[0];
+      const id = detalle.inscripcion.ultimaLeccionId ?? primera?.id;
+      await this.router.navigate(id ? ['/aprender', curso.curso.id, id] : ['/cursos', curso.curso.id]);
+    } catch (error) {
+      this.errorNavegacion.set(mensajeDeError(error, 'Abrir el curso'));
+    } finally {
+      this.navegando.set(null);
+    }
   }
+
+  protected reintentar(): void { this.reintento.update((n) => n + 1); }
+  protected valor(evento: Event): string { return (evento.target as HTMLInputElement | HTMLSelectElement).value; }
+  protected quitarFiltros(): void {
+    this.categoria.set(''); this.progreso.set(''); this.docente.set(''); this.busqueda.set('');
+  }
+  protected tono(id: number): 1 | 2 | 3 { return id % 3 === 0 ? 3 : id % 3 === 1 ? 1 : 2; }
 }

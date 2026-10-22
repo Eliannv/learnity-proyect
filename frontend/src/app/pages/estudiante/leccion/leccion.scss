@@ -3,6 +3,32 @@
   padding-bottom: 48px;
 }
 
+.estado-carga {
+  padding: 32px 0;
+  min-height: 180px;
+  p { margin: 12px 0; }
+}
+
+.contenido-pendiente {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  min-height: 320px;
+  padding: 24px;
+  border: 1px dashed var(--azul-200);
+  border-radius: var(--radio-md);
+  background: var(--azul-050);
+  text-align: center;
+  p { margin: 0; }
+}
+
+.mensaje-visor { min-height: 180px; padding: 32px; }
+.pdf-marco { display: block; width: 100%; height: min(72vh, 760px); min-height: 420px; border: 0; background: var(--blanco); }
+.error-progreso { color: var(--rojo-700); }
+.confirmacion { color: var(--verde-700); }
+.cabecera-modulo { min-height: 48px; cursor: pointer; }
+
 .distribucion {
   display: grid;
   grid-template-columns: 1fr 300px;

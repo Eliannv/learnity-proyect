@@ -35,9 +35,7 @@ export const MENU: Record<
         etiqueta: 'Mis cursos',
         ruta: '/docente/cursos',
       },
-      ...(environment.sprint34Habilitado
-        ? [{ icono: 'graduation-cap', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' }]
-        : []),
+      { icono: 'graduation-cap', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' },
     ],
 
     tabs: [
@@ -46,9 +44,7 @@ export const MENU: Record<
         etiqueta: 'Mis cursos',
         ruta: '/docente/cursos',
       },
-      ...(environment.sprint34Habilitado
-        ? [{ icono: 'chart-no-axes-column', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' }]
-        : []),
+      { icono: 'chart-no-axes-column', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' },
       {
         icono: 'user',
         etiqueta: 'Perfil',

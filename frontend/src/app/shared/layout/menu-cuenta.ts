@@ -3,7 +3,6 @@ import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
 import { Avatar } from '../ui/avatar';
-import { environment } from '../../../environments/environment';
 
 /**
  * Foto de perfil del header (sitio y paneles).
@@ -52,9 +51,9 @@ import { environment } from '../../../environments/environment';
           </div>
         }
 
-        @if (sprint34Habilitado || (!auth.esDocente() && !auth.esAdmin())) {
+        @if (auth.roles().includes('ESTUDIANTE') || (!auth.esDocente() && !auth.esAdmin())) {
           <div class="grupo">
-            @if (sprint34Habilitado) {
+            @if (auth.roles().includes('ESTUDIANTE')) {
               <a routerLink="/mi-aprendizaje" (click)="cerrar()" role="menuitem">
                 <lucide-icon name="graduation-cap" [size]="18" /> Mi aprendizaje
               </a>
@@ -186,7 +185,6 @@ import { environment } from '../../../environments/environment';
 })
 export class MenuCuenta implements OnDestroy {
   protected readonly auth = inject(AuthService);
-  protected readonly sprint34Habilitado = environment.sprint34Habilitado;
   private readonly elemento = inject(ElementRef<HTMLElement>);
   private temporizador?: ReturnType<typeof setTimeout>;
   protected readonly abierto = signal(false);

@@ -54,15 +54,31 @@
                     <lucide-icon [name]="icono(l.tipo)" [size]="20" />
                     <span>{{ l.titulo }}</span>
                     <span class="texto-suave">{{ l.tipo === 'DOCUMENTO' ? 'PDF' : l.tipo === 'EVALUACION' ? 'Evaluación' : l.minutos + ' min' }}</span>
+                    @if (l.tipo === 'VIDEO') {
+                      <button type="button" class="btn btn-texto btn-sm muestra-accion"
+                        [disabled]="cargandoMuestra() === l.id" [attr.aria-expanded]="muestra()?.leccionId === l.id"
+                        (click)="alternarMuestra(l)">
+                        {{ cargandoMuestra() === l.id ? 'Cargando…' : muestra()?.leccionId === l.id ? 'Cerrar muestra' : 'Ver muestra' }}
+                      </button>
+                    }
                   </li>
                 }
               </ul>
+              @if (muestra(); as video) {
+                @if (contieneMuestra(m.lecciones, video.leccionId)) {
+                  <div class="muestra-panel">
+                    <h3>Muestra: {{ video.titulo }}</h3>
+                    <app-reproductor-youtube [videoId]="video.videoId" [titulo]="video.titulo" />
+                  </div>
+                }
+              }
             }
           </section>
         } @empty {
           <p class="temario-vacio">El temario todavía no está disponible.</p>
         }
       </div>
+      @if (errorMuestra()) { <p class="mensaje-error" role="alert">{{ errorMuestra() }}</p> }
 
       @if (c.objetivos.length) {
         <section class="lista-informacion">
@@ -91,7 +107,17 @@
     <div class="tarjeta-inscripcion" [class.solo-movil]="movil">
       <div class="portada"><app-portada-curso [categoria]="c.categoria.nombre" [tono]="tono()" [imagen]="c.portadaUrl" /></div>
       <p>Curso gratuito.</p>
-      <button type="button" class="btn btn-acento btn-lg btn-bloque" disabled>Inscripciones próximamente</button>
+      <button type="button" class="btn btn-acento btn-lg btn-bloque"
+        [disabled]="procesando() || consultandoInscripcion()"
+        (click)="accionInscripcion()">
+        @if (procesando()) { Preparando tu curso… }
+        @else if (consultandoInscripcion()) { Comprobando inscripción… }
+        @else if (inscripcion()) { Continuar aprendiendo }
+        @else { Inscribirme gratis }
+      </button>
+      @if (errorInscripcion()) {
+        <p class="mensaje-error" role="alert">{{ errorInscripcion() }}</p>
+      }
       @if (c.requisitos.length) {
         <hr class="separador" />
         <strong>Requisitos</strong>

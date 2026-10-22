@@ -47,7 +47,7 @@ function nombreGuard(guard: unknown): string {
   return (guard as { name: string }).name || 'rolGuard';
 }
 
-// Lista fijada antes de separar app.routes.ts en rutas por feature (ADR-007), con sprint34Habilitado = false.
+// Rutas activas de Sprint 2 y Sprint 3; evaluaciones y administración futura siguen ocultas.
 const ESPERADO: string[] = [
   '/login | titulo=Iniciar sesión · Learnity | canActivate=invitadoGuard | pagina=Login',
   '/registro | titulo=Crear cuenta · Learnity | canActivate=invitadoGuard | pagina=Registro',
@@ -57,11 +57,14 @@ const ESPERADO: string[] = [
   '/ | match=full | titulo=Learnity · Cursos en línea | pagina=Inicio',
   '/cursos | titulo=Catálogo de cursos · Learnity | pagina=Catalogo',
   '/cursos/:id | titulo=Detalle del curso · Learnity | pagina=DetalleCurso',
+  '/mi-aprendizaje | titulo=Mi aprendizaje · Learnity | canActivate=rolGuard | pagina=MiAprendizaje',
+  '/aprender/:cursoId/:leccionId | titulo=Lección · Learnity | canActivate=rolGuard | pagina=Leccion',
   '/perfil | titulo=Mi perfil · Learnity | canActivate=autenticadoGuard+perfilEstudianteGuard | pagina=PerfilEstudiante',
   '/docente | data={\"rol\":\"DOCENTE\"} | canActivate=rolGuard | layout=LayoutPanel',
   '/docente | match=full | redirige=cursos',
   '/docente/cursos | titulo=Mis cursos · Learnity | data={\"seccion\":\"Mis cursos\"} | pagina=MisCursosDocente',
   '/docente/cursos/:id/editar | titulo=Editar curso · Learnity | data={\"seccion\":\"Constructor de curso\"} | pagina=EditorCurso',
+  '/docente/estudiantes | titulo=Estudiantes del curso · Learnity | data={\"seccion\":\"Estudiantes\"} | pagina=EstudiantesCurso',
   '/docente/perfil | titulo=Ajustes y perfil · Learnity | data={\"seccion\":\"Ajustes y perfil\"} | pagina=AjustesPerfil',
   '/admin | data={\"rol\":\"ADMIN\"} | canActivate=rolGuard | layout=LayoutPanel',
   '/admin | match=full | redirige=revision',

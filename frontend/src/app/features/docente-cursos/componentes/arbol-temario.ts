@@ -5,6 +5,7 @@ import {
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
@@ -18,10 +19,13 @@ import {
 } from '../../../core/cursos/gestion-cursos.model';
 import { Peticion } from '../../../core/estado/peticion';
 import { PdfLeccion } from '../../contenido/componentes/pdf-leccion';
+import { ReproductorYoutube } from '../../contenido/componentes/reproductor-youtube';
+import { esIdYoutube } from '../../contenido/youtube';
+import { CampoYoutube } from './campo-youtube';
 
 @Component({
   selector: 'app-arbol-temario',
-  imports: [FormsModule, PdfLeccion],
+  imports: [FormsModule, PdfLeccion, CampoYoutube, ReproductorYoutube],
   templateUrl: './arbol-temario.html',
   styleUrl: './arbol-temario.scss',
 })
@@ -63,6 +67,8 @@ export class ArbolTemario {
 
   protected readonly p = new Peticion();
   private readonly trabajo = signal(false);
+  private readonly campoYoutube = viewChild(CampoYoutube);
+  protected readonly previewId = signal<number | null>(null);
 
   protected readonly deshabilitado = computed(
     () =>
@@ -82,6 +88,9 @@ export class ArbolTemario {
     moduloId: number;
     titulo: string;
     orden: number;
+    tipo: 'DOCUMENTO' | 'VIDEO';
+    youtubeUrl: string;
+    vistaPrevia: boolean;
   } | null = null;
 
   protected hayFormulario(): boolean {
@@ -105,6 +114,10 @@ export class ArbolTemario {
       moduloId: m.id,
       titulo: l?.titulo ?? '',
       orden: l?.orden ?? siguienteOrden(m.lecciones, 12),
+      tipo: l?.tipo === 'VIDEO' ? 'VIDEO' : 'DOCUMENTO',
+      youtubeUrl: l?.tipo === 'VIDEO' && esIdYoutube(l.youtubeVideoId)
+        ? `https://www.youtube.com/watch?v=${l.youtubeVideoId}` : '',
+      vistaPrevia: l?.vistaPrevia ?? false,
     };
     this.formularioAbierto.emit(true);
   }
@@ -158,13 +171,13 @@ export class ArbolTemario {
       return;
     }
 
-    await this.mutar(() =>
-      fn(l.moduloId, l.id, {
-        titulo: l.titulo.trim(),
-        orden: l.orden,
-        tipo: 'DOCUMENTO',
-      }),
-    );
+    if (l.tipo === 'VIDEO' && !this.campoYoutube()?.validar()) return;
+
+    const datos = l.tipo === 'VIDEO'
+      ? { titulo: l.titulo.trim(), orden: l.orden, tipo: 'VIDEO' as const,
+          youtubeUrl: l.youtubeUrl.trim(), vistaPrevia: l.vistaPrevia }
+      : { titulo: l.titulo.trim(), orden: l.orden, tipo: 'DOCUMENTO' as const };
+    await this.mutar(() => fn(l.moduloId, l.id, datos));
   }
 
   protected async eliminar(

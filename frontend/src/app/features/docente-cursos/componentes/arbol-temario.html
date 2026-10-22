@@ -88,7 +88,7 @@
 
   @if (leccion; as l) {
     <form #fl="ngForm" class="tarjeta bloque" (ngSubmit)="guardarLeccion()">
-      <h3>{{ l.id === null ? 'Nueva lección PDF' : 'Editar lección' }}</h3>
+      <h3>{{ l.id === null ? 'Nueva lección' : 'Editar lección' }}</h3>
 
       <fieldset class="rejilla" [disabled]="deshabilitado()">
         <label class="campo">
@@ -123,7 +123,33 @@
         </label>
       </fieldset>
 
-      <p>Primero guarda la lección; después podrás subir su PDF.</p>
+      @if (l.id === null) {
+        <label class="campo">
+          Tipo de lección
+          <select class="control" name="tipo" [(ngModel)]="l.tipo" [disabled]="deshabilitado()">
+            <option value="DOCUMENTO">Documento PDF</option>
+            <option value="VIDEO">Vídeo de YouTube</option>
+          </select>
+        </label>
+      } @else {
+        <p>Tipo: {{ l.tipo === 'VIDEO' ? 'Vídeo de YouTube' : 'Documento PDF' }}</p>
+      }
+
+      @if (l.tipo === 'VIDEO') {
+        <app-campo-youtube
+          id="youtube-leccion"
+          [(enlace)]="l.youtubeUrl"
+          [bloqueado]="deshabilitado()"
+          [errorServidor]="p.campo('youtubeUrl')"
+        />
+        <label class="opcion-previa">
+          <input type="checkbox" name="vistaPrevia" [(ngModel)]="l.vistaPrevia" [disabled]="deshabilitado()" />
+          Permitir una vista previa antes de inscribirse
+        </label>
+        <p class="texto-suave">El vídeo debe permitir reproducción en otros sitios. Un enlace no convierte un vídeo privado de YouTube en accesible.</p>
+      } @else {
+        <p>Primero guarda la lección; después podrás subir su PDF.</p>
+      }
 
       <small class="error-campo">{{ p.campos()['tipo'] }}</small>
 
@@ -180,7 +206,7 @@
             [disabled]="deshabilitado() || hayFormulario() || m.lecciones.length >= 12"
             (click)="abrirLeccion(m)"
           >
-            Agregar lección PDF
+            Agregar lección
           </button>
         </div>
       }
@@ -223,6 +249,24 @@
                   >
                     Eliminar lección
                   </button>
+                </div>
+              }
+            } @else if (l.tipo === 'VIDEO') {
+              @if (l.youtubeVideoId; as videoId) {
+                <button type="button" class="btn btn-contorno" [attr.aria-expanded]="previewId() === l.id" (click)="previewId.set(previewId() === l.id ? null : l.id)">
+                  {{ previewId() === l.id ? 'Cerrar vista previa' : 'Vista previa del vídeo' }}
+                </button>
+                @if (previewId() === l.id) {
+                  <app-reproductor-youtube [videoId]="videoId" [titulo]="l.titulo" />
+                }
+              } @else {
+                <p class="texto-suave">Agrega un enlace de YouTube para reproducir esta lección.</p>
+              }
+              <p class="texto-suave">{{ l.vistaPrevia ? 'Vista previa pública permitida.' : 'Disponible solo para estudiantes inscritos.' }}</p>
+              @if (editable()) {
+                <div class="acciones">
+                  <button type="button" class="btn btn-contorno" [disabled]="deshabilitado() || hayFormulario()" (click)="abrirLeccion(m, l)">Editar lección</button>
+                  <button type="button" class="btn btn-contorno" [disabled]="deshabilitado() || hayFormulario()" (click)="eliminar('lecciones', l.id)">Eliminar lección</button>
                 </div>
               }
             } @else {

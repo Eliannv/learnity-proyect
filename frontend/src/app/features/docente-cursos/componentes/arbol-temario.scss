@@ -1,1 +1,4 @@
 @use '../../../shared/cursos/cursos';
+
+.opcion-previa { display: flex; align-items: center; gap: 10px; }
+.opcion-previa input { width: 18px; height: 18px; }
