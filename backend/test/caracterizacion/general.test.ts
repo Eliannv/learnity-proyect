@@ -54,13 +54,17 @@ describe('rutas generales', () => {
     }
   });
 
-  it('CAR-GEN-08: rutas previstas de aprendizaje y evaluaciones', async () => {
-    const rutas: Array<[string, string]> = [
-      ['POST', '/api/cursos/1/inscripcion'], ['GET', '/api/mi-aprendizaje'], ['PUT', '/api/lecciones/1/progreso'],
-      ['GET', '/api/evaluaciones/1'], ['POST', '/api/evaluaciones/1/intentos'], ['PUT', '/api/evaluaciones/1'],
+  it('CAR-GEN-08: aprendizaje exige sesión; evaluaciones siguen pendientes', async () => {
+    const rutas: Array<[string, string, number, string]> = [
+      ['POST', '/api/cursos/1/inscripcion', 401, 'NO_AUTENTICADO'],
+      ['GET', '/api/mi-aprendizaje', 401, 'NO_AUTENTICADO'],
+      ['PUT', '/api/lecciones/1/progreso', 401, 'NO_AUTENTICADO'],
+      ['GET', '/api/evaluaciones/1', 404, 'NO_ENCONTRADO'],
+      ['POST', '/api/evaluaciones/1/intentos', 404, 'NO_ENCONTRADO'],
+      ['PUT', '/api/evaluaciones/1', 404, 'NO_ENCONTRADO'],
     ];
     const vistos: unknown[] = [];
-    const esperado = rutas.map(([m, r]) => [m, r, 404, 'NO_ENCONTRADO']);
+    const esperado = rutas.map(([m, r, status, codigo]) => [m, r, status, codigo]);
     for (const [metodo, ruta] of rutas) {
       const r = await srv.pedir(ruta, { metodo });
       vistos.push([metodo, ruta, r.status, r.json?.error?.codigo]);

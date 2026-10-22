@@ -22,6 +22,7 @@ import {
 } from './modules/contenido/index.js';
 import { revisionRoutes } from './modules/revision/index.js';
 import { usuariosRoutes } from './modules/usuarios/index.js';
+import { aprendizajeRoutes } from './modules/aprendizaje/index.js';
 
 /**
  * Puertos: contratos que `shared` o un módulo define y otro módulo implementa (ADR-001, ADR-004).
@@ -67,7 +68,7 @@ export function crearApp() {
   }
 
   // Módulos del monolito. Cada uno solo expone su API pública desde `index.ts` (R3).
-  // `aprendizaje` y `evaluaciones` (Sprints 3 y 4, congelados) se montarán desde su `index.ts` al activarse.
+  // `evaluaciones` permanece pendiente del Sprint 4.
   const api = express.Router();
   api.use(identidadRoutes);
   api.use(catalogoRoutes);
@@ -75,6 +76,7 @@ export function crearApp() {
   api.use(contenidoRoutes);
   api.use(revisionRoutes);
   api.use(usuariosRoutes);
+  api.use(aprendizajeRoutes);
   app.use('/api', api);
 
   app.use(rutaNoEncontrada);
