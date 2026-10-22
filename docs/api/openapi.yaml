@@ -1,14 +1,12 @@
-# Contrato de la API de Learnity: describe lo que la API hace hoy.
-# Generado desde backend/src/shared/http/openapi*.ts y versionado en el mismo commit. No se edita a mano:
-# se regenera desde openapi*.ts con el mismo procedimiento (ver docs/api/COMPARACION_RUTAS.md).
+# Contrato de la API de Learnity: generado desde backend/src/shared/http/openapi*.ts.
+# No se edita a mano. Ejecuta npm run api:serializar en backend/.
 # El cuerpo es JSON, que también es YAML 1.2 válido.
-# Diferencias con las rutas reales: docs/api/COMPARACION_RUTAS.md (hallazgos C-nn).
 {
   "openapi": "3.0.3",
   "info": {
     "title": "Learnity API",
-    "version": "0.3.0",
-    "description": "API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.\n\n**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie\n`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.\nCerrar sesión, cambiar o restablecer la contraseña revocan las sesiones y sus access tokens dejan de valer de inmediato;\nlos roles vigentes de la cuenta se leen al verificar la sesión en cada petición (ADR-011, 11.10).\n\n**CSRF.** Las rutas que usan la cookie (`/auth/refresh`, `/auth/logout`) exigen el encabezado `X-XSRF-TOKEN`\ncon el valor de la cookie `XSRF-TOKEN` (Angular lo envía solo). Todas las rutas `/auth/*` rechazan otros orígenes.\n\n**Límites.** Por IP: login 20/15 min, registro 10/h, recuperar 5/15 min, restablecer 10/15 min, refresh 120/15 min,\nlogout 60/15 min, cambiar la contraseña 10/15 min, subida de PDF 30/15 min y solicitudes de docente 10/h.\nPor cuenta: 5 inicios fallidos seguidos la bloquean 15 minutos (con el mismo mensaje genérico); una sola solicitud de docente pendiente.\nContenido: un curso tiene hasta 10 módulos, cada módulo hasta 12 lecciones y cada PDF hasta 10 MiB. Cuerpos JSON de hasta 1 MB.\n\n**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.\nCualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es\n409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK, clave foránea o un texto con el carácter NUL, 22021, que la\nvalidación no rechazó antes; ADR-011, 11.7).\nLos errores del parser JSON responden sin `detalles` (ADR-011, 11.6): 400 SOLICITUD_INVALIDA si el cuerpo no es un JSON válido,\n413 CUERPO_DEMASIADO_GRANDE si supera 1 MB y 415 TIPO_NO_ADMITIDO si el charset no es UTF o el `Content-Encoding` no es\nidentity, gzip, deflate ni br. El parser actúa antes que las rutas, así que cualquier petición con `Content-Type: application/json`\npuede recibirlos, aunque la operación no tenga cuerpo. Las operaciones con cuerpo JSON los declaran.\n\n**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta\nresponde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto."
+    "version": "0.4.0",
+    "description": "API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.\nSprint 3: rutas de inscripción, Mi aprendizaje, progreso y seguimiento docente. La integración de vídeos YouTube y el acceso al PDF por estudiante corresponde al módulo Contenido/Cursos.\n\n**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie\n`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.\nCerrar sesión, cambiar o restablecer la contraseña revocan las sesiones y sus access tokens dejan de valer de inmediato;\nlos roles vigentes de la cuenta se leen al verificar la sesión en cada petición (ADR-011, 11.10).\n\n**CSRF.** Las rutas que usan la cookie (`/auth/refresh`, `/auth/logout`) exigen el encabezado `X-XSRF-TOKEN`\ncon el valor de la cookie `XSRF-TOKEN` (Angular lo envía solo). Todas las rutas `/auth/*` rechazan otros orígenes.\n\n**Límites.** Por IP: login 20/15 min, registro 10/h, recuperar 5/15 min, restablecer 10/15 min, refresh 120/15 min,\nlogout 60/15 min, cambiar la contraseña 10/15 min, subida de PDF 30/15 min y solicitudes de docente 10/h.\nPor cuenta: 5 inicios fallidos seguidos la bloquean 15 minutos (con el mismo mensaje genérico); una sola solicitud de docente pendiente.\nContenido: un curso tiene hasta 10 módulos, cada módulo hasta 12 lecciones y cada PDF hasta 10 MiB. Cuerpos JSON de hasta 1 MB.\n\n**Errores.** Todas las respuestas de error tienen la forma `ErrorApi`: `{ error: { codigo, mensaje, detalles? } }`.\nCualquier operación puede responder 500 ERROR_INTERNO. Si PostgreSQL rechaza una escritura por una restricción, la respuesta es\n409 CONFLICTO (valor duplicado) o 400 SOLICITUD_INVALIDA (CHECK, clave foránea o un texto con el carácter NUL, 22021, que la\nvalidación no rechazó antes; ADR-011, 11.7).\nLos errores del parser JSON responden sin `detalles` (ADR-011, 11.6): 400 SOLICITUD_INVALIDA si el cuerpo no es un JSON válido,\n413 CUERPO_DEMASIADO_GRANDE si supera 1 MB y 415 TIPO_NO_ADMITIDO si el charset no es UTF o el `Content-Encoding` no es\nidentity, gzip, deflate ni br. El parser actúa antes que las rutas, así que cualquier petición con `Content-Type: application/json`\npuede recibirlos, aunque la operación no tenga cuerpo. Las operaciones con cuerpo JSON los declaran.\n\n**Documentación.** Swagger UI (`/api/docs`) solo se sirve con `NODE_ENV=development`; en `test` y `production` esa ruta\nresponde 404 NO_ENCONTRADO (ADR-011, 11.3). La referencia publicada es `docs/api/openapi.yaml`, generada desde este objeto."
   },
   "servers": [
     {
@@ -708,6 +706,386 @@
               },
               "cursosCompletados": {
                 "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "InscripcionAprendizaje": {
+        "type": "object",
+        "required": [
+          "id",
+          "cursoId",
+          "estado",
+          "progresoPct",
+          "ultimaLeccionId",
+          "inscritoEn",
+          "completadoEn"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "cursoId": {
+            "type": "integer"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ACTIVA",
+              "COMPLETADA"
+            ]
+          },
+          "progresoPct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "ultimaLeccionId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "inscritoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completadoEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "FichaCursoAprendizaje": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "subtitulo",
+          "portadaUrl",
+          "nivel",
+          "categoria",
+          "docente"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "subtitulo": {
+            "type": "string",
+            "nullable": true
+          },
+          "portadaUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "PRINCIPIANTE",
+              "INTERMEDIO",
+              "AVANZADO"
+            ]
+          },
+          "categoria": {
+            "type": "object",
+            "required": [
+              "id",
+              "nombre"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "nombre": {
+                "type": "string"
+              }
+            }
+          },
+          "docente": {
+            "type": "string"
+          }
+        }
+      },
+      "CursoInscrito": {
+        "type": "object",
+        "required": [
+          "curso",
+          "inscripcion",
+          "totalLecciones",
+          "leccionesCompletadas"
+        ],
+        "properties": {
+          "curso": {
+            "$ref": "#/components/schemas/FichaCursoAprendizaje"
+          },
+          "inscripcion": {
+            "$ref": "#/components/schemas/InscripcionAprendizaje"
+          },
+          "totalLecciones": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "leccionesCompletadas": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "LeccionAprendizaje": {
+        "type": "object",
+        "required": [
+          "id",
+          "orden",
+          "titulo",
+          "tipo",
+          "vistaPrevia",
+          "archivoId",
+          "youtubeVideoId",
+          "progreso"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "orden": {
+            "type": "integer"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTO",
+              "VIDEO"
+            ]
+          },
+          "vistaPrevia": {
+            "type": "boolean"
+          },
+          "archivoId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "youtubeVideoId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Será distinto de null cuando se integre la migración YouTube de Cursos."
+          },
+          "progreso": {
+            "type": "object",
+            "required": [
+              "segundosVistos",
+              "completada"
+            ],
+            "properties": {
+              "segundosVistos": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "completada": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "DetalleAprendizaje": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CursoInscrito"
+          },
+          {
+            "type": "object",
+            "required": [
+              "modulos"
+            ],
+            "properties": {
+              "modulos": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "orden",
+                    "titulo",
+                    "lecciones"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "orden": {
+                      "type": "integer"
+                    },
+                    "titulo": {
+                      "type": "string"
+                    },
+                    "lecciones": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeccionAprendizaje"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ProgresoGuardado": {
+        "type": "object",
+        "required": [
+          "leccionId",
+          "segundosVistos",
+          "completada",
+          "progresoPct",
+          "estado",
+          "ultimaLeccionId"
+        ],
+        "properties": {
+          "leccionId": {
+            "type": "integer"
+          },
+          "segundosVistos": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completada": {
+            "type": "boolean"
+          },
+          "progresoPct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ACTIVA",
+              "COMPLETADA"
+            ]
+          },
+          "ultimaLeccionId": {
+            "type": "integer"
+          }
+        }
+      },
+      "SeguimientoDocente": {
+        "type": "object",
+        "required": [
+          "curso",
+          "items",
+          "pagina",
+          "limite",
+          "total",
+          "totalPaginas",
+          "resumen"
+        ],
+        "properties": {
+          "curso": {
+            "type": "object",
+            "required": [
+              "id",
+              "titulo"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "titulo": {
+                "type": "string"
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "idPersona",
+                "nombre",
+                "estado",
+                "progresoPct",
+                "ultimaLeccionId",
+                "inscritoEn",
+                "ultimaActividadEn"
+              ],
+              "properties": {
+                "idPersona": {
+                  "type": "integer"
+                },
+                "nombre": {
+                  "type": "string"
+                },
+                "estado": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVA",
+                    "COMPLETADA"
+                  ]
+                },
+                "progresoPct": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "ultimaLeccionId": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "inscritoEn": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "ultimaActividadEn": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "description": "null hasta integrar la marca de última actividad en PostgreSQL."
+                }
+              }
+            }
+          },
+          "pagina": {
+            "type": "integer"
+          },
+          "limite": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPaginas": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "resumen": {
+            "type": "object",
+            "required": [
+              "inscritos",
+              "completados",
+              "progresoPromedio"
+            ],
+            "properties": {
+              "inscritos": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "completados": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "progresoPromedio": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
               }
             }
           }
@@ -2918,6 +3296,474 @@
           },
           "415": {
             "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/cursos/{id}/inscripcion": {
+      "post": {
+        "tags": [
+          "Aprendizaje"
+        ],
+        "summary": "Inscribirse en un curso publicado",
+        "description": "Solo ESTUDIANTE. Idempotente: devuelve 201 al crear y 200 si ya estaba inscrito. Hasta 30 peticiones por IP y 15 minutos.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ya inscrito; no se duplica",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InscripcionAprendizaje"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Inscripción creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InscripcionAprendizaje"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ESTUDIANTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Curso inexistente o no publicado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/mi-aprendizaje": {
+      "get": {
+        "tags": [
+          "Aprendizaje"
+        ],
+        "summary": "Mis cursos inscritos que siguen publicados",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CursoInscrito"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ESTUDIANTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/mi-aprendizaje/cursos/{id}": {
+      "get": {
+        "tags": [
+          "Aprendizaje"
+        ],
+        "summary": "Temario privado y progreso de un curso inscrito",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetalleAprendizaje"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ESTUDIANTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Curso no publicado o estudiante no inscrito",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/lecciones/{id}/progreso": {
+      "put": {
+        "tags": [
+          "Aprendizaje"
+        ],
+        "summary": "Guardar posición o marcar completada una lección inscrita",
+        "description": "Los segundos son una posición de reanudación declarada por el cliente, no prueba de visionado. La finalización no retrocede. Hasta 240 peticiones por IP y 15 minutos.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "segundosVistos": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 86400
+                  },
+                  "completada": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgresoGuardado"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de progreso inválidos o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ESTUDIANTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lección no publicada o estudiante no inscrito",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Límite de peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/cursos/{id}/estudiantes": {
+      "get": {
+        "tags": [
+          "Aprendizaje"
+        ],
+        "summary": "Seguimiento de inscritos en un curso propio (o ADMIN)",
+        "description": "Los cursos ajenos responden 404 para no revelar su existencia. No se entrega el correo del estudiante.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeguimientoDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID o paginación inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE o ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Curso no disponible o ajeno",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"

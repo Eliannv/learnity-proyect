@@ -4,6 +4,7 @@ import { error, errorInterno, erroresCuerpoJson, esquemasComunes, idInvalido, id
 import { rutasRevisionContenido } from './openapi-revision-contenido.js';
 import { esquemasGestionCursos, rutasGestionCursos } from './openapi-gestion-cursos.js';
 import { esquemasSolicitudes, rutasSolicitudes } from './openapi-solicitudes.js';
+import { esquemasAprendizaje, rutasAprendizaje } from './openapi-aprendizaje.js';
 
 const usuarioSesion = {
   type: 'object',
@@ -136,9 +137,10 @@ export const openApi = {
   openapi: '3.0.3',
   info: {
     title: 'Learnity API',
-    version: '0.3.0',
+    version: '0.4.0',
     description: [
       'API REST del monolito modular en capas. Sprint 1: Identidad. Sprint 2: Cursos, contenido PDF, revisión de cursos y solicitudes de docente.',
+      'Sprint 3: rutas de inscripción, Mi aprendizaje, progreso y seguimiento docente. La integración de vídeos YouTube y el acceso al PDF por estudiante corresponde al módulo Contenido/Cursos.',
       '',
       '**Sesión.** Login y registro devuelven un *access token* (JWT, 15 min) en el cuerpo y dejan el *refresh token* en la cookie',
       '`learnity_rt` (HttpOnly). `POST /auth/refresh` lo rota en cada uso; presentar uno ya rotado revoca la sesión completa.',
@@ -173,6 +175,7 @@ export const openApi = {
       ...esquemasCatalogo,
       ...esquemasGestionCursos,
       ...esquemasSolicitudes,
+      ...esquemasAprendizaje,
     },
     responses: respuestasComunes,
     securitySchemes: {
@@ -185,6 +188,7 @@ export const openApi = {
     ...rutasRevisionContenido,
     ...rutasGestionCursos,
     ...rutasSolicitudes,
+    ...rutasAprendizaje,
     '/salud': {
       get: {
         tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL',
