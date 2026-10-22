@@ -1,0 +1,9 @@
+:host { display: block; min-width: 0; }
+.video { display: grid; gap: 16px; min-width: 0; }
+.presentacion { display: grid; justify-items: start; gap: 16px; padding: 24px; border: 1px solid var(--gris-200); border-radius: 12px; background: var(--azul-050); }
+.marco { width: 100%; min-height: 200px; aspect-ratio: 16 / 9; background: #0f172a; }
+.marco[hidden] { display: none; }
+.reanudar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+p { overflow-wrap: anywhere; }
+.btn { white-space: normal; line-height: 1.4; padding-top: 10px; padding-bottom: 10px; }
+@media (max-width: 600px) { .presentacion { padding: 16px; } .reanudar { align-items: stretch; flex-direction: column; } }

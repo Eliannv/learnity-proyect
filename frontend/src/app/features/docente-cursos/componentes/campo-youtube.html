@@ -1,0 +1,14 @@
+<div class="campo">
+  <label [for]="id()">Enlace del vídeo de YouTube (obligatorio)</label>
+  <input
+    class="control" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+    [id]="id()" [value]="enlace()" [disabled]="bloqueado()" required maxlength="2048"
+    [attr.aria-invalid]="mensaje() ? 'true' : null"
+    [attr.aria-describedby]="id() + '-ayuda' + (mensaje() ? ' ' + id() + '-error' : '')"
+    (input)="cambiar($event)" (blur)="tocado.set(true)"
+  />
+  <small [id]="id() + '-ayuda'">Usa un enlace https://www.youtube.com/watch?v=… o https://youtu.be/… . Pega el enlace, no código HTML.</small>
+  @if (mensaje()) {
+    <small class="error-campo" [id]="id() + '-error'" role="alert">{{ mensaje() }}</small>
+  }
+</div>
