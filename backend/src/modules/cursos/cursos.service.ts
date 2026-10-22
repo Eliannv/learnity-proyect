@@ -37,7 +37,7 @@ export interface ServicioCursos {
     prevalidados?: ReadonlySet<string>,
   ): Promise<CursoDetalle>;
   prevalidarPdfDeLeccion(idLeccion: number): Promise<ReadonlySet<string>>;
-  autorizarLectura(idLeccion: number, idCursoArchivo: number, usuario: UsuarioSesion): Promise<void>;
+  autorizarLectura(idLeccion: number, idCursoArchivo: number, idArchivo: number, usuario: UsuarioSesion): Promise<void>;
 
   // Para modules/revision (CONTRATOS_SERVICIO §2.1)
   listarParaRevision(usuario: UsuarioSesion): Promise<{ items: CursoResumen[] }>;

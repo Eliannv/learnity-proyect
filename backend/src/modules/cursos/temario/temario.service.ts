@@ -7,7 +7,7 @@ import { detallePrivado, prevalidarPdfCurso } from '../detalle-privado.service.j
 import { fichaRepository } from '../ficha.repository.js';
 import { MENSAJES, politicaCurso } from '../politica-curso.js';
 import { obtenerLiberadorArchivos } from '../puertos.js';
-import type { DatosLeccion, DatosModulo } from './temario.esquemas.js';
+import { extraerYoutubeVideoId, type DatosLeccion, type DatosModulo } from './temario.esquemas.js';
 import { temarioRepository } from './temario.repository.js';
 
 async function limpiarPendientesFueraDeTransaccion(): Promise<void> {
@@ -30,6 +30,12 @@ async function prevalidarDe(idCurso: number | null): Promise<ReadonlySet<string>
 }
 
 export const temarioService = {
+  async videoVistaPrevia(idLeccion: number): Promise<{ leccionId: number; youtubeVideoId: string }> {
+    const video = await temarioRepository.videoVistaPrevia(idLeccion);
+    if (!video) throw AppError.noEncontrado('Lección no disponible.');
+    return video;
+  },
+
   async crearModulo(
     idCurso: number,
     datos: DatosModulo,
@@ -165,7 +171,8 @@ export const temarioService = {
         ]);
       }
 
-      await temarioRepository.crearLeccion(cliente, idModulo, datos);
+      const youtubeVideoId = datos.tipo === 'VIDEO' ? extraerYoutubeVideoId(datos.youtubeUrl) : null;
+      await temarioRepository.crearLeccion(cliente, idModulo, datos, youtubeVideoId);
       return detallePrivado(cliente, modulo.idCurso, prevalidados);
     }, { actor: usuario.idPersona });
   },
@@ -190,8 +197,8 @@ export const temarioService = {
       }
       politicaCurso.exigirEditable(base, usuario, MENSAJES.actualizarLeccion);
 
-      if (leccion.tipo !== 'DOCUMENTO') {
-        throw AppError.solicitudInvalida('En este sprint solo se editan lecciones DOCUMENTO.');
+      if (leccion.tipo !== datos.tipo) {
+        throw AppError.solicitudInvalida('No se puede cambiar el tipo de una lección.');
       }
 
       const ocupado = await temarioRepository.ordenLeccionOcupado(
@@ -214,6 +221,7 @@ export const temarioService = {
         idLeccion,
         leccion.idModulo,
         datos,
+        datos.tipo === 'VIDEO' ? extraerYoutubeVideoId(datos.youtubeUrl) : null,
       );
       if (!actualizado) {
         throw AppError.noEncontrado('Lección no disponible.');

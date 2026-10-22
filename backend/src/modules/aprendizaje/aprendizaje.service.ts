@@ -41,7 +41,7 @@ function ordenarTemario(filas: FilaLeccion[]): ModuloAprendizaje[] {
       modulo.lecciones.push({
         id: fila.id, orden: fila.orden, titulo: fila.titulo, tipo: fila.tipo,
         vistaPrevia: fila.vistaPrevia ?? false, archivoId: fila.archivoId,
-        youtubeVideoId: null,
+        youtubeVideoId: fila.tipo === 'VIDEO' ? fila.youtubeVideoId : null,
         progreso: { segundosVistos: fila.segundosVistos ?? 0, completada: fila.completada ?? false },
       });
     }
@@ -112,7 +112,7 @@ export const aprendizajeService = {
       items: filas.map((fila) => ({
         idPersona: fila.idPersona, nombre: fila.nombre, estado: fila.estado,
         progresoPct: fila.progresoPct, ultimaLeccionId: fila.ultimaLeccionId,
-        inscritoEn: fila.inscritoEn.toISOString(), ultimaActividadEn: null,
+        inscritoEn: fila.inscritoEn.toISOString(), ultimaActividadEn: fila.ultimaActividadEn.toISOString(),
       })),
       pagina: filtro.pagina, limite: filtro.limite, total: resumen.inscritos,
       totalPaginas: Math.ceil(resumen.inscritos / filtro.limite), resumen,

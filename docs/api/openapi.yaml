@@ -356,33 +356,76 @@
         }
       },
       "DatosLeccion": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "titulo",
-          "orden",
-          "tipo"
-        ],
-        "description": "Un módulo tiene como máximo 12 lecciones y cada orden se usa una sola vez (si no, 400). Solo se editan lecciones DOCUMENTO.",
-        "properties": {
-          "titulo": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 150,
-            "description": "Se recortan los espacios de los extremos antes de validar."
+        "description": "Máximo 12 lecciones por módulo, con orden único. VIDEO guarda un ID normalizado de YouTube.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "titulo",
+              "orden",
+              "tipo"
+            ],
+            "properties": {
+              "titulo": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "description": "Se recortan los espacios de los extremos antes de validar."
+              },
+              "orden": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "DOCUMENTO"
+                ]
+              }
+            }
           },
-          "orden": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 12
-          },
-          "tipo": {
-            "type": "string",
-            "enum": [
-              "DOCUMENTO"
-            ]
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "titulo",
+              "orden",
+              "tipo",
+              "youtubeUrl"
+            ],
+            "properties": {
+              "titulo": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "description": "Se recortan los espacios de los extremos antes de validar."
+              },
+              "orden": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "VIDEO"
+                ]
+              },
+              "youtubeUrl": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "description": "Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID."
+              },
+              "vistaPrevia": {
+                "type": "boolean",
+                "default": false
+              }
+            }
           }
-        }
+        ]
       },
       "ArchivoPdf": {
         "type": "object",
@@ -421,7 +464,9 @@
           "titulo",
           "orden",
           "tipo",
-          "archivo"
+          "archivo",
+          "youtubeVideoId",
+          "vistaPrevia"
         ],
         "properties": {
           "id": {
@@ -451,6 +496,15 @@
                 "$ref": "#/components/schemas/ArchivoPdf"
               }
             ]
+          },
+          "youtubeVideoId": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 11,
+            "maxLength": 11
+          },
+          "vistaPrevia": {
+            "type": "boolean"
           }
         }
       },
@@ -874,7 +928,9 @@
           "youtubeVideoId": {
             "type": "string",
             "nullable": true,
-            "description": "Será distinto de null cuando se integre la migración YouTube de Cursos."
+            "minLength": 11,
+            "maxLength": 11,
+            "description": "ID de YouTube de la lección VIDEO; null en DOCUMENTO."
           },
           "progreso": {
             "type": "object",
@@ -1045,9 +1101,7 @@
                 },
                 "ultimaActividadEn": {
                   "type": "string",
-                  "format": "date-time",
-                  "nullable": true,
-                  "description": "null hasta integrar la marca de última actividad en PostgreSQL."
+                  "format": "date-time"
                 }
               }
             }
@@ -2524,7 +2578,7 @@
         "tags": [
           "Gestión de cursos"
         ],
-        "summary": "Crear una lección DOCUMENTO",
+        "summary": "Crear una lección DOCUMENTO o VIDEO de YouTube",
         "security": [
           {
             "bearer": []
@@ -2632,7 +2686,7 @@
         "tags": [
           "Gestión de cursos"
         ],
-        "summary": "Actualizar una lección DOCUMENTO",
+        "summary": "Actualizar una lección DOCUMENTO o VIDEO de YouTube",
         "security": [
           {
             "bearer": []
@@ -2823,6 +2877,78 @@
             }
           }
         ]
+      }
+    },
+    "/lecciones/{id}/video-preview": {
+      "get": {
+        "tags": [
+          "Cursos"
+        ],
+        "summary": "Video de muestra de una lección pública",
+        "description": "Solo VIDEO con vistaPrevia=true de un curso PUBLICADO. Devuelve un ID de YouTube, nunca una URL arbitraria.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "leccionId",
+                    "youtubeVideoId"
+                  ],
+                  "properties": {
+                    "leccionId": {
+                      "type": "integer"
+                    },
+                    "youtubeVideoId": {
+                      "type": "string",
+                      "minLength": 11,
+                      "maxLength": 11
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lección sin vista previa pública",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
       }
     },
     "/cursos/{id}/enviar-revision": {

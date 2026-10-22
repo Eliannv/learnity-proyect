@@ -121,17 +121,19 @@ export const esquemasGestionCursos = {
   },
 
   DatosLeccion: {
-    type: 'object',
-    additionalProperties: false,
-    required: ['titulo', 'orden', 'tipo'],
-    description:
-      'Un módulo tiene como máximo 12 lecciones y cada orden se usa una sola vez (si no, 400). ' +
-      'Solo se editan lecciones DOCUMENTO.',
-    properties: {
-      titulo,
-      orden: { type: 'integer', minimum: 1, maximum: 12 },
-      tipo: { type: 'string', enum: ['DOCUMENTO'] },
-    },
+    description: 'Máximo 12 lecciones por módulo, con orden único. VIDEO guarda un ID normalizado de YouTube.',
+    oneOf: [{
+      type: 'object', additionalProperties: false, required: ['titulo', 'orden', 'tipo'],
+      properties: { titulo, orden: { type: 'integer', minimum: 1, maximum: 12 },
+        tipo: { type: 'string', enum: ['DOCUMENTO'] } },
+    }, {
+      type: 'object', additionalProperties: false, required: ['titulo', 'orden', 'tipo', 'youtubeUrl'],
+      properties: { titulo, orden: { type: 'integer', minimum: 1, maximum: 12 },
+        tipo: { type: 'string', enum: ['VIDEO'] },
+        youtubeUrl: { type: 'string', minLength: 1, maxLength: 255,
+          description: 'Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID.' },
+        vistaPrevia: { type: 'boolean', default: false } },
+    }],
   },
 
   ArchivoPdf: {
@@ -168,6 +170,8 @@ export const esquemasGestionCursos = {
       'orden',
       'tipo',
       'archivo',
+      'youtubeVideoId',
+      'vistaPrevia',
     ],
     properties: {
       id: entero,
@@ -186,6 +190,8 @@ export const esquemasGestionCursos = {
         nullable: true,
         allOf: [ref('ArchivoPdf')],
       },
+      youtubeVideoId: { type: 'string', nullable: true, minLength: 11, maxLength: 11 },
+      vistaPrevia: { type: 'boolean' },
     },
   },
 
@@ -392,7 +398,7 @@ export const rutasGestionCursos = {
   '/modulos/{id}/lecciones': {
     post: {
       ...operacion(
-        'Crear una lección DOCUMENTO',
+        'Crear una lección DOCUMENTO o VIDEO de YouTube',
         201,
         detalle,
         todos,
@@ -405,7 +411,7 @@ export const rutasGestionCursos = {
   '/lecciones/{id}': {
     put: {
       ...operacion(
-        'Actualizar una lección DOCUMENTO',
+        'Actualizar una lección DOCUMENTO o VIDEO de YouTube',
         200,
         detalle,
         todos,
@@ -421,6 +427,21 @@ export const rutasGestionCursos = {
         todos,
       ),
       parameters: [idRuta],
+    },
+  },
+
+  '/lecciones/{id}/video-preview': {
+    get: {
+      tags: ['Cursos'], summary: 'Video de muestra de una lección pública',
+      description: 'Solo VIDEO con vistaPrevia=true de un curso PUBLICADO. Devuelve un ID de YouTube, nunca una URL arbitraria.',
+      parameters: [idRuta],
+      responses: {
+        200: json({ type: 'object', required: ['leccionId', 'youtubeVideoId'], properties: {
+          leccionId: { type: 'integer' },
+          youtubeVideoId: { type: 'string', minLength: 11, maxLength: 11 },
+        } }),
+        400: error(idInvalido), 404: error('Lección sin vista previa pública'), 500: errorInterno,
+      },
     },
   },
 

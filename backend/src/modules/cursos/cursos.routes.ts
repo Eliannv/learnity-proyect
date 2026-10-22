@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
 import { validarCuerpo, validarParametros } from '../../shared/http/validar.js';
+import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { cursosController } from './cursos.controller.js';
 import {
   datosCursoSchema,
@@ -11,6 +12,13 @@ import {
 
 // Capa routes: gestión privada de cursos, módulos y lecciones del docente.
 export const cursosRoutes = Router();
+
+cursosRoutes.get(
+  '/lecciones/:id/video-preview',
+  limitarPorIp('video-preview', 120, 15),
+  validarParametros(idCursoRuta),
+  cursosController.videoVistaPrevia,
+);
 
 cursosRoutes.get(
   '/docente/cursos',

@@ -3,6 +3,7 @@ import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { almacenLocal } from '../../shared/archivos/almacen.js';
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
+import { aprendizajeApi } from '../aprendizaje/index.js';
 import { esPortadaValida } from './cursos.esquemas.js';
 import type {
   ContextoLeccion,
@@ -173,6 +174,8 @@ export async function detallePrivado(
       orden: fila.leccionOrden!,
       tipo: fila.leccionTipo,
       archivo,
+      youtubeVideoId: fila.leccionTipo === 'VIDEO' ? fila.youtubeVideoId : null,
+      vistaPrevia: fila.leccionTipo === 'VIDEO' ? fila.vistaPrevia ?? false : false,
     });
 
     if (fila.leccionTipo === 'DOCUMENTO' && archivo && fila.archivoRuta) {
@@ -286,16 +289,20 @@ export const detallePrivadoService = {
   async autorizarLectura(
     idLeccion: number,
     idCursoArchivo: number,
+    idArchivo: number,
     usuario: UsuarioSesion,
   ): Promise<void> {
     await enTransaccion(async (cliente) => {
       const contexto = await temarioRepository.leccion(cliente, idLeccion);
-      if (!contexto || contexto.id !== idCursoArchivo) {
+      if (!contexto || contexto.id !== idCursoArchivo || contexto.archivoId !== idArchivo) {
         throw AppError.noEncontrado('Archivo no disponible.');
       }
-      if (!politicaCurso.puedeLeerArchivos(contexto, usuario)) {
-        throw AppError.sinPermiso('No puedes descargar este archivo.');
-      }
+      if (politicaCurso.puedeLeerArchivos(contexto, usuario)) return;
+      const inscrito = usuario.roles.includes('ESTUDIANTE')
+        && contexto.estado === 'PUBLICADO'
+        && contexto.tipoLeccion === 'DOCUMENTO'
+        && await aprendizajeApi.estaInscritoEnCurso(usuario.idPersona, contexto.id);
+      if (!inscrito) throw AppError.sinPermiso('No puedes descargar este archivo.');
     });
   },
 

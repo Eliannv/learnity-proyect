@@ -13,6 +13,13 @@ function usuario(req: Request): UsuarioSesion {
 }
 
 export const cursosController = {
+  async videoVistaPrevia(_req: Request, res: Response) {
+    const { parametros: id } = datosValidados<number>(res);
+    const video = await cursosService.videoVistaPrevia(id);
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.status(200).json(video);
+  },
+
   async crearCurso(req: Request, res: Response) {
     const curso = await cursosService.crearCurso(req.body as DatosCurso, usuario(req));
     res.status(201).json(curso);

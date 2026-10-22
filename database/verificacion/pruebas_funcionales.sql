@@ -88,8 +88,17 @@ SELECT pg_temp.anotar('app: UPDATE usuario_rol', '019', 'denegado',
        pg_temp.intentar('learnity_app', 'UPDATE usuario_rol SET asignado_en = asignado_en WHERE false'));
 SELECT pg_temp.anotar('app: TRUNCATE curso', '019', 'denegado',
        pg_temp.intentar('learnity_app', 'TRUNCATE curso CASCADE'));
-SELECT pg_temp.anotar('app: SELECT progreso_leccion (Sprint 3)', '019', 'denegado',
+SELECT pg_temp.anotar('app: SELECT progreso_leccion (Sprint 3)', '027', 'permitido',
        pg_temp.intentar('learnity_app', 'SELECT 1 FROM progreso_leccion LIMIT 1'));
+SELECT pg_temp.anotar('app: INSERT inscripcion (Sprint 3)', '027', 'permitido',
+       pg_temp.intentar('learnity_app',
+         'INSERT INTO inscripcion (id_persona, id_curso) SELECT 1, 1 WHERE false'));
+SELECT pg_temp.anotar('app: UPDATE inscripcion (Sprint 3)', '027', 'permitido',
+       pg_temp.intentar('learnity_app',
+         'UPDATE inscripcion SET ultima_actividad_en = now() WHERE false'));
+SELECT pg_temp.anotar('app: INSERT progreso_leccion (Sprint 3)', '027', 'permitido',
+       pg_temp.intentar('learnity_app',
+         'INSERT INTO progreso_leccion (id_inscripcion, id_leccion) SELECT 1, 1 WHERE false'));
 SELECT pg_temp.anotar('app: CREATE TABLE en public', '019', 'denegado',
        pg_temp.intentar('learnity_app', 'CREATE TABLE public.prueba_funcional (id INTEGER)'));
 -- Aunque esté aplicada la 019b, learnity_app no hereda los permisos de learnity_pruebas.

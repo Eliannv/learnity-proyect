@@ -35,7 +35,6 @@ export interface LeccionAprendizaje {
   tipo: TipoLeccionAprendizaje;
   vistaPrevia: boolean;
   archivoId: number | null;
-  /** Se poblará cuando Cursos aplique la migración de enlaces YouTube. */
   youtubeVideoId: string | null;
   progreso: { segundosVistos: number; completada: boolean };
 }
@@ -67,7 +66,6 @@ export interface EstudianteCurso {
   progresoPct: number;
   ultimaLeccionId: number | null;
   inscritoEn: string;
-  /** Se añade al dato real al incorporar la marca de actividad de Sprint 3. */
   ultimaActividadEn: string | null;
 }
 

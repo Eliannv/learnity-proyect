@@ -34,6 +34,7 @@ export interface FilaLeccion {
   tipo: TipoLeccionAprendizaje | null;
   vistaPrevia: boolean | null;
   archivoId: number | null;
+  youtubeVideoId: string | null;
   segundosVistos: number | null;
   completada: boolean | null;
 }
@@ -45,6 +46,7 @@ export interface FilaEstudiante {
   progresoPct: number;
   ultimaLeccionId: number | null;
   inscritoEn: Date;
+  ultimaActividadEn: Date;
 }
 
 const CAMPOS_INSCRIPCION = `
@@ -135,7 +137,8 @@ export const aprendizajeRepository = {
     const { rows } = await consultar<FilaLeccion>(
       `SELECT m.id_modulo AS "moduloId", m.orden AS "moduloOrden", m.titulo AS "moduloTitulo",
               l.id_leccion AS id, l.orden, l.titulo, l.tipo, l.vista_previa AS "vistaPrevia",
-              a.id_archivo AS "archivoId", pl.segundos_vistos AS "segundosVistos", pl.completada
+              a.id_archivo AS "archivoId", l.youtube_video_id AS "youtubeVideoId",
+              pl.segundos_vistos AS "segundosVistos", pl.completada
          FROM modulo m
          LEFT JOIN leccion l ON l.id_modulo = m.id_modulo AND l.tipo IN ('DOCUMENTO', 'VIDEO')
          LEFT JOIN archivo a ON a.id_archivo = l.id_archivo AND a.id_curso = m.id_curso AND a.tipo = 'PDF'
@@ -202,7 +205,8 @@ export const aprendizajeRepository = {
       `UPDATE inscripcion
           SET progreso_pct = $2::smallint, id_ultima_leccion = $3,
               estado = CASE WHEN $2::smallint = 100 THEN 'COMPLETADA' ELSE 'ACTIVA' END,
-              completado_en = CASE WHEN $2::smallint = 100 THEN COALESCE(completado_en, now()) ELSE NULL END
+              completado_en = CASE WHEN $2::smallint = 100 THEN COALESCE(completado_en, now()) ELSE NULL END,
+              ultima_actividad_en = now()
         WHERE id_inscripcion = $1`,
       [idInscripcion, porcentaje, idLeccion],
     );
@@ -242,7 +246,8 @@ export const aprendizajeRepository = {
     const { rows } = await consultar<FilaEstudiante>(
       `SELECT p.id_persona AS "idPersona", concat_ws(' ', p.nombres, p.apellidos) AS nombre,
               i.estado, i.progreso_pct AS "progresoPct",
-              i.id_ultima_leccion AS "ultimaLeccionId", i.inscrito_en AS "inscritoEn"
+              i.id_ultima_leccion AS "ultimaLeccionId", i.inscrito_en AS "inscritoEn",
+              i.ultima_actividad_en AS "ultimaActividadEn"
          FROM inscripcion i JOIN persona p ON p.id_persona = i.id_persona
         WHERE i.id_curso = $1
         ORDER BY i.inscrito_en DESC, i.id_inscripcion DESC

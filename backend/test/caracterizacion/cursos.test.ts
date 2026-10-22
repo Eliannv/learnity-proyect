@@ -417,8 +417,11 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     const m = await crearModulo(id, 1);
     const r = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 1, tipo: 'DOCUMENTO' });
     assert.equal(r.status, 201);
-    assert.deepEqual(Object.keys(r.json.modulos[0].lecciones[0]), ['id', 'titulo', 'orden', 'tipo', 'archivo']);
+    assert.deepEqual(Object.keys(r.json.modulos[0].lecciones[0]),
+      ['id', 'titulo', 'orden', 'tipo', 'archivo', 'youtubeVideoId', 'vistaPrevia']);
     assert.equal(r.json.modulos[0].lecciones[0].archivo, null);
+    assert.equal(r.json.modulos[0].lecciones[0].youtubeVideoId, null);
+    assert.equal(r.json.modulos[0].lecciones[0].vistaPrevia, false);
     for (const tipo of ['VIDEO', 'EVALUACION']) {
       const x = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 2, tipo });
       assert.equal(x.status, 400, tipo);

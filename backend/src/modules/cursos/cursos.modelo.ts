@@ -23,6 +23,8 @@ export interface LeccionPrivada {
   orden: number;
   tipo: TipoLeccion;
   archivo: ArchivoPdf | null;
+  youtubeVideoId: string | null;
+  vistaPrevia: boolean;
 }
 
 export interface ModuloPrivado {

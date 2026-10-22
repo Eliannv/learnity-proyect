@@ -41,7 +41,8 @@ export const esquemasAprendizaje = {
       id: { type: 'integer' }, orden: { type: 'integer' }, titulo: { type: 'string' },
       tipo: { type: 'string', enum: ['DOCUMENTO', 'VIDEO'] }, vistaPrevia: { type: 'boolean' },
       archivoId: idNulo,
-      youtubeVideoId: { type: 'string', nullable: true, description: 'Será distinto de null cuando se integre la migración YouTube de Cursos.' },
+      youtubeVideoId: { type: 'string', nullable: true, minLength: 11, maxLength: 11,
+        description: 'ID de YouTube de la lección VIDEO; null en DOCUMENTO.' },
       progreso: { type: 'object', required: ['segundosVistos', 'completada'], properties: {
         segundosVistos: entero, completada: { type: 'boolean' },
       } },
@@ -73,7 +74,7 @@ export const esquemasAprendizaje = {
       ], properties: {
         idPersona: { type: 'integer' }, nombre: { type: 'string' }, estado, progresoPct: porcentaje,
         ultimaLeccionId: idNulo, inscritoEn: fecha,
-        ultimaActividadEn: { ...nullableFecha, description: 'null hasta integrar la marca de última actividad en PostgreSQL.' },
+        ultimaActividadEn: fecha,
       } } },
       pagina: { type: 'integer' }, limite: { type: 'integer' }, total: entero, totalPaginas: entero,
       resumen: { type: 'object', required: ['inscritos', 'completados', 'progresoPromedio'], properties: {

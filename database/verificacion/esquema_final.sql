@@ -11,9 +11,9 @@
 --
 -- Solo lee pg_catalog, schema_migraciones, rol y curso: no cambia nada y sirve
 -- en cualquier base (también en Learnity). Requiere la 017.
--- Los números esperados salen de la huella H1 (todas las migraciones, 017 a
--- 026) de probar-migraciones del 19-10-2026 (verificacion/referencias/). Desde
--- el 20-10-2026 la 023 ya no está retenida y forma parte del esquema final. Al
+-- Los números hasta la 026 salen de la huella H1 de probar-migraciones del
+-- 19-10-2026 (verificacion/referencias/). La 027 agrega las columnas y permisos
+-- de aprendizaje de Sprint 3. Desde el 20-10-2026 la 023 no está retenida. Al
 -- añadir una migración, actualiza este archivo.
 --
 -- Salida: seccion | elemento | esperado | obtenido | resultado
@@ -78,7 +78,8 @@ indices_esperados (nombre) AS (
          ('auditoria_cambio_tabla_idx'), ('auditoria_cambio_actor_idx'),
          ('solicitud_docente_pendiente_uq'),
          ('solicitud_docente_persona_idx'), ('solicitud_docente_estado_idx'), ('recurso_adjunto_leccion_idx'),
-         ('progreso_leccion_leccion_idx'), ('inscripcion_ultima_leccion_idx')
+         ('progreso_leccion_leccion_idx'), ('inscripcion_ultima_leccion_idx'),
+         ('inscripcion_curso_actividad_idx')
 ),
 -- FK que se quedan sin índice a propósito (PLAN_BD §6.2).
 fk_sin_indice_esperadas (fk) AS (
@@ -148,7 +149,7 @@ chequeos (orden, seccion, elemento, esperado, obtenido, tipo) AS (
   SELECT 13, 'tablas', 'número de secuencias (identidad)', '22',
          (SELECT count(*) FROM rel WHERE relkind = 'S')::TEXT, 'comparar'
   UNION ALL
-  SELECT 14, 'tablas', 'columnas de tablas y vistas', '196',
+  SELECT 14, 'tablas', 'columnas de tablas y vistas', '198',
          (SELECT count(*) FROM rel r JOIN pg_attribute a ON a.attrelid = r.oid AND a.attnum > 0 AND NOT a.attisdropped
            WHERE r.relkind IN ('r', 'v'))::TEXT, 'comparar'
   UNION ALL
@@ -196,7 +197,7 @@ chequeos (orden, seccion, elemento, esperado, obtenido, tipo) AS (
                       AND a.attname = 'ruta'), '-'), 'comparar'
   UNION ALL
   -- Restricciones.
-  SELECT 40, 'restricciones', 'número en public', '107',
+  SELECT 40, 'restricciones', 'número en public', '108',
          (SELECT count(*) FROM pg_constraint WHERE connamespace = 'public'::regnamespace)::TEXT, 'comparar'
   UNION ALL
   SELECT 41, 'restricciones', 'por tipo (c=CHECK, f=FK, p=PK, u=UNIQUE)', '-',
@@ -220,8 +221,27 @@ chequeos (orden, seccion, elemento, esperado, obtenido, tipo) AS (
                               AND connamespace = 'public'::regnamespace)
               THEN 'presente' ELSE 'ausente' END, 'comparar'
   UNION ALL
+  SELECT 45, 'restricciones', 'leccion_youtube_video_id_valido (027)', 'presente',
+         CASE WHEN EXISTS (SELECT 1 FROM pg_constraint
+                            WHERE conrelid = 'public.leccion'::regclass
+                              AND conname = 'leccion_youtube_video_id_valido')
+              THEN 'presente' ELSE 'ausente' END, 'comparar'
+  UNION ALL
+  SELECT 46, 'columnas', 'inscripcion.ultima_actividad_en (027)', 'timestamp con zona, NOT NULL',
+         COALESCE((SELECT CASE WHEN a.attnotnull AND a.atttypid = 'timestamptz'::regtype
+                              THEN 'timestamp con zona, NOT NULL' ELSE 'distinta' END
+                     FROM pg_attribute a
+                    WHERE a.attrelid = 'public.inscripcion'::regclass
+                      AND a.attname = 'ultima_actividad_en' AND NOT a.attisdropped), 'ausente'), 'comparar'
+  UNION ALL
+  SELECT 47, 'columnas', 'leccion.youtube_video_id (027)', 'character varying(11)',
+         COALESCE((SELECT format_type(a.atttypid, a.atttypmod)
+                     FROM pg_attribute a
+                    WHERE a.attrelid = 'public.leccion'::regclass
+                      AND a.attname = 'youtube_video_id' AND NOT a.attisdropped), 'ausente'), 'comparar'
+  UNION ALL
   -- Índices.
-  SELECT 50, 'indices', 'número en public', '61',
+  SELECT 50, 'indices', 'número en public', '62',
          (SELECT count(*) FROM pg_indexes WHERE schemaname = 'public')::TEXT, 'comparar'
   UNION ALL
   SELECT 51, 'indices', 'índices esperados que faltan (base, 015, 020, 024 y 025)', '-',
@@ -332,7 +352,7 @@ chequeos (orden, seccion, elemento, esperado, obtenido, tipo) AS (
   UNION ALL
   -- schema_migraciones.
   SELECT 100, 'migraciones', 'versiones aplicadas (por versión)',
-         '000,015,016,017,018,019,020,021,022,023,024,025,026',
+         '000,015,016,017,018,019,020,021,022,023,024,025,026,027',
          (SELECT string_agg(version, ',' ORDER BY version) FROM public.schema_migraciones), 'comparar'
   UNION ALL
   SELECT 101, 'migraciones', 'desde la 017, con checksum (sin él, se aplicaron a mano con psql -f)',
