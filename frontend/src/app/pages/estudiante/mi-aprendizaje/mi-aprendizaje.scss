@@ -10,7 +10,18 @@
     letter-spacing: -0.02em;
     line-height: 1.1;
   }
+  p {
+    margin: 12px 0 0;
+    color: var(--gris-200);
+  }
 }
+
+.estado-carga { padding: 32px; }
+.estado-carga p { margin: 12px 0; }
+.boton-enlace { border: 0; background: transparent; padding: 4px 0; cursor: pointer; }
+.error-navegacion { color: var(--rojo-700); margin: 0; }
+.tarjeta-curso { min-width: 0; }
+.abrir-curso { margin-top: 10px; min-height: 44px; }
 
 .pestanas {
   display: flex;
@@ -172,6 +183,14 @@
     &:focus {
       border-color: var(--azul-700);
     }
+  }
+  > lucide-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    border-radius: 0 var(--radio) var(--radio) 0;
+    background: var(--azul-700);
+    color: var(--blanco);
   }
   button {
     display: grid;
@@ -396,3 +415,10 @@
     font-size: 15px;
   }
 }
+
+.tarjeta-curso { min-width: 0; }
+.ultima-leccion { font-size: 13px; color: var(--tinta-700); overflow-wrap: anywhere; }
+progress { width: 100%; height: 8px; accent-color: var(--azul-700); }
+.paginacion-aprendizaje { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
+.abrir-curso { white-space: normal; }
+@media (max-width: 420px) { .grid { grid-template-columns: 1fr; } .curso-portada { height: 160px; } }

@@ -1,30 +1,15 @@
 import { Routes } from '@angular/router';
 
-import { autenticadoGuard, conSesionMatch, rolGuard } from './core/auth/guards';
+import { rolGuard } from './core/auth/guards';
 
 import { LayoutPanel } from './layouts/layout-panel';
 import { LayoutSitio } from './layouts/layout-sitio';
-import { environment } from '../environments/environment';
 
-// Las pantallas de aprendizaje, evaluaciones y gestión futura siguen disponibles
-// para demostraciones, pero no forman parte del recorrido real del Sprint 2.
-const inicioEstudiante: Routes = [
-  {
-    path: '',
-    pathMatch: 'full',
-    canMatch: [conSesionMatch],
-    title: 'Inicio · Learnity',
-    loadComponent: () =>
-      import('./pages/estudiante/inicio-estudiante/inicio-estudiante').then(
-        (m) => m.InicioEstudiante,
-      ),
-  },
-];
-
+// Solo se registran rutas terminadas del Sprint 3.
 const rutasAprendizaje: Routes = [
   {
     path: 'mi-aprendizaje',
-    canActivate: [autenticadoGuard],
+    canActivate: [rolGuard('ESTUDIANTE')],
     title: 'Mi aprendizaje · Learnity',
     loadComponent: () =>
       import('./pages/estudiante/mi-aprendizaje/mi-aprendizaje').then(
@@ -32,17 +17,8 @@ const rutasAprendizaje: Routes = [
       ),
   },
   {
-    path: 'aprender/:cursoId/evaluacion/:evaluacionId',
-    canActivate: [autenticadoGuard],
-    title: 'Evaluación · Learnity',
-    loadComponent: () =>
-      import('./pages/estudiante/evaluacion/evaluacion').then(
-        (m) => m.Evaluacion,
-      ),
-  },
-  {
     path: 'aprender/:cursoId/:leccionId',
-    canActivate: [autenticadoGuard],
+    canActivate: [rolGuard('ESTUDIANTE')],
     title: 'Lección · Learnity',
     loadComponent: () =>
       import('./pages/estudiante/leccion/leccion').then(
@@ -51,16 +27,7 @@ const rutasAprendizaje: Routes = [
   },
 ];
 
-const rutasDocenteFuturas: Routes = [
-  {
-    path: 'cursos/:id/evaluacion',
-    title: 'Evaluación del módulo · Learnity',
-    data: { seccion: 'Editor de evaluación' },
-    loadComponent: () =>
-      import('./pages/docente/editor-evaluacion/editor-evaluacion').then(
-        (m) => m.EditorEvaluacion,
-      ),
-  },
+const rutasSeguimientoDocente: Routes = [
   {
     path: 'estudiantes',
     title: 'Estudiantes del curso · Learnity',
@@ -69,16 +36,6 @@ const rutasDocenteFuturas: Routes = [
       import('./pages/docente/estudiantes/estudiantes').then(
         (m) => m.EstudiantesCurso,
       ),
-  },
-];
-
-const rutasAdminFuturas: Routes = [
-  {
-    path: 'usuarios',
-    title: 'Usuarios · Learnity',
-    data: { seccion: 'Usuarios' },
-    loadComponent: () =>
-      import('./pages/admin/usuarios/usuarios').then((m) => m.Usuarios),
   },
 ];
 
@@ -100,7 +57,6 @@ export const routes: Routes = [
     path: '',
     component: LayoutSitio,
     children: [
-      ...(environment.sprint34Habilitado ? inicioEstudiante : []),
       {
         path: '',
         pathMatch: 'full',
@@ -110,7 +66,7 @@ export const routes: Routes = [
         path: 'cursos',
         loadChildren: () => import('./features/catalogo/catalogo.routes').then((m) => m.rutasCatalogo),
       },
-      ...(environment.sprint34Habilitado ? rutasAprendizaje : []),
+      ...rutasAprendizaje,
       {
         path: 'perfil',
         loadChildren: () =>
@@ -124,6 +80,7 @@ export const routes: Routes = [
     path: 'docente',
     component: LayoutPanel,
     canActivate: [rolGuard('DOCENTE')],
+    canActivateChild: [rolGuard('DOCENTE')],
     data: { rol: 'DOCENTE' },
     children: [
       {
@@ -138,7 +95,7 @@ export const routes: Routes = [
             (m) => m.rutasDocenteCursos,
           ),
       },
-      ...(environment.sprint34Habilitado ? rutasDocenteFuturas : []),
+      ...rutasSeguimientoDocente,
       {
         path: 'perfil',
         loadChildren: () =>
@@ -152,6 +109,7 @@ export const routes: Routes = [
     path: 'admin',
     component: LayoutPanel,
     canActivate: [rolGuard('ADMIN')],
+    canActivateChild: [rolGuard('ADMIN')],
     data: { rol: 'ADMIN' },
     children: [
       {
@@ -159,7 +117,6 @@ export const routes: Routes = [
         pathMatch: 'full',
         redirectTo: 'revision',
       },
-      ...(environment.sprint34Habilitado ? rutasAdminFuturas : []),
       {
         path: 'solicitudes',
         loadChildren: () => import('./features/usuarios/usuarios.routes').then((m) => m.rutasSolicitudes),

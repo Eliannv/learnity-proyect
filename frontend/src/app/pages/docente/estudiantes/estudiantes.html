@@ -1,0 +1,85 @@
+<div class="pagina-seguimiento">
+  <header class="cabecera">
+    <div>
+      <h1 class="titulo-pagina">Estudiantes de mis cursos</h1>
+      <p class="subtitulo">Consulta inscripciones y avance de cada curso.</p>
+    </div>
+    <a routerLink="/docente/cursos" class="btn btn-contorno">Mis cursos</a>
+  </header>
+
+  @if (cargaCursos.ocupada()) {
+    <p class="mensaje" role="status">Cargando tus cursos…</p>
+  } @else if (cargaCursos.error()) {
+    <div class="mensaje error" role="alert">
+      <p>{{ cargaCursos.error() }}</p>
+      <button type="button" class="btn btn-contorno" (click)="cargarCursos()">Reintentar</button>
+    </div>
+  } @else if (cursos().length === 0) {
+    <div class="mensaje">
+      <h2>Aún no tienes cursos</h2>
+      <p>Crea un curso para consultar sus estudiantes inscritos.</p>
+      <a routerLink="/docente/cursos/nuevo/editar" class="btn btn-primario">Crear curso</a>
+    </div>
+  } @else {
+    <div class="selector-curso">
+      <label for="curso-seguimiento">Curso</label>
+      <select id="curso-seguimiento" class="control" [value]="cursoId()" (change)="cambiarCurso($event)">
+        @if (cursoId() === null) { <option value="" disabled>Selecciona uno de tus cursos</option> }
+        @for (curso of cursos(); track curso.id) {
+          <option [value]="curso.id">{{ curso.titulo }}</option>
+        }
+      </select>
+    </div>
+
+    @if (cargaEstudiantes.ocupada()) {
+      <p class="mensaje" role="status">Cargando estudiantes de {{ cursoSeleccionado()?.titulo }}…</p>
+    } @else if (cargaEstudiantes.error()) {
+      <div class="mensaje error" role="alert">
+        <p>{{ cargaEstudiantes.error() }}</p>
+        <button type="button" class="btn btn-contorno" (click)="reintentarEstudiantes()">Reintentar</button>
+      </div>
+    } @else if (seguimiento(); as datos) {
+      <div class="grid-stats" aria-label="Resumen del curso">
+        <app-indicador etiqueta="Inscritos" [valor]="'' + datos.resumen.inscritos" />
+        <app-indicador etiqueta="Completaron" [valor]="'' + datos.resumen.completados" />
+        <app-indicador etiqueta="Progreso promedio" [valor]="datos.resumen.progresoPromedio + ' %'" />
+      </div>
+
+      @if (datos.items.length === 0) {
+        <div class="mensaje">
+          <h2>{{ datos.total === 0 ? 'Aún no hay estudiantes inscritos' : 'No hay estudiantes en esta página' }}</h2>
+          <p>{{ datos.total === 0 ? 'Cuando se inscriban, verás aquí su avance.' : 'Vuelve a la primera página para ver las inscripciones.' }}</p>
+          @if (datos.total > 0) {
+            <button type="button" class="btn btn-contorno" (click)="cargarPagina(1)">Primera página</button>
+          }
+        </div>
+      } @else {
+        <div class="tabla-contenedor" role="region" aria-label="Estudiantes inscritos" tabindex="0">
+          <table class="tabla">
+            <thead><tr><th scope="col">Estudiante</th><th scope="col">Inscrito</th><th scope="col">Progreso</th><th scope="col">Última actividad</th><th scope="col">Estado</th></tr></thead>
+            <tbody>
+              @for (estudiante of datos.items; track estudiante.idPersona) {
+                <tr>
+                  <td><div class="persona"><app-avatar [texto]="iniciales(estudiante.nombre)" [tamano]="40" /><strong>{{ estudiante.nombre }}</strong></div></td>
+                  <td class="texto-suave">{{ estudiante.inscritoEn | date:'dd/MM/yyyy' }}</td>
+                  <td><div class="progreso"><progress max="100" [value]="estudiante.progresoPct" [attr.aria-label]="'Progreso de ' + estudiante.nombre"></progress><strong>{{ estudiante.progresoPct }} %</strong></div></td>
+                  <td class="texto-suave">{{ estudiante.ultimaActividadEn ? (estudiante.ultimaActividadEn | date:'dd/MM/yyyy HH:mm') : 'Sin actividad' }}</td>
+                  <td><span class="chip" [class.completado]="estudiante.estado === 'COMPLETADA'" [class.en-curso]="estudiante.estado !== 'COMPLETADA'">{{ estudiante.estado === 'COMPLETADA' ? 'Completado' : 'En curso' }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (datos.totalPaginas > 1) {
+        <nav class="paginacion" aria-label="Páginas de estudiantes">
+          <button type="button" class="btn btn-contorno" [disabled]="datos.pagina <= 1" (click)="cargarPagina(datos.pagina - 1)">Anterior</button>
+          <span>Página {{ datos.pagina }} de {{ datos.totalPaginas }}</span>
+          <button type="button" class="btn btn-contorno" [disabled]="datos.pagina >= datos.totalPaginas" (click)="cargarPagina(datos.pagina + 1)">Siguiente</button>
+        </nav>
+      }
+      <p class="texto-suave nota">Solo se muestra el progreso de estudiantes inscritos en este curso.</p>
+    }
+  }
+</div>

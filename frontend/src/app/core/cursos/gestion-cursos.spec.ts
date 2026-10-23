@@ -59,6 +59,8 @@ function curso(
             titulo: 'Lectura',
             orden: 1,
             tipo: 'DOCUMENTO',
+            youtubeVideoId: null,
+            vistaPrevia: false,
             archivo: {
               id: 12,
               tipo: 'PDF',

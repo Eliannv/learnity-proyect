@@ -1,0 +1,27 @@
+:host { display: block; }
+.pagina-seguimiento { display: flex; flex-direction: column; gap: 24px; }
+.cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.selector-curso { display: grid; gap: 8px; max-width: 480px; font-weight: 600; }
+.grid-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.tabla-contenedor { overflow-x: auto; max-width: 100%; }
+.tabla { min-width: 780px; width: 100%; }
+.persona { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.progreso { display: flex; align-items: center; gap: 12px; min-width: 180px; }
+.progreso app-barra-progreso { flex: 1; }
+.progreso strong { min-width: 48px; text-align: right; }
+.chip.en-curso { background: var(--azul-100); color: var(--azul-700); font-weight: 600; }
+.chip.completado { background: var(--verde-100); color: var(--verde-700); font-weight: 600; }
+.paginacion { display: flex; justify-content: center; align-items: center; gap: 16px; }
+.nota { font-size: 14px; }
+td { white-space: nowrap; }
+@media (max-width: 900px) {
+  .cabecera { flex-direction: column; }
+  .grid-stats { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .paginacion { flex-wrap: wrap; }
+  .selector-curso { max-width: none; }
+}
+
+.progreso progress { flex: 1; width: 100%; height: 8px; accent-color: var(--azul-700); }
+.selector-curso select { min-width: 0; width: 100%; }
