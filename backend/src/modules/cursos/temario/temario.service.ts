@@ -9,6 +9,21 @@ import { MENSAJES, politicaCurso } from '../politica-curso.js';
 import { obtenerLiberadorArchivos } from '../puertos.js';
 import type { DatosLeccion, DatosModulo } from './temario.esquemas.js';
 import { temarioRepository } from './temario.repository.js';
+import { idYoutube } from './youtube.js';
+
+function normalizarLeccion(datos: DatosLeccion) {
+  return {
+    titulo: datos.titulo,
+    orden: datos.orden,
+    tipo: datos.tipo,
+    vistaPrevia: datos.vistaPrevia,
+
+    youtubeId:
+      datos.tipo === 'VIDEO'
+        ? idYoutube(datos.youtubeUrl!)
+        : null,
+  };
+}
 
 async function limpiarPendientesFueraDeTransaccion(): Promise<void> {
   const liberador = obtenerLiberadorArchivos();
@@ -165,7 +180,11 @@ export const temarioService = {
         ]);
       }
 
-      await temarioRepository.crearLeccion(cliente, idModulo, datos);
+      await temarioRepository.crearLeccion(
+        cliente,
+        idModulo,
+        normalizarLeccion(datos),
+      );
       return detallePrivado(cliente, modulo.idCurso, prevalidados);
     }, { actor: usuario.idPersona });
   },
@@ -190,8 +209,13 @@ export const temarioService = {
       }
       politicaCurso.exigirEditable(base, usuario, MENSAJES.actualizarLeccion);
 
-      if (leccion.tipo !== 'DOCUMENTO') {
-        throw AppError.solicitudInvalida('En este sprint solo se editan lecciones DOCUMENTO.');
+      if (
+        leccion.tipo !== datos.tipo ||
+        !['DOCUMENTO', 'VIDEO'].includes(leccion.tipo)
+      ) {
+        throw AppError.solicitudInvalida(
+          'El tipo de la lección no se puede cambiar.'
+        );
       }
 
       const ocupado = await temarioRepository.ordenLeccionOcupado(
@@ -213,7 +237,7 @@ export const temarioService = {
         cliente,
         idLeccion,
         leccion.idModulo,
-        datos,
+        normalizarLeccion(datos),
       );
       if (!actualizado) {
         throw AppError.noEncontrado('Lección no disponible.');

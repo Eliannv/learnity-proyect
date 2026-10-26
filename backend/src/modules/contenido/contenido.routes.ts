@@ -24,7 +24,7 @@ contenidoRoutes.post(
 contenidoRoutes.get(
   '/archivos/:id',
   autenticar,
-  autorizar('DOCENTE', 'ADMIN'),
+  autorizar('DOCENTE', 'ADMIN', 'ESTUDIANTE'),
   validarParametros(idContenidoRuta),
   controller.descargar,
 );

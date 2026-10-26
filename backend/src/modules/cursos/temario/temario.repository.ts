@@ -21,6 +21,8 @@ export interface FilaTemario {
   archivoNombre: string | null;
   archivoRuta: string | null;
   archivoTamano: number | null;
+  youtubeId: string | null;
+  vistaPrevia: boolean | null;
 }
 
 export interface ArchivoCursoFila {
@@ -258,16 +260,32 @@ export const temarioRepository = {
     datos: {
       titulo: string;
       orden: number;
-      tipo: 'DOCUMENTO';
+      tipo: 'DOCUMENTO' | 'VIDEO';
+      youtubeId?: string | null;
+      vistaPrevia: boolean;
     },
   ): Promise<number> {
     const { rows } = await cliente.query<{ id: number }>(
-      `INSERT INTO leccion (
-         id_modulo, titulo, orden, tipo
-       )
-       VALUES ($1, $2, $3, $4)
-       RETURNING id_leccion AS id`,
-      [idModulo, datos.titulo, datos.orden, datos.tipo],
+      `
+        INSERT INTO leccion (
+          id_modulo,
+          titulo,
+          orden,
+          tipo,
+          youtube_id,
+          vista_previa
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id_leccion AS id
+      `,
+      [
+        idModulo,
+        datos.titulo,
+        datos.orden,
+        datos.tipo,
+        datos.youtubeId ?? null,
+        datos.vistaPrevia,
+      ],
     );
 
     return rows[0]!.id;
@@ -309,23 +327,31 @@ export const temarioRepository = {
     datos: {
       titulo: string;
       orden: number;
-      tipo: 'DOCUMENTO';
+      tipo: 'DOCUMENTO' | 'VIDEO';
+      youtubeId?: string | null;
+      vistaPrevia: boolean;
     },
   ): Promise<boolean> {
     const resultado = await cliente.query(
       `
         UPDATE leccion
-        SET titulo = $3,
-            orden = $4
+        SET
+          titulo = $3,
+          orden = $4,
+          youtube_id = $5,
+          vista_previa = $6
         WHERE id_leccion = $1
           AND id_modulo = $2
-          AND tipo = 'DOCUMENTO'
+          AND tipo = $7
       `,
       [
         idLeccion,
         idModulo,
         datos.titulo,
         datos.orden,
+        datos.youtubeId ?? null,
+        datos.vistaPrevia,
+        datos.tipo,
       ],
     );
 
@@ -429,6 +455,8 @@ export const temarioRepository = {
           l.titulo AS "leccionTitulo",
           l.orden AS "leccionOrden",
           l.tipo AS "leccionTipo",
+          l.youtube_id AS "youtubeId",
+          l.vista_previa AS "vistaPrevia",
 
           a.id_archivo AS "archivoId",
           a.tipo AS "archivoTipo",

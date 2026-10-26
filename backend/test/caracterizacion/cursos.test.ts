@@ -417,8 +417,17 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     const m = await crearModulo(id, 1);
     const r = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 1, tipo: 'DOCUMENTO' });
     assert.equal(r.status, 201);
-    assert.deepEqual(Object.keys(r.json.modulos[0].lecciones[0]), ['id', 'titulo', 'orden', 'tipo', 'archivo']);
-    assert.equal(r.json.modulos[0].lecciones[0].archivo, null);
+assert.deepEqual(Object.keys(r.json.modulos[0].lecciones[0]), [
+  'id',
+  'titulo',
+  'orden',
+  'tipo',
+  'archivo',
+  'youtubeId',
+  'reproductorUrl',
+  'vistaPrevia',
+]);
+      assert.equal(r.json.modulos[0].lecciones[0].archivo, null);
     for (const tipo of ['VIDEO', 'EVALUACION']) {
       const x = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 2, tipo });
       assert.equal(x.status, 400, tipo);
@@ -497,7 +506,7 @@ describe('POST /api/cursos/:id/enviar-revision (CAR-CUR-26..28, 36)', () => {
     assert.deepEqual(r.json.error.detalles, [
       { campo: 'objetivos', mensaje: 'Indica entre 3 y 10 objetivos de hasta 200 caracteres.' },
       { campo: 'modulos', mensaje: 'El curso requiere entre 1 y 10 módulos.' },
-      { campo: 'modulos', mensaje: 'Agrega al menos una lección DOCUMENTO con PDF válido.' },
+      { campo: 'modulos', mensaje: 'Agrega al menos una lección PDF o VIDEO válida.' },
     ]);
   });
   it('CAR-CUR-28: desde RECHAZADO -> 200 y motivoRechazo null; EN_REVISION y PUBLICADO -> 409', async () => {

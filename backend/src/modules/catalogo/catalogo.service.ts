@@ -1,4 +1,5 @@
 import { AppError } from '../../shared/http/app-error.js';
+import { reproductorYoutube } from '../cursos/index.js';
 import type {
   CursoPublico,
   CursoPublicoDetalle,
@@ -31,7 +32,10 @@ function cursoPublico(fila: CursoFila): CursoPublico {
   };
 }
 
-function ordenarTemario(filas: LeccionFila[]): ModuloTemarioPublico[] {
+function ordenarTemario(
+  filas: LeccionFila[],
+  vistas: ReadonlyMap<number, string>,
+): ModuloTemarioPublico[] {
   const modulos: ModuloTemarioPublico[] = [];
 
   for (const fila of filas) {
@@ -58,6 +62,15 @@ function ordenarTemario(filas: LeccionFila[]): ModuloTemarioPublico[] {
         titulo: fila.titulo,
         tipo: fila.tipo,
         minutos: Math.round((fila.segundos ?? 0) / 60),
+        ...(vistas.has(fila.id)
+          ? {
+              vistaPrevia: {
+                reproductorUrl: reproductorYoutube(
+                  vistas.get(fila.id)!
+                ),
+              },
+            }
+          : {}),
       });
     }
   }
@@ -85,14 +98,25 @@ export const catalogoService = {
       throw AppError.noEncontrado('Curso no disponible.');
     }
 
-    const temario = await catalogoRepository.temarioPublico(id);
+    const [temario, previas] = await Promise.all([
+      catalogoRepository.temarioPublico(id),
+      catalogoRepository.vistasPreviasPublicas(id),
+    ]);
     return {
       ...cursoPublico(fila),
       descripcion: fila.descripcion,
       docenteBio: fila.docenteBio,
       objetivos: fila.objetivos,
       requisitos: fila.requisitos,
-      temario: ordenarTemario(temario),
+      temario: ordenarTemario(
+        temario,
+        new Map(
+          previas.map((p) => [
+            p.id,
+            p.youtubeId,
+          ])
+        ),
+      ),
     };
   },
 };

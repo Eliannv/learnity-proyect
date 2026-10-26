@@ -14,6 +14,7 @@ import type {
 import { fichaRepository } from './ficha.repository.js';
 import { MENSAJES, politicaCurso } from './politica-curso.js';
 import { temarioRepository } from './temario/temario.repository.js';
+import { reproductorYoutube } from './temario/youtube.js';
 
 function exigirEdicionLeccion(contexto: ContextoLeccion, usuario: UsuarioSesion): void {
   politicaCurso.exigirRol(usuario, 'DOCENTE');
@@ -82,7 +83,7 @@ export function comprobarCompletitud(
   }
 
   const ordenesModulos = new Set<number>();
-  let documentos = 0;
+  let contenidos = 0;
 
   for (const [i, m] of c.modulos.entries()) {
     const campo = 'modulos.' + i;
@@ -112,16 +113,23 @@ export function comprobarCompletitud(
       ordenes.add(l.orden);
 
       if (l.tipo === 'DOCUMENTO') {
-        documentos++;
         if (!l.archivo || !pdfValidos.has(l.archivo.id)) {
           agregar(prefijo + '.archivo', 'Sube un PDF válido para ' + l.titulo + '.');
+        } else {
+          contenidos++;
+        }
+      } else if (l.tipo === 'VIDEO') {
+        if (!l.youtubeId) {
+          agregar(prefijo + '.youtubeUrl', 'Indica un vídeo de YouTube válido.');
+        } else {
+          contenidos++;
         }
       }
     }
   }
 
-  if (!documentos) {
-    agregar('modulos', 'Agrega al menos una lección DOCUMENTO con PDF válido.');
+  if (!contenidos) {
+    agregar('modulos', 'Agrega al menos una lección PDF o VIDEO válida.');
   }
 
   return problemas;
@@ -166,13 +174,18 @@ export async function detallePrivado(
             tamanoBytes: fila.archivoTamano!,
           }
         : null;
-
     modulo.lecciones.push({
       id: fila.leccionId,
       titulo: fila.leccionTitulo!,
       orden: fila.leccionOrden!,
       tipo: fila.leccionTipo,
       archivo,
+      youtubeId: fila.youtubeId,
+      reproductorUrl:
+        fila.leccionTipo === 'VIDEO' && fila.youtubeId
+          ? reproductorYoutube(fila.youtubeId)
+          : null,
+      vistaPrevia: fila.vistaPrevia === true,
     });
 
     if (fila.leccionTipo === 'DOCUMENTO' && archivo && fila.archivoRuta) {
@@ -286,17 +299,26 @@ export const detallePrivadoService = {
   async autorizarLectura(
     idLeccion: number,
     idCursoArchivo: number,
+    idArchivo: number,
     usuario: UsuarioSesion,
   ): Promise<void> {
-    await enTransaccion(async (cliente) => {
+    const contexto = await enTransaccion(async (cliente) => {
       const contexto = await temarioRepository.leccion(cliente, idLeccion);
-      if (!contexto || contexto.id !== idCursoArchivo) {
-        throw AppError.noEncontrado('Archivo no disponible.');
-      }
-      if (!politicaCurso.puedeLeerArchivos(contexto, usuario)) {
-        throw AppError.sinPermiso('No puedes descargar este archivo.');
-      }
+      return contexto;
     });
+
+    if (
+      !contexto ||
+      contexto.id !== idCursoArchivo ||
+      contexto.archivoId !== idArchivo ||
+      contexto.tipoLeccion !== 'DOCUMENTO'
+    ) {
+      throw AppError.noEncontrado('Archivo no disponible.');
+    }
+
+    if (!politicaCurso.puedeLeerArchivos(contexto, usuario)) {
+      throw AppError.sinPermiso('No puedes descargar este archivo.');
+    }
   },
 
   async decidirRevision(

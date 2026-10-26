@@ -37,6 +37,9 @@ export interface LeccionTemarioPublico {
   titulo: string;
   tipo: TipoLeccionPublica;
   minutos: number;
+  vistaPrevia?: {
+    reproductorUrl: string;
+  };
 }
 
 export interface ModuloTemarioPublico {

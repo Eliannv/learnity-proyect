@@ -150,6 +150,45 @@ function consultaFiltrada(f: FiltrosPublicos) {
 }
 
 export const catalogoRepository = {
+  async vistasPreviasPublicas(
+    idCurso: number,
+  ): Promise<Array<{
+    id: number;
+    youtubeId: string;
+  }>> {
+    const { rows } = await consultar<{
+      id: number;
+      youtubeId: string;
+    }>(
+      `
+        SELECT
+          l.id_leccion AS id,
+          l.youtube_id AS "youtubeId"
+
+        FROM leccion l
+
+        JOIN modulo m
+          ON m.id_modulo = l.id_modulo
+
+        JOIN curso c
+          ON c.id_curso = m.id_curso
+
+        WHERE c.id_curso = $1
+
+          AND c.estado = 'PUBLICADO'
+
+          AND l.vista_previa = TRUE
+
+          AND l.tipo = 'VIDEO'
+
+          AND l.youtube_id IS NOT NULL
+      `,
+      [idCurso],
+    );
+
+    return rows;
+  },
+
   async categoriasPublicas(): Promise<CategoriaPublica[]> {
     const pre = (await tieneVistasCatalogo()) ? '' : CTE_CATEGORIA;
     const { rows } = await consultar<CategoriaPublica>(

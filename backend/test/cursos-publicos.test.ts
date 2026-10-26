@@ -84,13 +84,13 @@ before(async () => {
     [publicadoA, 'Introducción'],
   );
   const { rows: archivos } = await f.query<{ id_archivo: number }>(
-    `INSERT INTO archivo (id_curso, tipo, nombre_original, ruta, tamano_bytes, alto_px, duracion_seg)
-     VALUES ($1, 'VIDEO', 'video.mp4', $2, 1024, 480, 240) RETURNING id_archivo`,
-    [publicadoA, `${marca}/privado.mp4`],
+    `INSERT INTO archivo (id_curso, tipo, nombre_original, ruta, tamano_bytes, duracion_seg)
+     VALUES ($1, 'PDF', 'documento.pdf', $2, 1024, 240) RETURNING id_archivo`,
+    [publicadoA, `${marca}/privado.pdf`],
   );
   await f.query(
     `INSERT INTO leccion (id_modulo, id_archivo, titulo, tipo, orden)
-     VALUES ($1, $2, 'Primera lección', 'VIDEO', 1)`,
+     VALUES ($1, $2, 'Primera lección', 'DOCUMENTO', 1)`,
     [modulos[0]!.id_modulo, archivos[0]!.id_archivo],
   );
   await f.query('INSERT INTO inscripcion (id_persona, id_curso) VALUES ($1, $2), ($3, $4)',
@@ -171,7 +171,7 @@ describe('API pública de cursos con PostgreSQL', () => {
     assert.equal(r.json.lecciones, 1);
     assert.equal(r.json.minutos, 4);
     assert.equal(r.json.temario[0].lecciones[0].titulo, 'Primera lección');
-    assert.ok(!JSON.stringify(r.json).includes('privado.mp4'));
+    assert.ok(!JSON.stringify(r.json).includes('privado.pdf'));
     assert.ok(!JSON.stringify(r.json).includes('id_archivo'));
     const oculto = await pedir(`/api/cursos/${borrador}`);
     const inexistente = await pedir('/api/cursos/2147483647');

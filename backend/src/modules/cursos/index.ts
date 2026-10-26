@@ -18,3 +18,4 @@ export type {
 } from './cursos.modelo.js';
 export { registrarLiberadorArchivos } from './puertos.js';
 export type { LiberadorArchivos } from './puertos.js';
+export { reproductorYoutube } from './temario/youtube.js';

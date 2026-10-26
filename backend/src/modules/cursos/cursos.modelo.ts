@@ -22,7 +22,14 @@ export interface LeccionPrivada {
   titulo: string;
   orden: number;
   tipo: TipoLeccion;
+
   archivo: ArchivoPdf | null;
+
+  youtubeId: string | null;
+
+  reproductorUrl: string | null;
+
+  vistaPrevia: boolean;
 }
 
 export interface ModuloPrivado {
