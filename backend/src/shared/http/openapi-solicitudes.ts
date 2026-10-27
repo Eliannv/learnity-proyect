@@ -28,6 +28,56 @@ export const esquemasSolicitudes = {
       },
     },
   },
+  UsuarioAdmin: {
+    type: 'object',
+    required: ['id', 'idPersona', 'nombre', 'nombres', 'apellidos', 'correo', 'roles', 'activo', 'estado', 'creadoEn'],
+    properties: {
+      id: { type: 'integer', example: 3 },
+      idPersona: { type: 'integer', example: 3 },
+      nombre: { type: 'string', example: 'Rosa Vera Chávez' },
+      nombres: { type: 'string', example: 'Rosa' },
+      apellidos: { type: 'string', example: 'Vera Chávez' },
+      correo: { type: 'string', format: 'email', example: 'rosa.vera@correo.com' },
+      ciudad: { type: 'string', nullable: true, example: 'Machala' },
+      fotoUrl: { type: 'string', nullable: true, example: null },
+      roles: {
+        type: 'array',
+        items: { type: 'string', enum: ['ESTUDIANTE', 'DOCENTE', 'ADMIN'] },
+        example: ['ESTUDIANTE'],
+      },
+      activo: { type: 'boolean', example: true },
+      estado: { type: 'string', enum: ['ACTIVO', 'INACTIVO'], example: 'ACTIVO' },
+      creadoEn: { type: 'string', format: 'date-time' },
+      ultimoAcceso: { type: 'string', format: 'date-time', nullable: true },
+    },
+  },
+  RespuestaUsuariosAdmin: {
+    type: 'object',
+    required: ['items', 'paginacion', 'conteos'],
+    properties: {
+      items: { type: 'array', items: ref('UsuarioAdmin') },
+      paginacion: {
+        type: 'object',
+        required: ['total', 'pagina', 'limite', 'totalPaginas'],
+        properties: {
+          total: { type: 'integer', example: 12 },
+          pagina: { type: 'integer', example: 1 },
+          limite: { type: 'integer', example: 20 },
+          totalPaginas: { type: 'integer', example: 1 },
+        },
+      },
+      conteos: {
+        type: 'object',
+        required: ['total', 'estudiantes', 'docentes', 'administradores'],
+        properties: {
+          total: { type: 'integer', example: 12 },
+          estudiantes: { type: 'integer', example: 12 },
+          docentes: { type: 'integer', example: 2 },
+          administradores: { type: 'integer', example: 1 },
+        },
+      },
+    },
+  },
 };
 
 export const rutasSolicitudes = {
@@ -148,6 +198,92 @@ export const rutasSolicitudes = {
         403: error('No es administrador o es su propia solicitud'),
         404: error('No existe'),
         409: error('SOLICITUD_YA_REVISADA'),
+        500: errorInterno,
+      },
+    },
+  },
+  '/admin/usuarios': {
+    get: {
+      tags: ['Usuarios'],
+      summary: 'Listar usuarios con filtros y conteos (administrador)',
+      security: seguridad,
+      parameters: [
+        { name: 'q', in: 'query', schema: { type: 'string', maxLength: 100 } },
+        { name: 'rol', in: 'query', schema: { type: 'string', enum: ['ESTUDIANTE', 'DOCENTE', 'ADMIN'] } },
+        { name: 'estado', in: 'query', schema: { type: 'string', enum: ['ACTIVO', 'INACTIVO'] } },
+        { name: 'pagina', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
+        { name: 'limite', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
+      ],
+      responses: {
+        200: json(ref('RespuestaUsuariosAdmin'), 'Lista de usuarios'),
+        400: error('Parámetros de consulta inválidos'),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        500: errorInterno,
+      },
+    },
+  },
+  '/admin/usuarios/{id}/estado': {
+    put: {
+      tags: ['Usuarios'],
+      summary: 'Activar o desactivar usuario (administrador)',
+      description: 'Al desactivar, revoca de inmediato todas las sesiones activas de la cuenta.',
+      security: seguridad,
+      parameters: [idRuta],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                activo: { type: 'boolean' },
+                estado: { type: 'string', enum: ['ACTIVO', 'INACTIVO'] },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: json(ref('UsuarioAdmin'), 'Estado actualizado'),
+        400: error('No puede desactivarse a sí mismo o al único admin activo'),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        404: error('Usuario no encontrado'),
+        500: errorInterno,
+      },
+    },
+  },
+  '/admin/usuarios/{id}/roles': {
+    put: {
+      tags: ['Usuarios'],
+      summary: 'Actualizar roles de usuario (administrador)',
+      description: 'Toda cuenta debe conservar el rol ESTUDIANTE.',
+      security: seguridad,
+      parameters: [idRuta],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['roles'],
+              properties: {
+                roles: {
+                  type: 'array',
+                  items: { type: 'string', enum: ['ESTUDIANTE', 'DOCENTE', 'ADMIN'] },
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: json(ref('UsuarioAdmin'), 'Roles actualizados'),
+        400: error('No puede quitarse el rol admin a sí mismo o al único admin activo'),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        404: error('Usuario no encontrado'),
         500: errorInterno,
       },
     },

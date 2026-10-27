@@ -2,11 +2,18 @@ import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { registrarEvento } from '../../shared/log/registro.js';
-import type { DecisionSolicitud, NuevaSolicitudDocente } from './usuarios.esquemas.js';
-import type { EstadoSolicitud, SolicitudDocente } from './usuarios.modelo.js';
+import { identidadRepository } from '../identidad/identidad.repository.js';
+import type {
+  CambioEstadoUsuario,
+  CambioRolesUsuario,
+  DecisionSolicitud,
+  FiltroUsuariosAdmin,
+  NuevaSolicitudDocente,
+} from './usuarios.esquemas.js';
+import type { EstadoSolicitud, RespuestaUsuariosAdmin, RolUsuario, SolicitudDocente, UsuarioAdmin } from './usuarios.modelo.js';
 import { usuariosRepository as repo } from './usuarios.repository.js';
 
-// Capa service: reglas del negocio de las solicitudes para ser docente.
+// Capa service: reglas del negocio de las solicitudes para ser docente y gestión de usuarios por administrador.
 // Auditoría: toda transacción de escritura pasa `{ actor: idPersona }` del usuario autenticado.
 
 export const usuariosService = {
@@ -55,5 +62,71 @@ export const usuariosService = {
    }, { actor: admin.idPersona });
     registrarEvento('solicitud_docente_decidida', { idSolicitud: id, decision: datos.decision, idAdmin: admin.idUsuario });
     return (await repo.buscarSolicitud(id))!;
+  },
+
+  /** RF-21 · Listar usuarios con paginación, búsqueda y filtros por rol/estado. */
+  listarUsuarios: (filtro: FiltroUsuariosAdmin): Promise<RespuestaUsuariosAdmin> => repo.listarUsuariosAdmin(filtro),
+
+  /**
+   * RF-21 · Activar o desactivar usuario.
+   * Al desactivar, revoca de inmediato todas las sesiones activas de la cuenta.
+   * No permite auto-desactivación ni desactivar al único administrador activo.
+   */
+  async cambiarEstado(idUsuario: number, datos: CambioEstadoUsuario, admin: UsuarioSesion): Promise<UsuarioAdmin> {
+    if (admin.idUsuario === idUsuario) {
+      throw AppError.solicitudInvalida('No puedes cambiar el estado de tu propia cuenta.');
+    }
+    const nuevoEstado = datos.estado ?? (datos.activo ? 'ACTIVO' : 'INACTIVO');
+
+    await enTransaccion(async (cliente) => {
+      const usuario = await repo.buscarUsuarioPorId(cliente, idUsuario);
+      if (!usuario) throw AppError.noEncontrado('El usuario no existe.');
+
+      if (nuevoEstado === 'INACTIVO') {
+        if (usuario.roles.includes('ADMIN')) {
+          const adminsActivos = await repo.contarAdminsActivos(cliente);
+          if (adminsActivos <= 1) {
+            throw AppError.solicitudInvalida('No se puede desactivar al único administrador activo del sistema.');
+          }
+        }
+        await repo.actualizarEstadoUsuario(cliente, idUsuario, 'INACTIVO');
+        await identidadRepository.revocarSesionesUsuario(idUsuario, 'CUENTA_INACTIVA', null, cliente);
+      } else {
+        await repo.actualizarEstadoUsuario(cliente, idUsuario, 'ACTIVO');
+      }
+    }, { actor: admin.idPersona });
+
+    registrarEvento('usuario_estado_actualizado', { idUsuario, estado: nuevoEstado, idAdmin: admin.idUsuario });
+    return (await repo.buscarUsuarioAdmin(idUsuario))!;
+  },
+
+  /**
+   * RF-21 · Editar roles de un usuario.
+   * Toda cuenta debe conservar al menos el rol ESTUDIANTE.
+   * No permite quitarse el rol ADMIN a uno mismo ni dejar el sistema sin administradores.
+   */
+  async cambiarRoles(idUsuario: number, datos: CambioRolesUsuario, admin: UsuarioSesion): Promise<UsuarioAdmin> {
+    const roles: RolUsuario[] = Array.from(new Set([...datos.roles, 'ESTUDIANTE' as const]));
+
+    await enTransaccion(async (cliente) => {
+      const usuario = await repo.buscarUsuarioPorId(cliente, idUsuario);
+      if (!usuario) throw AppError.noEncontrado('El usuario no existe.');
+
+      if (admin.idUsuario === idUsuario && !roles.includes('ADMIN')) {
+        throw AppError.solicitudInvalida('No puedes quitarte el rol Administrador a ti mismo.');
+      }
+
+      if (usuario.roles.includes('ADMIN') && !roles.includes('ADMIN')) {
+        const adminsActivos = await repo.contarAdminsActivos(cliente);
+        if (adminsActivos <= 1) {
+          throw AppError.solicitudInvalida('No se puede quitar el rol al único administrador del sistema.');
+        }
+      }
+
+      await repo.actualizarRolesUsuario(cliente, idUsuario, roles, admin.idPersona);
+    }, { actor: admin.idPersona });
+
+    registrarEvento('usuario_roles_actualizados', { idUsuario, roles, idAdmin: admin.idUsuario });
+    return (await repo.buscarUsuarioAdmin(idUsuario))!;
   },
 };

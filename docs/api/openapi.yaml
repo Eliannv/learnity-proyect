@@ -941,6 +941,163 @@
           }
         }
       },
+      "UsuarioAdmin": {
+        "type": "object",
+        "required": [
+          "id",
+          "idPersona",
+          "nombre",
+          "nombres",
+          "apellidos",
+          "correo",
+          "roles",
+          "activo",
+          "estado",
+          "creadoEn"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 3
+          },
+          "idPersona": {
+            "type": "integer",
+            "example": 3
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Rosa Vera Chávez"
+          },
+          "nombres": {
+            "type": "string",
+            "example": "Rosa"
+          },
+          "apellidos": {
+            "type": "string",
+            "example": "Vera Chávez"
+          },
+          "correo": {
+            "type": "string",
+            "format": "email",
+            "example": "rosa.vera@correo.com"
+          },
+          "ciudad": {
+            "type": "string",
+            "nullable": true,
+            "example": "Machala"
+          },
+          "fotoUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ESTUDIANTE",
+                "DOCENTE",
+                "ADMIN"
+              ]
+            },
+            "example": [
+              "ESTUDIANTE"
+            ]
+          },
+          "activo": {
+            "type": "boolean",
+            "example": true
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ACTIVO",
+              "INACTIVO"
+            ],
+            "example": "ACTIVO"
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ultimoAcceso": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "RespuestaUsuariosAdmin": {
+        "type": "object",
+        "required": [
+          "items",
+          "paginacion",
+          "conteos"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsuarioAdmin"
+            }
+          },
+          "paginacion": {
+            "type": "object",
+            "required": [
+              "total",
+              "pagina",
+              "limite",
+              "totalPaginas"
+            ],
+            "properties": {
+              "total": {
+                "type": "integer",
+                "example": 12
+              },
+              "pagina": {
+                "type": "integer",
+                "example": 1
+              },
+              "limite": {
+                "type": "integer",
+                "example": 20
+              },
+              "totalPaginas": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "conteos": {
+            "type": "object",
+            "required": [
+              "total",
+              "estudiantes",
+              "docentes",
+              "administradores"
+            ],
+            "properties": {
+              "total": {
+                "type": "integer",
+                "example": 12
+              },
+              "estudiantes": {
+                "type": "integer",
+                "example": 12
+              },
+              "docentes": {
+                "type": "integer",
+                "example": 2
+              },
+              "administradores": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          }
+        }
+      },
       "InscripcionAprendizaje": {
         "type": "object",
         "required": [
@@ -3981,6 +4138,330 @@
           },
           "415": {
             "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/usuarios": {
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Listar usuarios con filtros y conteos (administrador)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "rol",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ESTUDIANTE",
+                "DOCENTE",
+                "ADMIN"
+              ]
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVO",
+                "INACTIVO"
+              ]
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaUsuariosAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros de consulta inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/usuarios/{id}/estado": {
+      "put": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Activar o desactivar usuario (administrador)",
+        "description": "Al desactivar, revoca de inmediato todas las sesiones activas de la cuenta.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "activo": {
+                    "type": "boolean"
+                  },
+                  "estado": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVO",
+                      "INACTIVO"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No puede desactivarse a sí mismo o al único admin activo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/usuarios/{id}/roles": {
+      "put": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Actualizar roles de usuario (administrador)",
+        "description": "Toda cuenta debe conservar el rol ESTUDIANTE.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "roles"
+                ],
+                "properties": {
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "ESTUDIANTE",
+                        "DOCENTE",
+                        "ADMIN"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roles actualizados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No puede quitarse el rol admin a sí mismo o al único admin activo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"

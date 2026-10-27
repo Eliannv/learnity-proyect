@@ -39,3 +39,32 @@ export const decisionSolicitud = z.discriminatedUnion('decision', [
 export type NuevaSolicitudDocente = z.infer<typeof nuevaSolicitudDocente>;
 export type FiltroSolicitudes = z.infer<typeof filtroSolicitudes>;
 export type DecisionSolicitud = z.infer<typeof decisionSolicitud>;
+
+// Gestión de usuarios por administrador (RF-21)
+export const ROLES_VALIDOS = ['ESTUDIANTE', 'DOCENTE', 'ADMIN'] as const;
+export const ESTADOS_USUARIO = ['ACTIVO', 'INACTIVO'] as const;
+
+export const parametrosUsuario = z.object({ id: idRuta }).transform(({ id }) => id);
+
+export const filtroUsuariosAdmin = z.strictObject({
+  q: z.string().trim().max(100).optional(),
+  rol: z.enum(ROLES_VALIDOS).optional(),
+  estado: z.enum(ESTADOS_USUARIO).optional(),
+  pagina: z.coerce.number().int().min(1).default(1),
+  limite: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const cambioEstadoUsuario = z.strictObject({
+  activo: z.boolean().optional(),
+  estado: z.enum(ESTADOS_USUARIO).optional(),
+}).refine((d) => d.activo !== undefined || d.estado !== undefined, {
+  message: 'Debes indicar el nuevo estado (activo: boolean o estado: "ACTIVO" | "INACTIVO").',
+});
+
+export const cambioRolesUsuario = z.strictObject({
+  roles: z.array(z.enum(ROLES_VALIDOS)).min(1, 'La cuenta debe tener al menos un rol.'),
+});
+
+export type FiltroUsuariosAdmin = z.infer<typeof filtroUsuariosAdmin>;
+export type CambioEstadoUsuario = z.infer<typeof cambioEstadoUsuario>;
+export type CambioRolesUsuario = z.infer<typeof cambioRolesUsuario>;

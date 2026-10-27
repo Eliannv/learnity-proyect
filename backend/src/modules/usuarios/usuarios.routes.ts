@@ -4,13 +4,17 @@ import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { validarConsulta, validarCuerpo, validarParametros } from '../../shared/http/validar.js';
 import { usuariosController as controller } from './usuarios.controller.js';
 import {
+  cambioEstadoUsuario,
+  cambioRolesUsuario,
   decisionSolicitud,
   filtroSolicitudes,
+  filtroUsuariosAdmin,
   nuevaSolicitudDocente,
   parametrosSolicitud,
+  parametrosUsuario,
 } from './usuarios.esquemas.js';
 
-// Capa routes: solicitudes para ser docente. El estudiante envía y consulta la suya; el administrador decide.
+// Capa routes: solicitudes para ser docente y gestión de usuarios por administrador (RF-21).
 export const usuariosRoutes = Router();
 
 usuariosRoutes.get('/solicitudes-docente/mia', autenticar, controller.miSolicitud);
@@ -39,4 +43,30 @@ usuariosRoutes.put(
   validarParametros(parametrosSolicitud),
   validarCuerpo(decisionSolicitud),
   controller.decidirSolicitud,
+);
+
+usuariosRoutes.get(
+  '/admin/usuarios',
+  autenticar,
+  autorizar('ADMIN'),
+  validarConsulta(filtroUsuariosAdmin),
+  controller.listarUsuarios,
+);
+
+usuariosRoutes.put(
+  '/admin/usuarios/:id/estado',
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosUsuario),
+  validarCuerpo(cambioEstadoUsuario),
+  controller.cambiarEstado,
+);
+
+usuariosRoutes.put(
+  '/admin/usuarios/:id/roles',
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosUsuario),
+  validarCuerpo(cambioRolesUsuario),
+  controller.cambiarRoles,
 );
