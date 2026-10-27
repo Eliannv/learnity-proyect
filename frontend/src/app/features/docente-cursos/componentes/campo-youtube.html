@@ -1,8 +1,8 @@
 <div class="campo">
-  <label [for]="id()">Enlace del vídeo de YouTube (obligatorio)</label>
+  <label [for]="id()">Enlace del vídeo de YouTube {{ requerido() ? '(obligatorio)' : '(opcional)' }}</label>
   <input
     class="control" type="url" inputmode="url" autocomplete="off" spellcheck="false"
-    [id]="id()" [value]="enlace()" [disabled]="bloqueado()" required maxlength="2048"
+    [id]="id()" [value]="enlace()" [disabled]="bloqueado()" [required]="requerido()" maxlength="2048"
     [attr.aria-invalid]="mensaje() ? 'true' : null"
     [attr.aria-describedby]="id() + '-ayuda' + (mensaje() ? ' ' + id() + '-error' : '')"
     (input)="cambiar($event)" (blur)="tocado.set(true)"

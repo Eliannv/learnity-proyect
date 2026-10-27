@@ -5,6 +5,7 @@ import { rutasRevisionContenido } from './openapi-revision-contenido.js';
 import { esquemasGestionCursos, rutasGestionCursos } from './openapi-gestion-cursos.js';
 import { esquemasSolicitudes, rutasSolicitudes } from './openapi-solicitudes.js';
 import { esquemasAprendizaje, rutasAprendizaje } from './openapi-aprendizaje.js';
+import { esquemasEvaluaciones, rutasEvaluaciones } from './openapi-evaluaciones.js';
 
 const usuarioSesion = {
   type: 'object',
@@ -176,6 +177,7 @@ export const openApi = {
       ...esquemasGestionCursos,
       ...esquemasSolicitudes,
       ...esquemasAprendizaje,
+      ...esquemasEvaluaciones,
     },
     responses: respuestasComunes,
     securitySchemes: {
@@ -189,6 +191,7 @@ export const openApi = {
     ...rutasGestionCursos,
     ...rutasSolicitudes,
     ...rutasAprendizaje,
+    ...rutasEvaluaciones,
     '/salud': {
       get: {
         tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL',

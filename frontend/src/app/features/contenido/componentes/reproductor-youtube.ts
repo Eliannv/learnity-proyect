@@ -28,6 +28,8 @@ export class ReproductorYoutube implements OnDestroy {
   readonly posicionGuardada = input(0);
   /** false para la vista previa pública: no emite seguimiento. */
   readonly observarPosicion = input(false);
+  /** Colores para el escenario oscuro de la lección. */
+  readonly oscuro = input(false);
   readonly posicion = output<PosicionYoutube>();
   readonly fallo = output<string>();
   readonly listo = output<void>();
@@ -67,6 +69,8 @@ export class ReproductorYoutube implements OnDestroy {
         this.estado.set('inicial');
         this.error.set('');
         this.lenta.set(false);
+        // El vídeo se carga solo: ni el docente ni el estudiante tienen que pulsar nada para verlo.
+        if (esIdYoutube(id)) void this.cargar();
       });
     });
   }

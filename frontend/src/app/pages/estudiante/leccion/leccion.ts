@@ -9,13 +9,20 @@ import { ReproductorYoutube } from '../../../features/contenido/componentes/repr
 import { esIdYoutube, type PosicionYoutube } from '../../../features/contenido/youtube';
 import {
   AprendizajeApi, idApi, type DetalleAprendizaje, type LeccionAprendizaje,
-  type ProgresoGuardado,
+  type ProgresoGuardado, type ResultadoIntento,
 } from '../../../features/aprendizaje/aprendizaje.api';
+import { EvaluacionEstudiante } from '../../../features/aprendizaje/componentes/evaluacion-estudiante';
 import { BarraProgreso } from '../../../shared/ui/barra-progreso';
+
+const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
+  VIDEO: 'Vídeo',
+  DOCUMENTO: 'PDF',
+  EVALUACION: 'Evaluación',
+};
 
 @Component({
   selector: 'app-leccion',
-  imports: [RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube],
+  imports: [RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube, EvaluacionEstudiante],
   templateUrl: './leccion.html',
   styleUrl: './leccion.scss',
 })
@@ -44,6 +51,10 @@ export class Leccion {
   protected readonly guardando = signal(false);
   protected readonly errorProgreso = signal('');
   protected readonly confirmacion = signal('');
+  protected readonly pestana = signal<'descripcion' | 'recursos'>('descripcion');
+  protected readonly sidebarAbierto = signal(true);
+  protected readonly descargandoId = signal<number | null>(null);
+  protected readonly avisoDescarga = signal('');
   protected readonly todas = computed(() => this.detalle()?.modulos.flatMap((m) => m.lecciones) ?? []);
   protected readonly indice = computed(() => this.todas().findIndex((l) => String(l.id) === this.leccionId()));
   protected readonly leccion = computed(() => this.todas()[this.indice()] ?? null);
@@ -51,6 +62,11 @@ export class Leccion {
   protected readonly anterior = computed(() => this.todas()[this.indice() - 1] ?? null);
   protected readonly siguiente = computed(() => this.todas()[this.indice() + 1] ?? null);
   protected readonly videoDisponible = computed(() => esIdYoutube(this.leccion()?.youtubeVideoId));
+
+  protected contenidosDelModulo(moduloId: number) {
+    return this.detalle()?.modulos.find((m) => m.id === moduloId)?.lecciones
+      .slice().sort((a, b) => a.orden - b.orden) ?? [];
+  }
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.liberarPdf());
@@ -90,7 +106,9 @@ export class Leccion {
       this.detalle.set(detalle);
       this.abiertos.set([modulo.id]);
       const leccion = modulo.lecciones.find((l) => l.id === leccionId)!;
-      if (leccion.tipo === 'DOCUMENTO' && leccion.archivoId) void this.cargarPdf(leccion.archivoId, actual);
+      // El PDF es el contenido de un documento o el material de apoyo de un vídeo.
+      if (leccion.archivoId) void this.cargarPdf(leccion.archivoId, actual);
+      this.pestana.set(leccion.tipo === 'VIDEO' && leccion.archivoId ? 'recursos' : 'descripcion');
     } catch (error) {
       if (actual !== this.solicitud) return;
       if (error instanceof HttpErrorResponse && error.status === 404) this.noDisponible.set(true);
@@ -137,27 +155,84 @@ export class Leccion {
   protected alternar(id: number): void {
     this.abiertos.update((ids) => ids.includes(id) ? ids.filter((n) => n !== id) : [...ids, id]);
   }
-  protected icono(tipo: LeccionAprendizaje['tipo']): string { return tipo === 'VIDEO' ? 'play' : 'file-text'; }
+  protected alternarSidebar(): void {
+    this.sidebarAbierto.update((abierto) => !abierto);
+  }
+  protected async descargarRecurso(leccion: LeccionAprendizaje, evento: Event): Promise<void> {
+    evento.preventDefault();
+    evento.stopPropagation();
+    if (!leccion.archivoId || this.descargandoId() === leccion.archivoId) return;
+    this.descargandoId.set(leccion.archivoId);
+    this.avisoDescarga.set('');
+    try {
+      const blob = await this.contenido.descargarPdf(leccion.archivoId);
+      if (blob.size === 0) throw new Error('El archivo descargado está vacío.');
+      const url = URL.createObjectURL(blob);
+      const nombreLimpio = leccion.titulo
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || `leccion-${leccion.id}`;
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = `${nombreLimpio}.pdf`;
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch (error) {
+      this.avisoDescarga.set(mensajeDeError(error, 'Descargar el recurso'));
+      setTimeout(() => this.avisoDescarga.set(''), 5000);
+    } finally {
+      this.descargandoId.set(null);
+    }
+  }
+  protected icono(tipo: LeccionAprendizaje['tipo']): string {
+    return tipo === 'VIDEO' ? 'play' : tipo === 'EVALUACION' ? 'list-checks' : 'file-text';
+  }
+  protected tipoTexto(tipo: LeccionAprendizaje['tipo']): string { return TIPO_TEXTO[tipo]; }
+  protected completadasDe(moduloId: number): number {
+    return this.contenidosDelModulo(moduloId).filter((l) => l.progreso.completada).length;
+  }
+  protected nivelTexto(nivel: string): string {
+    return ({ PRINCIPIANTE: 'Principiante', INTERMEDIO: 'Intermedio', AVANZADO: 'Avanzado' } as Record<string, string>)[nivel] ?? nivel;
+  }
   protected ruta(leccion: LeccionAprendizaje): string { return `/aprender/${this.cursoId()}/${leccion.id}`; }
   protected posicionEnModulo(): number {
     return (this.modulo()?.lecciones.findIndex((l) => l.id === this.leccion()?.id) ?? -1) + 1;
   }
 
-  protected async marcarCompletada(): Promise<void> {
-    const leccion = this.leccion();
-    if (!leccion || leccion.progreso.completada || this.guardando()) return;
+  protected async alternarCompletada(item: LeccionAprendizaje, evento?: Event): Promise<void> {
+    if (evento) {
+      evento.preventDefault();
+      evento.stopPropagation();
+    }
+    // Una evaluación se completa al aprobarla, no a mano.
+    if (this.guardando() || item.tipo === 'EVALUACION') return;
     this.guardando.set(true);
     this.errorProgreso.set('');
     this.confirmacion.set('');
     try {
-      const resultado = await this.api.guardarProgreso(leccion.id, { completada: true });
+      const nuevoEstado = !item.progreso.completada;
+      const resultado = await this.api.guardarProgreso(item.id, { completada: nuevoEstado });
       this.aplicar(resultado);
-      this.confirmacion.set('Lección completada. Tu avance quedó guardado.');
+      if (nuevoEstado) {
+        this.confirmacion.set('Lección completada. Tu avance quedó guardado.');
+        setTimeout(() => this.confirmacion.set(''), 4000);
+      } else {
+        this.confirmacion.set('');
+      }
     } catch (error) {
       this.errorProgreso.set(mensajeDeError(error, 'Guardar el avance'));
     } finally {
       this.guardando.set(false);
     }
+  }
+
+  protected async marcarCompletada(): Promise<void> {
+    const l = this.leccion();
+    if (l) await this.alternarCompletada(l);
   }
 
   protected registrarPosicion(posicion: PosicionYoutube): void {
@@ -187,21 +262,38 @@ export class Leccion {
     }
   }
 
+  /** Un intento aprobado completa la lección; uno suspendido no deshace una aprobación anterior. */
+  protected aplicarIntento(resultado: ResultadoIntento): void {
+    const l = this.leccion();
+    if (!l) return;
+    this.aplicar({
+      leccionId: l.id, segundosVistos: l.progreso.segundosVistos,
+      completada: l.progreso.completada || resultado.intento.aprobado,
+      progresoPct: resultado.progresoPct, estado: resultado.estado, ultimaLeccionId: l.id,
+    });
+  }
+
   private aplicar(resultado: ProgresoGuardado): void {
-    this.detalle.update((actual) => actual ? {
-      ...actual,
-      inscripcion: {
-        ...actual.inscripcion, progresoPct: resultado.progresoPct,
-        estado: resultado.estado, ultimaLeccionId: resultado.ultimaLeccionId,
-      },
-      leccionesCompletadas: actual.leccionesCompletadas +
-        (this.todas().find((l) => l.id === resultado.leccionId)?.progreso.completada || !resultado.completada ? 0 : 1),
-      modulos: actual.modulos.map((m) => ({
-        ...m,
-        lecciones: m.lecciones.map((l) => l.id === resultado.leccionId
-          ? { ...l, progreso: { segundosVistos: resultado.segundosVistos, completada: resultado.completada } }
-          : l),
-      })),
-    } : null);
+    this.detalle.update((actual) => {
+      if (!actual) return null;
+      const previa = this.todas().find((l) => l.id === resultado.leccionId)?.progreso.completada ?? false;
+      const cambio = (resultado.completada ? 1 : 0) - (previa ? 1 : 0);
+      return {
+        ...actual,
+        inscripcion: {
+          ...actual.inscripcion,
+          progresoPct: resultado.progresoPct,
+          estado: resultado.estado,
+          ultimaLeccionId: resultado.ultimaLeccionId,
+        },
+        leccionesCompletadas: Math.max(0, Math.min(actual.totalLecciones, actual.leccionesCompletadas + cambio)),
+        modulos: actual.modulos.map((m) => ({
+          ...m,
+          lecciones: m.lecciones.map((l) => l.id === resultado.leccionId
+            ? { ...l, progreso: { segundosVistos: resultado.segundosVistos, completada: resultado.completada } }
+            : l),
+        })),
+      };
+    });
   }
 }

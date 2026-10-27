@@ -4,6 +4,7 @@ import { validarCuerpo, validarParametros } from '../../shared/http/validar.js';
 import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { cursosController } from './cursos.controller.js';
 import {
+  datosCuestionarioSchema,
   datosCursoSchema,
   datosLeccionSchema,
   datosModuloSchema,
@@ -102,6 +103,23 @@ cursosRoutes.delete(
   autorizar('DOCENTE'),
   validarParametros(idCursoRuta),
   cursosController.eliminarLeccion,
+);
+
+cursosRoutes.get(
+  '/docente/lecciones/:id/evaluacion',
+  autenticar,
+  autorizar('DOCENTE', 'ADMIN'),
+  validarParametros(idCursoRuta),
+  cursosController.obtenerCuestionario,
+);
+
+cursosRoutes.put(
+  '/lecciones/:id/evaluacion',
+  autenticar,
+  autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
+  validarCuerpo(datosCuestionarioSchema, 'Revisa las preguntas de la evaluación.'),
+  cursosController.guardarCuestionario,
 );
 
 cursosRoutes.post(

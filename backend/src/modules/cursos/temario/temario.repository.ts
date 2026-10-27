@@ -18,6 +18,7 @@ export interface FilaTemario {
   leccionTipo: TipoLeccion | null;
   youtubeVideoId: string | null;
   vistaPrevia: boolean | null;
+  preguntas: number;
 
   archivoId: number | null;
   archivoTipo: string | null;
@@ -447,6 +448,10 @@ export const temarioRepository = {
           l.tipo AS "leccionTipo",
           l.youtube_video_id AS "youtubeVideoId",
           l.vista_previa AS "vistaPrevia",
+          (SELECT count(*)::int
+             FROM evaluacion e
+             JOIN pregunta p ON p.id_evaluacion = e.id_evaluacion
+            WHERE e.id_leccion = l.id_leccion) AS preguntas,
 
           a.id_archivo AS "archivoId",
           a.tipo AS "archivoTipo",
@@ -482,7 +487,7 @@ export const temarioRepository = {
         UPDATE leccion l
         SET id_archivo = $1
         WHERE l.id_leccion = $2
-          AND l.tipo = 'DOCUMENTO'
+          AND l.tipo IN ('DOCUMENTO', 'VIDEO')
           AND EXISTS (
             SELECT 1
             FROM modulo m

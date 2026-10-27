@@ -1,1 +1,44 @@
 @use '../../../shared/cursos/cursos';
+
+.pdf {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  p { margin: 0; overflow-wrap: anywhere; }
+}
+
+.archivo-actual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.selector-pdf {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  cursor: pointer;
+  .nombre-selector { font-weight: 600; }
+  small { color: var(--gris-500); }
+}
+
+// Oculto a la vista, pero sigue siendo el control enfocable y accesible.
+.entrada-oculta {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.entrada-oculta:focus-visible + .boton-archivo {
+  outline: 3px solid var(--azul-700);
+  outline-offset: 2px;
+}
+.entrada-oculta:disabled + .boton-archivo {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.btn-sm { padding: 6px 10px; font-size: .85rem; }

@@ -190,7 +190,7 @@ describe('GET /api/docente/cursos (CAR-CUR-01, 02, 30)', () => {
     const ajeno = await crearCurso(docB);
     const r = await como(docA, 'GET', '/api/docente/cursos');
     assert.equal(r.status, 200);
-    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number' }] });
+    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number', portadaUrl: 'string' }] });
     const lista: any[] = r.json.items;
     assert.deepEqual(lista.map((c) => c.estado), ['ARCHIVADO', 'RECHAZADO', 'PUBLICADO', 'EN_REVISION', 'BORRADOR'], 'orden por id descendente');
     const propios = lista.filter((c) => c.titulo?.startsWith?.(marca));
@@ -312,11 +312,21 @@ describe('PUT /api/cursos/:id (CAR-CUR-11..13, PREC-3, PREC-4)', () => {
     assert.equal(r.status, 200);
     assert.equal(r.json.titulo, `${marca} editado ${id}`);
   });
-  it('CAR-CUR-12: RECHAZADO edita; EN_REVISION, PUBLICADO y ARCHIVADO -> 409 CURSO_BLOQUEADO', async () => {
+  it('CAR-CUR-12: RECHAZADO y PUBLICADO editan; EN_REVISION y ARCHIVADO -> 409 CURSO_BLOQUEADO', async () => {
     const id = await crearCurso();
     await forzarEstado(id, 'RECHAZADO');
     assert.equal((await como(docA, 'PUT', `/api/cursos/${id}`, datosCurso('r'))).status, 200);
-    for (const e of ['EN_REVISION', 'PUBLICADO', 'ARCHIVADO']) {
+    // Sprint 3: el curso publicado se edita y sigue publicado, sin volver a revisión.
+    await forzarEstado(id, 'PUBLICADO');
+    const pub = await como(docA, 'PUT', `/api/cursos/${id}`, datosCurso('p'));
+    assert.equal(pub.status, 200, pub.texto);
+    assert.equal(pub.json.estado, 'PUBLICADO');
+    // ...pero no puede perder un campo que ya tenía completo.
+    const vacio = await como(docA, 'PUT', `/api/cursos/${id}`, datosCurso('p', { subtitulo: '' }));
+    assert.equal(vacio.status, 400);
+    assert.equal(vacio.json.error.mensaje, 'El curso está publicado: este cambio lo dejaría incompleto para los estudiantes.');
+    assert.deepEqual(vacio.json.error.detalles, [{ campo: 'subtitulo', mensaje: 'Completa un subtítulo de hasta 200 caracteres.' }]);
+    for (const e of ['EN_REVISION', 'ARCHIVADO']) {
       await forzarEstado(id, e);
       const r = await como(docA, 'PUT', `/api/cursos/${id}`, datosCurso('b'));
       assert.equal(r.status, 409, e);
@@ -374,6 +384,8 @@ describe('Módulos (CAR-CUR-14..19, 31, 32)', () => {
     assert.equal(inex.status, 404);
     assert.deepEqual(inex.json.error, { codigo: 'NO_ENCONTRADO', mensaje: 'Módulo no disponible.' });
     await forzarEstado(id, 'PUBLICADO');
+    assert.equal((await como(docA, 'PUT', `/api/modulos/${m2}`, { titulo: 'N', orden: 2 })).status, 200, 'Sprint 3: publicado edita');
+    await forzarEstado(id, 'ARCHIVADO');
     const bl = await como(docA, 'PUT', `/api/modulos/${m2}`, { titulo: 'N', orden: 2 });
     assert.equal(bl.status, 409);
     assert.equal(bl.json.error.codigo, 'CURSO_BLOQUEADO');
@@ -418,22 +430,27 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     const r = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 1, tipo: 'DOCUMENTO' });
     assert.equal(r.status, 201);
     assert.deepEqual(Object.keys(r.json.modulos[0].lecciones[0]),
-      ['id', 'titulo', 'orden', 'tipo', 'archivo', 'youtubeVideoId', 'vistaPrevia']);
+      ['id', 'titulo', 'orden', 'tipo', 'archivo', 'youtubeVideoId', 'vistaPrevia', 'preguntas']);
     assert.equal(r.json.modulos[0].lecciones[0].archivo, null);
     assert.equal(r.json.modulos[0].lecciones[0].youtubeVideoId, null);
     assert.equal(r.json.modulos[0].lecciones[0].vistaPrevia, false);
-    for (const tipo of ['VIDEO', 'EVALUACION']) {
-      const x = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 2, tipo });
-      assert.equal(x.status, 400, tipo);
-      assert.equal(x.json.error.mensaje, 'Revisa los datos de la lección.');
-    }
+    assert.equal(r.json.modulos[0].lecciones[0].preguntas, 0);
+    const sinEnlace = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 2, tipo: 'VIDEO' });
+    assert.equal(sinEnlace.status, 400);
+    assert.equal(sinEnlace.json.error.mensaje, 'Revisa los datos de la lección.');
+    // Sprint 3: la lección EVALUACION se crea sin preguntas; se añaden con PUT /lecciones/:id/evaluacion.
+    const evaluacion = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 2, tipo: 'EVALUACION' });
+    assert.equal(evaluacion.status, 201);
+    assert.equal(evaluacion.json.modulos[0].lecciones.find((l: { orden: number }) => l.orden === 2).preguntas, 0);
     assert.equal((await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 12, tipo: 'DOCUMENTO' })).status, 201);
     assert.equal((await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 13, tipo: 'DOCUMENTO' })).status, 400);
     const dupL = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 1, tipo: 'DOCUMENTO' });
     assert.equal(dupL.status, 400);
     assert.equal(dupL.json.error.mensaje, 'El orden de la lección ya está ocupado.');
     await forzarEstado(id, 'PUBLICADO');
-    const bl = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 3, tipo: 'DOCUMENTO' });
+    assert.equal((await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 3, tipo: 'DOCUMENTO' })).status, 201, 'Sprint 3: publicado edita');
+    await forzarEstado(id, 'ARCHIVADO');
+    const bl = await como(docA, 'POST', `/api/modulos/${m}/lecciones`, { titulo: 'L', orden: 4, tipo: 'DOCUMENTO' });
     assert.equal(bl.status, 409);
     assert.equal(bl.json.error.codigo, 'CURSO_BLOQUEADO');
   });
@@ -466,6 +483,19 @@ describe('Lecciones (CAR-CUR-20..25, 33..35)', () => {
     const bl = await como(docA, 'DELETE', `/api/lecciones/${l}`);
     assert.equal(bl.status, 409);
     assert.equal(bl.json.error.codigo, 'CURSO_BLOQUEADO');
+  });
+  it('Sprint 3: un curso publicado admite contenido nuevo pero no puede quedarse sin contenido disponible', async () => {
+    const { idCurso, idModulo, idLeccion } = await cursoCompleto();
+    await forzarEstado(idCurso, 'PUBLICADO');
+    const nuevo = await como(docA, 'POST', `/api/cursos/${idCurso}/modulos`, { titulo: 'Extra', orden: 2 });
+    assert.equal(nuevo.status, 201, 'un módulo vacío no bloquea: el estudiante no lo ve hasta que tenga contenido');
+    assert.equal(nuevo.json.estado, 'PUBLICADO');
+    const borrar = await como(docA, 'DELETE', `/api/lecciones/${idLeccion}`);
+    assert.equal(borrar.status, 400);
+    assert.deepEqual(borrar.json.error.detalles,
+      [{ campo: 'modulos', mensaje: 'Un curso publicado debe conservar al menos un contenido disponible.' }]);
+    assert.equal((await f.query('SELECT count(*) AS n FROM leccion WHERE id_leccion = $1', [idLeccion])).rows[0]!.n, '1');
+    assert.equal((await como(docA, 'DELETE', `/api/modulos/${idModulo}`)).status, 400);
   });
   it('CAR-CUR-33, 34 y 35: lección o módulo de un curso ajeno', async () => {
     const id = await crearCurso(docB);
@@ -500,7 +530,6 @@ describe('POST /api/cursos/:id/enviar-revision (CAR-CUR-26..28, 36)', () => {
     assert.deepEqual(r.json.error.detalles, [
       { campo: 'objetivos', mensaje: 'Indica entre 3 y 10 objetivos de hasta 200 caracteres.' },
       { campo: 'modulos', mensaje: 'El curso requiere entre 1 y 10 módulos.' },
-      { campo: 'modulos', mensaje: 'Agrega al menos una lección DOCUMENTO con PDF válido.' },
     ]);
   });
   it('CAR-CUR-28: desde RECHAZADO -> 200 y motivoRechazo null; EN_REVISION y PUBLICADO -> 409', async () => {

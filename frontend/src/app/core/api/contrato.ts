@@ -52,3 +52,12 @@ export type DetalleAprendizaje = Esquemas['DetalleAprendizaje'];
 export type LeccionAprendizaje = Esquemas['LeccionAprendizaje'];
 export type ProgresoGuardado = Esquemas['ProgresoGuardado'];
 export type SeguimientoDocente = Esquemas['SeguimientoDocente'];
+
+export type DatosCuestionario = Esquemas['DatosCuestionario'];
+export type CuestionarioDocente = Esquemas['CuestionarioDocente'];
+export type LetraOpcion = Esquemas['OpcionEvaluacion']['letra'];
+export type EvaluacionEstudiante = Esquemas['EvaluacionEstudiante'];
+export type ResumenIntentos = Esquemas['ResumenIntentos'];
+export type ResultadoIntento = Esquemas['ResultadoIntento'];
+export type DatosIntento =
+  paths['/evaluaciones/{id}/intentos']['post']['requestBody']['content']['application/json'];

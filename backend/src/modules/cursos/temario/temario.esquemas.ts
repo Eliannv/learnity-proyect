@@ -46,6 +46,33 @@ const datosVideoSchema = z.strictObject({
   vistaPrevia: z.boolean().default(false),
 });
 
-export const datosLeccionSchema = z.discriminatedUnion('tipo', [datosDocumentoSchema, datosVideoSchema]);
+/** Las preguntas se guardan aparte, con `PUT /lecciones/:id/evaluacion`. */
+const datosEvaluacionSchema = z.strictObject({
+  titulo: z.string().trim().min(1).max(150),
+  orden: z.number().int().min(1).max(12),
+  tipo: z.literal('EVALUACION'),
+});
+
+export const datosLeccionSchema = z.discriminatedUnion('tipo', [
+  datosDocumentoSchema, datosVideoSchema, datosEvaluacionSchema,
+]);
 
 export type DatosLeccion = z.infer<typeof datosLeccionSchema>;
+
+export const LETRAS = ['A', 'B', 'C', 'D'] as const;
+export const MIN_PREGUNTAS = 5;
+export const MAX_PREGUNTAS = 10;
+
+const textoSinNul = (maximo: number) => z.string().trim().min(1).max(maximo)
+  .refine((valor) => !valor.includes('\u0000'), 'No puede contener caracteres nulos.');
+
+/** Cuestionario completo: reemplaza las preguntas anteriores. Cuatro opciones A–D y una sola correcta. */
+export const datosCuestionarioSchema = z.strictObject({
+  preguntas: z.array(z.strictObject({
+    enunciado: textoSinNul(300),
+    opciones: z.array(textoSinNul(200)).length(4),
+    correcta: z.enum(LETRAS),
+  })).min(MIN_PREGUNTAS).max(MAX_PREGUNTAS),
+});
+
+export type DatosCuestionario = z.infer<typeof datosCuestionarioSchema>;

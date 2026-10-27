@@ -95,7 +95,7 @@ describe('GET /api/admin/cursos (CAR-REV-01, 02)', () => {
     const { idCurso: borrador } = await c.cursoCompleto(docA);
     const r = await admin$('GET', '/api/admin/cursos');
     assert.equal(r.status, 200);
-    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number' }] });
+    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number', portadaUrl: 'string' }] });
     const lista: any[] = r.json.items;
     const ids = lista.map((x) => x.id);
     assert.ok(ids.includes(a) && ids.includes(b));

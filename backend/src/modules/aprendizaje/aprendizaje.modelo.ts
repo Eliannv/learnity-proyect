@@ -1,5 +1,5 @@
 export type EstadoInscripcion = 'ACTIVA' | 'COMPLETADA';
-export type TipoLeccionAprendizaje = 'DOCUMENTO' | 'VIDEO';
+export type TipoLeccionAprendizaje = 'DOCUMENTO' | 'VIDEO' | 'EVALUACION';
 
 export interface InscripcionResumen {
   id: number;
@@ -36,6 +36,8 @@ export interface LeccionAprendizaje {
   vistaPrevia: boolean;
   archivoId: number | null;
   youtubeVideoId: string | null;
+  /** Evaluación de una lección EVALUACION; null en los demás tipos. */
+  evaluacionId: number | null;
   progreso: { segundosVistos: number; completada: boolean };
 }
 

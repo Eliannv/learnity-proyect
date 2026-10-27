@@ -32,31 +32,31 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
     await iniciarSesionPorUI(page, docente.correo);
     await page.goto('/docente/cursos/nuevo/editar');
     await expect(page.getByRole('heading', { name: 'Crear curso' })).toBeVisible();
-    await page.getByLabel(/Título \(máximo 150/).fill(TITULO);
+    await page.getByLabel('Título del curso').fill(TITULO);
     await page.getByLabel(/Subtítulo/).fill('Subtítulo de prueba E2E');
-    await page.getByLabel(/Descripción/).fill('Descripción del curso de prueba E2E con contenido suficiente.');
+    await page.getByLabel('Descripción detallada').fill('Descripción del curso de prueba E2E con contenido suficiente.');
     await page.getByLabel('Categoría').selectOption({ label: categoria });
-    await page.getByLabel('Nivel').selectOption('INTERMEDIO');
-    await page.getByLabel('URL de portada').fill('/img/portada-mi-curso.jpg');
+    await page.getByLabel('Nivel de dificultad').selectOption('INTERMEDIO');
+    await page.getByLabel('URL de imagen de portada').fill('/img/portada-mi-curso.jpg');
     await page.getByLabel(/Objetivos/).fill('Objetivo uno\nObjetivo dos\nObjetivo tres');
     await page.getByRole('button', { name: 'Crear borrador' }).click();
-    await expect(page.getByRole('heading', { name: 'Contenido del curso' })).toBeVisible();
     await expect(page).toHaveURL(/\/docente\/cursos\/\d+\/editar$/);
     const idCurso = page.url().match(/cursos\/(\d+)\/editar/)![1]!;
+    await page.getByRole('button', { name: /Módulos y contenido/ }).click();
 
     // 2. Módulo y lección PDF.
-    await page.getByRole('button', { name: 'Agregar módulo' }).click();
-    await page.getByLabel(/Título \(obligatorio/).fill('Módulo uno');
-    await page.getByLabel(/Orden/).fill('1');
-    await page.getByRole('button', { name: 'Guardar módulo' }).click();
-    await expect(page.getByText(/1\. Módulo uno/)).toBeVisible();
+    await page.getByRole('button', { name: /Agregar módulo/ }).click();
+    await page.getByLabel('Título del módulo').fill('Módulo uno');
+    await page.getByLabel('Posición en el curso').fill('1');
+    await page.getByRole('button', { name: 'Crear módulo' }).click();
+    const modulo = page.locator('details.modulo').first();
+    await expect(modulo).toContainText('Módulo uno');
 
-    await page.getByRole('button', { name: 'Agregar lección' }).click();
-    await expect(page.getByLabel('Tipo de lección')).toHaveValue('DOCUMENTO');
-    await page.getByLabel(/Título \(obligatorio/).fill('Apunte de redes');
-    await page.getByLabel(/Orden/).fill('1');
-    await page.getByRole('button', { name: 'Guardar lección' }).click();
-    await expect(page.getByText(/1\. Apunte de redes/)).toBeVisible();
+    await modulo.getByRole('button', { name: '+ PDF' }).click();
+    await modulo.getByLabel('Título que verá el estudiante').fill('Apunte de redes');
+    await modulo.getByLabel('Posición en el módulo').fill('1');
+    await modulo.getByRole('button', { name: 'Guardar documento' }).click();
+    await expect(modulo).toContainText('Apunte de redes');
 
     // 3. Subida con indicador de progreso: se retrasa la petición para poder observarlo.
     await page.route('**/api/lecciones/*/archivo', async (ruta) => {
@@ -92,7 +92,7 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
     await expect(page.getByRole('button', { name: 'Guardar cambios' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Agregar módulo' })).toHaveCount(0);
     await expect(page.getByText(/Subir PDF|Reemplazar PDF/)).toHaveCount(0);
-    await expect(page.getByLabel(/Título \(máximo 150/)).toBeDisabled();
+    await expect(page.getByLabel('Título del curso')).toBeDisabled();
 
     // 7. El administrador revisa y aprueba.
     const { contexto, pagina } = await otroContexto(context);
@@ -112,13 +112,23 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
       await contexto.close();
     }
 
-    // 8. El docente lo ve PUBLICADO y bloqueado; el catálogo público lo muestra como texto.
+    // 8. El docente lo ve PUBLICADO y lo sigue editando sin volver a revisión (Sprint 3);
+    //    el catálogo público lo muestra como texto.
     await page.goto('/docente/cursos');
     const mio = page.locator('li.tarjeta', { hasText: MARCA });
     await expect(mio.getByText('Publicado', { exact: true })).toBeVisible();
-    await page.goto(`/docente/cursos/${idCurso}/editar`);
-    await expect(page.getByText('Este curso no permite cambios en su estado actual.')).toBeVisible();
-    await expect(page.getByText(/Subir PDF|Reemplazar PDF/)).toHaveCount(0);
+    await expect(mio.locator('.portada-curso')).toBeVisible();
+    await mio.getByRole('link', { name: 'Editar curso' }).click();
+    await expect(page).toHaveURL(new RegExp(`/docente/cursos/${idCurso}/editar$`));
+    await expect(page.locator('.aviso-publicado')).toBeVisible();
+    await expect(page.getByText('Este curso no permite cambios en su estado actual.')).toHaveCount(0);
+    await page.getByLabel(/Subtítulo/).fill('Subtítulo ampliado después de publicar');
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await expect(page.getByText('Datos guardados.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Curso publicado' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Enviar a revisión' })).toHaveCount(0);
+    await page.getByRole('button', { name: /Módulos y contenido/ }).click();
+    await expect(page.getByText(/Reemplazar PDF/)).toBeVisible();
 
     const { contexto: anonimo, pagina: visitante } = await otroContexto(context);
     try {
@@ -144,10 +154,12 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
       await paginaEstudiante.getByRole('button', { name: 'Inscribirme gratis' }).click();
       await expect(paginaEstudiante).toHaveURL(new RegExp(`/aprender/${idCurso}/\\d+$`));
       await expect(paginaEstudiante.getByRole('link', { name: 'Descargar PDF' })).toBeVisible();
-      await paginaEstudiante.getByRole('button', { name: 'Marcar como completada' }).click();
-      await expect(paginaEstudiante.getByText('Lección completada. Tu avance quedó guardado.')).toBeVisible();
+      // La lección se marca con la casilla del temario lateral.
+      await paginaEstudiante.getByRole('button', { name: 'Completar lección Apunte de redes' }).click();
+      await expect(paginaEstudiante.getByRole('button', { name: 'Desmarcar lección Apunte de redes' })).toBeVisible();
       await paginaEstudiante.reload();
-      await expect(paginaEstudiante.getByRole('button', { name: 'Completada' })).toBeDisabled();
+      await expect(paginaEstudiante.getByRole('button', { name: 'Desmarcar lección Apunte de redes' })).toBeVisible();
+      await expect(paginaEstudiante.getByText('100% completado')).toBeVisible();
       await paginaEstudiante.goto('/mi-aprendizaje');
       await expect(paginaEstudiante.getByRole('heading', { name: 'Mi aprendizaje' })).toBeVisible();
       await expect(paginaEstudiante.getByText(TITULO).first()).toBeVisible();

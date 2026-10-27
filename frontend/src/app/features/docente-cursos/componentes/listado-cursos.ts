@@ -31,6 +31,7 @@ export class ListadoCursos {
   protected readonly filtro = signal<EstadoCurso | 'TODOS'>('TODOS');
 
   private readonly cursos = signal<CursoResumen[]>([]);
+  private readonly portadasFallidas = signal<ReadonlySet<number>>(new Set());
   private version = 0;
 
   protected readonly filtros: {
@@ -81,6 +82,49 @@ export class ListadoCursos {
       if (version === this.version) {
         this.p.ocupada.set(false);
       }
+    }
+  }
+
+  protected etiquetaAccion(curso: CursoResumen): string {
+    if (this.admin()) return 'Revisar curso';
+    switch (curso.estado) {
+      case 'BORRADOR':
+        return 'Continuar editando';
+      case 'RECHAZADO':
+        return 'Corregir curso';
+      case 'EN_REVISION':
+        return 'Consultar curso';
+      case 'PUBLICADO':
+        return 'Editar curso';
+      default:
+        return this.editable(curso.estado) ? 'Editar curso' : 'Ver curso';
+    }
+  }
+
+  protected portadaFallida(id: number): boolean {
+    return this.portadasFallidas().has(id);
+  }
+
+  protected marcarPortadaFallida(id: number): void {
+    this.portadasFallidas.update((ids) => new Set(ids).add(id));
+  }
+
+  protected inicial(titulo: string): string {
+    return titulo.trim().charAt(0).toUpperCase() || '?';
+  }
+
+  protected descripcionEstado(estado: EstadoCurso): string {
+    switch (estado) {
+      case 'BORRADOR':
+        return 'En preparación · Completa la ficha, módulos y documentos para enviar a revisión.';
+      case 'EN_REVISION':
+        return 'En evaluación administrativa · El curso está en cola de revisión y no admite cambios.';
+      case 'RECHAZADO':
+        return 'Requiere ajustes según las observaciones administrativas para reenviarse.';
+      case 'PUBLICADO':
+        return 'Curso activo en el catálogo. Puedes seguir editándolo: los cambios se publican sin nueva revisión.';
+      default:
+        return '';
     }
   }
 }

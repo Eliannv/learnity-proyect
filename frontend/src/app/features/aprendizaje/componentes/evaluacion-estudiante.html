@@ -1,0 +1,120 @@
+@if (cargando()) {
+  <p class="estado" role="status">Cargando la evaluación…</p>
+} @else if (error()) {
+  <div class="estado" role="alert">
+    <p>{{ error() }}</p>
+    <button type="button" class="btn btn-contorno" (click)="reintentarCarga()">Reintentar</button>
+  </div>
+} @else if (evaluacion(); as ev) {
+  <section class="evaluacion" [attr.aria-label]="'Evaluación: ' + ev.titulo">
+    @if (resultado(); as r) {
+      <header class="cabecera">
+        <span class="icono" aria-hidden="true"><lucide-icon name="list-checks" [size]="22" /></span>
+        <div>
+          <h2>{{ ev.titulo }}</h2>
+          <p class="detalle">
+            {{ ev.preguntas.length }} preguntas · apruebas con el {{ ev.porcentajeAprobacion }} % · intentos ilimitados.
+            Si no apruebas puedes seguir con el curso y volver cuando quieras.
+          </p>
+        </div>
+      </header>
+
+      @if (ev.resumen.intentos > 0) {
+        <dl class="resumen">
+          <div><dt>Intentos</dt><dd>{{ ev.resumen.intentos }}</dd></div>
+          <div><dt>Mejor nota</dt><dd>{{ puntaje(ev.resumen.mejorPuntaje) }}</dd></div>
+          <div><dt>Estado</dt><dd [class.aprobada]="ev.resumen.aprobada">{{ ev.resumen.aprobada ? 'Aprobada' : 'Pendiente de aprobar' }}</dd></div>
+        </dl>
+      }
+
+      <div class="resultado" [class.aprobado]="r.intento.aprobado" role="status">
+        <lucide-icon [name]="r.intento.aprobado ? 'trophy' : 'circle-alert'" [size]="30" aria-hidden="true" />
+        <div>
+          <p class="nota">{{ puntaje(r.intento.puntaje) }}</p>
+          <p>
+            <strong>{{ r.intento.aprobado ? '¡Aprobaste la evaluación!' : 'Esta vez no alcanzaste el ' + ev.porcentajeAprobacion + ' %.' }}</strong>
+            {{ r.intento.correctas }} de {{ r.intento.total }} respuestas correctas.
+          </p>
+        </div>
+      </div>
+
+      <ol class="revision">
+        @for (pregunta of ev.preguntas; track pregunta.id) {
+          <li [class.bien]="acierto(pregunta.id)" [class.mal]="acierto(pregunta.id) === false">
+            <lucide-icon [name]="acierto(pregunta.id) ? 'circle-check' : 'circle-x'" [size]="18" aria-hidden="true" />
+            <div>
+              <p class="enunciado">{{ pregunta.enunciado }}</p>
+              <p class="elegida">
+                Tu respuesta: {{ elegidas()[pregunta.id] }}.
+                @for (o of pregunta.opciones; track o.letra) { @if (o.letra === elegidas()[pregunta.id]) { {{ o.texto }} } }
+                <span class="visualmente-oculto">{{ acierto(pregunta.id) ? '(correcta)' : '(incorrecta)' }}</span>
+              </p>
+            </div>
+          </li>
+        }
+      </ol>
+
+      <div class="acciones">
+        <button type="button" class="btn btn-contorno" (click)="repetir()">
+          <lucide-icon name="rotate-ccw" [size]="16" aria-hidden="true" /> Intentar de nuevo
+        </button>
+        @if (siguienteRuta(); as ruta) {
+          <a class="btn btn-primario" [routerLink]="ruta">Continuar con el curso</a>
+        }
+      </div>
+    } @else {
+      @if (preguntaActual(); as pregunta) {
+        <div class="evaluacion-enfoque">
+          <div class="barra-paso">
+            <span class="paso-etiqueta">Pregunta {{ indice() + 1 }} de {{ total() }}</span>
+            <div class="indicador-progreso" role="progressbar" [attr.aria-valuenow]="indice() + 1" [attr.aria-valuemin]="1" [attr.aria-valuemax]="total()" [attr.aria-label]="'Progreso de la evaluación: pregunta ' + (indice() + 1) + ' de ' + total()">
+              <div class="progreso-barra-fill" [style.width.%]="((indice() + 1) / total()) * 100"></div>
+            </div>
+          </div>
+
+          <form class="preguntas" (submit)="$event.preventDefault(); enviar()" novalidate>
+            <fieldset class="pregunta">
+              <legend><span class="enunciado-texto">{{ pregunta.enunciado }}</span></legend>
+              <div class="opciones">
+                @for (o of pregunta.opciones; track o.letra) {
+                  <label class="opcion" [class.elegida]="elegidas()[pregunta.id] === o.letra">
+                    <input type="radio" [name]="'pregunta-' + pregunta.id" [value]="o.letra"
+                      [checked]="elegidas()[pregunta.id] === o.letra" [disabled]="enviando()"
+                      (change)="elegir(pregunta.id, o.letra)" />
+                    <span class="letra" aria-hidden="true">{{ o.letra }}</span>
+                    <span class="opcion-texto">{{ o.texto }}</span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+
+            @if (errorEnvio()) { <p class="error" role="alert">{{ errorEnvio() }}</p> }
+
+            <div class="acciones envio">
+              <div class="nav-izq">
+                @if (!esPrimera()) {
+                  <button type="button" class="btn btn-contorno btn-anterior" (click)="anterior()" [disabled]="enviando()">
+                    <lucide-icon name="arrow-left" [size]="16" aria-hidden="true" />
+                    <span>Anterior</span>
+                  </button>
+                }
+              </div>
+              <div class="nav-der">
+                @if (!esUltima()) {
+                  <button type="button" class="btn btn-primario btn-siguiente" [disabled]="!actualRespondida() || enviando()" (click)="siguiente()">
+                    <span>Siguiente</span>
+                    <lucide-icon name="arrow-right" [size]="16" aria-hidden="true" />
+                  </button>
+                } @else {
+                  <button type="submit" class="btn btn-primario btn-enviar" [disabled]="!completa() || enviando()">
+                    {{ enviando() ? 'Calificando…' : 'Enviar respuestas' }}
+                  </button>
+                }
+              </div>
+            </div>
+          </form>
+        </div>
+      }
+    }
+  </section>
+}

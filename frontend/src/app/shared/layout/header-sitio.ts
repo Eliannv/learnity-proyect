@@ -20,9 +20,6 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
   template: `
     <header>
       <div class="barra">
-        <button type="button" class="icono-btn solo-movil" (click)="menuMovil.set(!menuMovil())" [attr.aria-expanded]="menuMovil()" aria-label="Abrir menú">
-          <lucide-icon [name]="menuMovil() ? 'x' : 'menu'" [size]="24" />
-        </button>
 
         <a routerLink="/" class="logo-enlace" aria-label="Learnity, inicio"><app-logo [tamano]="24" /></a>
 

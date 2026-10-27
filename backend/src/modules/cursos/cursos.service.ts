@@ -12,7 +12,9 @@ import type {
 import {
   detallePrivado,
   detallePrivadoService,
+  exigirVigencia,
   prevalidarPdfCurso,
+  vigenciaPrevia,
 } from './detalle-privado.service.js';
 import { fichaRepository } from './ficha.repository.js';
 import {
@@ -115,8 +117,9 @@ export const cursosService = {
         ]);
       }
 
+      const previos = await vigenciaPrevia(cliente, base.estado, idCurso, prevalidados);
       await fichaRepository.actualizarCurso(cliente, idCurso, datos);
-      return detallePrivado(cliente, idCurso, prevalidados);
+      return exigirVigencia(previos, await detallePrivado(cliente, idCurso, prevalidados));
     }, { actor: usuario.idPersona });
   },
 

@@ -1,15 +1,15 @@
-<div class="pagina">
-  <header class="cabecera">
+<div class="pagina listado-cursos-pagina">
+  <header class="cabecera cabecera-listado">
     <div>
       <h1 class="titulo-pagina">
         {{ admin() ? 'Revisión de cursos' : 'Mis cursos' }}
       </h1>
 
-      <p>
+      <p class="subtitulo-listado">
         {{
           admin()
             ? 'Cursos pendientes de una decisión administrativa.'
-            : 'Prepara tu curso y envíalo a Administración para su publicación.'
+            : 'Prepara tu curso y envíalo a revisión. Una vez publicado puedes seguir ampliándolo sin una nueva revisión.'
         }}
       </p>
     </div>
@@ -49,17 +49,31 @@
       <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
     </div>
   } @else {
-    <ul class="lista">
+    <ul class="lista lista-cursos">
       @for (c of visibles(); track c.id) {
         <li class="tarjeta bloque">
-          <div class="cabecera">
-            <h2>{{ c.titulo }}</h2>
+          <!-- La portada identifica el curso de un vistazo; si falta o no carga, se muestra su inicial. -->
+          <div class="portada-curso" aria-hidden="true">
+            @if (c.portadaUrl && !portadaFallida(c.id)) {
+              <img [src]="c.portadaUrl" alt="" loading="lazy" (error)="marcarPortadaFallida(c.id)" />
+            } @else {
+              <span class="portada-inicial">{{ inicial(c.titulo) }}</span>
+            }
+          </div>
+
+          <div class="cabecera cabecera-curso">
+            <div class="info-curso">
+              <h2 class="titulo-curso">{{ c.titulo }}</h2>
+              <p class="meta-curso">
+                {{ c.modulos }} {{ c.modulos === 1 ? 'módulo' : 'módulos' }}
+                @if (admin()) { · Docente: <strong>{{ c.docente }}</strong> }
+              </p>
+            </div>
             <app-estado-curso [estado]="c.estado" />
           </div>
 
-          <p>
-            {{ c.modulos }} {{ c.modulos === 1 ? 'módulo' : 'módulos' }}
-            @if (admin()) { · {{ c.docente }} }
+          <p class="estado-descripcion">
+            {{ descripcionEstado(c.estado) }}
           </p>
 
           @if (c.estado === 'RECHAZADO' && c.motivoRechazo) {
@@ -68,7 +82,7 @@
             </p>
           }
 
-          <div class="acciones">
+          <div class="acciones acciones-tarjeta">
             <a
               class="btn btn-contorno"
               [routerLink]="
@@ -77,13 +91,7 @@
                   : ['/docente/cursos', c.id, 'editar']
               "
             >
-              {{
-                admin()
-                  ? 'Revisar curso'
-                  : editable(c.estado)
-                    ? 'Editar curso'
-                    : 'Ver curso'
-              }}
+              {{ etiquetaAccion(c) }}
             </a>
             @if (c.estado === 'PUBLICADO') {
               <a class="btn btn-texto" [routerLink]="['/cursos', c.id]">

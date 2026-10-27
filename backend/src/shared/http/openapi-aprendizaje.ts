@@ -36,13 +36,15 @@ export const esquemasAprendizaje = {
     },
   },
   LeccionAprendizaje: {
-    type: 'object', required: ['id', 'orden', 'titulo', 'tipo', 'vistaPrevia', 'archivoId', 'youtubeVideoId', 'progreso'],
+    type: 'object', required: ['id', 'orden', 'titulo', 'tipo', 'vistaPrevia', 'archivoId', 'youtubeVideoId', 'evaluacionId', 'progreso'],
     properties: {
       id: { type: 'integer' }, orden: { type: 'integer' }, titulo: { type: 'string' },
-      tipo: { type: 'string', enum: ['DOCUMENTO', 'VIDEO'] }, vistaPrevia: { type: 'boolean' },
+      tipo: { type: 'string', enum: ['DOCUMENTO', 'VIDEO', 'EVALUACION'] }, vistaPrevia: { type: 'boolean' },
       archivoId: idNulo,
       youtubeVideoId: { type: 'string', nullable: true, minLength: 11, maxLength: 11,
-        description: 'ID de YouTube de la lección VIDEO; null en DOCUMENTO.' },
+        description: 'ID de YouTube de la lección VIDEO; null en los demás tipos.' },
+      evaluacionId: { type: 'integer', nullable: true,
+        description: 'Para `GET /evaluaciones/{id}` en una lección EVALUACION; null en los demás tipos.' },
       progreso: { type: 'object', required: ['segundosVistos', 'completada'], properties: {
         segundosVistos: entero, completada: { type: 'boolean' },
       } },
@@ -123,7 +125,8 @@ export const rutasAprendizaje = {
   '/lecciones/{id}/progreso': {
     put: {
       tags: ['Aprendizaje'], summary: 'Guardar posición o marcar completada una lección inscrita',
-      description: 'Los segundos son una posición de reanudación declarada por el cliente, no prueba de visionado. La finalización no retrocede. Hasta 240 peticiones por IP y 15 minutos.',
+      description: 'Los segundos son una posición de reanudación declarada por el cliente, no prueba de visionado. La finalización no retrocede. ' +
+        'Una lección EVALUACION no admite `completada` (400): se completa al aprobar un intento. Hasta 240 peticiones por IP y 15 minutos.',
       security: seguridad, parameters: [idRuta],
       requestBody: { required: true, content: { 'application/json': { schema: {
         type: 'object', additionalProperties: false, minProperties: 1, properties: {
@@ -132,7 +135,7 @@ export const rutasAprendizaje = {
       } } } },
       responses: {
         200: json(ref('ProgresoGuardado')),
-        ...erroresCuerpoJson(`Datos de progreso inválidos o ${idInvalido}`),
+        ...erroresCuerpoJson(`Datos de progreso inválidos, \`completada\` en una EVALUACION o ${idInvalido}`),
         401: error('Sin sesión'), 403: error('Sin rol ESTUDIANTE'),
         404: error('Lección no publicada o estudiante no inscrito'),
         429: error('Límite de peticiones'), 500: errorInterno,

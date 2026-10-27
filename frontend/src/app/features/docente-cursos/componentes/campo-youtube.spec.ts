@@ -44,4 +44,12 @@ describe('campo YouTube del editor', () => {
     f.detectChanges();
     expect(f.nativeElement.querySelector('input').disabled).toBe(true);
   });
+  it('permite dejar vacío el enlace cuando el vídeo del módulo es opcional', () => {
+    const f = crear();
+    f.componentRef.setInput('requerido', false);
+    f.detectChanges();
+    expect(f.componentInstance.validar()).toBe(true);
+    expect(f.nativeElement.querySelector('input').required).toBe(false);
+    expect(f.nativeElement.querySelector('[role="alert"]')).toBeNull();
+  });
 });

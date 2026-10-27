@@ -81,7 +81,7 @@ export const routes: Routes = [
     path: '',
     component: LayoutSitio,
     children: [
-      ...(environment.sprint34Habilitado ? inicioEstudiante : []),
+      ...inicioEstudiante,
       {
         path: '',
         pathMatch: 'full',

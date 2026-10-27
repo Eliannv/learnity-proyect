@@ -41,7 +41,8 @@ export const fichaRepository = {
             SELECT count(*)::int
             FROM modulo m
             WHERE m.id_curso = c.id_curso
-          ) AS modulos
+          ) AS modulos,
+          NULLIF(c.portada_url, '') AS "portadaUrl"
         FROM curso c
         JOIN docente d
           ON d.id_docente = c.id_docente
@@ -225,7 +226,8 @@ export const fichaRepository = {
             SELECT count(*)::int
             FROM modulo m
             WHERE m.id_curso = c.id_curso
-          ) AS modulos
+          ) AS modulos,
+          NULLIF(c.portada_url, '') AS "portadaUrl"
         FROM curso c
         JOIN docente d
           ON d.id_docente = c.id_docente

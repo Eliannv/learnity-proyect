@@ -1,8 +1,12 @@
+import type { PoolClient } from 'pg';
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
 import type { DatosProgreso, PaginacionEstudiantes } from './aprendizaje.esquemas.js';
-import type { CursoInscrito, DetalleAprendizaje, InscripcionResumen, ModuloAprendizaje, ProgresoGuardado, SeguimientoDocente } from './aprendizaje.modelo.js';
+import type {
+  CursoInscrito, DetalleAprendizaje, InscripcionResumen, ModuloAprendizaje, ProgresoGuardado, SeguimientoDocente,
+  TipoLeccionAprendizaje,
+} from './aprendizaje.modelo.js';
 import { aprendizajeRepository as repo, type FilaCursoInscrito, type FilaInscripcion, type FilaLeccion } from './aprendizaje.repository.js';
 
 function exigirEstudiante(usuario: UsuarioSesion): void {
@@ -42,16 +46,49 @@ function ordenarTemario(filas: FilaLeccion[]): ModuloAprendizaje[] {
         id: fila.id, orden: fila.orden, titulo: fila.titulo, tipo: fila.tipo,
         vistaPrevia: fila.vistaPrevia ?? false, archivoId: fila.archivoId,
         youtubeVideoId: fila.tipo === 'VIDEO' ? fila.youtubeVideoId : null,
+        evaluacionId: fila.tipo === 'EVALUACION' ? fila.evaluacionId : null,
         progreso: { segundosVistos: fila.segundosVistos ?? 0, completada: fila.completada ?? false },
       });
     }
   }
-  return modulos;
+  // Un módulo nuevo de un curso publicado no se muestra hasta que tenga algún contenido listo.
+  return modulos.filter((m) => m.lecciones.length > 0);
 }
 
-/** Interfaz estable para Contenido: no necesita acceder al repositorio de Aprendizaje. */
+/** Guarda el avance de una lección y recalcula el porcentaje de la inscripción (ya bloqueada). */
+async function registrarAvance(
+  cliente: PoolClient, contexto: ContextoLeccionInscrita, idLeccion: number,
+  segundosVistos?: number, completada?: boolean,
+): Promise<ProgresoGuardado> {
+  const progreso = await repo.guardarLeccion(cliente, contexto.inscripcionId, idLeccion, segundosVistos, completada);
+  const { total, completadas } = await repo.contarLecciones(cliente, contexto.inscripcionId, contexto.cursoId);
+  // Redondear antes podría mostrar 100 % sin haber completado la última lección.
+  const porcentaje = total > 0 && completadas === total ? 100 : total > 0 ? Math.floor(completadas * 100 / total) : 0;
+  await repo.actualizarInscripcion(cliente, contexto.inscripcionId, idLeccion, porcentaje);
+  return {
+    leccionId: idLeccion, segundosVistos: progreso.segundosVistos, completada: progreso.completada,
+    progresoPct: porcentaje, estado: porcentaje === 100 ? 'COMPLETADA' : 'ACTIVA',
+    ultimaLeccionId: idLeccion,
+  };
+}
+
+export interface ContextoLeccionInscrita {
+  inscripcionId: number;
+  cursoId: number;
+  tipo: TipoLeccionAprendizaje;
+}
+
+/** Interfaz estable para Contenido y Evaluaciones: no necesitan acceder al repositorio de Aprendizaje. */
 export interface ServicioAprendizaje {
   estaInscritoEnCurso(idPersona: number, idCurso: number): Promise<boolean>;
+  /** Inscripción del estudiante en el curso publicado de una lección disponible; con `bloquear`, FOR UPDATE. */
+  inscripcionParaLeccion(
+    cliente: PoolClient, idPersona: number, idLeccion: number, bloquear?: boolean,
+  ): Promise<ContextoLeccionInscrita | null>;
+  /** Registra la actividad en la lección y, si `completada`, la marca como completada. */
+  registrarAvance(
+    cliente: PoolClient, contexto: ContextoLeccionInscrita, idLeccion: number, completada?: boolean,
+  ): Promise<ProgresoGuardado>;
 }
 
 export const aprendizajeService = {
@@ -83,18 +120,12 @@ export const aprendizajeService = {
     return enTransaccion(async (cliente) => {
       const contexto = await repo.inscripcionParaLeccion(cliente, usuario.idPersona, idLeccion);
       if (!contexto) throw AppError.noEncontrado('Lección no disponible.');
-      const progreso = await repo.guardarLeccion(
-        cliente, contexto.inscripcionId, idLeccion, datos.segundosVistos ?? 0, datos.completada ?? false,
-      );
-      const { total, completadas } = await repo.contarLecciones(cliente, contexto.inscripcionId, contexto.cursoId);
-      // Redondear antes podría mostrar 100 % sin haber completado la última lección.
-      const porcentaje = total > 0 && completadas === total ? 100 : total > 0 ? Math.floor(completadas * 100 / total) : 0;
-      await repo.actualizarInscripcion(cliente, contexto.inscripcionId, idLeccion, porcentaje);
-      return {
-        leccionId: idLeccion, segundosVistos: progreso.segundosVistos, completada: progreso.completada,
-        progresoPct: porcentaje, estado: porcentaje === 100 ? 'COMPLETADA' : 'ACTIVA',
-        ultimaLeccionId: idLeccion,
-      };
+      if (contexto.tipo === 'EVALUACION' && datos.completada !== undefined) {
+        throw AppError.solicitudInvalida('Una evaluación se completa al aprobarla, no se marca a mano.', [
+          { campo: 'completada', mensaje: 'Responde la evaluación y apruébala para completarla.' },
+        ]);
+      }
+      return registrarAvance(cliente, contexto, idLeccion, datos.segundosVistos, datos.completada);
     }, { actor: usuario.idPersona });
   },
 
@@ -124,4 +155,8 @@ export const aprendizajeService = {
 
 export const aprendizajeApi: ServicioAprendizaje = {
   estaInscritoEnCurso: (idPersona, idCurso) => aprendizajeService.estaInscritoEnCurso(idPersona, idCurso),
+  inscripcionParaLeccion: (cliente, idPersona, idLeccion, bloquear = false) =>
+    repo.inscripcionParaLeccion(cliente, idPersona, idLeccion, bloquear),
+  registrarAvance: (cliente, contexto, idLeccion, completada) =>
+    registrarAvance(cliente, contexto, idLeccion, undefined, completada),
 };

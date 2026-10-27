@@ -1,10 +1,16 @@
 import { Router } from 'express';
-// import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
-// import { evaluacionesController } from './evaluaciones.controller.js';
+import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
+import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
+import { validarCuerpo, validarParametros } from '../../shared/http/validar.js';
+import { evaluacionesController as controller } from './evaluaciones.controller.js';
+import { datosIntentoSchema, idEvaluacionRuta } from './evaluaciones.esquemas.js';
 
-// Módulo Evaluaciones · Preguntas, intentos y calificaciones.
-// Rutas previstas (se implementan en su sprint):
-//   GET /evaluaciones/:id (sin revelar es_correcta)
-//   POST /evaluaciones/:id/intentos
-//   PUT /evaluaciones/:id (DOCENTE: 5 a 10 preguntas, 4 opciones)
+// Módulo Evaluaciones · el estudiante inscrito responde; el docente edita las preguntas desde Cursos
+// (PUT /lecciones/:id/evaluacion).
 export const evaluacionesRoutes = Router();
+
+evaluacionesRoutes.get('/evaluaciones/:id', autenticar, autorizar('ESTUDIANTE'),
+  validarParametros(idEvaluacionRuta), controller.obtener);
+evaluacionesRoutes.post('/evaluaciones/:id/intentos', limitarPorIp('intento_evaluacion', 60, 15),
+  autenticar, autorizar('ESTUDIANTE'), validarParametros(idEvaluacionRuta),
+  validarCuerpo(datosIntentoSchema, 'Revisa tus respuestas.'), controller.responder);

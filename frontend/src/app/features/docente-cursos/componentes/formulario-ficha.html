@@ -1,44 +1,69 @@
 <form
-  class="tarjeta bloque"
+  class="tarjeta bloque ficha-curso"
   [formGroup]="form()"
   (ngSubmit)="guardar.emit()"
   (input)="cambio.emit()"
   (change)="cambio.emit()"
 >
-  <h2>1. Datos del curso</h2>
-
-  <p>
-    Para crear el borrador necesitas título, categoría y nivel. Completa los demás datos antes de enviarlo.
-  </p>
+  <div class="ficha-cabecera">
+    <div>
+      <h2>1. Información del curso</h2>
+      <p class="instruccion-ficha">
+        Para crear el borrador solo necesitas <strong>título, categoría y nivel</strong>. Antes de enviar a revisión deberás completar la descripción, portada y objetivos.
+      </p>
+    </div>
+    @if (curso()) {
+      <span class="badge-estado-ficha">
+        {{ form().valid ? 'Ficha básica completa' : 'Ficha incompleta' }}
+      </span>
+    }
+  </div>
 
   <fieldset class="campos" [disabled]="!editable() || deshabilitado()">
-    <label class="campo">
-      Título (máximo 150 caracteres)
-
-      <input class="control" formControlName="titulo" maxlength="150" />
-
-      <small class="error-campo">{{ errorCampo('titulo') }}</small>
-    </label>
-
-    <label class="campo">
-      Subtítulo (máximo 200 caracteres)
-
-      <input class="control" formControlName="subtitulo" maxlength="200" />
-
-      <small class="error-campo">{{ errorCampo('subtitulo') }}</small>
-    </label>
-
-    <label class="campo">
-      Descripción (máximo 10 000 caracteres)
-
-      <textarea class="control" formControlName="descripcion" maxlength="10000"></textarea>
-
-      <small class="error-campo">{{ errorCampo('descripcion') }}</small>
-    </label>
-
+    <!-- Fila 1: Título y Subtítulo lado a lado -->
     <div class="rejilla">
       <label class="campo">
-        Categoría
+        <span class="etiqueta-fila">
+          <span class="nombre-campo">Título del curso</span>
+          <span class="badge-etiqueta obligatorio">Obligatorio</span>
+          <span class="contador-campo" [class.limite]="longitud('titulo') >= 140">{{ longitud('titulo') }}/150</span>
+        </span>
+
+        <input
+          class="control"
+          formControlName="titulo"
+          maxlength="150"
+          placeholder="Ej. Introducción práctica a TypeScript"
+        />
+
+        <small class="error-campo" role="alert">{{ errorCampo('titulo') }}</small>
+      </label>
+
+      <label class="campo">
+        <span class="etiqueta-fila">
+          <span class="nombre-campo">Subtítulo breve</span>
+          <span class="badge-etiqueta opcional">Opcional</span>
+          <span class="contador-campo">{{ longitud('subtitulo') }}/200</span>
+        </span>
+
+        <input
+          class="control"
+          formControlName="subtitulo"
+          maxlength="200"
+          placeholder="Una frase que sintetice el valor principal del curso"
+        />
+
+        <small class="error-campo" role="alert">{{ errorCampo('subtitulo') }}</small>
+      </label>
+    </div>
+
+    <!-- Fila 2: Categoría y nivel con la misma altura, sin huecos debajo -->
+    <div class="rejilla rejilla-mitades">
+      <label class="campo">
+        <span class="etiqueta-fila">
+          <span class="nombre-campo">Categoría</span>
+          <span class="badge-etiqueta obligatorio">Obligatorio</span>
+        </span>
 
         <select class="control" formControlName="categoriaId">
           <option [ngValue]="0">Selecciona una categoría</option>
@@ -54,11 +79,14 @@
           }
         </select>
 
-        <small class="error-campo">{{ errorCampo('categoriaId') }}</small>
+        <small class="error-campo" role="alert">{{ errorCampo('categoriaId') }}</small>
       </label>
 
       <label class="campo">
-        Nivel
+        <span class="etiqueta-fila">
+          <span class="nombre-campo">Nivel de dificultad</span>
+          <span class="badge-etiqueta obligatorio">Obligatorio</span>
+        </span>
 
         <select class="control" formControlName="nivel">
           <option value="PRINCIPIANTE">Principiante</option>
@@ -66,61 +94,160 @@
           <option value="AVANZADO">Avanzado</option>
         </select>
 
-        <small class="error-campo">{{ errorCampo('nivel') }}</small>
+        <small class="error-campo" role="alert">{{ errorCampo('nivel') }}</small>
       </label>
     </div>
 
-    <label class="campo">
-      URL de portada
-
-      <input
-        class="control"
-        formControlName="portadaUrl"
-        maxlength="255"
-        placeholder="https://… o /img/portada.jpg"
-      />
-
-      <small>Usa una imagen horizontal de 16:9 disponible para los visitantes.</small>
-
-      <small class="error-campo">{{ errorCampo('portadaUrl') }}</small>
-    </label>
-
-    <div class="rejilla">
+    <!-- Fila 3: el enlace arriba y, debajo, la vista previa de esa imagen -->
+    <div class="bloque-portada">
       <label class="campo">
-        Objetivos: uno por línea, al menos 3 para revisión
+        <span class="etiqueta-fila">
+          <span class="nombre-campo">URL de imagen de portada</span>
+          <span class="badge-etiqueta revision">Para revisión</span>
+          <span class="contador-campo">{{ longitud('portadaUrl') }}/255</span>
+        </span>
 
-        <textarea class="control" formControlName="objetivos"></textarea>
+        <input
+          class="control"
+          formControlName="portadaUrl"
+          maxlength="255"
+          placeholder="https://ejemplo.com/portada.jpg"
+          (input)="onUrlPortadaInput()"
+        />
 
-        <small>Hasta 10 objetivos de 200 caracteres cada uno.</small>
-
-        <small class="error-campo">{{ errorCampo('objetivos') }}</small>
+        <small>Usa una imagen horizontal en proporción 16:9 disponible públicamente.</small>
+        <small class="error-campo" role="alert">{{ errorCampo('portadaUrl') }}</small>
       </label>
 
-      <label class="campo">
-        Requisitos: uno por línea (opcional)
+      <div class="campo campo-vista-previa">
+        <span class="etiqueta-fila">
+          <span class="nombre-campo">Vista previa de la imagen</span>
+          @if (portadaCargada()) {
+            <span class="badge-preview-ok">Imagen cargada</span>
+          }
+        </span>
 
-        <textarea class="control" formControlName="requisitos"></textarea>
+        @if (form().get('portadaUrl')?.value?.trim(); as url) {
+          <div class="caja-portada-preview" [class.con-error]="errorCargaPortada()">
+            <img
+              [src]="url"
+              alt="Vista previa de portada del curso"
+              class="portada-img"
+              [class.oculta]="errorCargaPortada()"
+              loading="lazy"
+              (load)="portadaCargada.set(true); errorCargaPortada.set(false)"
+              (error)="errorCargaPortada.set(true); portadaCargada.set(false)"
+            />
+            @if (errorCargaPortada()) {
+              <div class="aviso-error-imagen" role="alert">
+                <span class="icono-aviso" aria-hidden="true">⚠️</span>
+                <p>No se pudo cargar la imagen desde este enlace.</p>
+                <small>Comprueba que sea una URL directa y accesible a un archivo JPG, PNG o WebP.</small>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="caja-portada-preview vacia">
+            <span class="icono-placeholder" aria-hidden="true">🖼️</span>
+            <small class="texto-placeholder">Escribe una URL para previsualizar aquí la portada (16:9)</small>
+          </div>
+        }
+      </div>
+    </div>
 
-        <small>Hasta 10 requisitos de 200 caracteres cada uno.</small>
+    <!-- Fila 4: Bloque equilibrado de Descripción y Metas de aprendizaje -->
+    <div class="bloque-contenido-ficha">
+      <!-- Columna izquierda: Descripción detallada -->
+      <div class="columna-descripcion">
+        <label class="campo">
+          <span class="etiqueta-fila">
+            <span class="nombre-campo">Descripción detallada</span>
+            <span class="badge-etiqueta revision">Para revisión</span>
+            <span class="contador-campo">{{ longitud('descripcion') }}/10 000</span>
+          </span>
 
-        <small class="error-campo">{{ errorCampo('requisitos') }}</small>
-      </label>
+          <textarea
+            class="control control-descripcion"
+            formControlName="descripcion"
+            maxlength="10000"
+            placeholder="Explica qué aprenderán los estudiantes, la metodología y a quién va dirigido."
+          ></textarea>
+
+          <small class="texto-ayuda-campo">Describe el enfoque didáctico y los temas principales que se abordarán.</small>
+          <small class="error-campo" role="alert">{{ errorCampo('descripcion') }}</small>
+        </label>
+      </div>
+
+      <!-- Columna derecha: Objetivos y Requisitos apilados -->
+      <div class="columna-metas">
+        <label class="campo">
+          <span class="etiqueta-fila">
+            <span class="nombre-campo">Objetivos de aprendizaje</span>
+            <span class="badge-etiqueta revision">Para revisión</span>
+            <span
+              class="contador-campo"
+              [class.cumplido]="contarLineas(form().get('objetivos')?.value) >= 3"
+            >
+              {{ contarLineas(form().get('objetivos')?.value) }} / mín. 3
+            </span>
+          </span>
+
+          <textarea
+            class="control"
+            formControlName="objetivos"
+            placeholder="Un objetivo por línea. Ejemplo:&#10;Entender la sintaxis básica de TypeScript&#10;Configurar un proyecto con tsconfig&#10;Compilar código a JavaScript moderno"
+          ></textarea>
+
+          <small>Escribe al menos 3 objetivos, uno por línea (máx. 200 caracteres por línea).</small>
+          <small class="error-campo" role="alert">{{ errorCampo('objetivos') }}</small>
+        </label>
+
+        <label class="campo">
+          <span class="etiqueta-fila">
+            <span class="nombre-campo">Requisitos previos</span>
+            <span class="badge-etiqueta opcional">Opcional</span>
+            <span class="contador-campo">{{ contarLineas(form().get('requisitos')?.value) }} / máx. 10</span>
+          </span>
+
+          <textarea
+            class="control"
+            formControlName="requisitos"
+            placeholder="Un requisito por línea. Ejemplo:&#10;Conocimientos básicos de HTML y JS&#10;Editor de código instalado"
+          ></textarea>
+
+          <small>Hasta 10 requisitos, uno por línea (opcional).</small>
+          <small class="error-campo" role="alert">{{ errorCampo('requisitos') }}</small>
+        </label>
+      </div>
     </div>
   </fieldset>
 
   @if (editable()) {
-    <button
-      type="submit"
-      class="btn btn-primario"
-      [disabled]="form().invalid || deshabilitado()"
-    >
-      {{
-        guardando()
-          ? 'Guardando…'
-          : curso()
-            ? 'Guardar cambios'
-            : 'Crear borrador'
-      }}
-    </button>
+    <div class="acciones-formulario">
+      <button
+        type="submit"
+        class="btn btn-primario"
+        [disabled]="form().invalid || deshabilitado()"
+      >
+        {{
+          guardando()
+            ? 'Guardando…'
+            : curso()
+              ? 'Guardar cambios'
+              : 'Crear borrador'
+        }}
+      </button>
+
+      @if (curso()) {
+        <button
+          type="button"
+          class="btn btn-contorno"
+          [disabled]="deshabilitado()"
+          (click)="continuar.emit()"
+        >
+          Continuar a módulos y contenido →
+        </button>
+      }
+    </div>
   }
 </form>

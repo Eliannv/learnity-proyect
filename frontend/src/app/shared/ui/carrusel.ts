@@ -92,10 +92,17 @@ import { LucideAngularModule } from 'lucide-angular';
     }
     @media (max-width: 900px) {
       .carrusel {
-        --carrusel-gap: 12px;
+        --carrusel-gap: 16px;
       }
       .carrusel-pista {
-        grid-auto-columns: 78%;
+        display: grid;
+        grid-auto-flow: row;
+        grid-template-columns: 1fr;
+        grid-auto-columns: auto;
+        gap: 16px;
+        overflow-x: visible;
+        scroll-snap-type: none;
+        padding: 0;
       }
       .carrusel-flecha {
         display: none;

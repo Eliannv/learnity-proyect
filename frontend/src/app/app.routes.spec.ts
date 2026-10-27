@@ -54,6 +54,7 @@ const ESPERADO: string[] = [
   '/recuperar-contrasena | titulo=Recuperar contraseña · Learnity | canActivate=invitadoGuard | pagina=Recuperar',
   '/restablecer-contrasena | titulo=Crear nueva contraseña · Learnity | pagina=Restablecer',
   '/ | layout=LayoutSitio',
+  '/ | match=full | titulo=Inicio · Learnity | canMatch=1 | pagina=InicioEstudiante',
   '/ | match=full | titulo=Learnity · Cursos en línea | pagina=Inicio',
   '/cursos | titulo=Catálogo de cursos · Learnity | pagina=Catalogo',
   '/cursos/:id | titulo=Detalle del curso · Learnity | pagina=DetalleCurso',

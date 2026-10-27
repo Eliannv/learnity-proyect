@@ -14,15 +14,58 @@ import type {
 } from './cursos.modelo.js';
 import { fichaRepository } from './ficha.repository.js';
 import { MENSAJES, politicaCurso } from './politica-curso.js';
+import { MAX_PREGUNTAS, MIN_PREGUNTAS } from './temario/temario.esquemas.js';
 import { temarioRepository } from './temario/temario.repository.js';
+
+/** El PDF es el contenido de un DOCUMENTO o el material de apoyo de un VIDEO. */
+const TIPOS_CON_PDF: ReadonlySet<string> = new Set(['DOCUMENTO', 'VIDEO']);
 
 function exigirEdicionLeccion(contexto: ContextoLeccion, usuario: UsuarioSesion): void {
   politicaCurso.exigirRol(usuario, 'DOCENTE');
   politicaCurso.exigirEditable(contexto, usuario, MENSAJES.archivoDeLeccion);
 
-  if (contexto.tipoLeccion !== 'DOCUMENTO') {
-    throw AppError.solicitudInvalida('Solo las lecciones DOCUMENTO admiten este PDF.');
+  if (!TIPOS_CON_PDF.has(contexto.tipoLeccion)) {
+    throw AppError.solicitudInvalida('Solo las lecciones DOCUMENTO o VIDEO admiten este PDF.');
   }
+}
+
+const leccionDisponible = (l: CursoDetalle['modulos'][number]['lecciones'][number]): boolean =>
+  (l.tipo === 'VIDEO' && !!l.youtubeVideoId) || (l.tipo === 'DOCUMENTO' && l.archivo !== null)
+  || (l.tipo === 'EVALUACION' && l.preguntas >= MIN_PREGUNTAS);
+
+/** Lo que un curso publicado no puede perder: su ficha completa y al menos un contenido disponible. */
+function problemasDePublicado(c: CursoDetalle): ProblemaCurso[] {
+  // Un módulo vacío o un PDF pendiente no bloquean: el estudiante no los ve hasta que estén listos.
+  const problemas = c.validacion.problemas.filter((p) => !p.campo.startsWith('modulos.'));
+  if (!c.modulos.some((m) => m.lecciones.some(leccionDisponible))) {
+    problemas.push({ campo: 'modulos', mensaje: 'Un curso publicado debe conservar al menos un contenido disponible.' });
+  }
+  return problemas;
+}
+
+/** Problemas del curso publicado ANTES del cambio; null si el curso no está publicado. */
+export async function vigenciaPrevia(
+  cliente: PoolClient,
+  estado: CursoDetalle['estado'],
+  idCurso: number,
+  prevalidados?: ReadonlySet<string>,
+): Promise<ProblemaCurso[] | null> {
+  return estado === 'PUBLICADO' ? problemasDePublicado(await detallePrivado(cliente, idCurso, prevalidados)) : null;
+}
+
+/**
+ * Editar un curso publicado no lo devuelve a revisión, pero el cambio se rechaza (y la transacción
+ * se deshace) si añade un problema que lo dejaría incompleto para sus estudiantes.
+ */
+export function exigirVigencia(previos: ProblemaCurso[] | null, despues: CursoDetalle): CursoDetalle {
+  if (previos === null) return despues;
+  const clave = (p: ProblemaCurso) => `${p.campo}\n${p.mensaje}`;
+  const conocidos = new Set(previos.map(clave));
+  const nuevos = problemasDePublicado(despues).filter((p) => !conocidos.has(clave(p)));
+  if (nuevos.length > 0) {
+    throw AppError.solicitudInvalida('El curso está publicado: este cambio lo dejaría incompleto para los estudiantes.', nuevos);
+  }
+  return despues;
 }
 
 /**
@@ -83,7 +126,6 @@ export function comprobarCompletitud(
   }
 
   const ordenesModulos = new Set<number>();
-  let documentos = 0;
 
   for (const [i, m] of c.modulos.entries()) {
     const campo = 'modulos.' + i;
@@ -113,16 +155,15 @@ export function comprobarCompletitud(
       ordenes.add(l.orden);
 
       if (l.tipo === 'DOCUMENTO') {
-        documentos++;
         if (!l.archivo || !pdfValidos.has(l.archivo.id)) {
           agregar(prefijo + '.archivo', 'Sube un PDF válido para ' + l.titulo + '.');
         }
+      } else if (l.tipo === 'VIDEO' && !l.youtubeVideoId) {
+        agregar(prefijo + '.youtubeUrl', 'Añade un enlace válido de YouTube para ' + l.titulo + '.');
+      } else if (l.tipo === 'EVALUACION' && l.preguntas < MIN_PREGUNTAS) {
+        agregar(prefijo + '.preguntas', `Añade entre ${MIN_PREGUNTAS} y ${MAX_PREGUNTAS} preguntas a ${l.titulo}.`);
       }
     }
-  }
-
-  if (!documentos) {
-    agregar('modulos', 'Agrega al menos una lección DOCUMENTO con PDF válido.');
   }
 
   return problemas;
@@ -176,6 +217,7 @@ export async function detallePrivado(
       archivo,
       youtubeVideoId: fila.leccionTipo === 'VIDEO' ? fila.youtubeVideoId : null,
       vistaPrevia: fila.leccionTipo === 'VIDEO' ? fila.vistaPrevia ?? false : false,
+      preguntas: fila.leccionTipo === 'EVALUACION' ? fila.preguntas : 0,
     });
 
     if (fila.leccionTipo === 'DOCUMENTO' && archivo && fila.archivoRuta) {
@@ -300,7 +342,7 @@ export const detallePrivadoService = {
       if (politicaCurso.puedeLeerArchivos(contexto, usuario)) return;
       const inscrito = usuario.roles.includes('ESTUDIANTE')
         && contexto.estado === 'PUBLICADO'
-        && contexto.tipoLeccion === 'DOCUMENTO'
+        && TIPOS_CON_PDF.has(contexto.tipoLeccion)
         && await aprendizajeApi.estaInscritoEnCurso(usuario.idPersona, contexto.id);
       if (!inscrito) throw AppError.sinPermiso('No puedes descargar este archivo.');
     });

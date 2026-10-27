@@ -23,14 +23,21 @@ function sesion(idPersona: number, roles: Rol[]): UsuarioSesion {
 }
 
 describe('Política pura de cursos (ADR-003)', () => {
-  it('esEditable y puedePasar a EN_REVISION solo admiten BORRADOR y RECHAZADO', () => {
+  it('puedePasar a EN_REVISION solo admite BORRADOR y RECHAZADO', () => {
     for (const estado of ['BORRADOR', 'RECHAZADO'] as const) {
-      assert.equal(politicaCurso.esEditable(estado), true);
       assert.equal(politicaCurso.puedePasar(estado, 'EN_REVISION'), true);
     }
     for (const estado of ['EN_REVISION', 'PUBLICADO', 'ARCHIVADO'] as const) {
-      assert.equal(politicaCurso.esEditable(estado), false);
       assert.equal(politicaCurso.puedePasar(estado, 'EN_REVISION'), false);
+    }
+  });
+
+  it('esEditable admite BORRADOR, RECHAZADO y PUBLICADO (este último sin volver a revisión)', () => {
+    for (const estado of ['BORRADOR', 'RECHAZADO', 'PUBLICADO'] as const) {
+      assert.equal(politicaCurso.esEditable(estado), true);
+    }
+    for (const estado of ['EN_REVISION', 'ARCHIVADO'] as const) {
+      assert.equal(politicaCurso.esEditable(estado), false);
     }
   });
 

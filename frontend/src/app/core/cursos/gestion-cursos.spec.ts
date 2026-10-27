@@ -61,6 +61,7 @@ function curso(
             tipo: 'DOCUMENTO',
             youtubeVideoId: null,
             vistaPrevia: false,
+            preguntas: 0,
             archivo: {
               id: 12,
               tipo: 'PDF',
@@ -584,7 +585,8 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
 
     await actualizar(f);
 
-    boton(f, 'Guardar módulo').click();
+    // El formulario de módulo nuevo confirma con «Crear módulo».
+    boton(f, 'Crear módulo').click();
 
     const solicitud = http.expectOne('/api/cursos/41/modulos');
 

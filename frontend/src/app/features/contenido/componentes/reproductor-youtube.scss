@@ -1,9 +1,21 @@
 :host { display: block; min-width: 0; }
-.video { display: grid; gap: 16px; min-width: 0; }
-.presentacion { display: grid; justify-items: start; gap: 16px; padding: 24px; border: 1px solid var(--gris-200); border-radius: 12px; background: var(--azul-050); }
-.marco { width: 100%; min-height: 200px; aspect-ratio: 16 / 9; background: #0f172a; }
-.marco[hidden] { display: none; }
+.video { display: grid; gap: 12px; min-width: 0; }
+.pantalla { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: inherit; background: #0f172a; }
+.pantalla[hidden] { display: none; }
+.marco { position: absolute; inset: 0; }
+.cargando { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #e2e8f0; font-size: 14px; }
+.fallo { display: grid; justify-items: start; gap: 10px; padding: 16px; border: 1px solid var(--gris-200); border-radius: 12px; background: var(--azul-050); }
 .reanudar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-p { overflow-wrap: anywhere; }
+p { margin: 0; overflow-wrap: anywhere; }
 .btn { white-space: normal; line-height: 1.4; padding-top: 10px; padding-bottom: 10px; }
-@media (max-width: 600px) { .presentacion { padding: 16px; } .reanudar { align-items: stretch; flex-direction: column; } }
+
+// Escenario oscuro de la lección del estudiante.
+.oscuro {
+  color: #e2e8f0;
+  .reanudar, .fallo { padding: 0 16px 12px; border: 0; background: none; }
+  .btn-contorno { color: #fff; border-color: #94a3b8; background: transparent; }
+  .btn-contorno:hover { background: #1e293b; }
+  .error { color: #fecaca; }
+}
+
+@media (max-width: 600px) { .reanudar { align-items: stretch; flex-direction: column; } }

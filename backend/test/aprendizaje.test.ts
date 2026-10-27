@@ -112,6 +112,18 @@ describe('Sprint 3: inscripción y aprendizaje', () => {
     const lista = await srv.pedir('/api/mi-aprendizaje', { token: nuevoToken });
     assert.equal(lista.status, 200);
     assert.equal(lista.json.items[0].inscripcion.estado, 'COMPLETADA');
+    const desmarcada = await c.como(estudiante, 'PUT', ruta, { completada: false });
+    assert.equal(desmarcada.status, 200, desmarcada.texto);
+    assert.equal(desmarcada.json.completada, false);
+    assert.equal(desmarcada.json.progresoPct, 0);
+    assert.equal(desmarcada.json.estado, 'ACTIVA');
+    const retrocedida = await c.como(estudiante, 'PUT', ruta, { segundosVistos: 15 });
+    assert.equal(retrocedida.status, 200, retrocedida.texto);
+    assert.equal(retrocedida.json.segundosVistos, 15);
+    const detalleRetrocedido = await srv.pedir(`/api/mi-aprendizaje/cursos/${idCurso}`, { token: nuevoToken });
+    assert.equal(detalleRetrocedido.json.modulos[0].lecciones[0].progreso.segundosVistos, 15);
+    assert.equal(detalleRetrocedido.json.modulos[0].lecciones[0].progreso.completada, false);
+    await c.como(estudiante, 'PUT', ruta, { completada: true });
   });
 
   it('impide acceso ajeno y solo el docente propietario o ADMIN ve el seguimiento', async () => {

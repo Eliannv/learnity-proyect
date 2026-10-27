@@ -1,25 +1,23 @@
-<section class="video" [attr.aria-label]="'Vídeo: ' + titulo()" [attr.aria-busy]="estado() === 'cargando'">
+<section class="video" [class.oscuro]="oscuro()" [attr.aria-label]="'Vídeo: ' + titulo()" [attr.aria-busy]="estado() === 'cargando'">
   @if (!idValido()) {
     <p class="aviso error" role="alert">El vídeo de esta lección no tiene un identificador válido. Comunícalo al docente.</p>
-  } @else if (estado() === 'inicial') {
-    <div class="presentacion">
-      <p>{{ titulo() }}</p>
-      <p class="texto-suave">Al cargar el vídeo te conectarás con YouTube.</p>
-      <button type="button" class="btn btn-primario" (click)="cargar()">Cargar vídeo</button>
+  } @else {
+    <div class="pantalla" [hidden]="estado() === 'error'">
+      <div #contenedor class="marco"></div>
+      @if (estado() !== 'listo') {
+        <p class="cargando" role="status">Cargando el vídeo…</p>
+      }
     </div>
   }
 
-  <div #contenedor class="marco" [hidden]="!idValido() || estado() === 'inicial' || estado() === 'error'"></div>
-
-  @if (estado() === 'cargando') {
-    <p role="status">Cargando el reproductor de YouTube…</p>
-  }
   @if (lenta()) {
     <p class="aviso" role="status">El vídeo está tardando en cargar. Comprueba tu conexión.</p>
   }
   @if (estado() === 'error' && idValido()) {
-    <p class="aviso error" role="alert">{{ error() }}</p>
-    <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
+    <div class="fallo">
+      <p class="aviso error" role="alert">{{ error() }}</p>
+      <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
+    </div>
   }
   @if (estado() === 'listo' && guardada() > 0) {
     <div class="reanudar">

@@ -9,7 +9,7 @@ Requieren turno del lead: comparten la base con las suites de `backend/`.
 cd e2e
 npm install                      # una vez (hay package-lock.json; npm ci también sirve)
 npx playwright install chromium  # una vez
-npm test                         # levanta API y frontend solos, corre las 7 specs y limpia
+npm test                         # levanta API y frontend solos, corre las 8 specs y limpia
 ```
 
 `playwright.config.ts` arranca dos servidores propios (no reutiliza los de desarrollo):

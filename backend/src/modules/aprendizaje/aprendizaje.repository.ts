@@ -35,6 +35,7 @@ export interface FilaLeccion {
   vistaPrevia: boolean | null;
   archivoId: number | null;
   youtubeVideoId: string | null;
+  evaluacionId: number | null;
   segundosVistos: number | null;
   completada: boolean | null;
 }
@@ -54,16 +55,25 @@ const CAMPOS_INSCRIPCION = `
   i.progreso_pct AS "progresoPct", i.id_ultima_leccion AS "ultimaLeccionId",
   i.inscrito_en AS "inscritoEn", i.completado_en AS "completadoEn"`;
 
+// Un curso publicado se edita sin volver a revisión: el estudiante solo ve y cuenta lo que ya está listo
+// (un vídeo con su ID, un documento con su PDF o una evaluación con al menos 5 preguntas),
+// nunca un contenido a medio preparar.
+const LECCION_DISPONIBLE = `((l.tipo = 'VIDEO' AND l.youtube_video_id IS NOT NULL)
+  OR (l.tipo = 'DOCUMENTO' AND l.id_archivo IS NOT NULL)
+  OR (l.tipo = 'EVALUACION' AND (SELECT count(*) FROM evaluacion ev
+        JOIN pregunta pr ON pr.id_evaluacion = ev.id_evaluacion
+       WHERE ev.id_leccion = l.id_leccion) >= 5))`;
+
 const CAMPOS_CURSO = `
   c.titulo, c.subtitulo, c.portada_url AS "portadaUrl", c.nivel,
   cat.id_categoria AS "categoriaId", cat.nombre AS "categoriaNombre",
   concat_ws(' ', p.nombres, p.apellidos) AS docente,
   (SELECT count(*)::int FROM modulo m JOIN leccion l ON l.id_modulo = m.id_modulo
-    WHERE m.id_curso = c.id_curso AND l.tipo IN ('DOCUMENTO', 'VIDEO')) AS "totalLecciones",
+    WHERE m.id_curso = c.id_curso AND ${LECCION_DISPONIBLE}) AS "totalLecciones",
   (SELECT count(*)::int FROM progreso_leccion pl JOIN leccion l ON l.id_leccion = pl.id_leccion
     JOIN modulo m ON m.id_modulo = l.id_modulo
     WHERE pl.id_inscripcion = i.id_inscripcion AND m.id_curso = c.id_curso
-      AND l.tipo IN ('DOCUMENTO', 'VIDEO') AND pl.completada) AS "leccionesCompletadas"`;
+      AND ${LECCION_DISPONIBLE} AND pl.completada) AS "leccionesCompletadas"`;
 
 /** Toda consulta SQL de Aprendizaje reside aquí; los valores externos siempre usan parámetros. */
 export const aprendizajeRepository = {
@@ -138,10 +148,12 @@ export const aprendizajeRepository = {
       `SELECT m.id_modulo AS "moduloId", m.orden AS "moduloOrden", m.titulo AS "moduloTitulo",
               l.id_leccion AS id, l.orden, l.titulo, l.tipo, l.vista_previa AS "vistaPrevia",
               a.id_archivo AS "archivoId", l.youtube_video_id AS "youtubeVideoId",
+              e.id_evaluacion AS "evaluacionId",
               pl.segundos_vistos AS "segundosVistos", pl.completada
          FROM modulo m
-         LEFT JOIN leccion l ON l.id_modulo = m.id_modulo AND l.tipo IN ('DOCUMENTO', 'VIDEO')
+         LEFT JOIN leccion l ON l.id_modulo = m.id_modulo AND ${LECCION_DISPONIBLE}
          LEFT JOIN archivo a ON a.id_archivo = l.id_archivo AND a.id_curso = m.id_curso AND a.tipo = 'PDF'
+         LEFT JOIN evaluacion e ON e.id_leccion = l.id_leccion AND l.tipo = 'EVALUACION'
          LEFT JOIN progreso_leccion pl ON pl.id_leccion = l.id_leccion AND pl.id_inscripcion = $1
         WHERE m.id_curso = $2
         ORDER BY m.orden, m.id_modulo, l.orden, l.id_leccion`,
@@ -151,17 +163,17 @@ export const aprendizajeRepository = {
   },
 
   /** Bloquear la inscripción serializa el avance y el porcentaje concurrente. */
-  async inscripcionParaLeccion(cliente: PoolClient, idPersona: number, idLeccion: number): Promise<{
-    inscripcionId: number; cursoId: number;
+  async inscripcionParaLeccion(cliente: PoolClient, idPersona: number, idLeccion: number, bloquear = true): Promise<{
+    inscripcionId: number; cursoId: number; tipo: TipoLeccionAprendizaje;
   } | null> {
-    const { rows } = await cliente.query<{ inscripcionId: number; cursoId: number }>(
-      `SELECT i.id_inscripcion AS "inscripcionId", i.id_curso AS "cursoId"
+    const { rows } = await cliente.query<{ inscripcionId: number; cursoId: number; tipo: TipoLeccionAprendizaje }>(
+      `SELECT i.id_inscripcion AS "inscripcionId", i.id_curso AS "cursoId", l.tipo
          FROM inscripcion i
          JOIN curso c ON c.id_curso = i.id_curso AND c.estado = 'PUBLICADO'
          JOIN modulo m ON m.id_curso = c.id_curso
-         JOIN leccion l ON l.id_modulo = m.id_modulo AND l.tipo IN ('DOCUMENTO', 'VIDEO')
+         JOIN leccion l ON l.id_modulo = m.id_modulo AND ${LECCION_DISPONIBLE}
         WHERE i.id_persona = $1 AND l.id_leccion = $2
-        FOR UPDATE OF i`,
+        ${bloquear ? 'FOR UPDATE OF i' : ''}`,
       [idPersona, idLeccion],
     );
     return rows[0] ?? null;
@@ -169,16 +181,16 @@ export const aprendizajeRepository = {
 
   async guardarLeccion(
     cliente: PoolClient, idInscripcion: number, idLeccion: number,
-    segundosVistos: number, completada: boolean,
+    segundosVistos?: number, completada?: boolean,
   ): Promise<{ segundosVistos: number; completada: boolean }> {
     const { rows } = await cliente.query<{ segundosVistos: number; completada: boolean }>(
       `INSERT INTO progreso_leccion (id_inscripcion, id_leccion, segundos_vistos, completada)
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, COALESCE($3, 0), COALESCE($4, false))
        ON CONFLICT (id_inscripcion, id_leccion) DO UPDATE
-         SET segundos_vistos = GREATEST(progreso_leccion.segundos_vistos, EXCLUDED.segundos_vistos),
-             completada = progreso_leccion.completada OR EXCLUDED.completada
+         SET segundos_vistos = CASE WHEN $3 IS NOT NULL THEN $3::int ELSE progreso_leccion.segundos_vistos END,
+             completada = CASE WHEN $4 IS NOT NULL THEN $4::boolean ELSE progreso_leccion.completada END
        RETURNING segundos_vistos AS "segundosVistos", completada`,
-      [idInscripcion, idLeccion, segundosVistos, completada],
+      [idInscripcion, idLeccion, segundosVistos ?? null, completada ?? null],
     );
     return rows[0]!;
   },
@@ -190,7 +202,7 @@ export const aprendizajeRepository = {
       `SELECT count(l.id_leccion)::int AS total,
               count(l.id_leccion) FILTER (WHERE pl.completada)::int AS completadas
          FROM modulo m
-         JOIN leccion l ON l.id_modulo = m.id_modulo AND l.tipo IN ('DOCUMENTO', 'VIDEO')
+         JOIN leccion l ON l.id_modulo = m.id_modulo AND ${LECCION_DISPONIBLE}
          LEFT JOIN progreso_leccion pl ON pl.id_leccion = l.id_leccion AND pl.id_inscripcion = $1
         WHERE m.id_curso = $2`,
       [idInscripcion, idCurso],

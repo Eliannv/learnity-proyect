@@ -51,16 +51,20 @@ describe('reproductor compartido YouTube', () => {
     return [...fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>]
       .find((b) => b.textContent?.includes(texto))!;
   }
+  /** El reproductor se carga solo: basta con dejar correr las promesas pendientes. */
+  async function vaciar(): Promise<void> {
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+  }
   async function cargar(listo = true): Promise<void> {
-    boton('Cargar vídeo').click();
-    await Promise.resolve();
-    if (listo) opciones[0].events.onReady({ target: jugadores[0] });
+    await vaciar();
+    if (listo) opciones.at(-1)!.events.onReady({ target: jugadores.at(-1)! });
     fixture.detectChanges();
   }
 
-  it('espera una acción del usuario y construye el reproductor con origen y host fijos', async () => {
-    expect(api.cargar).not.toHaveBeenCalled();
+  it('se carga sin pedir un clic y construye el reproductor con origen y host fijos', async () => {
+    expect(api.cargar).toHaveBeenCalledOnce();
     await cargar();
+    expect(fixture.nativeElement.textContent).not.toContain('Cargar vídeo');
     expect(opciones[0]).toMatchObject({
       videoId: id, host: 'https://www.youtube-nocookie.com',
       playerVars: { origin: window.location.origin, autoplay: 0, controls: 1, playsinline: 1 },
@@ -68,9 +72,11 @@ describe('reproductor compartido YouTube', () => {
     expect(jugadores[0].iframe.title).toBe('Introducción');
   });
 
-  it('rechaza URLs y HTML en la entrada de ID antes de cargar el SDK', () => {
+  it('rechaza URLs y HTML en la entrada de ID antes de cargar el SDK', async () => {
+    api.cargar.mockClear();
     fixture.componentRef.setInput('videoId', '<iframe src="https://falso.example"></iframe>');
     fixture.detectChanges();
+    await vaciar();
     expect(api.cargar).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('iframe')).toBeNull();
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('identificador válido');
@@ -146,14 +152,16 @@ describe('reproductor compartido YouTube', () => {
   });
 
   it('ignora un SDK que termina de cargar después de cambiar de lección', async () => {
+    await vaciar();
     let resolver!: (sdk: YoutubeSdk) => void;
     api.cargar.mockReturnValueOnce(new Promise<YoutubeSdk>((r) => { resolver = r; }));
-    boton('Cargar vídeo').click();
     fixture.componentRef.setInput('videoId', 'dQw4w9WgXcQ');
     fixture.detectChanges();
+    fixture.componentRef.setInput('videoId', id);
+    fixture.detectChanges();
     resolver({ Player: JugadorPrueba });
-    await Promise.resolve();
-    expect(jugadores).toHaveLength(0);
+    await vaciar();
+    expect(opciones.map((o) => o.videoId)).not.toContain('dQw4w9WgXcQ');
   });
 
   it('reinicia al pasar a otra lección que reutiliza el mismo vídeo', async () => {
@@ -164,7 +172,8 @@ describe('reproductor compartido YouTube', () => {
     fixture.detectChanges();
     expect(muestras).toEqual([{ leccionId: 8, videoId: id, segundos: 23, motivo: 'salida' }]);
     expect(jugadores[0].destroy).toHaveBeenCalledOnce();
-    expect(boton('Cargar vídeo')).toBeDefined();
+    await vaciar();
+    expect(jugadores).toHaveLength(2);
   });
 
   it.each([100, 101, 150, 153])('muestra un error útil del SDK: %s', async (codigo) => {

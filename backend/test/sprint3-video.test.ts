@@ -64,6 +64,22 @@ after(async () => {
 });
 
 describe('Sprint 3: VIDEO YouTube y PDF del estudiante', () => {
+  it('permite varias lecciones de vídeo en un módulo y enviar un curso sin PDF', async () => {
+    const idCurso = await c.crearCurso(docente);
+    const idModulo = await c.crearModulo(docente, idCurso);
+    for (const orden of [1, 2]) {
+      const creado = await c.como(docente, 'POST', `/api/modulos/${idModulo}/lecciones`, {
+        titulo: `Vídeo ${orden}`, orden, tipo: 'VIDEO',
+        youtubeUrl: `https://youtu.be/${videoId}`,
+      });
+      assert.equal(creado.status, 201, creado.texto);
+      assert.equal(creado.json.modulos[0].lecciones.length, orden);
+    }
+    const enviado = await c.como(docente, 'POST', `/api/cursos/${idCurso}/enviar-revision`);
+    assert.equal(enviado.status, 200, enviado.texto);
+    assert.deepEqual(enviado.json.validacion, { completo: true, problemas: [] });
+  });
+
   it('valida la URL, crea VIDEO sin MP4 y aplica propiedad y estado editable', async () => {
     const ruta = `/api/modulos/${moduloId}/lecciones`;
     const invalido = await c.como(docente, 'POST', ruta, {
@@ -97,10 +113,12 @@ describe('Sprint 3: VIDEO YouTube y PDF del estudiante', () => {
     await c.enviarARevision(docente, cursoId);
     const aprobado = await c.como(admin, 'PUT', `/api/admin/cursos/${cursoId}/revision`, { decision: 'APROBAR' });
     assert.equal(aprobado.status, 200, aprobado.texto);
-    const bloqueado = await c.como(docente, 'PUT', `/api/lecciones/${vistaId}`, {
-      titulo: 'Cambio tardío', orden: 2, tipo: 'VIDEO', youtubeUrl: videoId, vistaPrevia: true,
+    // Sprint 3: el curso publicado se sigue editando y no vuelve a revisión.
+    const publicado = await c.como(docente, 'PUT', `/api/lecciones/${vistaId}`, {
+      titulo: 'Vista previa', orden: 2, tipo: 'VIDEO', youtubeUrl: videoId, vistaPrevia: true,
     });
-    assert.equal(bloqueado.status, 409, bloqueado.texto);
+    assert.equal(publicado.status, 200, publicado.texto);
+    assert.equal(publicado.json.estado, 'PUBLICADO');
   });
 
   it('publica solo la vista previa explícita; PDF requiere inscripción y vínculo con su curso', async () => {

@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import { idRuta } from '../../shared/http/esquemas.js';
 import {
+  datosCuestionarioSchema,
   datosLeccionSchema,
   datosModuloSchema,
+  type DatosCuestionario,
   type DatosLeccion,
   type DatosModulo,
 } from './temario/temario.esquemas.js';
@@ -60,5 +62,5 @@ export const datosCursoSchema = z.strictObject({
 });
 
 export type DatosCurso = z.infer<typeof datosCursoSchema>;
-export { datosModuloSchema, datosLeccionSchema };
-export type { DatosModulo, DatosLeccion };
+export { datosModuloSchema, datosLeccionSchema, datosCuestionarioSchema };
+export type { DatosModulo, DatosLeccion, DatosCuestionario };

@@ -137,7 +137,7 @@ export const rutasRevisionContenido = {
       summary:
         'Subir o reemplazar el PDF principal (DOCENTE propietario)',
       description:
-        'Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido. Límite: 30 subidas cada 15 minutos por IP (ADR-011, 11.4).',
+        'Lecciones DOCUMENTO (su contenido) o VIDEO (material de apoyo), en cursos BORRADOR, RECHAZADO o PUBLICADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido. Límite: 30 subidas cada 15 minutos por IP (ADR-011, 11.4).',
       security: seguridad,
       parameters: [idRuta],
       requestBody: {

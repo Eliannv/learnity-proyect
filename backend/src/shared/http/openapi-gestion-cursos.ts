@@ -34,6 +34,11 @@ const titulo = {
   description: 'Se recortan los espacios de los extremos antes de validar.',
 };
 
+const letra = {
+  type: 'string',
+  enum: ['A', 'B', 'C', 'D'],
+};
+
 const listaTextos = {
   type: 'array',
   maxItems: 10,
@@ -49,11 +54,11 @@ const cuerpo = (schema: unknown) => ({
 });
 
 const errores = {
-  400: error(`Datos inválidos (SOLICITUD_INVALIDA) o ${idInvalido}`),
+  400: error(`Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o ${idInvalido}`),
   401: error('Sin sesión, token inválido o sesión revocada'),
   403: error('Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO)'),
   404: error('El curso, el módulo o la lección no existe (NO_ENCONTRADO)'),
-  409: error('El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto'),
+  409: error('El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto'),
 };
 
 type CodigoError = keyof typeof errores;
@@ -133,7 +138,64 @@ export const esquemasGestionCursos = {
         youtubeUrl: { type: 'string', minLength: 1, maxLength: 255,
           description: 'Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID.' },
         vistaPrevia: { type: 'boolean', default: false } },
+    }, {
+      type: 'object', additionalProperties: false, required: ['titulo', 'orden', 'tipo'],
+      description: 'Las preguntas se guardan aparte, con `PUT /lecciones/{id}/evaluacion`.',
+      properties: { titulo, orden: { type: 'integer', minimum: 1, maximum: 12 },
+        tipo: { type: 'string', enum: ['EVALUACION'] } },
     }],
+  },
+
+  DatosCuestionario: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['preguntas'],
+    description: 'Reemplaza todas las preguntas. Los intentos anteriores conservan su puntaje.',
+    properties: {
+      preguntas: {
+        type: 'array', minItems: 5, maxItems: 10,
+        items: {
+          type: 'object', additionalProperties: false, required: ['enunciado', 'opciones', 'correcta'],
+          properties: {
+            enunciado: { type: 'string', minLength: 1, maxLength: 300 },
+            opciones: {
+              type: 'array', minItems: 4, maxItems: 4, description: 'Textos de las opciones A, B, C y D, en ese orden.',
+              items: { type: 'string', minLength: 1, maxLength: 200 },
+            },
+            correcta: letra,
+          },
+        },
+      },
+    },
+  },
+
+  CuestionarioDocente: {
+    type: 'object',
+    required: ['leccionId', 'porcentajeAprobacion', 'preguntas'],
+    properties: {
+      leccionId: entero,
+      porcentajeAprobacion: { type: 'integer', minimum: 1, maximum: 100 },
+      preguntas: {
+        type: 'array',
+        description: 'Vacía si todavía no se ha guardado ninguna.',
+        items: {
+          type: 'object', required: ['id', 'orden', 'enunciado', 'opciones', 'correcta'],
+          properties: {
+            id: entero,
+            orden: { type: 'integer', minimum: 1, maximum: 10 },
+            enunciado: texto,
+            opciones: { type: 'array', items: ref('OpcionEvaluacion') },
+            correcta: letra,
+          },
+        },
+      },
+    },
+  },
+
+  OpcionEvaluacion: {
+    type: 'object',
+    required: ['letra', 'texto'],
+    properties: { letra, texto },
   },
 
   ArchivoPdf: {
@@ -172,6 +234,7 @@ export const esquemasGestionCursos = {
       'archivo',
       'youtubeVideoId',
       'vistaPrevia',
+      'preguntas',
     ],
     properties: {
       id: entero,
@@ -192,6 +255,10 @@ export const esquemasGestionCursos = {
       },
       youtubeVideoId: { type: 'string', nullable: true, minLength: 11, maxLength: 11 },
       vistaPrevia: { type: 'boolean' },
+      preguntas: {
+        type: 'integer', minimum: 0, maximum: 10,
+        description: 'Preguntas guardadas de una EVALUACION (necesita 5 para estar completa); 0 en los demás tipos.',
+      },
     },
   },
 
@@ -237,6 +304,7 @@ export const esquemasGestionCursos = {
       'motivoRechazo',
       'docente',
       'modulos',
+      'portadaUrl',
     ],
     properties: {
       id: entero,
@@ -251,6 +319,7 @@ export const esquemasGestionCursos = {
         type: 'integer',
         minimum: 0,
       },
+      portadaUrl: { type: 'string', nullable: true, description: 'Portada del curso para el listado; null si no tiene.' },
     },
   },
 
@@ -350,7 +419,7 @@ export const rutasGestionCursos = {
   '/cursos/{id}': {
     put: {
       ...operacion(
-        'Actualizar un curso BORRADOR o RECHAZADO',
+        'Actualizar un curso BORRADOR, RECHAZADO o PUBLICADO (este último no vuelve a revisión)',
         200,
         detalle,
         todos,
@@ -398,7 +467,7 @@ export const rutasGestionCursos = {
   '/modulos/{id}/lecciones': {
     post: {
       ...operacion(
-        'Crear una lección DOCUMENTO o VIDEO de YouTube',
+        'Crear una lección DOCUMENTO, VIDEO de YouTube o EVALUACION',
         201,
         detalle,
         todos,
@@ -411,7 +480,7 @@ export const rutasGestionCursos = {
   '/lecciones/{id}': {
     put: {
       ...operacion(
-        'Actualizar una lección DOCUMENTO o VIDEO de YouTube',
+        'Actualizar una lección DOCUMENTO, VIDEO de YouTube o EVALUACION',
         200,
         detalle,
         todos,
@@ -425,6 +494,31 @@ export const rutasGestionCursos = {
         200,
         detalle,
         todos,
+      ),
+      parameters: [idRuta],
+    },
+  },
+
+  '/docente/lecciones/{id}/evaluacion': {
+    get: {
+      ...operacion(
+        'Preguntas de una lección EVALUACION con su respuesta correcta (docente dueño o ADMIN)',
+        200,
+        ref('CuestionarioDocente'),
+        [400, 401, 403, 404],
+      ),
+      parameters: [idRuta],
+    },
+  },
+
+  '/lecciones/{id}/evaluacion': {
+    put: {
+      ...operacion(
+        'Guardar las preguntas de una lección EVALUACION (5 a 10, cuatro opciones y una correcta)',
+        200,
+        detalle,
+        todos,
+        cuerpo(ref('DatosCuestionario')),
       ),
       parameters: [idRuta],
     },
