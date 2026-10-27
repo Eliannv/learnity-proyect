@@ -1,31 +1,40 @@
-<div class="pdf">
+<div class="pdf" [class.complementario]="complementario()">
   @if (leccion().archivo; as a) {
-    <p>
-      PDF asociado: {{ a.nombreOriginal }} · {{ (a.tamanoBytes / 1048576).toFixed(2) }} MB
-    </p>
+    <div class="archivo-actual">
+      <p>
+        {{ complementario() ? 'Material de apoyo' : 'PDF asociado' }}: {{ a.nombreOriginal }} · {{ (a.tamanoBytes / 1048576).toFixed(2) }} MB
+      </p>
 
-    <button
-      type="button"
-      class="btn btn-contorno"
-      [disabled]="p.ocupada() || bloqueado() || p.requiereRecarga()"
-      (click)="descargar()"
-    >
-      Descargar PDF
-    </button>
+      <button
+        type="button"
+        class="btn btn-contorno btn-sm"
+        [disabled]="p.ocupada() || bloqueado() || p.requiereRecarga()"
+        (click)="descargar()"
+      >
+        Descargar PDF
+      </button>
+    </div>
   } @else {
-    <p class="texto-suave">Esta lección todavía no tiene PDF.</p>
+    <p class="texto-suave">
+      {{ complementario() ? 'Opcional: añade un PDF con lo que se explica en el vídeo.' : 'Esta lección todavía no tiene PDF.' }}
+    </p>
   }
 
   @if (editable()) {
-    <label class="campo">
-      {{ leccion().archivo ? 'Reemplazar PDF' : 'Subir PDF' }}
+    <!-- El input nativo queda oculto: su texto ("Choose File") depende del idioma del navegador. -->
+    <label class="selector-pdf">
+      <span class="nombre-selector">
+        {{ leccion().archivo ? 'Reemplazar PDF' : 'Subir PDF' }}{{ complementario() ? ' de apoyo' : '' }}
+      </span>
 
       <input
         type="file"
+        class="entrada-oculta"
         accept="application/pdf,.pdf"
         [disabled]="p.ocupada() || bloqueado() || p.requiereRecarga()"
         (change)="subir($event)"
       />
+      <span class="btn btn-contorno btn-sm boton-archivo" aria-hidden="true">Elegir archivo PDF</span>
 
       <small>PDF de hasta 10 MB. El servidor comprobará el contenido.</small>
     </label>

@@ -1,8 +1,7 @@
-import { Component, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { environment } from '../../../../../environments/environment';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { PerfilService, fechaCorta } from '../../../../core/auth/perfil.service';
 import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api';
@@ -26,7 +25,7 @@ function contrasenaOpcional(grupo: AbstractControl): ValidationErrors | null {
 })
 export class PerfilEstudiante {
   protected readonly auth = inject(AuthService);
-  protected readonly sprint34Habilitado = environment.sprint34Habilitado;
+  protected readonly aprendizajeDisponible = computed(() => this.auth.roles().includes('ESTUDIANTE'));
   private readonly perfiles = inject(PerfilService);
   private readonly solicitudes = inject(SolicitudesDocenteService);
   private readonly fb = inject(FormBuilder).nonNullable;

@@ -12,6 +12,8 @@
         "build": "tsc -p tsconfig.json",
         "start": "node dist/server.js",
         "typecheck": "tsc -p tsconfig.verificar.json",
+        "api:serializar": "tsx scripts/serializar-openapi.mts",
+        "api:verificar": "tsx scripts/serializar-openapi.mts --check",
         "db:seed": "tsx src/database/seed.ts",
         "db:seed-publico": "tsx scripts/sembrar-catalogo.ts",
         "db:probar": "tsx scripts/probar-repositorio.ts",

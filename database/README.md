@@ -19,6 +19,8 @@ Hay dos caminos al mismo esquema final, con los mismos archivos y en el mismo or
 | `linea_base_permisos.sql` | Los `GRANT` de la sección 14 del README principal (`learnity_app` con DML en todo), último paso de la línea base en una base nueva. La 019 los retira |
 | `learnity_modelo.dbml` | Modelo para https://dbdiagram.io (Import → DBML) |
 | `migraciones/0NN_<nombre>.up.sql` / `.down.sql` | Cambios desde la 017, cada uno con su reversión. Detalle en PLAN_BD §6 |
+| `migraciones/027_aprendizaje_youtube.up.sql` / `.down.sql` | Sprint 3: permisos mínimos de inscripción/progreso, ID de YouTube validado y fecha de última actividad. Se ha aplicado únicamente en `learnity_test`; para otros entornos seguir el procedimiento de respaldo y aprobación de este documento |
+| `migraciones/028_evaluaciones_permisos.up.sql` / `.down.sql` | Sprint 3: solo privilegios, sin cambios de tablas. `learnity_app` lee y reemplaza preguntas y opciones (`evaluacion`, `pregunta`, `opcion`) y registra intentos y respuestas (`intento_evaluacion`, `respuesta`, solo SELECT e INSERT). Mismo procedimiento que la 027 fuera de `learnity_test` |
 | `migraciones/RETENIDAS.txt` | Migraciones que todavía no se aplican. Hoy ninguna: la 023 salió el 20-10-2026 (ver *La 023 ya no está retenida*) |
 | `migraciones/propuestas/` | Migraciones sin número que esperan un ADR (hoy, `pg_trgm`) |
 | `verificacion/huella_esquema.sql` | Huella del esquema (solo lectura): comprueba que un `down` deja la base igual |

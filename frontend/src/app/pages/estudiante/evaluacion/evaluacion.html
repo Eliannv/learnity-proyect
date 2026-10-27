@@ -1,62 +1,94 @@
 <div class="contenedor pagina">
   <section class="tarjeta evaluacion">
-    <header>
-      <h1>Evaluación · módulo 2</h1>
-      <span class="texto-suave">Pregunta 5 de 5</span>
-    </header>
-
     @if (calificada()) {
+      <header>
+        <h1>Evaluación · módulo 2</h1>
+        <span class="texto-suave">Completada</span>
+      </header>
+
       <div class="resultado" [class.reprobado]="!aprobado()" role="status">
         <lucide-icon [name]="aprobado() ? 'circle-check' : 'circle-alert'" [size]="28" />
         <div>
           @if (aprobado()) {
-            <strong>Aprobaste con {{ aciertos() }} de 5</strong>
+            <strong>Aprobaste con {{ aciertos() }} de {{ total() }}</strong>
             <p>El módulo quedó marcado como completado. Puedes volver a intentarlo cuando quieras.</p>
           } @else {
-            <strong>Obtuviste {{ aciertos() }} de 5</strong>
-            <p>Necesitas al menos 60 % (3 de 5) para aprobar. Puedes reintentar sin límite.</p>
+            <strong>Obtuviste {{ aciertos() }} de {{ total() }}</strong>
+            <p>Necesitas al menos 60 % para aprobar. Puedes reintentar sin límite.</p>
+          }
+        </div>
+      </div>
+
+      <div class="revision-lista">
+        @for (p of preguntas; track p.id; let i = $index) {
+          <div class="revision-item" [class.correcta]="elegidas()[p.id] === p.correcta" [class.incorrecta]="elegidas()[p.id] !== p.correcta">
+            <lucide-icon [name]="elegidas()[p.id] === p.correcta ? 'check' : 'x'" [size]="20" />
+            <div>
+              <p class="enunciado-rev"><strong>{{ i + 1 }}.</strong> {{ p.enunciado }}</p>
+              <p class="respuesta-rev">Tu respuesta: {{ elegidas()[p.id] }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      <hr class="separador" />
+
+      <div class="acciones">
+        <button type="button" class="btn btn-contorno btn-lg" (click)="reintentar()">Reintentar la evaluación</button>
+        @if (aprobado()) {
+          <a class="btn btn-primario btn-lg" [routerLink]="'/aprender/' + cursoId() + '/condicionales'">Continuar al módulo 3</a>
+        }
+      </div>
+    } @else {
+      <div class="barra-paso">
+        <span class="paso-etiqueta">Pregunta {{ indice() + 1 }} de {{ total() }}</span>
+        <div class="indicador-progreso" role="progressbar" [attr.aria-valuenow]="indice() + 1" [attr.aria-valuemin]="1" [attr.aria-valuemax]="total()">
+          <div class="progreso-barra-fill" [style.width.%]="((indice() + 1) / total()) * 100"></div>
+        </div>
+      </div>
+
+      <h2 class="enunciado">{{ preguntaActual().enunciado }}</h2>
+
+      <div class="opciones" role="radiogroup" [attr.aria-label]="preguntaActual().enunciado">
+        @for (o of preguntaActual().opciones; track o.letra) {
+          <button
+            type="button"
+            role="radio"
+            class="opcion"
+            [class.elegida]="elegidas()[preguntaActual().id] === o.letra"
+            [attr.aria-checked]="elegidas()[preguntaActual().id] === o.letra"
+            (click)="elegir(o.letra)"
+          >
+            <span class="letra">{{ o.letra }}</span>
+            <span class="texto">{{ o.texto }}</span>
+          </button>
+        }
+      </div>
+
+      <hr class="separador" />
+
+      <div class="acciones envio">
+        <div>
+          @if (!esPrimera()) {
+            <button type="button" class="btn btn-contorno btn-lg" (click)="anterior()">
+              <lucide-icon name="arrow-left" [size]="18" />
+              <span>Anterior</span>
+            </button>
+          }
+        </div>
+        <div>
+          @if (!esUltima()) {
+            <button type="button" class="btn btn-primario btn-lg" [disabled]="!actualRespondida()" (click)="siguiente()">
+              <span>Siguiente</span>
+              <lucide-icon name="arrow-right" [size]="18" />
+            </button>
+          } @else {
+            <button type="button" class="btn btn-primario btn-lg" [disabled]="!completa()" (click)="calificar()">
+              Enviar respuestas
+            </button>
           }
         </div>
       </div>
     }
-
-    <h2 class="enunciado">{{ pregunta.enunciado }}</h2>
-
-    <div class="opciones" role="radiogroup" [attr.aria-label]="pregunta.enunciado">
-      @for (o of pregunta.opciones; track o.letra) {
-        <button
-          type="button"
-          role="radio"
-          class="opcion"
-          [class]="'opcion ' + (estado(o.letra) ?? '')"
-          [attr.aria-checked]="elegida() === o.letra"
-          [disabled]="calificada()"
-          (click)="elegir(o.letra)"
-        >
-          <span class="letra">{{ o.letra }}</span>
-          <span class="texto">{{ o.texto }}</span>
-          @if (estado(o.letra) === 'correcta') {
-            <lucide-icon name="check" [size]="22" />
-          }
-          @if (estado(o.letra) === 'incorrecta') {
-            <lucide-icon name="x" [size]="22" />
-          }
-        </button>
-      }
-    </div>
-
-    <hr class="separador" />
-
-    <div class="acciones">
-      @if (calificada()) {
-        <button type="button" class="btn btn-contorno btn-lg" (click)="reintentar()">Reintentar la evaluación</button>
-        @if (aprobado()) {
-          <a class="btn btn-acento btn-lg" [routerLink]="'/aprender/' + cursoId() + '/condicionales'">Continuar al módulo 3</a>
-        }
-      } @else {
-        <a class="btn btn-contorno btn-lg" [routerLink]="'/aprender/' + cursoId() + '/presentacion-del-tema'">Volver a la lección</a>
-        <button type="button" class="btn btn-primario btn-lg" [disabled]="!elegida()" (click)="calificar()">Enviar respuestas</button>
-      }
-    </div>
   </section>
 </div>

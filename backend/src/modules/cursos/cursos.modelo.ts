@@ -23,6 +23,25 @@ export interface LeccionPrivada {
   orden: number;
   tipo: TipoLeccion;
   archivo: ArchivoPdf | null;
+  youtubeVideoId: string | null;
+  vistaPrevia: boolean;
+  /** Preguntas guardadas de una EVALUACION; 0 en los demás tipos. */
+  preguntas: number;
+}
+
+export type LetraOpcion = 'A' | 'B' | 'C' | 'D';
+
+/** Cuestionario tal como lo edita el docente: incluye la opción correcta. */
+export interface CuestionarioDocente {
+  leccionId: number;
+  porcentajeAprobacion: number;
+  preguntas: {
+    id: number;
+    orden: number;
+    enunciado: string;
+    opciones: { letra: LetraOpcion; texto: string }[];
+    correcta: LetraOpcion;
+  }[];
 }
 
 export interface ModuloPrivado {
@@ -44,6 +63,8 @@ export interface CursoResumen {
   motivoRechazo: string | null;
   docente: string;
   modulos: number;
+  /** Portada para identificar el curso en los listados; null si no tiene. */
+  portadaUrl: string | null;
 }
 
 export interface CursoDetalle {

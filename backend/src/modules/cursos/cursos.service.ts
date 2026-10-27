@@ -12,7 +12,9 @@ import type {
 import {
   detallePrivado,
   detallePrivadoService,
+  exigirVigencia,
   prevalidarPdfCurso,
+  vigenciaPrevia,
 } from './detalle-privado.service.js';
 import { fichaRepository } from './ficha.repository.js';
 import {
@@ -37,7 +39,7 @@ export interface ServicioCursos {
     prevalidados?: ReadonlySet<string>,
   ): Promise<CursoDetalle>;
   prevalidarPdfDeLeccion(idLeccion: number): Promise<ReadonlySet<string>>;
-  autorizarLectura(idLeccion: number, idCursoArchivo: number, usuario: UsuarioSesion): Promise<void>;
+  autorizarLectura(idLeccion: number, idCursoArchivo: number, idArchivo: number, usuario: UsuarioSesion): Promise<void>;
 
   // Para modules/revision (CONTRATOS_SERVICIO §2.1)
   listarParaRevision(usuario: UsuarioSesion): Promise<{ items: CursoResumen[] }>;
@@ -115,8 +117,9 @@ export const cursosService = {
         ]);
       }
 
+      const previos = await vigenciaPrevia(cliente, base.estado, idCurso, prevalidados);
       await fichaRepository.actualizarCurso(cliente, idCurso, datos);
-      return detallePrivado(cliente, idCurso, prevalidados);
+      return exigirVigencia(previos, await detallePrivado(cliente, idCurso, prevalidados));
     }, { actor: usuario.idPersona });
   },
 

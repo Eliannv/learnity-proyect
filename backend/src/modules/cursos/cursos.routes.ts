@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
 import { validarCuerpo, validarParametros } from '../../shared/http/validar.js';
+import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { cursosController } from './cursos.controller.js';
 import {
+  datosCuestionarioSchema,
   datosCursoSchema,
   datosLeccionSchema,
   datosModuloSchema,
@@ -11,6 +13,13 @@ import {
 
 // Capa routes: gestión privada de cursos, módulos y lecciones del docente.
 export const cursosRoutes = Router();
+
+cursosRoutes.get(
+  '/lecciones/:id/video-preview',
+  limitarPorIp('video-preview', 120, 15),
+  validarParametros(idCursoRuta),
+  cursosController.videoVistaPrevia,
+);
 
 cursosRoutes.get(
   '/docente/cursos',
@@ -94,6 +103,23 @@ cursosRoutes.delete(
   autorizar('DOCENTE'),
   validarParametros(idCursoRuta),
   cursosController.eliminarLeccion,
+);
+
+cursosRoutes.get(
+  '/docente/lecciones/:id/evaluacion',
+  autenticar,
+  autorizar('DOCENTE', 'ADMIN'),
+  validarParametros(idCursoRuta),
+  cursosController.obtenerCuestionario,
+);
+
+cursosRoutes.put(
+  '/lecciones/:id/evaluacion',
+  autenticar,
+  autorizar('DOCENTE'),
+  validarParametros(idCursoRuta),
+  validarCuerpo(datosCuestionarioSchema, 'Revisa las preguntas de la evaluación.'),
+  cursosController.guardarCuestionario,
 );
 
 cursosRoutes.post(

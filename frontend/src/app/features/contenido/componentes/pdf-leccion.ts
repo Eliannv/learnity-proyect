@@ -24,6 +24,8 @@ export class PdfLeccion {
   readonly leccion = input.required<LeccionPrivada>();
   readonly editable = input(false);
   readonly bloqueado = input(false);
+  /** true en un VIDEO: el PDF es su material de apoyo, no el contenido de la lección. */
+  readonly complementario = input(false);
   readonly subirArchivo =
     input.required<
       (leccionId: number, archivo: File) => Observable<HttpEvent<CursoDetalle>>

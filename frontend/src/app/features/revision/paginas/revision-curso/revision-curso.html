@@ -58,6 +58,7 @@
         [bloqueado]="p.ocupada() || p.requiereRecarga()"
         [subirArchivoFn]="subirArchivoFn"
         [descargarArchivoFn]="descargarArchivoFn"
+        [cargarCuestionarioFn]="cargarCuestionarioFn"
         (ocupado)="descargando.set($event)"
         (recargar)="cargar()"
       />

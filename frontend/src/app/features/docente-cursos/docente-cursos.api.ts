@@ -3,7 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type {
+  CuestionarioDocente,
   CursoDetalle,
+  DatosCuestionario,
   DatosCurso,
   DatosLeccion,
   DatosModulo,
@@ -62,6 +64,18 @@ export class DocenteCursosApi {
             datos,
           )
         : this.http.put<CursoDetalle>(`${this.base}/lecciones/${id}`, datos),
+    );
+  }
+
+  cuestionario(leccionId: number): Promise<CuestionarioDocente> {
+    return firstValueFrom(
+      this.http.get<CuestionarioDocente>(`${this.base}/docente/lecciones/${leccionId}/evaluacion`),
+    );
+  }
+
+  guardarCuestionario(leccionId: number, datos: DatosCuestionario): Promise<CursoDetalle> {
+    return firstValueFrom(
+      this.http.put<CursoDetalle>(`${this.base}/lecciones/${leccionId}/evaluacion`, datos),
     );
   }
 

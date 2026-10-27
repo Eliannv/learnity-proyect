@@ -1,26 +1,65 @@
-<section class="tarjeta bloque">
-  <h2>3. Enviar a revisión</h2>
+<aside class="panel-preparacion" aria-label="Estado del curso">
+  <div class="panel-cabecera">
+    <div>
+      <h2>{{ publicado() ? 'Curso publicado' : 'Estado del curso' }}</h2>
+      <span class="estado">{{ curso().estado }}</span>
+    </div>
+    @if (publicado()) {
+      <span class="conteo listo">En el catálogo</span>
+    } @else {
+      <span class="conteo" [class.listo]="curso().validacion.completo">
+        {{ curso().validacion.completo ? 'Listo' : problemas().length + ' pendientes' }}
+      </span>
+    }
+  </div>
 
-  @if (curso().validacion.completo) {
-    <p>
-      Los datos guardados cumplen la verificación del servidor. Al enviar, dejarás de poder editar.
+  <div class="resumen-cifras" aria-label="Contenido creado">
+    <span><strong>{{ curso().modulos.length }}</strong> módulos</span>
+    <span><strong>{{ totalVideos() }}</strong> vídeos</span>
+    <span><strong>{{ totalPdf() }}</strong> PDF</span>
+  </div>
+
+  @if (publicado()) {
+    <p class="texto-estado">
+      Lo que guardes se publica al momento para tus estudiantes. No necesita una nueva revisión.
     </p>
+    @if (problemas().length > 0) {
+      <p class="texto-estado">Todavía no lo ven tus estudiantes:</p>
+      <ul class="lista-pendientes">
+        @for (problema of problemas(); track $index) {
+          <li>
+            <button type="button" (click)="irAPaso.emit(pasoDe(problema))">
+              {{ problema.mensaje }}
+              <span aria-hidden="true">→</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+    <a class="btn btn-contorno boton-enviar" [routerLink]="['/cursos', curso().id]">Ver en el catálogo</a>
   } @else {
-    <p>Antes de enviar, completa lo siguiente:</p>
+    @if (curso().validacion.completo) {
+      <p class="texto-estado">El contenido está listo para enviarlo a revisión.</p>
+    } @else {
+      <p class="texto-estado">Completa estos puntos antes de enviar el curso:</p>
+      <ul class="lista-pendientes">
+        @for (problema of problemas(); track $index) {
+          <li>
+            <button type="button" (click)="irAPaso.emit(pasoDe(problema))">
+              {{ problema.mensaje }}
+              <span aria-hidden="true">→</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
 
-    <ul>
-      @for (problema of curso().validacion.problemas; track $index) {
-        <li>{{ problema.mensaje }}</li>
-      }
-    </ul>
+    <button type="button" class="btn btn-acento boton-enviar"
+      [disabled]="deshabilitado() || !curso().validacion.completo" (click)="enviar.emit()">
+      Enviar a revisión
+    </button>
+    @if (deshabilitado() && curso().validacion.completo) {
+      <small class="ayuda-panel">Guarda o termina de editar el contenido para continuar.</small>
+    }
   }
-
-  <button
-    type="button"
-    class="btn btn-acento"
-    [disabled]="deshabilitado() || !curso().validacion.completo"
-    (click)="enviar.emit()"
-  >
-    Enviar a revisión
-  </button>
-</section>
+</aside>

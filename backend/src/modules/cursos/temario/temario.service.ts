@@ -2,13 +2,22 @@ import type { UsuarioSesion } from '../../../shared/auth/tipos.js';
 import { enTransaccion } from '../../../shared/database/pool.js';
 import { AppError } from '../../../shared/http/app-error.js';
 import { registrarEvento } from '../../../shared/log/registro.js';
-import type { CursoDetalle } from '../cursos.modelo.js';
-import { detallePrivado, prevalidarPdfCurso } from '../detalle-privado.service.js';
+import type { ContextoLeccion, CuestionarioDocente, CursoDetalle } from '../cursos.modelo.js';
+import { detallePrivado, exigirVigencia, prevalidarPdfCurso, vigenciaPrevia } from '../detalle-privado.service.js';
 import { fichaRepository } from '../ficha.repository.js';
-import { MENSAJES, politicaCurso } from '../politica-curso.js';
+import { MENSAJE_CONSULTAR_CURSO, MENSAJES, politicaCurso } from '../politica-curso.js';
 import { obtenerLiberadorArchivos } from '../puertos.js';
-import type { DatosLeccion, DatosModulo } from './temario.esquemas.js';
+import { cuestionarioRepository } from './cuestionario.repository.js';
+import {
+  extraerYoutubeVideoId, type DatosCuestionario, type DatosLeccion, type DatosModulo,
+} from './temario.esquemas.js';
 import { temarioRepository } from './temario.repository.js';
+
+function exigirEvaluacion(contexto: ContextoLeccion): void {
+  if (contexto.tipoLeccion !== 'EVALUACION') {
+    throw AppError.solicitudInvalida('Solo las lecciones EVALUACION tienen preguntas.');
+  }
+}
 
 async function limpiarPendientesFueraDeTransaccion(): Promise<void> {
   const liberador = obtenerLiberadorArchivos();
@@ -30,6 +39,12 @@ async function prevalidarDe(idCurso: number | null): Promise<ReadonlySet<string>
 }
 
 export const temarioService = {
+  async videoVistaPrevia(idLeccion: number): Promise<{ leccionId: number; youtubeVideoId: string }> {
+    const video = await temarioRepository.videoVistaPrevia(idLeccion);
+    if (!video) throw AppError.noEncontrado('Lección no disponible.');
+    return video;
+  },
+
   async crearModulo(
     idCurso: number,
     datos: DatosModulo,
@@ -44,6 +59,7 @@ export const temarioService = {
         throw AppError.noEncontrado('Curso no disponible.');
       }
       politicaCurso.exigirEditable(base, usuario, MENSAJES.crearModulo);
+      const previos = await vigenciaPrevia(cliente, base.estado, base.id, prevalidados);
 
       const cantidad = await temarioRepository.contarModulos(cliente, idCurso);
       if (cantidad >= 10) {
@@ -66,7 +82,7 @@ export const temarioService = {
       }
 
       await temarioRepository.crearModulo(cliente, idCurso, datos);
-      return detallePrivado(cliente, idCurso, prevalidados);
+      return exigirVigencia(previos, await detallePrivado(cliente, idCurso, prevalidados));
     }, { actor: usuario.idPersona });
   },
 
@@ -89,6 +105,7 @@ export const temarioService = {
         throw AppError.noEncontrado('Curso no disponible.');
       }
       politicaCurso.exigirEditable(base, usuario, MENSAJES.actualizarModulo);
+      const previos = await vigenciaPrevia(cliente, base.estado, base.id, prevalidados);
 
       const moduloActual = await temarioRepository.buscarModulo(cliente, idModulo);
       if (!moduloActual || moduloActual.idCurso !== base.id) {
@@ -121,7 +138,7 @@ export const temarioService = {
         throw AppError.noEncontrado('Módulo no disponible.');
       }
 
-      return detallePrivado(cliente, modulo.idCurso, prevalidados);
+      return exigirVigencia(previos, await detallePrivado(cliente, modulo.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
   },
 
@@ -144,6 +161,7 @@ export const temarioService = {
         throw AppError.noEncontrado('Curso no disponible.');
       }
       politicaCurso.exigirEditable(base, usuario, MENSAJES.crearLeccion);
+      const previos = await vigenciaPrevia(cliente, base.estado, base.id, prevalidados);
 
       const cantidad = await temarioRepository.contarLecciones(cliente, idModulo);
       if (cantidad >= 12) {
@@ -165,8 +183,9 @@ export const temarioService = {
         ]);
       }
 
-      await temarioRepository.crearLeccion(cliente, idModulo, datos);
-      return detallePrivado(cliente, modulo.idCurso, prevalidados);
+      const youtubeVideoId = datos.tipo === 'VIDEO' ? extraerYoutubeVideoId(datos.youtubeUrl) : null;
+      await temarioRepository.crearLeccion(cliente, idModulo, datos, youtubeVideoId);
+      return exigirVigencia(previos, await detallePrivado(cliente, modulo.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
   },
 
@@ -189,9 +208,10 @@ export const temarioService = {
         throw AppError.noEncontrado('Curso no disponible.');
       }
       politicaCurso.exigirEditable(base, usuario, MENSAJES.actualizarLeccion);
+      const previos = await vigenciaPrevia(cliente, base.estado, base.id, prevalidados);
 
-      if (leccion.tipo !== 'DOCUMENTO') {
-        throw AppError.solicitudInvalida('En este sprint solo se editan lecciones DOCUMENTO.');
+      if (leccion.tipo !== datos.tipo) {
+        throw AppError.solicitudInvalida('No se puede cambiar el tipo de una lección.');
       }
 
       const ocupado = await temarioRepository.ordenLeccionOcupado(
@@ -214,12 +234,13 @@ export const temarioService = {
         idLeccion,
         leccion.idModulo,
         datos,
+        datos.tipo === 'VIDEO' ? extraerYoutubeVideoId(datos.youtubeUrl) : null,
       );
       if (!actualizado) {
         throw AppError.noEncontrado('Lección no disponible.');
       }
 
-      return detallePrivado(cliente, leccion.idCurso, prevalidados);
+      return exigirVigencia(previos, await detallePrivado(cliente, leccion.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
   },
 
@@ -241,6 +262,7 @@ export const temarioService = {
         throw AppError.noEncontrado('Curso no disponible.');
       }
       politicaCurso.exigirEditable(base, usuario, MENSAJES.eliminarLeccion);
+      const previos = await vigenciaPrevia(cliente, base.estado, base.id, prevalidados);
 
       const idsPdf = await temarioRepository.pdfDeLeccion(cliente, idLeccion);
       const eliminada = await temarioRepository.eliminarLeccion(
@@ -257,11 +279,48 @@ export const temarioService = {
         await liberador.retirarSinUso(cliente, leccion.idCurso, idsPdf);
       }
 
-      return detallePrivado(cliente, leccion.idCurso, prevalidados);
+      return exigirVigencia(previos, await detallePrivado(cliente, leccion.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
 
     await limpiarPendientesFueraDeTransaccion();
     return resultado;
+  },
+
+  /** El docente dueño (o un administrador que revisa) ve las preguntas con su respuesta correcta. */
+  async cuestionarioDocente(idLeccion: number, usuario: UsuarioSesion): Promise<CuestionarioDocente> {
+    return enTransaccion(async (cliente) => {
+      const contexto = await temarioRepository.leccion(cliente, idLeccion);
+      if (!contexto) throw AppError.noEncontrado('Lección no disponible.');
+      if (!politicaCurso.puedeLeerArchivos(contexto, usuario)) {
+        throw AppError.sinPermiso(MENSAJE_CONSULTAR_CURSO);
+      }
+      exigirEvaluacion(contexto);
+      return {
+        leccionId: idLeccion,
+        porcentajeAprobacion: await cuestionarioRepository.porcentajeAprobacion(cliente, idLeccion) ?? 60,
+        preguntas: await cuestionarioRepository.preguntas(cliente, idLeccion),
+      };
+    });
+  },
+
+  async guardarCuestionario(
+    idLeccion: number,
+    datos: DatosCuestionario,
+    usuario: UsuarioSesion,
+  ): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'DOCENTE');
+    const prevalidados = await prevalidarDe(await temarioRepository.idCursoDeLeccion(idLeccion));
+
+    return enTransaccion(async (cliente) => {
+      const contexto = await temarioRepository.leccion(cliente, idLeccion, true);
+      if (!contexto) throw AppError.noEncontrado('Lección no disponible.');
+      politicaCurso.exigirEditable(contexto, usuario, MENSAJES.cuestionario);
+      exigirEvaluacion(contexto);
+      const previos = await vigenciaPrevia(cliente, contexto.estado, contexto.id, prevalidados);
+
+      await cuestionarioRepository.reemplazar(cliente, idLeccion, datos);
+      return exigirVigencia(previos, await detallePrivado(cliente, contexto.id, prevalidados));
+    }, { actor: usuario.idPersona });
   },
 
   async eliminarModulo(
@@ -282,6 +341,7 @@ export const temarioService = {
         throw AppError.noEncontrado('Curso no disponible.');
       }
       politicaCurso.exigirEditable(base, usuario, MENSAJES.eliminarModulo);
+      const previos = await vigenciaPrevia(cliente, base.estado, base.id, prevalidados);
 
       const idsPdf = await temarioRepository.pdfDeModulo(cliente, idModulo);
       const eliminado = await temarioRepository.eliminarModulo(cliente, idModulo, modulo.idCurso);
@@ -294,7 +354,7 @@ export const temarioService = {
         await liberador.retirarSinUso(cliente, modulo.idCurso, idsPdf);
       }
 
-      return detallePrivado(cliente, modulo.idCurso, prevalidados);
+      return exigirVigencia(previos, await detallePrivado(cliente, modulo.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
 
     await limpiarPendientesFueraDeTransaccion();

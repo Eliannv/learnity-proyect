@@ -264,7 +264,7 @@ export interface paths {
         put?: never;
         /**
          * Subir o reemplazar el PDF principal (DOCENTE propietario)
-         * @description Solo DOCUMENTO y cursos BORRADOR o RECHAZADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido. Límite: 30 subidas cada 15 minutos por IP (ADR-011, 11.4).
+         * @description Lecciones DOCUMENTO (su contenido) o VIDEO (material de apoyo), en cursos BORRADOR, RECHAZADO o PUBLICADO. Un PDF con páginas, sin cifrado, de 1 a 10485760 bytes. Se verifica su contenido. Límite: 30 subidas cada 15 minutos por IP (ADR-011, 11.4).
          */
         post: {
             parameters: {
@@ -543,7 +543,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -759,7 +759,7 @@ export interface paths {
                 500: components["responses"]["ErrorInterno"];
             };
         };
-        /** Actualizar un curso BORRADOR o RECHAZADO */
+        /** Actualizar un curso BORRADOR, RECHAZADO o PUBLICADO (este último no vuelve a revisión) */
         put: {
             parameters: {
                 query?: never;
@@ -785,7 +785,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -821,7 +821,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto */
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -877,7 +877,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -913,7 +913,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto */
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -967,7 +967,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1003,7 +1003,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto */
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1040,7 +1040,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1076,7 +1076,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto */
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1102,7 +1102,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Crear una lección DOCUMENTO */
+        /** Crear una lección DOCUMENTO, VIDEO de YouTube o EVALUACION */
         post: {
             parameters: {
                 query?: never;
@@ -1128,7 +1128,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1164,7 +1164,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto */
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1192,7 +1192,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Actualizar una lección DOCUMENTO */
+        /** Actualizar una lección DOCUMENTO, VIDEO de YouTube o EVALUACION */
         put: {
             parameters: {
                 query?: never;
@@ -1218,7 +1218,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1254,7 +1254,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto */
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1291,7 +1291,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1327,7 +1327,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto */
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1339,6 +1339,237 @@ export interface paths {
                 500: components["responses"]["ErrorInterno"];
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/lecciones/{id}/evaluacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preguntas de una lección EVALUACION con su respuesta correcta (docente dueño o ADMIN) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CuestionarioDocente"];
+                    };
+                };
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión, token inválido o sesión revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso, el módulo o la lección no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lecciones/{id}/evaluacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Guardar las preguntas de una lección EVALUACION (5 a 10, cuatro opciones y una correcta) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosCuestionario"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CursoDetalle"];
+                    };
+                };
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión, token inválido o sesión revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE, sin perfil docente activo o el curso no es del docente (SIN_PERMISO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso, el módulo o la lección no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lecciones/{id}/video-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Video de muestra de una lección pública
+         * @description Solo VIDEO con vistaPrevia=true de un curso PUBLICADO. Devuelve un ID de YouTube, nunca una URL arbitraria.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            leccionId: number;
+                            youtubeVideoId: string;
+                        };
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Lección sin vista previa pública */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1378,7 +1609,7 @@ export interface paths {
                         "application/json": components["schemas"]["CursoDetalle"];
                     };
                 };
-                /** @description Datos inválidos (SOLICITUD_INVALIDA) o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                /** @description Datos inválidos (SOLICITUD_INVALIDA), cambio que dejaría incompleto un curso PUBLICADO o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1414,7 +1645,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El curso no está en BORRADOR ni en RECHAZADO (CURSO_BLOQUEADO) u otro conflicto */
+                /** @description El curso está EN_REVISION o ARCHIVADO (CURSO_BLOQUEADO) u otro conflicto */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1739,6 +1970,591 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cursos/{id}/inscripcion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inscribirse en un curso publicado
+         * @description Solo ESTUDIANTE. Idempotente: devuelve 201 al crear y 200 si ya estaba inscrito. Hasta 30 peticiones por IP y 15 minutos.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Ya inscrito; no se duplica */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InscripcionAprendizaje"];
+                    };
+                };
+                /** @description Inscripción creada */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InscripcionAprendizaje"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Curso inexistente o no publicado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Límite de peticiones */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mi-aprendizaje": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mis cursos inscritos que siguen publicados */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["CursoInscrito"][];
+                        };
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mi-aprendizaje/cursos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Temario privado y progreso de un curso inscrito */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DetalleAprendizaje"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Curso no publicado o estudiante no inscrito */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lecciones/{id}/progreso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Guardar posición o marcar completada una lección inscrita
+         * @description Los segundos son una posición de reanudación declarada por el cliente, no prueba de visionado. La finalización no retrocede. Una lección EVALUACION no admite `completada` (400): se completa al aprobar un intento. Hasta 240 peticiones por IP y 15 minutos.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        segundosVistos?: number;
+                        completada?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProgresoGuardado"];
+                    };
+                };
+                /** @description Datos de progreso inválidos, `completada` en una EVALUACION o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Lección no publicada o estudiante no inscrito */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                /** @description Límite de peticiones */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/cursos/{id}/estudiantes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Seguimiento de inscritos en un curso propio (o ADMIN)
+         * @description Los cursos ajenos responden 404 para no revelar su existencia. No se entrega el correo del estudiante.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SeguimientoDocente"];
+                    };
+                };
+                /** @description ID o paginación inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE o ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Curso no disponible o ajeno */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluaciones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preguntas de una evaluación de un curso inscrito, sin las respuestas correctas */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EvaluacionEstudiante"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Evaluación inexistente o incompleta, curso no publicado o estudiante no inscrito */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/evaluaciones/{id}/intentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Responder una evaluación: el servidor califica y guarda el intento
+         * @description Intentos ilimitados. Aprueba con `porcentajeAprobacion` (60 % por defecto) y entonces marca la lección como completada. Suspender no bloquea el resto del curso. Hasta 60 peticiones por IP y 15 minutos.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        respuestas: {
+                            preguntaId: number;
+                            /** @enum {string} */
+                            opcion: "A" | "B" | "C" | "D";
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Intento calificado y guardado */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResultadoIntento"];
+                    };
+                };
+                /** @description Falta alguna pregunta, una pregunta repetida o de otra evaluación, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Evaluación inexistente o incompleta, curso no publicado o estudiante no inscrito */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                /** @description Límite de peticiones */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2713,13 +3529,57 @@ export interface components {
             titulo: string;
             orden: number;
         };
-        /** @description Un módulo tiene como máximo 12 lecciones y cada orden se usa una sola vez (si no, 400). Solo se editan lecciones DOCUMENTO. */
+        /** @description Máximo 12 lecciones por módulo, con orden único. VIDEO guarda un ID normalizado de YouTube. */
         DatosLeccion: {
             /** @description Se recortan los espacios de los extremos antes de validar. */
             titulo: string;
             orden: number;
             /** @enum {string} */
             tipo: "DOCUMENTO";
+        } | {
+            /** @description Se recortan los espacios de los extremos antes de validar. */
+            titulo: string;
+            orden: number;
+            /** @enum {string} */
+            tipo: "VIDEO";
+            /** @description Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID. */
+            youtubeUrl: string;
+            /** @default false */
+            vistaPrevia: boolean;
+        } | {
+            /** @description Se recortan los espacios de los extremos antes de validar. */
+            titulo: string;
+            orden: number;
+            /** @enum {string} */
+            tipo: "EVALUACION";
+        };
+        /** @description Reemplaza todas las preguntas. Los intentos anteriores conservan su puntaje. */
+        DatosCuestionario: {
+            preguntas: {
+                enunciado: string;
+                /** @description Textos de las opciones A, B, C y D, en ese orden. */
+                opciones: string[];
+                /** @enum {string} */
+                correcta: "A" | "B" | "C" | "D";
+            }[];
+        };
+        CuestionarioDocente: {
+            leccionId: number;
+            porcentajeAprobacion: number;
+            /** @description Vacía si todavía no se ha guardado ninguna. */
+            preguntas: {
+                id: number;
+                orden: number;
+                enunciado: string;
+                opciones: components["schemas"]["OpcionEvaluacion"][];
+                /** @enum {string} */
+                correcta: "A" | "B" | "C" | "D";
+            }[];
+        };
+        OpcionEvaluacion: {
+            /** @enum {string} */
+            letra: "A" | "B" | "C" | "D";
+            texto: string;
         };
         ArchivoPdf: {
             id: number;
@@ -2735,6 +3595,10 @@ export interface components {
             /** @enum {string} */
             tipo: "DOCUMENTO" | "VIDEO" | "EVALUACION";
             archivo: components["schemas"]["ArchivoPdf"] | null;
+            youtubeVideoId: string | null;
+            vistaPrevia: boolean;
+            /** @description Preguntas guardadas de una EVALUACION (necesita 5 para estar completa); 0 en los demás tipos. */
+            preguntas: number;
         };
         ModuloPrivado: {
             id: number;
@@ -2754,6 +3618,8 @@ export interface components {
             motivoRechazo: string | null;
             docente: string;
             modulos: number;
+            /** @description Portada del curso para el listado; null si no tiene. */
+            portadaUrl: string | null;
         };
         CursoDetalle: {
             id: number;
@@ -2799,6 +3665,144 @@ export interface components {
                 estudianteDesde: string;
                 cursosCompletados: number;
             };
+        };
+        InscripcionAprendizaje: {
+            id: number;
+            cursoId: number;
+            /** @enum {string} */
+            estado: "ACTIVA" | "COMPLETADA";
+            progresoPct: number;
+            ultimaLeccionId: number | null;
+            /** Format: date-time */
+            inscritoEn: string;
+            /** Format: date-time */
+            completadoEn: string | null;
+        };
+        FichaCursoAprendizaje: {
+            id: number;
+            titulo: string;
+            subtitulo: string | null;
+            portadaUrl: string | null;
+            /** @enum {string} */
+            nivel: "PRINCIPIANTE" | "INTERMEDIO" | "AVANZADO";
+            categoria: {
+                id: number;
+                nombre: string;
+            };
+            docente: string;
+        };
+        CursoInscrito: {
+            curso: components["schemas"]["FichaCursoAprendizaje"];
+            inscripcion: components["schemas"]["InscripcionAprendizaje"];
+            totalLecciones: number;
+            leccionesCompletadas: number;
+        };
+        LeccionAprendizaje: {
+            id: number;
+            orden: number;
+            titulo: string;
+            /** @enum {string} */
+            tipo: "DOCUMENTO" | "VIDEO" | "EVALUACION";
+            vistaPrevia: boolean;
+            archivoId: number | null;
+            /** @description ID de YouTube de la lección VIDEO; null en los demás tipos. */
+            youtubeVideoId: string | null;
+            /** @description Para `GET /evaluaciones/{id}` en una lección EVALUACION; null en los demás tipos. */
+            evaluacionId: number | null;
+            progreso: {
+                segundosVistos: number;
+                completada: boolean;
+            };
+        };
+        DetalleAprendizaje: components["schemas"]["CursoInscrito"] & {
+            modulos: {
+                id: number;
+                orden: number;
+                titulo: string;
+                lecciones: components["schemas"]["LeccionAprendizaje"][];
+            }[];
+        };
+        ProgresoGuardado: {
+            leccionId: number;
+            segundosVistos: number;
+            completada: boolean;
+            progresoPct: number;
+            /** @enum {string} */
+            estado: "ACTIVA" | "COMPLETADA";
+            ultimaLeccionId: number;
+        };
+        SeguimientoDocente: {
+            curso: {
+                id: number;
+                titulo: string;
+            };
+            items: {
+                idPersona: number;
+                nombre: string;
+                /** @enum {string} */
+                estado: "ACTIVA" | "COMPLETADA";
+                progresoPct: number;
+                ultimaLeccionId: number | null;
+                /** Format: date-time */
+                inscritoEn: string;
+                /** Format: date-time */
+                ultimaActividadEn: string;
+            }[];
+            pagina: number;
+            limite: number;
+            total: number;
+            totalPaginas: number;
+            resumen: {
+                inscritos: number;
+                completados: number;
+                progresoPromedio: number;
+            };
+        };
+        ResumenIntentos: {
+            intentos: number;
+            /** @description Porcentaje con hasta dos decimales. */
+            mejorPuntaje: number | null;
+            /** @description Porcentaje con hasta dos decimales. */
+            ultimoPuntaje: number | null;
+            /** @description Aprobada en al menos un intento. */
+            aprobada: boolean;
+        };
+        /** @description Nunca incluye cuál es la opción correcta. */
+        EvaluacionEstudiante: {
+            id: number;
+            leccionId: number;
+            titulo: string;
+            porcentajeAprobacion: number;
+            preguntas: {
+                id: number;
+                orden: number;
+                enunciado: string;
+                opciones: components["schemas"]["OpcionEvaluacion"][];
+            }[];
+            resumen: components["schemas"]["ResumenIntentos"];
+        };
+        ResultadoIntento: {
+            intento: {
+                id: number;
+                /** @description Porcentaje con hasta dos decimales. */
+                puntaje: number;
+                aprobado: boolean;
+                correctas: number;
+                total: number;
+                /** Format: date-time */
+                realizadoEn: string;
+            };
+            /** @description Si cada respuesta fue correcta; no revela la opción correcta de las falladas. */
+            respuestas: {
+                preguntaId: number;
+                /** @enum {string} */
+                opcion: "A" | "B" | "C" | "D";
+                correcta: boolean;
+            }[];
+            resumen: components["schemas"]["ResumenIntentos"];
+            progresoPct: number;
+            /** @enum {string} */
+            estado: "ACTIVA" | "COMPLETADA";
         };
     };
     responses: {

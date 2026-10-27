@@ -5,6 +5,7 @@ import type {
   ContextoLeccion,
   TipoLeccion,
 } from '../cursos.modelo.js';
+import type { DatosLeccion } from './temario.esquemas.js';
 
 export interface FilaTemario {
   moduloId: number;
@@ -15,6 +16,9 @@ export interface FilaTemario {
   leccionTitulo: string | null;
   leccionOrden: number | null;
   leccionTipo: TipoLeccion | null;
+  youtubeVideoId: string | null;
+  vistaPrevia: boolean | null;
+  preguntas: number;
 
   archivoId: number | null;
   archivoTipo: string | null;
@@ -30,6 +34,19 @@ export interface ArchivoCursoFila {
 }
 
 export const temarioRepository = {
+  async videoVistaPrevia(idLeccion: number): Promise<{ leccionId: number; youtubeVideoId: string } | null> {
+    const { rows } = await consultar<{ leccionId: number; youtubeVideoId: string }>(
+      `SELECT l.id_leccion AS "leccionId", l.youtube_video_id AS "youtubeVideoId"
+         FROM leccion l
+         JOIN modulo m ON m.id_modulo = l.id_modulo
+         JOIN curso c ON c.id_curso = m.id_curso
+        WHERE l.id_leccion = $1 AND l.tipo = 'VIDEO' AND l.vista_previa = TRUE
+          AND l.youtube_video_id IS NOT NULL AND c.estado = 'PUBLICADO'`,
+      [idLeccion],
+    );
+    return rows[0] ?? null;
+  },
+
   async archivosPdfDelCurso(idCurso: number): Promise<ArchivoCursoFila[]> {
     const { rows } = await consultar<ArchivoCursoFila>(
       `SELECT id_archivo AS id, ruta, tamano_bytes AS tamano
@@ -255,19 +272,17 @@ export const temarioRepository = {
   async crearLeccion(
     cliente: PoolClient,
     idModulo: number,
-    datos: {
-      titulo: string;
-      orden: number;
-      tipo: 'DOCUMENTO';
-    },
+    datos: DatosLeccion,
+    youtubeVideoId: string | null,
   ): Promise<number> {
     const { rows } = await cliente.query<{ id: number }>(
       `INSERT INTO leccion (
-         id_modulo, titulo, orden, tipo
+         id_modulo, titulo, orden, tipo, youtube_video_id, vista_previa
        )
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id_leccion AS id`,
-      [idModulo, datos.titulo, datos.orden, datos.tipo],
+      [idModulo, datos.titulo, datos.orden, datos.tipo, youtubeVideoId,
+        datos.tipo === 'VIDEO' ? datos.vistaPrevia : false],
     );
 
     return rows[0]!.id;
@@ -306,26 +321,28 @@ export const temarioRepository = {
     cliente: PoolClient,
     idLeccion: number,
     idModulo: number,
-    datos: {
-      titulo: string;
-      orden: number;
-      tipo: 'DOCUMENTO';
-    },
+    datos: DatosLeccion,
+    youtubeVideoId: string | null,
   ): Promise<boolean> {
     const resultado = await cliente.query(
       `
         UPDATE leccion
         SET titulo = $3,
-            orden = $4
+            orden = $4,
+            youtube_video_id = $6,
+            vista_previa = $7
         WHERE id_leccion = $1
           AND id_modulo = $2
-          AND tipo = 'DOCUMENTO'
+          AND tipo = $5
       `,
       [
         idLeccion,
         idModulo,
         datos.titulo,
         datos.orden,
+        datos.tipo,
+        youtubeVideoId,
+        datos.tipo === 'VIDEO' ? datos.vistaPrevia : false,
       ],
     );
 
@@ -429,6 +446,12 @@ export const temarioRepository = {
           l.titulo AS "leccionTitulo",
           l.orden AS "leccionOrden",
           l.tipo AS "leccionTipo",
+          l.youtube_video_id AS "youtubeVideoId",
+          l.vista_previa AS "vistaPrevia",
+          (SELECT count(*)::int
+             FROM evaluacion e
+             JOIN pregunta p ON p.id_evaluacion = e.id_evaluacion
+            WHERE e.id_leccion = l.id_leccion) AS preguntas,
 
           a.id_archivo AS "archivoId",
           a.tipo AS "archivoTipo",
@@ -464,7 +487,7 @@ export const temarioRepository = {
         UPDATE leccion l
         SET id_archivo = $1
         WHERE l.id_leccion = $2
-          AND l.tipo = 'DOCUMENTO'
+          AND l.tipo IN ('DOCUMENTO', 'VIDEO')
           AND EXISTS (
             SELECT 1
             FROM modulo m

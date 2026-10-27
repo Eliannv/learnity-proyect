@@ -19,6 +19,8 @@ export type ModuloPublico = CursoPublicoDetalle['temario'][number];
 export type LeccionPublica = ModuloPublico['lecciones'][number];
 export type PaginaCatalogo =
   paths['/cursos']['get']['responses'][200]['content']['application/json'];
+export type VistaPreviaVideo =
+  paths['/lecciones/{id}/video-preview']['get']['responses'][200]['content']['application/json'];
 export type ConsultaCatalogo = NonNullable<
   paths['/cursos']['get']['parameters']['query']
 >;
@@ -43,3 +45,19 @@ export type ListaCursos =
 
 export type DecisionRevision =
   paths['/admin/cursos/{id}/revision']['put']['requestBody']['content']['application/json'];
+
+export type InscripcionAprendizaje = Esquemas['InscripcionAprendizaje'];
+export type CursoInscrito = Esquemas['CursoInscrito'];
+export type DetalleAprendizaje = Esquemas['DetalleAprendizaje'];
+export type LeccionAprendizaje = Esquemas['LeccionAprendizaje'];
+export type ProgresoGuardado = Esquemas['ProgresoGuardado'];
+export type SeguimientoDocente = Esquemas['SeguimientoDocente'];
+
+export type DatosCuestionario = Esquemas['DatosCuestionario'];
+export type CuestionarioDocente = Esquemas['CuestionarioDocente'];
+export type LetraOpcion = Esquemas['OpcionEvaluacion']['letra'];
+export type EvaluacionEstudiante = Esquemas['EvaluacionEstudiante'];
+export type ResumenIntentos = Esquemas['ResumenIntentos'];
+export type ResultadoIntento = Esquemas['ResultadoIntento'];
+export type DatosIntento =
+  paths['/evaluaciones/{id}/intentos']['post']['requestBody']['content']['application/json'];

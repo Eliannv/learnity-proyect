@@ -1,10 +1,19 @@
-<div class="pagina">
-  <a routerLink="/docente/cursos">← Mis cursos</a>
+<div class="pagina editor-curso-pagina">
+  <a routerLink="/docente/cursos" class="enlace-volver">← Mis cursos</a>
 
-  <header class="cabecera">
-    <h1 class="titulo-pagina">
-      {{ id() === 'nuevo' ? 'Crear curso' : 'Contenido del curso' }}
-    </h1>
+  <header class="cabecera cabecera-editor">
+    <div>
+      <h1 class="titulo-pagina">
+        {{ id() === 'nuevo' ? 'Crear curso' : 'Editor de curso' }}
+      </h1>
+      <p class="subtitulo-editor">
+        {{
+          id() === 'nuevo'
+            ? 'Define los datos iniciales para comenzar a estructurar tu curso.'
+            : curso()?.titulo
+        }}
+      </p>
+    </div>
 
     @if (curso(); as c) {
       <app-estado-curso [estado]="c.estado" />
@@ -22,12 +31,16 @@
     </div>
   } @else {
     @if (!editable()) {
-      <p class="mensaje">Este curso no permite cambios en su estado actual.</p>
+      <p class="mensaje aviso-bloqueo">Este curso no permite cambios en su estado actual.</p>
+    } @else if (curso()?.estado === 'PUBLICADO') {
+      <p class="mensaje aviso-publicado" role="note">
+        Este curso está publicado. Puedes seguir ampliándolo: lo que guardes llega a tus estudiantes al momento, sin volver a revisión.
+      </p>
     }
     @if (curso()?.motivoRechazo; as motivo) {
-      <p class="mensaje error">
+      <div class="mensaje error motivo-rechazo" role="alert">
         <strong>Motivo del rechazo:</strong> {{ motivo }}
-      </p>
+      </div>
     }
     @if (p.error()) {
       <p class="mensaje error" role="alert">{{ p.error() }}</p>
@@ -41,55 +54,96 @@
       </button>
     }
 
-    <app-formulario-ficha
-      [form]="form"
-      [curso]="curso()"
-      [categorias]="categorias()"
-      [editable]="editable()"
-      [deshabilitado]="bloqueado() || formularioContenido()"
-      [guardando]="p.ocupada()"
-      [errores]="p.campos()"
-      (guardar)="guardar()"
-      (cambio)="sucio.set(true)"
-    />
+    <!-- Navegación entre las dos áreas que se editan -->
+    <nav class="stepper-editor" aria-label="Etapas del editor de curso">
+      <button
+        type="button"
+        class="stepper-item"
+        [class.activo]="pasoActual() === 1"
+        [class.completado]="paso1Completo()"
+        (click)="cambiarPaso(1)"
+      >
+        <span class="stepper-circulo" aria-hidden="true">{{ paso1Completo() ? '✓' : '1' }}</span>
+        <span class="stepper-titulo">1. Información del curso</span>
+      </button>
 
-    @if (curso(); as c) {
-      <section class="tarjeta bloque">
-        <h2>2. Módulos, lecciones y PDF</h2>
+      <span class="stepper-flecha" aria-hidden="true">›</span>
 
-        @if (sucio()) {
-          <p class="mensaje">
-            Guarda los datos del curso antes de modificar su contenido o enviarlo a revisión.
+      <button
+        type="button"
+        class="stepper-item"
+        [class.activo]="pasoActual() === 2"
+        [class.completado]="paso2Completo()"
+        [disabled]="!curso()"
+        (click)="cambiarPaso(2)"
+      >
+        <span class="stepper-circulo" aria-hidden="true">{{ paso2Completo() ? '✓' : '2' }}</span>
+        <span class="stepper-titulo">2. Módulos y contenido</span>
+      </button>
+
+    </nav>
+
+    <div class="editor-cuerpo-principal">
+      <div class="editor-columna-contenido">
+        <!-- Contenido del Paso 1: Información del curso -->
+        <div [class.paso-oculto]="pasoActual() !== 1">
+          <app-formulario-ficha
+            [form]="form"
+            [curso]="curso()"
+            [categorias]="categorias()"
+            [editable]="editable()"
+            [deshabilitado]="bloqueado() || formularioContenido()"
+            [guardando]="p.ocupada()"
+            [errores]="p.campos()"
+            (guardar)="guardar()"
+            (cambio)="sucio.set(true)"
+            (continuar)="cambiarPaso(2)"
+          />
+        </div>
+
+        <!-- Contenido del Paso 2: Módulos y contenido -->
+        @if (curso(); as c) {
+          <div [class.paso-oculto]="pasoActual() !== 2">
+            @if (sucio()) {
+              <p class="mensaje" role="status">
+                Guarda los datos del curso antes de modificar su contenido o enviarlo a revisión.
+              </p>
+            }
+
+            <app-arbol-temario
+              [curso]="c"
+              [editable]="editable()"
+              [bloqueado]="p.ocupada() || sucio() || p.requiereRecarga()"
+              [guardarModuloFn]="guardarModuloFn"
+              [guardarLeccionFn]="guardarLeccionFn"
+              [eliminarContenidoFn]="eliminarContenidoFn"
+              [subirArchivoFn]="subirArchivoFn"
+              [descargarArchivoFn]="descargarArchivoFn"
+              [cargarCuestionarioFn]="cargarCuestionarioFn"
+              [guardarCuestionarioFn]="guardarCuestionarioFn"
+              (actualizado)="aplicar($event)"
+              (ocupado)="contenidoOcupado.set($event)"
+              (formularioAbierto)="formularioContenido.set($event)"
+              (recargar)="cargar()"
+              (volver)="cambiarPaso(1)"
+            />
+          </div>
+        } @else {
+          <p class="mensaje" [class.paso-oculto]="pasoActual() !== 2">
+            Crea el borrador para empezar a agregar módulos y lecciones.
           </p>
         }
 
-        <app-arbol-temario
-          [curso]="c"
-          [editable]="editable()"
-          [bloqueado]="p.ocupada() || sucio() || p.requiereRecarga()"
-          [guardarModuloFn]="guardarModuloFn"
-          [guardarLeccionFn]="guardarLeccionFn"
-          [eliminarContenidoFn]="eliminarContenidoFn"
-          [subirArchivoFn]="subirArchivoFn"
-          [descargarArchivoFn]="descargarArchivoFn"
-          (actualizado)="aplicar($event)"
-          (ocupado)="contenidoOcupado.set($event)"
-          (formularioAbierto)="formularioContenido.set($event)"
-          (recargar)="cargar()"
-        />
-      </section>
-
-      @if (editable()) {
-        <app-panel-publicacion
-          [curso]="c"
-          [deshabilitado]="bloqueado() || sucio() || formularioContenido()"
-          (enviar)="enviar()"
-        />
+      </div>
+      @if (curso(); as c) {
+        @if (editable()) {
+          <app-panel-publicacion class="editor-columna-estado"
+            [curso]="c"
+            [deshabilitado]="bloqueado() || sucio() || formularioContenido()"
+            (enviar)="enviar()"
+            (irAPaso)="cambiarPaso($event)" />
+        }
       }
-    } @else {
-      <p class="mensaje">
-        Crea el borrador para empezar a agregar módulos y lecciones.
-      </p>
-    }
+    </div>
   }
 </div>

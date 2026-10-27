@@ -14,6 +14,7 @@ import { Peticion } from '../../../../core/estado/peticion';
 import { EstadoCursoBadge } from '../../../../shared/ui/estado-curso';
 import { ContenidoApi } from '../../../contenido/contenido.api';
 import { ArbolTemario } from '../../../docente-cursos/componentes/arbol-temario';
+import { DocenteCursosApi } from '../../../docente-cursos/docente-cursos.api';
 import { RevisionApi } from '../../revision.api';
 
 @Component({
@@ -41,6 +42,7 @@ export class RevisionCurso {
 
   private readonly api = inject(RevisionApi);
   private readonly contenidoApi = inject(ContenidoApi);
+  private readonly docenteApi = inject(DocenteCursosApi);
   private version = 0;
 
   protected readonly subirArchivoFn = (leccionId: number, archivo: File) =>
@@ -48,6 +50,10 @@ export class RevisionCurso {
 
   protected readonly descargarArchivoFn = (archivoId: number) =>
     this.contenidoApi.descargarPdf(archivoId);
+
+  /** El administrador consulta las preguntas (con su respuesta correcta) antes de decidir. */
+  protected readonly cargarCuestionarioFn = (leccionId: number) =>
+    this.docenteApi.cuestionario(leccionId);
 
   constructor() {
     effect(() => {

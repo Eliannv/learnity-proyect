@@ -3,7 +3,7 @@ import { Component, input } from '@angular/core';
 @Component({
   selector: 'app-barra-progreso',
   template: `
-    <div class="barra" role="progressbar" [attr.aria-valuenow]="valor()" aria-valuemin="0" aria-valuemax="100">
+    <div class="barra" role="progressbar" [attr.aria-label]="etiqueta()" [attr.aria-valuenow]="valor()" aria-valuemin="0" aria-valuemax="100">
       <span [style.width.%]="valor()" [class.verde]="verde()"></span>
     </div>
   `,
@@ -31,4 +31,6 @@ import { Component, input } from '@angular/core';
 export class BarraProgreso {
   readonly valor = input(0);
   readonly verde = input(false);
+  /** Nombre accesible de la barra (WCAG: un progressbar necesita nombre). */
+  readonly etiqueta = input('Progreso del curso');
 }

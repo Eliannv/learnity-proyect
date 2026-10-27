@@ -7,25 +7,22 @@
 
     <nav aria-label="Menú del panel">
       @for (item of config().items; track item.ruta) {
-        <a [routerLink]="item.ruta" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: item.exacto ?? false }">
-          <span class="riel-icono">
-            <lucide-icon [name]="item.icono" [size]="22" />
-            @if (item.destacado) {
-              <span class="aviso-punto" aria-hidden="true"></span>
-            }
-          </span>
-          <span class="riel-texto">{{ item.etiqueta }}</span>
-          @if (item.contador) {
-            <span [class]="item.destacado ? 'contador' : 'numero'">{{ item.contador }}</span>
+      <a [routerLink]="item.ruta" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: item.exacto ?? false }">
+        <span class="riel-icono">
+          <lucide-icon [name]="item.icono" [size]="22" />
+          @if (item.destacado) {
+          <span class="aviso-punto" aria-hidden="true"></span>
           }
-        </a>
+        </span>
+        <span class="riel-texto">{{ item.etiqueta }}</span>
+        @if (item.contador) {
+        <span [class]="item.destacado ? 'contador' : 'numero'">{{ item.contador }}</span>
+        }
+      </a>
       }
     </nav>
 
-    <a class="riel-vista" routerLink="/">
-      <span class="riel-icono"><lucide-icon name="arrow-left-right" [size]="22" /></span>
-      <span class="riel-texto">Vista estudiante</span>
-    </a>
+  
   </div>
 </aside>
 
@@ -37,8 +34,8 @@
     <span class="seccion oculto-movil">
       <strong>{{ config().etiqueta }}</strong>
       @if (seccion()) {
-        <lucide-icon name="chevron-right" [size]="16" />
-        {{ seccion() }}
+      <lucide-icon name="chevron-right" [size]="16" />
+      {{ seccion() }}
       }
     </span>
     <a class="vista-estudiante" routerLink="/">Vista estudiante</a>

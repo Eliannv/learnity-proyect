@@ -6,7 +6,6 @@ import { CatalogoApi } from '../../features/catalogo/catalogo.api';
 import { Logo } from '../ui/logo';
 import { MenuCuenta } from './menu-cuenta';
 import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
-import { environment } from '../../../environments/environment';
 
 /**
  * Header del sitio (HeaderPublic). Cambia según la sesión:
@@ -21,9 +20,6 @@ import { environment } from '../../../environments/environment';
   template: `
     <header>
       <div class="barra">
-        <button type="button" class="icono-btn solo-movil" (click)="menuMovil.set(!menuMovil())" [attr.aria-expanded]="menuMovil()" aria-label="Abrir menú">
-          <lucide-icon [name]="menuMovil() ? 'x' : 'menu'" [size]="24" />
-        </button>
 
         <a routerLink="/" class="logo-enlace" aria-label="Learnity, inicio"><app-logo [tamano]="24" /></a>
 
@@ -50,7 +46,7 @@ import { environment } from '../../../environments/environment';
             @if (!auth.esDocente() && !auth.esAdmin()) {
               <a class="enlace-marca oculto-movil" routerLink="/perfil" [queryParams]="{ solicitud: 1 }">Enseña en Learnity</a>
             }
-            @if (sprint34Habilitado) {
+            @if (auth.roles().includes('ESTUDIANTE')) {
               <app-vista-previa-aprendizaje class="oculto-movil" />
             }
             <app-menu-cuenta />
@@ -71,7 +67,7 @@ import { environment } from '../../../environments/environment';
           }
           <hr class="separador" />
           @if (auth.autenticado()) {
-            @if (sprint34Habilitado) {
+            @if (auth.roles().includes('ESTUDIANTE')) {
               <a routerLink="/mi-aprendizaje" (click)="cerrarMenus()">Mi aprendizaje</a>
             }
             <a [routerLink]="auth.rutaPerfil()" (click)="cerrarMenus()">Mi perfil</a>
@@ -88,7 +84,6 @@ import { environment } from '../../../environments/environment';
 })
 export class HeaderSitio {
   protected readonly auth = inject(AuthService);
-  protected readonly sprint34Habilitado = environment.sprint34Habilitado;
   private readonly router = inject(Router);
   private readonly catalogoApi = inject(CatalogoApi);
   protected readonly categorias = signal<string[]>([]);

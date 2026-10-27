@@ -285,7 +285,7 @@ describe('Seguridad HTTP de gestión de cursos', () => {
     assert.equal(r.status, 403);
   });
 
-  it('bloquea la edición de un curso publicado', async () => {
+  it('edita un curso publicado sin devolverlo a revisión (Sprint 3)', async () => {
     const id = await crearCurso();
 
     await f.query(
@@ -301,11 +301,11 @@ describe('Seguridad HTTP de gestión de cursos', () => {
       `/api/cursos/${id}`,
       docente,
       'PUT',
-      datosCurso('Intento bloqueado'),
+      datosCurso('Edición publicada'),
     );
 
-    assert.equal(r.status, 409);
-    assert.equal(r.json.error.codigo, 'CURSO_BLOQUEADO');
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    assert.equal(r.json.estado, 'PUBLICADO');
   });
 
   it('rechaza órdenes duplicados de módulos', async () => {

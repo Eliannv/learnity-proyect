@@ -1,0 +1,83 @@
+<div class="evaluacion">
+  <div class="evaluacion-resumen">
+    <p>
+      @if (leccion().preguntas > 0) {
+        <strong>{{ leccion().preguntas }} preguntas</strong> · se aprueba con el 60 % de aciertos.
+        El estudiante puede repetirla las veces que quiera y nunca le bloquea el curso.
+      } @else {
+        Todavía no tiene preguntas. Añade entre {{ minimo }} y {{ maximo }} para que tus estudiantes puedan responderla.
+      }
+    </p>
+    @if (!abierto()) {
+      <button type="button" class="btn btn-contorno btn-sm" [disabled]="bloqueado() || cargando()" (click)="abrir()">
+        {{ editable() ? (leccion().preguntas > 0 ? 'Editar preguntas' : 'Añadir preguntas') : 'Ver preguntas' }}
+      </button>
+    }
+  </div>
+
+  @if (p.error()) {
+    <div class="mensaje error" role="alert">
+      <p>{{ p.error() }}</p>
+      @if (p.requiereRecarga()) {
+        <button type="button" class="btn btn-contorno btn-sm" (click)="recargar.emit()">Actualizar curso</button>
+      }
+    </div>
+  }
+  @if (p.exito()) { <p class="mensaje exito" role="status">{{ p.exito() }}</p> }
+  @if (cargando()) { <p class="texto-suave" role="status">Cargando las preguntas…</p> }
+
+  @if (abierto()) {
+    <form class="cuestionario" (ngSubmit)="guardar()" novalidate>
+      <fieldset class="cuestionario-preguntas" [disabled]="!editable() || bloqueado() || p.ocupada()">
+        <legend>Preguntas de «{{ leccion().titulo }}»</legend>
+        @for (pregunta of preguntas; track pregunta.clave; let i = $index) {
+          <fieldset class="pregunta">
+            <legend>Pregunta {{ i + 1 }}</legend>
+            <label class="campo">
+              <span>Enunciado de la pregunta {{ i + 1 }}</span>
+              <textarea class="control" rows="2" maxlength="300" [name]="'enunciado-' + pregunta.clave"
+                [(ngModel)]="pregunta.enunciado" placeholder="Ej. ¿Qué palabra declara una constante en JavaScript?"></textarea>
+              @if (error('preguntas.' + i + '.enunciado'); as e) { <small class="error-campo" role="alert">{{ e }}</small> }
+            </label>
+            <p class="opciones-ayuda" [id]="'ayuda-' + leccion().id + '-' + pregunta.clave">Escribe las cuatro opciones y marca la correcta.</p>
+            <div class="opciones" role="radiogroup" [attr.aria-label]="'Respuesta correcta de la pregunta ' + (i + 1)">
+              @for (letra of letras; track letra; let j = $index) {
+                <div class="opcion" [class.correcta]="pregunta.correcta === letra">
+                  <input type="radio" class="marca-correcta" [name]="'correcta-' + leccion().id + '-' + pregunta.clave"
+                    [value]="letra" [(ngModel)]="pregunta.correcta"
+                    [attr.aria-label]="'La opción ' + letra + ' es la correcta en la pregunta ' + (i + 1)" />
+                  <span class="letra" aria-hidden="true">{{ letra }}</span>
+                  <input class="control" maxlength="200" [name]="'opcion-' + pregunta.clave + '-' + j"
+                    [(ngModel)]="pregunta.opciones[j]"
+                    [attr.aria-label]="'Opción ' + letra + ' de la pregunta ' + (i + 1)"
+                    [attr.aria-describedby]="'ayuda-' + leccion().id + '-' + pregunta.clave" />
+                  @if (pregunta.correcta === letra) { <span class="etiqueta-correcta">Correcta</span> }
+                </div>
+                @if (error('preguntas.' + i + '.opciones.' + j); as e) { <small class="error-campo" role="alert">{{ e }}</small> }
+              }
+            </div>
+            @if (editable()) {
+              <button type="button" class="btn btn-contorno btn-sm btn-peligro quitar" (click)="quitar(i)"
+                [attr.aria-label]="'Quitar la pregunta ' + (i + 1)">Quitar pregunta</button>
+            }
+          </fieldset>
+        }
+      </fieldset>
+      @if (error('preguntas'); as e) { <p class="error-campo" role="alert">{{ e }}</p> }
+
+      <div class="acciones">
+        @if (editable()) {
+          <button type="button" class="btn btn-contorno" [disabled]="bloqueado() || p.ocupada() || preguntas.length >= maximo" (click)="agregar()">
+            + Añadir pregunta ({{ preguntas.length }}/{{ maximo }})
+          </button>
+          <button type="submit" class="btn btn-primario" [disabled]="bloqueado() || p.ocupada()">
+            {{ p.ocupada() ? 'Guardando…' : 'Guardar preguntas' }}
+          </button>
+        }
+        <button type="button" class="btn btn-contorno" [disabled]="p.ocupada()" (click)="cerrar()">
+          {{ editable() ? 'Cancelar' : 'Cerrar' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

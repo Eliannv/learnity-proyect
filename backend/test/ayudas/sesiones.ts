@@ -57,11 +57,18 @@ export function fabricaCuentas(f: Fixtures, srv: Servidor, marca: string) {
   return { crearCuenta, correo };
 }
 
-/** Borra todo lo creado por una suite: cursos, categorías, solicitudes y cuentas con persona.nombres = marca. */
+/** Borra todo lo creado por una suite: aprendizaje, cursos, categorías, solicitudes y cuentas con persona.nombres = marca. */
 export async function limpiarMarca(f: Fixtures, marca: string): Promise<void> {
   // Cuentas creadas por el registro HTTP con otros nombres: se reconocen por el correo con la marca.
   await f.query("UPDATE persona SET nombres = $1 WHERE id_persona IN (SELECT id_persona FROM usuario WHERE correo LIKE $1 || '.%@qa-edge.test' OR correo LIKE $1 || '%@qa-edge.test')", [marca]);
   const sub = '(SELECT id_persona FROM persona WHERE nombres = $1)';
+  const inscripciones = `SELECT i.id_inscripcion FROM inscripcion i
+    JOIN curso c ON c.id_curso = i.id_curso
+    WHERE i.id_persona IN ${sub} OR c.titulo LIKE $1 || '%'
+      OR c.id_docente IN (SELECT id_docente FROM docente WHERE id_persona IN ${sub})
+      OR c.revisado_por IN ${sub}`;
+  await f.query(`DELETE FROM progreso_leccion WHERE id_inscripcion IN (${inscripciones})`, [marca]);
+  await f.query(`DELETE FROM inscripcion WHERE id_inscripcion IN (${inscripciones})`, [marca]);
   await f.query(
     `DELETE FROM curso WHERE id_docente IN (SELECT id_docente FROM docente WHERE id_persona IN ${sub}) OR revisado_por IN ${sub}`, [marca]);
   await f.query("DELETE FROM curso WHERE titulo LIKE $1 || '%'", [marca]);

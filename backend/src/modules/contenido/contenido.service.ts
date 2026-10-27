@@ -186,7 +186,7 @@ export const contenidoService = {
       throw AppError.noEncontrado('Archivo no encontrado.');
     }
 
-    await cursosApi.autorizarLectura(archivo.leccionId, archivo.idCurso, usuario);
+    await cursosApi.autorizarLectura(archivo.leccionId, archivo.idCurso, archivo.id, usuario);
     const bytes = await almacenLocal.leer(archivo.ruta, archivo.tamanoBytes);
 
     return {

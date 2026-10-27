@@ -139,7 +139,7 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
     assert.equal(filas, 1);
   });
 
-  it('CAR-CON-04: lección ajena, curso bloqueado y lección que no es DOCUMENTO', async () => {
+  it('CAR-CON-04: lección ajena, curso bloqueado, curso publicado y tipos de lección', async () => {
     const { idCurso, idLeccion } = await leccionNueva();
     const pdf = await pdfMinimo();
     const ajena = await subirPdf(srv, idLeccion, docB.token, pdf);
@@ -148,19 +148,26 @@ describe('POST /api/lecciones/:id/archivo (CAR-CON-01..04, 07)', () => {
     const est403 = await subirPdf(srv, idLeccion, est.token, pdf);
     assert.equal(est403.status, 403);
     assert.equal(est403.json.error.codigo, 'SIN_PERMISO');
-    for (const e of ['EN_REVISION', 'PUBLICADO', 'ARCHIVADO']) {
+    for (const e of ['EN_REVISION', 'ARCHIVADO']) {
       await forzarEstado(idCurso, e);
       const r = await subirPdf(srv, idLeccion, docA.token, pdf);
       assert.equal(r.status, 409, e);
       assert.equal(r.json.error.codigo, 'CURSO_BLOQUEADO', e);
       assert.equal(r.json.error.mensaje, 'El curso ya no permite cambios. Actualiza su estado.', e);
     }
+    // Sprint 3: un curso publicado se edita sin volver a revisión.
+    await forzarEstado(idCurso, 'PUBLICADO');
+    assert.equal((await subirPdf(srv, idLeccion, docA.token, pdf)).status, 200);
     await forzarEstado(idCurso, 'BORRADOR');
+    // Sprint 3: el PDF de un VIDEO es su material de apoyo; una EVALUACION no admite PDF.
     const { rows } = await f.query<{ id: number }>(
       "INSERT INTO leccion (id_modulo, titulo, tipo, orden) SELECT id_modulo, 'Video', 'VIDEO', 2 FROM leccion WHERE id_leccion = $1 RETURNING id_leccion AS id", [idLeccion]);
-    const video = await subirPdf(srv, rows[0]!.id, docA.token, pdf);
-    assert.equal(video.status, 400);
-    assert.equal(video.json.error.mensaje, 'Solo las lecciones DOCUMENTO admiten este PDF.');
+    assert.equal((await subirPdf(srv, rows[0]!.id, docA.token, pdf)).status, 200);
+    const evaluacion = await f.query<{ id: number }>(
+      "INSERT INTO leccion (id_modulo, titulo, tipo, orden) SELECT id_modulo, 'Prueba', 'EVALUACION', 3 FROM leccion WHERE id_leccion = $1 RETURNING id_leccion AS id", [idLeccion]);
+    const ev = await subirPdf(srv, evaluacion.rows[0]!.id, docA.token, pdf);
+    assert.equal(ev.status, 400);
+    assert.equal(ev.json.error.mensaje, 'Solo las lecciones DOCUMENTO o VIDEO admiten este PDF.');
   });
 
   it('PREC-5: id inválido, lección ajena y lección propia sin multipart', async () => {

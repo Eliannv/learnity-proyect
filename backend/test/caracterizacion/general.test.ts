@@ -54,13 +54,19 @@ describe('rutas generales', () => {
     }
   });
 
-  it('CAR-GEN-08: rutas previstas de aprendizaje y evaluaciones', async () => {
-    const rutas: Array<[string, string]> = [
-      ['POST', '/api/cursos/1/inscripcion'], ['GET', '/api/mi-aprendizaje'], ['PUT', '/api/lecciones/1/progreso'],
-      ['GET', '/api/evaluaciones/1'], ['POST', '/api/evaluaciones/1/intentos'], ['PUT', '/api/evaluaciones/1'],
+  it('CAR-GEN-08: aprendizaje y evaluaciones exigen sesión', async () => {
+    const rutas: Array<[string, string, number, string]> = [
+      ['POST', '/api/cursos/1/inscripcion', 401, 'NO_AUTENTICADO'],
+      ['GET', '/api/mi-aprendizaje', 401, 'NO_AUTENTICADO'],
+      ['PUT', '/api/lecciones/1/progreso', 401, 'NO_AUTENTICADO'],
+      // Sprint 3: el estudiante responde evaluaciones; el docente edita sus preguntas desde /lecciones/:id/evaluacion.
+      ['GET', '/api/evaluaciones/1', 401, 'NO_AUTENTICADO'],
+      ['POST', '/api/evaluaciones/1/intentos', 401, 'NO_AUTENTICADO'],
+      ['PUT', '/api/evaluaciones/1', 404, 'NO_ENCONTRADO'],
+      ['PUT', '/api/lecciones/1/evaluacion', 401, 'NO_AUTENTICADO'],
     ];
     const vistos: unknown[] = [];
-    const esperado = rutas.map(([m, r]) => [m, r, 404, 'NO_ENCONTRADO']);
+    const esperado = rutas.map(([m, r, status, codigo]) => [m, r, status, codigo]);
     for (const [metodo, ruta] of rutas) {
       const r = await srv.pedir(ruta, { metodo });
       vistos.push([metodo, ruta, r.status, r.json?.error?.codigo]);

@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { datosValidados } from '../../shared/http/validar.js';
-import type { DatosCurso, DatosLeccion, DatosModulo } from './cursos.esquemas.js';
+import type { DatosCuestionario, DatosCurso, DatosLeccion, DatosModulo } from './cursos.esquemas.js';
 import { cursosService } from './cursos.service.js';
 
 function usuario(req: Request): UsuarioSesion {
@@ -13,6 +13,13 @@ function usuario(req: Request): UsuarioSesion {
 }
 
 export const cursosController = {
+  async videoVistaPrevia(_req: Request, res: Response) {
+    const { parametros: id } = datosValidados<number>(res);
+    const video = await cursosService.videoVistaPrevia(id);
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.status(200).json(video);
+  },
+
   async crearCurso(req: Request, res: Response) {
     const curso = await cursosService.crearCurso(req.body as DatosCurso, usuario(req));
     res.status(201).json(curso);
@@ -39,6 +46,17 @@ export const cursosController = {
   async eliminarLeccion(req: Request, res: Response) {
     const { parametros: id } = datosValidados<number>(res);
     const curso = await cursosService.eliminarLeccion(id, usuario(req));
+    res.status(200).json(curso);
+  },
+
+  async obtenerCuestionario(req: Request, res: Response) {
+    const { parametros: id } = datosValidados<number>(res);
+    res.status(200).json(await cursosService.cuestionarioDocente(id, usuario(req)));
+  },
+
+  async guardarCuestionario(req: Request, res: Response) {
+    const { parametros: id } = datosValidados<number>(res);
+    const curso = await cursosService.guardarCuestionario(id, req.body as DatosCuestionario, usuario(req));
     res.status(200).json(curso);
   },
 

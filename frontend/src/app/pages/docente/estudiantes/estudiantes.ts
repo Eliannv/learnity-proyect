@@ -1,136 +1,100 @@
-import { Component } from '@angular/core';
-import { ESTUDIANTES_CURSO, INDICADORES_ESTUDIANTES } from '../../../data/datos-demo';
+import { DatePipe } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import type { CursoResumen, SeguimientoDocente } from '../../../core/api/contrato';
+import { Peticion } from '../../../core/estado/peticion';
+import { DocenteCursosApi } from '../../../features/docente-cursos/docente-cursos.api';
+import { SeguimientoDocenteApi } from '../../../features/docente-cursos/seguimiento-docente.api';
 import { Avatar } from '../../../shared/ui/avatar';
 import { BarraProgreso } from '../../../shared/ui/barra-progreso';
 import { Indicador } from '../../../shared/ui/indicador';
 
-/** Estudiantes inscritos en un curso del docente y su avance (RF-20). */
+/** Seguimiento paginado: el servidor comprueba que el curso pertenezca al docente. */
 @Component({
   selector: 'app-estudiantes-curso',
-  imports: [Avatar, BarraProgreso, Indicador],
-  template: `
-    <header class="cabecera">
-      <div>
-        <h1 class="titulo-pagina">Estudiantes del curso</h1>
-        <p class="subtitulo">Introducción a Python · 128 inscritos · progreso promedio 54 %</p>
-      </div>
-      <select class="control selector" aria-label="Curso">
-        <option>Introducción a Python</option>
-        <option>JavaScript para la web</option>
-      </select>
-    </header>
-
-    <div class="grid-stats">
-      @for (i of indicadores; track i.etiqueta) {
-        <app-indicador [etiqueta]="i.etiqueta" [valor]="i.valor" [nota]="i.nota" />
-      }
-    </div>
-
-    <div class="tabla-contenedor">
-      <table class="tabla">
-        <thead>
-          <tr>
-            <th>Estudiante</th>
-            <th>Inscrito</th>
-            <th>Progreso</th>
-            <th>Última actividad</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (e of estudiantes; track e.nombre) {
-            <tr>
-              <td>
-                <div class="persona">
-                  <app-avatar [texto]="e.iniciales" [tamano]="40" />
-                  <strong>{{ e.nombre }}</strong>
-                </div>
-              </td>
-              <td class="texto-suave">{{ e.inscrito }}</td>
-              <td>
-                <div class="progreso">
-                  <app-barra-progreso [valor]="e.progreso" [verde]="e.completado" />
-                  <strong>{{ e.progreso }} %</strong>
-                </div>
-              </td>
-              <td class="texto-suave">{{ e.actividad }}</td>
-              <td>
-                <span class="chip" [class.completado]="e.completado" [class.en-curso]="!e.completado">
-                  {{ e.completado ? 'Completado' : 'En curso' }}
-                </span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    <p class="texto-suave nota">Por privacidad, solo ves el progreso de los estudiantes inscritos en tus cursos.</p>
-  `,
-  styles: `
-    :host {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-    .cabecera {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
-    .selector {
-      width: 240px;
-      font-weight: 600;
-    }
-    .persona {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      white-space: nowrap;
-      strong {
-        font-weight: 600;
-      }
-    }
-    .progreso {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 200px;
-      app-barra-progreso {
-        flex: 1;
-      }
-      strong {
-        width: 48px;
-        text-align: right;
-      }
-    }
-    .chip.en-curso {
-      background: var(--azul-100);
-      color: var(--azul-700);
-      font-weight: 600;
-    }
-    .chip.completado {
-      background: var(--verde-100);
-      color: var(--verde-700);
-      font-weight: 600;
-    }
-    .nota {
-      font-size: 14px;
-    }
-    td {
-      white-space: nowrap;
-    }
-    @media (max-width: 900px) {
-      .cabecera {
-        flex-direction: column;
-      }
-      .selector {
-        width: 100%;
-      }
-    }
-  `,
+  imports: [DatePipe, RouterLink, Avatar, BarraProgreso, Indicador],
+  templateUrl: './estudiantes.html',
+  styleUrl: './estudiantes.scss',
 })
 export class EstudiantesCurso {
-  protected readonly estudiantes = ESTUDIANTES_CURSO;
-  protected readonly indicadores = INDICADORES_ESTUDIANTES;
+  private readonly cursosApi = inject(DocenteCursosApi);
+  private readonly seguimientoApi = inject(SeguimientoDocenteApi);
+  private readonly ruta = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private version = 0;
+
+  protected readonly cargaCursos = new Peticion();
+  protected readonly cargaEstudiantes = new Peticion();
+  protected readonly cursos = signal<CursoResumen[]>([]);
+  protected readonly cursoId = signal<number | null>(null);
+  protected readonly pagina = signal(1);
+  protected readonly seguimiento = signal<SeguimientoDocente | null>(null);
+  protected readonly cursoSeleccionado = computed(
+    () => this.cursos().find((c) => c.id === this.cursoId()),
+  );
+
+  constructor() {
+    void this.cargarCursos();
+  }
+
+  protected async cargarCursos(): Promise<void> {
+    const version = ++this.version;
+    this.cargaCursos.limpiar();
+    this.cargaCursos.ocupada.set(true);
+    this.cursos.set([]);
+    this.seguimiento.set(null);
+
+    try {
+      const respuesta = await this.cursosApi.misCursos();
+      if (version !== this.version) return;
+      this.cursos.set(respuesta.items);
+      const solicitado = Number(this.ruta.snapshot.queryParamMap.get('curso'));
+      const id = respuesta.items.find((c) => c.id === solicitado)?.id ?? respuesta.items[0]?.id ?? null;
+      this.cursoId.set(id);
+      if (id !== null) await this.cargarEstudiantes(id, 1, version);
+    } catch (error) {
+      if (version === this.version) this.cargaCursos.fallar(error);
+    } finally {
+      if (version === this.version) this.cargaCursos.ocupada.set(false);
+    }
+  }
+
+  protected cambiarCurso(evento: Event): void {
+    const id = Number((evento.target as HTMLSelectElement).value);
+    if (!this.cursos().some((curso) => curso.id === id)) return;
+    this.cursoId.set(id);
+    void this.router.navigate([], { relativeTo: this.ruta, queryParams: { curso: id }, replaceUrl: true });
+    void this.cargarEstudiantes(id, 1);
+  }
+
+  protected cargarPagina(pagina: number): void {
+    const id = this.cursoId();
+    if (id !== null && pagina >= 1 && pagina <= (this.seguimiento()?.totalPaginas ?? 0)) {
+      void this.cargarEstudiantes(id, pagina);
+    }
+  }
+
+  protected reintentarEstudiantes(): void {
+    const id = this.cursoId();
+    if (id !== null) void this.cargarEstudiantes(id, this.pagina());
+  }
+
+  protected iniciales(nombre: string): string {
+    return nombre.split(/\s+/).slice(0, 2).map((parte) => parte[0] ?? '').join('').toUpperCase();
+  }
+
+  private async cargarEstudiantes(id: number, pagina: number, version = ++this.version): Promise<void> {
+    this.pagina.set(pagina);
+    this.cargaEstudiantes.limpiar();
+    this.cargaEstudiantes.ocupada.set(true);
+    this.seguimiento.set(null);
+    try {
+      const datos = await this.seguimientoApi.listar(id, pagina);
+      if (version === this.version) this.seguimiento.set(datos);
+    } catch (error) {
+      if (version === this.version) this.cargaEstudiantes.fallar(error);
+    } finally {
+      if (version === this.version) this.cargaEstudiantes.ocupada.set(false);
+    }
+  }
 }

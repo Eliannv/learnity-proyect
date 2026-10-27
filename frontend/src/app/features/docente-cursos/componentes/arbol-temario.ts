@@ -1,15 +1,17 @@
 import { HttpEvent } from '@angular/common/http';
 import {
   Component,
-  computed,
   input,
   output,
   signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import {
+  type CuestionarioDocente,
   type CursoDetalle,
+  type DatosCuestionario,
   type DatosLeccion,
   type DatosModulo,
   type LeccionPrivada,
@@ -18,10 +20,22 @@ import {
 } from '../../../core/cursos/gestion-cursos.model';
 import { Peticion } from '../../../core/estado/peticion';
 import { PdfLeccion } from '../../contenido/componentes/pdf-leccion';
+import { ReproductorYoutube } from '../../contenido/componentes/reproductor-youtube';
+import { esIdYoutube, validarEnlaceYoutube } from '../../contenido/youtube';
+import { CampoYoutube } from './campo-youtube';
+import { EditorEvaluacion } from './editor-evaluacion';
+
+type TipoContenido = LeccionPrivada['tipo'];
+
+const NOMBRE_TIPO: Record<TipoContenido, string> = {
+  VIDEO: 'vídeo',
+  DOCUMENTO: 'documento PDF',
+  EVALUACION: 'evaluación',
+};
 
 @Component({
   selector: 'app-arbol-temario',
-  imports: [FormsModule, PdfLeccion],
+  imports: [NgTemplateOutlet, FormsModule, PdfLeccion, CampoYoutube, ReproductorYoutube, EditorEvaluacion],
   templateUrl: './arbol-temario.html',
   styleUrl: './arbol-temario.scss',
 })
@@ -55,21 +69,28 @@ export class ArbolTemario {
     >();
   readonly descargarArchivoFn =
     input.required<(archivoId: number) => Promise<Blob>>();
+  readonly cargarCuestionarioFn =
+    input.required<(leccionId: number) => Promise<CuestionarioDocente>>();
+  readonly guardarCuestionarioFn =
+    input<(leccionId: number, datos: DatosCuestionario) => Promise<CursoDetalle>>();
+
+  protected nombreTipo(tipo: TipoContenido): string {
+    return NOMBRE_TIPO[tipo];
+  }
 
   readonly actualizado = output<CursoDetalle>();
   readonly ocupado = output<boolean>();
   readonly formularioAbierto = output<boolean>();
   readonly recargar = output<void>();
+  readonly continuar = output<void>();
+  readonly volver = output<void>();
 
   protected readonly p = new Peticion();
   private readonly trabajo = signal(false);
 
-  protected readonly deshabilitado = computed(
-    () =>
-      this.bloqueado() ||
-      this.trabajo() ||
-      this.p.requiereRecarga(),
-  );
+  protected deshabilitado(): boolean {
+    return this.bloqueado() || this.trabajo() || this.p.requiereRecarga();
+  }
 
   protected modulo: {
     id: number | null;
@@ -82,6 +103,9 @@ export class ArbolTemario {
     moduloId: number;
     titulo: string;
     orden: number;
+    tipo: TipoContenido;
+    youtubeUrl: string;
+    vistaPrevia: boolean;
   } | null = null;
 
   protected hayFormulario(): boolean {
@@ -90,6 +114,7 @@ export class ArbolTemario {
 
   protected abrirModulo(m?: ModuloPrivado): void {
     this.p.limpiar();
+    this.leccion = null;
     this.modulo = {
       id: m?.id ?? null,
       titulo: m?.titulo ?? '',
@@ -98,13 +123,17 @@ export class ArbolTemario {
     this.formularioAbierto.emit(true);
   }
 
-  protected abrirLeccion(m: ModuloPrivado, l?: LeccionPrivada): void {
+  protected abrirLeccion(m: ModuloPrivado, tipo: TipoContenido, l?: LeccionPrivada): void {
     this.p.limpiar();
+    this.modulo = null;
     this.leccion = {
       id: l?.id ?? null,
       moduloId: m.id,
       titulo: l?.titulo ?? '',
       orden: l?.orden ?? siguienteOrden(m.lecciones, 12),
+      tipo: l?.tipo ?? tipo,
+      youtubeUrl: this.urlVideo(l),
+      vistaPrevia: l?.vistaPrevia ?? false,
     };
     this.formularioAbierto.emit(true);
   }
@@ -135,12 +164,10 @@ export class ArbolTemario {
       return;
     }
 
-    await this.mutar(() =>
-      fn(this.curso().id, m.id, {
-        titulo: m.titulo.trim(),
-        orden: m.orden,
-      }),
-    );
+    if (!this.editable() || this.deshabilitado()) return;
+    await this.mutar(() => fn(this.curso().id, m.id, {
+      titulo: m.titulo.trim(), orden: m.orden,
+    }), 'Módulo guardado.');
   }
 
   protected async guardarLeccion(): Promise<void> {
@@ -149,7 +176,7 @@ export class ArbolTemario {
     if (!l || !fn) return;
 
     if (!l.titulo.trim()) {
-      this.p.campos.set({ titulo: 'Escribe el título de la lección.' });
+      this.p.campos.set({ titulo: 'Escribe el título del contenido.' });
       return;
     }
 
@@ -158,13 +185,23 @@ export class ArbolTemario {
       return;
     }
 
-    await this.mutar(() =>
-      fn(l.moduloId, l.id, {
-        titulo: l.titulo.trim(),
-        orden: l.orden,
-        tipo: 'DOCUMENTO',
-      }),
-    );
+    let datos: DatosLeccion;
+    if (l.tipo === 'VIDEO') {
+      const enlace = validarEnlaceYoutube(l.youtubeUrl);
+      if (!enlace.valido) {
+        this.p.campos.set({ youtubeUrl: enlace.mensaje });
+        return;
+      }
+      datos = { titulo: l.titulo.trim(), orden: l.orden, tipo: 'VIDEO',
+        youtubeUrl: enlace.enlaceCanonico, vistaPrevia: l.vistaPrevia };
+    } else {
+      datos = { titulo: l.titulo.trim(), orden: l.orden, tipo: l.tipo };
+    }
+    await this.mutar(() => fn(l.moduloId, l.id, datos), {
+      VIDEO: 'Vídeo guardado.',
+      DOCUMENTO: 'Documento guardado.',
+      EVALUACION: 'Evaluación guardada. Escribe ahora sus preguntas.',
+    }[l.tipo]);
   }
 
   protected async eliminar(
@@ -182,7 +219,7 @@ export class ArbolTemario {
     await this.mutar(() => fn(tipo, id));
   }
 
-  private async mutar(tarea: () => Promise<CursoDetalle>): Promise<void> {
+  private async mutar(tarea: () => Promise<CursoDetalle>, mensaje = 'Contenido guardado.'): Promise<void> {
     if (!this.editable() || this.deshabilitado()) return;
 
     this.cambiarOcupado(true);
@@ -192,8 +229,17 @@ export class ArbolTemario {
         this.cerrarFormulario();
         this.actualizado.emit(curso);
       },
-      'Contenido guardado.',
+      mensaje,
     );
     this.cambiarOcupado(false);
+  }
+
+  protected cuantos(m: ModuloPrivado, tipo: TipoContenido): number {
+    return m.lecciones.filter((item) => item.tipo === tipo).length;
+  }
+
+  private urlVideo(l?: LeccionPrivada): string {
+    const id = l?.youtubeVideoId;
+    return id && esIdYoutube(id) ? `https://www.youtube.com/watch?v=${id}` : '';
   }
 }

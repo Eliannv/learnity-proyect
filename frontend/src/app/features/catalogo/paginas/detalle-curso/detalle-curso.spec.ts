@@ -5,6 +5,8 @@ import { provideRouter } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { ICONOS } from '../../../../shared/ui/iconos';
 import { CatalogoApi } from '../../catalogo.api';
+import { AprendizajeApi } from '../../../aprendizaje/aprendizaje.api';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { DetalleCurso } from './detalle-curso';
 
 describe('Detalle público', () => {
@@ -16,6 +18,8 @@ describe('Detalle público', () => {
         provideRouter([]),
         importProvidersFrom(LucideAngularModule.pick(ICONOS)),
         { provide: CatalogoApi, useValue: api },
+        { provide: AprendizajeApi, useValue: { detalle: vi.fn() } },
+        { provide: AuthService, useValue: { autenticado: () => false, tieneRol: () => false } },
       ],
     });
     const fixture = TestBed.createComponent(DetalleCurso);

@@ -4,7 +4,9 @@ import type { Rol, UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import type { ContextoCurso, EstadoCurso } from './cursos.modelo.js';
 
-export const ESTADOS_EDITABLES: ReadonlySet<EstadoCurso> = new Set<EstadoCurso>(['BORRADOR', 'RECHAZADO']);
+// Un curso PUBLICADO se sigue editando sin volver a revisión; `exigirVigencia` impide que el cambio
+// lo deje incompleto para sus estudiantes. EN_REVISION sigue bloqueado mientras lo evalúa un administrador.
+export const ESTADOS_EDITABLES: ReadonlySet<EstadoCurso> = new Set<EstadoCurso>(['BORRADOR', 'RECHAZADO', 'PUBLICADO']);
 
 export const TRANSICIONES: Readonly<Record<EstadoCurso, readonly EstadoCurso[]>> = {
   BORRADOR: ['EN_REVISION'],
@@ -32,6 +34,7 @@ export const MENSAJES = {
     sinPermiso: 'No puedes enviar este curso a revisión.',
     bloqueado: 'Este curso ya no puede enviarse a revisión.',
   },
+  cuestionario: { sinPermiso: 'No puedes modificar esta evaluación.', bloqueado: 'El curso no permite modificaciones.' },
   archivoDeLeccion: {
     sinPermiso: 'No puedes modificar esta lección.',
     bloqueado: 'El curso ya no permite cambios. Actualiza su estado.',

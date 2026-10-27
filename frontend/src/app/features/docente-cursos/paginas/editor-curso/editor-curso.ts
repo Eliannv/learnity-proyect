@@ -11,6 +11,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
   type CursoDetalle,
+  type DatosCuestionario,
   type DatosCurso,
   type DatosLeccion,
   type DatosModulo,
@@ -52,6 +53,7 @@ export class EditorCurso {
   protected readonly sucio = signal(false);
   protected readonly contenidoOcupado = signal(false);
   protected readonly formularioContenido = signal(false);
+  protected readonly pasoActual = signal<1 | 2>(1);
 
   protected readonly editable = computed(() => {
     const c = this.curso();
@@ -64,6 +66,25 @@ export class EditorCurso {
       this.contenidoOcupado() ||
       this.p.requiereRecarga(),
   );
+
+  protected readonly paso1Completo = computed(() => {
+    const c = this.curso();
+    return c ? this.form.valid && !this.sucio() : false;
+  });
+
+  protected readonly paso2Completo = computed(() => {
+    const c = this.curso();
+    if (!c || c.modulos.length === 0) return false;
+    return c.modulos.every((m) => m.lecciones.length > 0 &&
+      m.lecciones.every((l) => l.tipo === 'VIDEO' ? Boolean(l.youtubeVideoId) : Boolean(l.archivo)));
+  });
+
+  protected cambiarPaso(paso: 1 | 2): void {
+    if (this.id() === 'nuevo' && paso !== 1) {
+      return;
+    }
+    this.pasoActual.set(paso);
+  }
 
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly api = inject(DocenteCursosApi);
@@ -94,6 +115,12 @@ export class EditorCurso {
 
   protected readonly descargarArchivoFn = (archivoId: number) =>
     this.contenidoApi.descargarPdf(archivoId);
+
+  protected readonly cargarCuestionarioFn = (leccionId: number) =>
+    this.api.cuestionario(leccionId);
+
+  protected readonly guardarCuestionarioFn = (leccionId: number, datos: DatosCuestionario) =>
+    this.api.guardarCuestionario(leccionId, datos);
 
   protected readonly form = this.fb.group({
     titulo: ['', [Validators.required, Validators.maxLength(150)]],

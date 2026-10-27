@@ -714,9 +714,9 @@ describe(
           );
         }
 
+        // Sprint 3: un curso PUBLICADO se edita, también su PDF.
         for (const estado of [
           'EN_REVISION',
-          'PUBLICADO',
           'ARCHIVADO',
         ]) {
           const bloqueado = await escenario(estado);
@@ -732,9 +732,10 @@ describe(
           'VIDEO',
         );
 
+        // Sprint 3: el PDF de un VIDEO es su material de apoyo.
         assert.equal(
           (await subir(video.leccion)).status,
-          400,
+          200,
         );
 
         assert.equal(
@@ -1212,9 +1213,10 @@ describe(
           admin.sesion.idPersona,
         );
 
+        // Sprint 3: ya publicado, el docente puede reemplazar el PDF sin volver a revisión.
         assert.equal(
           (await subir(c.leccion)).status,
-          409,
+          200,
         );
       },
     );

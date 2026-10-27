@@ -1,0 +1,206 @@
+:host { display: block; }
+
+.estado {
+  min-height: 200px;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+  color: var(--tinta-700);
+}
+
+.evaluacion {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio-md, 12px);
+  background: var(--blanco);
+  box-shadow: 0 1px 3px rgb(15 23 42 / 6%);
+}
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  h2 { margin: 0 0 4px; font-size: 22px; overflow-wrap: anywhere; }
+  .detalle { margin: 0; color: var(--tinta-700); line-height: 1.5; }
+}
+
+.icono {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--azul-050);
+  color: var(--azul-700);
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  div { padding: 10px 12px; border: 1px solid var(--gris-200); border-radius: var(--radio); }
+  dt { font-size: 13px; color: var(--tinta-700); }
+  dd { margin: 0; font-weight: 700; }
+  .aprobada { color: var(--verde-700); }
+}
+
+.evaluacion-enfoque {
+  display: grid;
+  gap: 16px;
+}
+
+.barra-paso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.paso-etiqueta {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--azul-700);
+}
+
+.indicador-progreso {
+  flex: 0 0 160px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--gris-100);
+  overflow: hidden;
+}
+
+.progreso-barra-fill {
+  height: 100%;
+  background: var(--azul-600);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.preguntas { display: grid; gap: 16px; }
+
+.pregunta {
+  margin: 0;
+  padding: 18px 20px;
+  min-width: 0;
+  border: none;
+  border-radius: var(--radio);
+  legend {
+    display: block;
+    padding: 0;
+    margin-bottom: 16px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    float: left;
+    width: 100%;
+  }
+}
+
+.enunciado-texto {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--tinta-900);
+}
+
+.opciones { display: grid; gap: 10px; clear: both; }
+
+.opcion {
+  display: grid;
+  grid-template-columns: 18px 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  overflow-wrap: anywhere;
+  &:hover { border-color: var(--azul-300); background: var(--azul-050); }
+  &.elegida { border-color: var(--azul-600); background: var(--azul-050); }
+  input { width: 18px; height: 18px; margin: 0; accent-color: var(--azul-600); }
+}
+
+.opcion-texto {
+  line-height: 1.4;
+  color: var(--tinta-800);
+}
+
+.letra {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gris-100);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  .btn { display: inline-flex; align-items: center; gap: 6px; }
+}
+
+.envio {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.nav-izq, .nav-der {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error { margin: 0; color: var(--rojo-700, #b91c1c); }
+
+.resultado {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid #fecaca;
+  border-radius: var(--radio-md, 12px);
+  background: #fff7f7;
+  color: #7f1d1d;
+  p { margin: 0; }
+  .nota { font-size: 30px; font-weight: 800; line-height: 1.1; }
+  &.aprobado { border-color: #86efac; background: #f0fdf4; color: #14532d; }
+}
+
+.revision {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  li {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--gris-200);
+    border-radius: var(--radio);
+  }
+  .bien lucide-icon { color: var(--verde-700); }
+  .mal lucide-icon { color: #b91c1c; }
+  p { margin: 0; overflow-wrap: anywhere; }
+  .enunciado { font-weight: 600; }
+  .elegida { color: var(--tinta-700); font-size: 14px; }
+}
+
+@media (max-width: 650px) {
+  .evaluacion { padding: 16px; }
+  .resumen { grid-template-columns: 1fr; }
+  .envio { flex-direction: column; align-items: stretch; }
+}

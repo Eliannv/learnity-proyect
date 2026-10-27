@@ -1,240 +1,201 @@
-<section class="pagina">
-  <div class="cabecera">
-    <h2>Contenido · {{ curso().modulos.length }} de 10 módulos</h2>
-
+<section class="pagina temario-contenedor">
+  <div class="cabecera-temario">
+    <div>
+      <h2>Módulos y contenido</h2>
+      <p class="instruccion-temario">Organiza el curso en módulos. Dentro de cada uno agrega hasta 12 contenidos (vídeos de YouTube, documentos PDF o evaluaciones de opción múltiple) en el orden en que los verá el estudiante.</p>
+    </div>
     @if (editable()) {
-      <button
-        type="button"
-        class="btn btn-contorno"
-        [disabled]="deshabilitado() || hayFormulario() || curso().modulos.length >= 10"
-        (click)="abrirModulo()"
-      >
-        Agregar módulo
-      </button>
+      <button type="button" class="btn btn-acento" [disabled]="deshabilitado() || hayFormulario() || curso().modulos.length >= 10" (click)="abrirModulo()">+ Agregar módulo</button>
     }
   </div>
 
   @if (p.error()) {
-    <p class="mensaje error" role="alert">{{ p.error() }}</p>
-
-    @if (p.requiereRecarga()) {
-      <button type="button" class="btn btn-contorno" (click)="recargar.emit()">
-        Actualizar curso
-      </button>
-    }
+    <div class="mensaje error" role="alert">
+      <p>{{ p.error() }}</p>
+      @if (p.requiereRecarga()) {
+        <button type="button" class="btn btn-contorno" (click)="recargar.emit()">Actualizar curso</button>
+      }
+    </div>
   }
-
-  @if (p.exito()) {
-    <p class="mensaje exito" role="status">{{ p.exito() }}</p>
-  }
-
-  @if (modulo; as m) {
-    <form #fm="ngForm" class="tarjeta bloque" (ngSubmit)="guardarModulo()">
-      <h3>{{ m.id === null ? 'Nuevo módulo' : 'Editar módulo' }}</h3>
-
-      <fieldset class="rejilla" [disabled]="deshabilitado()">
-        <label class="campo">
-          Título (obligatorio, máximo 150 caracteres)
-
-          <input
-            class="control"
-            name="titulo"
-            [(ngModel)]="m.titulo"
-            required
-            maxlength="150"
-          />
-
-          <small class="error-campo">{{ p.campos()['titulo'] }}</small>
-        </label>
-
-        <label class="campo">
-          Orden (1 a 10, sin repetir)
-
-          <input
-            class="control"
-            name="orden"
-            type="number"
-            [(ngModel)]="m.orden"
-            required
-            min="1"
-            max="10"
-            step="1"
-          />
-
-          <small class="error-campo">{{ p.campos()['orden'] }}</small>
-        </label>
-      </fieldset>
-
-      <div class="acciones">
-        <button
-          type="submit"
-          class="btn btn-primario"
-          [disabled]="fm.invalid || deshabilitado()"
-        >
-          Guardar módulo
-        </button>
-
-        <button
-          type="button"
-          class="btn btn-contorno"
-          [disabled]="deshabilitado()"
-          (click)="cerrarFormulario()"
-        >
-          Cancelar
-        </button>
-      </div>
-    </form>
-  }
-
-  @if (leccion; as l) {
-    <form #fl="ngForm" class="tarjeta bloque" (ngSubmit)="guardarLeccion()">
-      <h3>{{ l.id === null ? 'Nueva lección PDF' : 'Editar lección' }}</h3>
-
-      <fieldset class="rejilla" [disabled]="deshabilitado()">
-        <label class="campo">
-          Título (obligatorio, máximo 150 caracteres)
-
-          <input
-            class="control"
-            name="titulo"
-            [(ngModel)]="l.titulo"
-            required
-            maxlength="150"
-          />
-
-          <small class="error-campo">{{ p.campos()['titulo'] }}</small>
-        </label>
-
-        <label class="campo">
-          Orden (1 a 12, sin repetir)
-
-          <input
-            class="control"
-            name="orden"
-            type="number"
-            [(ngModel)]="l.orden"
-            required
-            min="1"
-            max="12"
-            step="1"
-          />
-
-          <small class="error-campo">{{ p.campos()['orden'] }}</small>
-        </label>
-      </fieldset>
-
-      <p>Primero guarda la lección; después podrás subir su PDF.</p>
-
-      <small class="error-campo">{{ p.campos()['tipo'] }}</small>
-
-      <div class="acciones">
-        <button
-          type="submit"
-          class="btn btn-primario"
-          [disabled]="fl.invalid || deshabilitado()"
-        >
-          Guardar lección
-        </button>
-
-        <button
-          type="button"
-          class="btn btn-contorno"
-          [disabled]="deshabilitado()"
-          (click)="cerrarFormulario()"
-        >
-          Cancelar
-        </button>
-      </div>
-    </form>
-  }
+  @if (p.exito()) { <p class="mensaje exito" role="status">{{ p.exito() }}</p> }
 
   @for (m of curso().modulos; track m.id) {
     <details class="modulo" open>
-      <summary>
-        {{ m.orden }}. {{ m.titulo }} · {{ m.lecciones.length }} de 12 lecciones
+      <summary class="modulo-summary">
+        <div class="modulo-summary-info">
+          <span class="badge-orden-modulo">Módulo {{ m.orden }}</span>
+          <span class="modulo-titulo-texto">{{ m.titulo }}</span>
+        </div>
+        <span class="badge-contador-docs">{{ m.lecciones.length }} de 12 contenidos · {{ cuantos(m, 'VIDEO') }} vídeos
+          @if (cuantos(m, 'EVALUACION')) { · {{ cuantos(m, 'EVALUACION') }} evaluaciones }</span>
       </summary>
 
       @if (editable()) {
-        <div class="acciones">
-          <button
-            type="button"
-            class="btn btn-contorno"
-            [disabled]="deshabilitado() || hayFormulario()"
-            (click)="abrirModulo(m)"
-          >
-            Editar módulo
-          </button>
-
-          <button
-            type="button"
-            class="btn btn-contorno"
-            [disabled]="deshabilitado() || hayFormulario()"
-            (click)="eliminar('modulos', m.id)"
-          >
-            Eliminar módulo
-          </button>
-
-          <button
-            type="button"
-            class="btn btn-contorno"
-            [disabled]="deshabilitado() || hayFormulario() || m.lecciones.length >= 12"
-            (click)="abrirLeccion(m)"
-          >
-            Agregar lección PDF
-          </button>
+        <div class="acciones acciones-modulo">
+          <button type="button" class="btn btn-contorno btn-sm" [disabled]="deshabilitado() || hayFormulario()" (click)="abrirModulo(m)">Editar módulo</button>
+          <button type="button" class="btn btn-contorno btn-sm btn-peligro" [disabled]="deshabilitado() || hayFormulario()" (click)="eliminar('modulos', m.id)">Eliminar módulo</button>
+          <span class="separador-acciones" aria-hidden="true"></span>
+          <button type="button" class="btn btn-primario btn-sm" [disabled]="deshabilitado() || hayFormulario() || m.lecciones.length >= 12" (click)="abrirLeccion(m, 'VIDEO')">+ Vídeo</button>
+          <button type="button" class="btn btn-contorno btn-sm" [disabled]="deshabilitado() || hayFormulario() || m.lecciones.length >= 12" (click)="abrirLeccion(m, 'DOCUMENTO')">+ PDF</button>
+          <button type="button" class="btn btn-contorno btn-sm" [disabled]="deshabilitado() || hayFormulario() || m.lecciones.length >= 12" (click)="abrirLeccion(m, 'EVALUACION')">+ Evaluación</button>
         </div>
       }
 
-      <ol class="lista">
+      @if (modulo; as editado) {
+        @if (editado.id === m.id) {
+          <form #fmEdit="ngForm" class="formulario-edicion editor-integrado" (ngSubmit)="guardarModulo()">
+            <h3>Editar {{ m.titulo }}</h3>
+            <fieldset class="rejilla" [disabled]="deshabilitado()">
+              <label class="campo"><span>Título del módulo</span>
+                <input class="control" name="titulo" [(ngModel)]="editado.titulo" required maxlength="150" />
+                @if (p.campos()['titulo']) { <small class="error-campo" role="alert">{{ p.campos()['titulo'] }}</small> }
+              </label>
+              <label class="campo"><span>Posición en el curso</span>
+                <input class="control" name="orden" type="number" [(ngModel)]="editado.orden" required min="1" max="10" step="1" />
+                @if (p.campos()['orden']) { <small class="error-campo" role="alert">{{ p.campos()['orden'] }}</small> }
+              </label>
+            </fieldset>
+            <div class="acciones">
+              <button type="submit" class="btn btn-primario" [disabled]="fmEdit.invalid || deshabilitado()">Guardar módulo</button>
+              <button type="button" class="btn btn-contorno" [disabled]="deshabilitado()" (click)="cerrarFormulario()">Cancelar</button>
+            </div>
+          </form>
+        }
+      }
+
+      <ol class="lista-contenidos">
         @for (l of m.lecciones; track l.id) {
-          <li class="fila">
-            <h3>
-              {{ l.orden }}. {{ l.titulo }}
-              <small>({{ l.tipo }})</small>
-            </h3>
-
-            @if (l.tipo === 'DOCUMENTO') {
-              <app-pdf-leccion
-                [leccion]="l"
-                [editable]="editable()"
-                [bloqueado]="deshabilitado() || hayFormulario()"
-                [subirArchivo]="subirArchivoFn()"
-                [descargarArchivo]="descargarArchivoFn()"
-                (ocupado)="cambiarOcupado($event)"
-                (actualizado)="actualizado.emit($event)"
-                (recargar)="recargar.emit()"
-              />
+          @if (leccion?.id === l.id && leccion?.moduloId === m.id) {
+            <!-- Edición en el sitio: el formulario ocupa la fila del contenido -->
+            <li class="contenido-fila contenido-fila-edicion">
+              <ng-container *ngTemplateOutlet="formLeccion; context: { $implicit: leccion, modulo: m }" />
+            </li>
+          } @else {
+          <li class="contenido-fila" [class.contenido-video]="l.tipo === 'VIDEO'">
+            <div class="contenido-cabecera">
+              <span class="contenido-orden">{{ l.orden }}</span>
+              <div class="contenido-identidad">
+                <strong>{{ l.titulo }}</strong>
+                <small>
+                  @switch (l.tipo) {
+                    @case ('VIDEO') { Vídeo de YouTube }
+                    @case ('EVALUACION') { Evaluación de opción múltiple · {{ l.preguntas }} preguntas }
+                    @default { Documento PDF }
+                  }
+                  @if (l.tipo === 'VIDEO' && l.vistaPrevia) { · vista previa pública }
+                  @if (l.tipo === 'VIDEO' && l.archivo) { · con PDF de apoyo }
+                </small>
+              </div>
               @if (editable()) {
-                <div class="acciones">
-                  <button
-                    type="button"
-                    class="btn btn-contorno"
-                    [disabled]="deshabilitado() || hayFormulario()"
-                    (click)="abrirLeccion(m, l)"
-                  >
-                    Editar lección
-                  </button>
-
-                  <button
-                    type="button"
-                    class="btn btn-contorno"
-                    [disabled]="deshabilitado() || hayFormulario()"
-                    (click)="eliminar('lecciones', l.id)"
-                  >
-                    Eliminar lección
-                  </button>
+                <div class="acciones contenido-acciones">
+                  <button type="button" class="btn btn-contorno btn-sm" [disabled]="deshabilitado() || hayFormulario()" (click)="abrirLeccion(m, l.tipo, l)">Editar</button>
+                  <button type="button" class="btn btn-contorno btn-sm btn-peligro" [disabled]="deshabilitado() || hayFormulario()" (click)="eliminar('lecciones', l.id)">Eliminar</button>
                 </div>
               }
+            </div>
+            @if (l.tipo === 'VIDEO') {
+              <!-- La vista del vídeo está siempre cargada; al lado, su PDF de apoyo opcional -->
+              <div class="contenido-cuerpo">
+                <div class="contenido-vista">
+                  @if (l.youtubeVideoId) {
+                    <app-reproductor-youtube [videoId]="l.youtubeVideoId" [leccionId]="l.id" [titulo]="l.titulo" />
+                  } @else {
+                    <p class="contenido-sin-video">Falta el enlace de YouTube. Pulsa «Editar» para añadirlo.</p>
+                  }
+                </div>
+                <div class="contenido-apoyo">
+                  <h4>Material de apoyo</h4>
+                  <app-pdf-leccion [leccion]="l" [complementario]="true" [editable]="editable()" [bloqueado]="deshabilitado() || hayFormulario()"
+                    [subirArchivo]="subirArchivoFn()" [descargarArchivo]="descargarArchivoFn()"
+                    (ocupado)="cambiarOcupado($event)" (actualizado)="actualizado.emit($event)" (recargar)="recargar.emit()" />
+                </div>
+              </div>
+            } @else if (l.tipo === 'EVALUACION') {
+              <app-editor-evaluacion class="contenido-documento" [leccion]="l" [editable]="editable()" [bloqueado]="deshabilitado() || hayFormulario()"
+                [cargarFn]="cargarCuestionarioFn()" [guardarFn]="guardarCuestionarioFn()"
+                (ocupado)="cambiarOcupado($event)" (actualizado)="actualizado.emit($event)" (recargar)="recargar.emit()" />
             } @else {
-              <p>La gestión de este tipo de lección corresponde a un sprint posterior.</p>
+              <app-pdf-leccion class="contenido-documento" [leccion]="l" [editable]="editable()" [bloqueado]="deshabilitado() || hayFormulario()"
+                [subirArchivo]="subirArchivoFn()" [descargarArchivo]="descargarArchivoFn()"
+                (ocupado)="cambiarOcupado($event)" (actualizado)="actualizado.emit($event)" (recargar)="recargar.emit()" />
             }
           </li>
+          }
         } @empty {
-          <li>Agrega al menos una lección a este módulo.</li>
+          @if (!(leccion && leccion.moduloId === m.id)) {
+            <li class="contenido-vacio">Este módulo todavía no tiene contenido. Agrega un vídeo, un PDF o una evaluación para empezar.</li>
+          }
+        }
+        @if (leccion && leccion.id === null && leccion.moduloId === m.id) {
+          <!-- El contenido nuevo se agrega al final, donde aparecerá -->
+          <li class="contenido-fila contenido-fila-edicion">
+            <ng-container *ngTemplateOutlet="formLeccion; context: { $implicit: leccion, modulo: m }" />
+          </li>
         }
       </ol>
     </details>
   } @empty {
-    <p class="mensaje">Agrega el primer módulo para organizar tu curso.</p>
+    @if (modulo === null) {
+      <div class="tarjeta bloque temario-vacio">
+        <h3>Tu curso todavía no tiene módulos</h3>
+        <p>Crea un módulo y agrega vídeos o documentos en el orden de aprendizaje.</p>
+      </div>
+    }
   }
+
+  <!-- El módulo nuevo se crea al final de la lista, donde aparecerá -->
+  @if (modulo; as nuevo) {
+    @if (nuevo.id === null) {
+      <form #fmNuevo="ngForm" class="modulo formulario-edicion formulario-nuevo-modulo" (ngSubmit)="guardarModulo()">
+        <h3>Nuevo módulo</h3>
+        <fieldset class="rejilla" [disabled]="deshabilitado()">
+          <label class="campo"><span>Título del módulo</span>
+            <input class="control" name="titulo" [(ngModel)]="nuevo.titulo" required maxlength="150" placeholder="Ej. Introducción a JavaScript" />
+            @if (p.campos()['titulo']) { <small class="error-campo" role="alert">{{ p.campos()['titulo'] }}</small> }
+          </label>
+          <label class="campo"><span>Posición en el curso</span>
+            <input class="control" name="orden" type="number" [(ngModel)]="nuevo.orden" required min="1" max="10" step="1" />
+            @if (p.campos()['orden']) { <small class="error-campo" role="alert">{{ p.campos()['orden'] }}</small> }
+          </label>
+        </fieldset>
+        <div class="acciones">
+          <button type="submit" class="btn btn-primario" [disabled]="fmNuevo.invalid || deshabilitado()">Crear módulo</button>
+          <button type="button" class="btn btn-contorno" [disabled]="deshabilitado()" (click)="cerrarFormulario()">Cancelar</button>
+        </div>
+      </form>
+    }
+  }
+
+  <!-- Formulario de vídeo o PDF, reutilizado para editar en la fila o agregar al final -->
+  <ng-template #formLeccion let-l let-m="modulo">
+    <form #fl="ngForm" class="formulario-edicion editor-integrado" (ngSubmit)="guardarLeccion()">
+      <h3>{{ l.id === null ? 'Agregar' : 'Editar' }} {{ nombreTipo(l.tipo) }} en {{ m.titulo }}</h3>
+      <fieldset class="rejilla" [disabled]="deshabilitado()">
+        <label class="campo"><span>Título que verá el estudiante</span>
+          <input class="control" name="titulo" [(ngModel)]="l.titulo" required maxlength="150" [placeholder]="l.tipo === 'VIDEO' ? 'Ej. Variables y tipos de datos' : l.tipo === 'EVALUACION' ? 'Ej. Repaso del módulo 1' : 'Ej. Guía de ejercicios'" />
+          @if (p.campos()['titulo']) { <small class="error-campo" role="alert">{{ p.campos()['titulo'] }}</small> }
+        </label>
+        <label class="campo"><span>Posición en el módulo</span>
+          <input class="control" name="orden" type="number" [(ngModel)]="l.orden" required min="1" max="12" step="1" />
+          @if (p.campos()['orden']) { <small class="error-campo" role="alert">{{ p.campos()['orden'] }}</small> }
+        </label>
+      </fieldset>
+      @if (l.tipo === 'VIDEO') {
+        <app-campo-youtube [id]="'youtube-leccion-' + m.id" [(enlace)]="l.youtubeUrl" [bloqueado]="deshabilitado()" [errorServidor]="p.campos()['youtubeUrl'] || ''" />
+        <label class="casilla-preview"><input type="checkbox" name="vistaPrevia" [(ngModel)]="l.vistaPrevia" [disabled]="deshabilitado()" /> Permitir ver este vídeo como vista previa antes de inscribirse</label>
+      } @else if (l.id === null && l.tipo === 'EVALUACION') {
+        <p class="texto-suave">Después de crearla escribirás aquí mismo sus preguntas: de 5 a 10, con cuatro opciones y una correcta.</p>
+      } @else if (l.id === null) {
+        <p class="texto-suave">Después de crear el documento podrás subir el archivo PDF aquí mismo.</p>
+      }
+      <div class="acciones">
+        <button type="submit" class="btn btn-primario" [disabled]="fl.invalid || deshabilitado()">Guardar {{ l.tipo === 'DOCUMENTO' ? 'documento' : nombreTipo(l.tipo) }}</button>
+        <button type="button" class="btn btn-contorno" [disabled]="deshabilitado()" (click)="cerrarFormulario()">Cancelar</button>
+      </div>
+    </form>
+  </ng-template>
+
+  <div class="navegacion-pasos">
+    <button type="button" class="btn btn-contorno" (click)="volver.emit()">← Información del curso</button>
+  </div>
 </section>
