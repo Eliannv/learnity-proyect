@@ -176,11 +176,61 @@ export const rutasRevisionContenido = {
     },
   },
 
+  '/lecciones/{id}/recursos': {
+    post: {
+      tags: ['Contenido'],
+      summary: 'Añadir un recurso descargable a la lección (DOCENTE propietario)',
+      description:
+        'Lecciones DOCUMENTO o VIDEO de un curso BORRADOR, RECHAZADO o PUBLICADO. PDF, PPT, PPTX o ZIP de 1 a 10485760 bytes; ' +
+        'el contenido debe corresponder a la extensión. Hasta 5 recursos por lección. El título es el nombre del archivo sin la extensión. ' +
+        'Comparte el límite de 30 subidas cada 15 minutos por IP con el PDF principal.',
+      security: seguridad,
+      parameters: [idRuta],
+      requestBody: {
+        required: true,
+        content: {
+          'multipart/form-data': {
+            schema: {
+              type: 'object', additionalProperties: false, required: ['archivo'],
+              properties: { archivo: { type: 'string', format: 'binary', description: 'PDF, PPT, PPTX o ZIP de hasta 10 MiB' } },
+            },
+          },
+        },
+      },
+      responses: {
+        ...comunes,
+        201: curso,
+        400: error(`Formulario o archivo inválidos, más de 5 recursos o lección que no es DOCUMENTO ni VIDEO, o ${idInvalido}`),
+        403: error('Sin rol DOCENTE o la lección no es de un curso propio (SIN_PERMISO)'),
+        404: error('La lección no existe (NO_ENCONTRADO)'),
+        409: error('Curso bloqueado (CURSO_BLOQUEADO)'),
+        413: error('Supera 10 MiB (ARCHIVO_DEMASIADO_GRANDE)'),
+        415: error('Extensión o formato de envío no admitido (TIPO_ARCHIVO_INVALIDO)'),
+        429: error('Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)'),
+      },
+    },
+  },
+  '/recursos/{id}': {
+    delete: {
+      tags: ['Contenido'],
+      summary: 'Quitar un recurso de la lección (DOCENTE propietario); su archivo se retira del disco',
+      security: seguridad,
+      parameters: [idRuta],
+      responses: {
+        ...comunes,
+        200: curso,
+        400: error(idInvalido),
+        403: error('Sin rol DOCENTE o el recurso no es de un curso propio (SIN_PERMISO)'),
+        404: error('El recurso no existe (NO_ENCONTRADO)'),
+        409: error('Curso bloqueado (CURSO_BLOQUEADO)'),
+      },
+    },
+  },
   '/archivos/{id}': {
     get: {
       tags: ['Contenido'],
       summary:
-        'Descargar PDF privado (ADMIN o DOCENTE propietario)',
+        'Descargar el PDF principal o un recurso de una lección (ADMIN, DOCENTE propietario o ESTUDIANTE inscrito)',
       security: seguridad,
       parameters: [idRuta],
       responses: {
@@ -204,17 +254,15 @@ export const rutasRevisionContenido = {
             },
           },
           content: {
-            'application/pdf': {
-              schema: {
-                type: 'string',
-                format: 'binary',
-              },
-            },
+            'application/pdf': { schema: { type: 'string', format: 'binary' } },
+            'application/vnd.ms-powerpoint': { schema: { type: 'string', format: 'binary' } },
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': { schema: { type: 'string', format: 'binary' } },
+            'application/zip': { schema: { type: 'string', format: 'binary' } },
           },
         },
         400: error(idInvalido),
         403: error('Sin permiso sobre el curso del archivo (SIN_PERMISO)'),
-        404: error('El archivo no existe o no es un PDF de una lección (NO_ENCONTRADO)'),
+        404: error('El archivo no existe o no es el PDF ni un recurso de una lección (NO_ENCONTRADO)'),
       },
     },
   },

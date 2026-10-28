@@ -24,9 +24,21 @@ export interface LeccionPrivada {
   tipo: TipoLeccion;
   archivo: ArchivoPdf | null;
   youtubeVideoId: string | null;
-  vistaPrevia: boolean;
   /** Preguntas guardadas de una EVALUACION; 0 en los demás tipos. */
   preguntas: number;
+  /** Material descargable adicional (PDF, PPT o ZIP), en el orden en que se subió. */
+  recursos: RecursoLeccion[];
+}
+
+export const MAX_RECURSOS_LECCION = 5;
+
+export interface RecursoLeccion {
+  id: number;
+  titulo: string;
+  archivoId: number;
+  tipo: 'PDF' | 'PPT' | 'ZIP';
+  nombreOriginal: string;
+  tamanoBytes: number;
 }
 
 export type LetraOpcion = 'A' | 'B' | 'C' | 'D';

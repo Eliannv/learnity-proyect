@@ -11,8 +11,7 @@ header {
   align-items: center;
   gap: 24px;
   height: var(--alto-header);
-  max-width: 1280px;
-  margin: 0 auto;
+  /* A todo el ancho de la ventana, como Udemy; el contenido de las páginas sigue centrado. */
   padding: 0 24px;
 }
 
@@ -165,5 +164,103 @@ header {
   }
   .acciones {
     gap: 12px;
+  }
+}
+
+/* ------------------------------------------------ buscador con vista previa */
+.buscador {
+  position: relative;
+}
+
+.sugerencias {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  overflow: hidden;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio-md);
+  background: var(--blanco);
+  box-shadow: 0 12px 32px rgb(15 23 42 / 12%);
+  color: var(--tinta-900);
+
+  ul {
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+  }
+  li a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: var(--radio);
+    color: inherit;
+    &:hover,
+    &:focus-visible,
+    &.activo {
+      background: var(--azul-050);
+    }
+  }
+}
+
+.miniatura {
+  flex: none;
+  width: 64px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: var(--radio-sm);
+}
+
+.texto {
+  display: grid;
+  min-width: 0;
+  strong,
+  small {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  strong { font-size: 14px; }
+  small { font-size: 13px; color: var(--gris-500); }
+}
+
+.sugerencias-estado {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--gris-500);
+}
+
+.ver-todos {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  border-top: 1px solid var(--gris-200);
+  background: var(--blanco);
+  color: var(--azul-700);
+  font-weight: 600;
+  text-align: left;
+  &:hover { background: var(--azul-050); }
+}
+
+/* ------------------------------------------- fila de categorías (como Udemy) */
+.barra-categorias {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--gris-200);
+  background: var(--blanco);
+  box-shadow: 0 2px 6px rgb(15 23 42 / 6%);
+
+  a {
+    font-size: 14px;
+    color: var(--tinta-800);
+    white-space: nowrap;
+    &:hover { color: var(--azul-700); }
   }
 }

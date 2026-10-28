@@ -43,7 +43,6 @@ const datosVideoSchema = z.strictObject({
     (valor) => extraerYoutubeVideoId(valor) !== null,
     'Indica un enlace válido de YouTube o su ID.',
   ),
-  vistaPrevia: z.boolean().default(false),
 });
 
 /** Las preguntas se guardan aparte, con `PUT /lecciones/:id/evaluacion`. */

@@ -63,7 +63,7 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
       await new Promise((r) => setTimeout(r, 2_000));
       await ruta.continue();
     });
-    await page.locator('input[type=file]').setInputFiles({
+    await page.locator('input[type=file][accept*="application/pdf"]').setInputFiles({
       name: 'apunte.pdf',
       mimeType: 'application/pdf',
       buffer: await pdfMinimo(2),
@@ -88,6 +88,7 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
 
     // 6. Envío a revisión: el editor queda bloqueado.
     await page.getByRole('button', { name: 'Enviar a revisión' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Enviar a revisión' }).click();
     await expect(page.getByText('Este curso no permite cambios en su estado actual.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Guardar cambios' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Agregar módulo' })).toHaveCount(0);
@@ -107,6 +108,7 @@ test.describe('E2E-04 / E2E-07: docente crea curso con PDF, admin lo publica y e
       await expect(pagina.locator('img[src="x"]')).toHaveCount(0);
       expect(await xssEjecutado(pagina)).toBe(false);
       await pagina.getByRole('button', { name: 'Aprobar y publicar' }).click();
+      await pagina.getByRole('dialog').getByRole('button', { name: 'Aprobar y publicar' }).click();
       await expect(pagina.getByText('Este curso ya no está pendiente de revisión.')).toBeVisible();
     } finally {
       await contexto.close();

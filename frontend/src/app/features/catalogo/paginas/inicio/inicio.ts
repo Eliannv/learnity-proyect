@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../../shared/ui/esqueleto';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -13,7 +14,7 @@ import {
 
 @Component({
   selector: 'app-inicio',
-  imports: [RouterLink, LucideAngularModule, TarjetaCurso, BuscadorMovil],
+  imports: [Esqueleto, RouterLink, LucideAngularModule, TarjetaCurso, BuscadorMovil],
   templateUrl: './inicio.html',
   styleUrl: './inicio.scss',
 })

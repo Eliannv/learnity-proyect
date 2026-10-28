@@ -36,15 +36,21 @@ export const esquemasAprendizaje = {
     },
   },
   LeccionAprendizaje: {
-    type: 'object', required: ['id', 'orden', 'titulo', 'tipo', 'vistaPrevia', 'archivoId', 'youtubeVideoId', 'evaluacionId', 'progreso'],
+    type: 'object', required: ['id', 'orden', 'titulo', 'tipo', 'archivoId', 'youtubeVideoId', 'evaluacionId', 'recursos', 'progreso'],
     properties: {
       id: { type: 'integer' }, orden: { type: 'integer' }, titulo: { type: 'string' },
-      tipo: { type: 'string', enum: ['DOCUMENTO', 'VIDEO', 'EVALUACION'] }, vistaPrevia: { type: 'boolean' },
+      tipo: { type: 'string', enum: ['DOCUMENTO', 'VIDEO', 'EVALUACION'] },
       archivoId: idNulo,
       youtubeVideoId: { type: 'string', nullable: true, minLength: 11, maxLength: 11,
         description: 'ID de YouTube de la lección VIDEO; null en los demás tipos.' },
       evaluacionId: { type: 'integer', nullable: true,
         description: 'Para `GET /evaluaciones/{id}` en una lección EVALUACION; null en los demás tipos.' },
+      recursos: { type: 'array', description: 'Material descargable con `GET /archivos/{archivoId}`.', items: {
+        type: 'object', required: ['id', 'titulo', 'archivoId', 'tipo', 'nombreOriginal', 'tamanoBytes'], properties: {
+          id: { type: 'integer' }, titulo: { type: 'string' }, archivoId: { type: 'integer' },
+          tipo: { type: 'string', enum: ['PDF', 'PPT', 'ZIP'] }, nombreOriginal: { type: 'string' }, tamanoBytes: entero,
+        },
+      } },
       progreso: { type: 'object', required: ['segundosVistos', 'completada'], properties: {
         segundosVistos: entero, completada: { type: 'boolean' },
       } },

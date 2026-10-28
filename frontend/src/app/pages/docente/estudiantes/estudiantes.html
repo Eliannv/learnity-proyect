@@ -8,7 +8,7 @@
   </header>
 
   @if (cargaCursos.ocupada()) {
-    <p class="mensaje" role="status">Cargando tus cursos…</p>
+    <app-esqueleto forma="filas" [cantidad]="2" etiqueta="Cargando tus cursos…" />
   } @else if (cargaCursos.error()) {
     <div class="mensaje error" role="alert">
       <p>{{ cargaCursos.error() }}</p>
@@ -31,7 +31,7 @@
     </div>
 
     @if (cargaEstudiantes.ocupada()) {
-      <p class="mensaje" role="status">Cargando estudiantes de {{ cursoSeleccionado()?.titulo }}…</p>
+      <app-esqueleto forma="filas" [cantidad]="5" [etiqueta]="'Cargando estudiantes de ' + (cursoSeleccionado()?.titulo ?? '') + '…'" />
     } @else if (cargaEstudiantes.error()) {
       <div class="mensaje error" role="alert">
         <p>{{ cargaEstudiantes.error() }}</p>

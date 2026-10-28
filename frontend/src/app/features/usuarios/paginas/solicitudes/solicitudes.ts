@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../../shared/ui/esqueleto';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
@@ -20,7 +21,7 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
 
 @Component({
   selector: 'app-solicitudes',
-  imports: [FormsModule, LucideAngularModule, Avatar],
+  imports: [Esqueleto, FormsModule, LucideAngularModule, Avatar],
   template: `
     <header class="encabezado">
       <div>
@@ -58,7 +59,7 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
         </div>
 
         @if (cargando()) {
-          <p class="vacio" role="status">Cargando solicitudes…</p>
+          <app-esqueleto forma="filas" [cantidad]="3" etiqueta="Cargando solicitudes…" />
         } @else if (error()) {
           <div class="vacio" role="alert">
             <p>{{ error() }}</p>

@@ -69,12 +69,16 @@ const ESPERADO: string[] = [
   '/docente/perfil | titulo=Ajustes y perfil · Learnity | data={\"seccion\":\"Ajustes y perfil\"} | pagina=AjustesPerfil',
   '/admin | data={\"rol\":\"ADMIN\"} | canActivate=rolGuard | layout=LayoutPanel',
   '/admin | match=full | redirige=revision',
+  '/admin/usuarios | titulo=Usuarios · Learnity | data={"seccion":"Usuarios"} | pagina=AdminUsuarios',
   '/admin/solicitudes | titulo=Solicitudes de docente · Learnity | data={\"seccion\":\"Solicitudes de docente\"} | pagina=Solicitudes',
   '/admin/revision | titulo=Cursos pendientes · Learnity | data={\"seccion\":\"Revisión de cursos\"} | pagina=RevisionCursos',
   '/admin/revision/:id | titulo=Revisión de curso · Learnity | data={\"seccion\":\"Revisión de cursos\"} | pagina=RevisionCurso',
   '/admin/categorias | titulo=Categorías · Learnity | data={\"seccion\":\"Categorías\"} | pagina=Categorias',
   '/admin/perfil | titulo=Ajustes y perfil · Learnity | data={\"seccion\":\"Ajustes y perfil\"} | pagina=AjustesPerfil',
-  '/** | redirige=',
+  '/acceso-denegado | layout=LayoutSitio',
+  '/acceso-denegado | titulo=Acceso denegado · Learnity | data={"tipo":"403"} | pagina=PaginaError',
+  '/** | layout=LayoutSitio',
+  '/** | titulo=Página no encontrada · Learnity | data={"tipo":"404"} | pagina=PaginaError',
 ];
 
 describe('árbol de rutas', () => {

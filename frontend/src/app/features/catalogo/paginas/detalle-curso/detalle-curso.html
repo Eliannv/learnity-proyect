@@ -1,5 +1,5 @@
 @if (cargando()) {
-  <div class="contenedor estado-detalle" role="status">Cargando curso…</div>
+  <div class="contenedor carga-detalle"><app-esqueleto forma="detalle" [cantidad]="4" etiqueta="Cargando curso…" /></div>
 } @else if (error()) {
   <div class="contenedor estado-detalle" role="alert">
     <h1>No se pudo cargar el curso</h1>
@@ -26,6 +26,13 @@
       <span class="chip">{{ c.categoria.nombre }}</span>
       <h1 class="titulo-curso">{{ c.titulo }}</h1>
       @if (c.subtitulo) { <p class="descripcion">{{ c.subtitulo }}</p> }
+      @if (c.calificacion.promedio !== null) {
+        <a class="calificacion" href="#resenas" (click)="irAResenas($event)">
+          <strong>{{ c.calificacion.promedio | number: '1.1-1' }}</strong>
+          <app-estrellas [valor]="c.calificacion.promedio" />
+          <span>({{ c.calificacion.total }} {{ c.calificacion.total === 1 ? 'reseña' : 'reseñas' }})</span>
+        </a>
+      }
       <p class="meta">
         {{ c.docente }} · {{ c.minutos }} min · {{ c.modulos | i18nPlural: modulos }} · {{ c.lecciones | i18nPlural: lecciones }} · nivel
         {{ nombreNivel(c.nivel).toLowerCase() }}
@@ -54,31 +61,15 @@
                     <lucide-icon [name]="icono(l.tipo)" [size]="20" />
                     <span>{{ l.titulo }}</span>
                     <span class="texto-suave">{{ l.tipo === 'DOCUMENTO' ? 'PDF' : l.tipo === 'EVALUACION' ? 'Evaluación' : l.minutos + ' min' }}</span>
-                    @if (l.tipo === 'VIDEO') {
-                      <button type="button" class="btn btn-texto btn-sm muestra-accion"
-                        [disabled]="cargandoMuestra() === l.id" [attr.aria-expanded]="muestra()?.leccionId === l.id"
-                        (click)="alternarMuestra(l)">
-                        {{ cargandoMuestra() === l.id ? 'Cargando…' : muestra()?.leccionId === l.id ? 'Cerrar muestra' : 'Ver muestra' }}
-                      </button>
-                    }
                   </li>
                 }
               </ul>
-              @if (muestra(); as video) {
-                @if (contieneMuestra(m.lecciones, video.leccionId)) {
-                  <div class="muestra-panel">
-                    <h3>Muestra: {{ video.titulo }}</h3>
-                    <app-reproductor-youtube [videoId]="video.videoId" [titulo]="video.titulo" />
-                  </div>
-                }
-              }
             }
           </section>
         } @empty {
           <p class="temario-vacio">El temario todavía no está disponible.</p>
         }
       </div>
-      @if (errorMuestra()) { <p class="mensaje-error" role="alert">{{ errorMuestra() }}</p> }
 
       @if (c.objetivos.length) {
         <section class="lista-informacion">
@@ -89,13 +80,27 @@
 
       <hr class="separador" />
 
-      <div class="docente">
-        <app-avatar [texto]="c.docente.charAt(0)" [tamano]="64" [solido]="true" />
-        <div>
-          <strong>{{ c.docente }} · docente</strong>
-          @if (c.docenteBio) { <p class="texto-suave">{{ c.docenteBio }}</p> }
+      <section class="instructor" aria-labelledby="titulo-instructor">
+        <h2 id="titulo-instructor">Tu docente</h2>
+        <div class="instructor-cabecera">
+          <app-avatar [texto]="c.instructor.nombre.charAt(0)" [imagen]="c.instructor.fotoUrl" [tamano]="88" [solido]="true" />
+          <div>
+            <strong class="instructor-nombre">{{ c.instructor.nombre }}</strong>
+            <span class="instructor-especialidad">{{ c.instructor.especialidad }}</span>
+            <ul class="instructor-datos">
+              <li><lucide-icon name="book-open" [size]="16" aria-hidden="true" />
+                {{ c.instructor.cursosPublicados }} {{ c.instructor.cursosPublicados === 1 ? 'curso publicado' : 'cursos publicados' }}</li>
+              <li><lucide-icon name="users" [size]="16" aria-hidden="true" />
+                {{ c.instructor.estudiantes }} {{ c.instructor.estudiantes === 1 ? 'estudiante' : 'estudiantes' }}</li>
+            </ul>
+          </div>
         </div>
-      </div>
+        @if (c.instructor.biografia) { <p class="instructor-bio">{{ c.instructor.biografia }}</p> }
+      </section>
+
+      <hr class="separador" />
+
+      <app-resenas-curso [cursoId]="c.id" [estudiante]="puedeInscribirse()" (cambio)="actualizarCalificacion($event)" />
     </article>
 
     <aside class="oculto-movil">

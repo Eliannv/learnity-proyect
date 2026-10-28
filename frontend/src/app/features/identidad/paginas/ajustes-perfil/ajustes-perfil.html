@@ -64,7 +64,7 @@
             <section class="vista-docente" aria-label="Vista previa">
               <span class="eyebrow">Así te ven tus estudiantes</span>
               <div class="fila">
-                <app-avatar [texto]="auth.iniciales()" [tamano]="48" />
+                <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="48" />
                 <div>
                   <strong>{{ valores().nombres }} {{ valores().apellidos }}</strong>
                   <small>Docente en Learnity</small>
@@ -103,34 +103,8 @@
 
   @case ('foto') {
     <section class="panel foto" id="panel-foto" role="tabpanel" aria-labelledby="tab-foto">
-      <div class="foto-vista">
-        @if (fotoVista()) {
-          <img [src]="fotoVista()" alt="Vista previa de tu nueva foto" width="160" height="160" />
-        } @else {
-          <app-avatar [texto]="auth.iniciales()" [tamano]="160" />
-        }
-      </div>
-      <div class="foto-acciones">
-        <h2>Tu foto de perfil</h2>
-        <p class="texto-suave">JPG, PNG o WEBP de hasta 500 KB. Se ve en tu menú de la cuenta; si eres docente, también en tus cursos.
-          Puedes ver la vista previa; guardar la foto estará disponible muy pronto.</p>
-        <div class="fila botones">
-          <label class="btn btn-contorno">
-            <lucide-icon name="camera" [size]="18" /> Elegir imagen
-            <input class="visualmente-oculto" type="file" accept="image/jpeg,image/png,image/webp" (change)="elegirFoto($event)" />
-          </label>
-          @if (fotoVista()) {
-            <button type="button" class="btn btn-texto" (click)="quitarFoto()">Quitar</button>
-          }
-        </div>
-        @if (fotoError()) {
-          <div class="aviso error" role="alert">
-            <lucide-icon name="circle-alert" [size]="18" />
-            <span>{{ fotoError() }}</span>
-          </div>
-        }
-        <button type="button" class="btn btn-primario btn-lg guardar-foto" disabled>Guardar foto</button>
-      </div>
+      <h2>Tu foto de perfil</h2>
+      <app-foto-perfil [tamano]="160" />
     </section>
   }
 

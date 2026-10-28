@@ -82,7 +82,6 @@
                     @case ('EVALUACION') { Evaluación de opción múltiple · {{ l.preguntas }} preguntas }
                     @default { Documento PDF }
                   }
-                  @if (l.tipo === 'VIDEO' && l.vistaPrevia) { · vista previa pública }
                   @if (l.tipo === 'VIDEO' && l.archivo) { · con PDF de apoyo }
                 </small>
               </div>
@@ -108,6 +107,8 @@
                   <app-pdf-leccion [leccion]="l" [complementario]="true" [editable]="editable()" [bloqueado]="deshabilitado() || hayFormulario()"
                     [subirArchivo]="subirArchivoFn()" [descargarArchivo]="descargarArchivoFn()"
                     (ocupado)="cambiarOcupado($event)" (actualizado)="actualizado.emit($event)" (recargar)="recargar.emit()" />
+                  <app-recursos-leccion [leccion]="l" [editable]="editable()" [bloqueado]="deshabilitado() || hayFormulario()"
+                    (ocupado)="cambiarOcupado($event)" (actualizado)="actualizado.emit($event)" />
                 </div>
               </div>
             } @else if (l.tipo === 'EVALUACION') {
@@ -118,6 +119,8 @@
               <app-pdf-leccion class="contenido-documento" [leccion]="l" [editable]="editable()" [bloqueado]="deshabilitado() || hayFormulario()"
                 [subirArchivo]="subirArchivoFn()" [descargarArchivo]="descargarArchivoFn()"
                 (ocupado)="cambiarOcupado($event)" (actualizado)="actualizado.emit($event)" (recargar)="recargar.emit()" />
+              <app-recursos-leccion class="contenido-documento" [leccion]="l" [editable]="editable()" [bloqueado]="deshabilitado() || hayFormulario()"
+                (ocupado)="cambiarOcupado($event)" (actualizado)="actualizado.emit($event)" />
             }
           </li>
           }
@@ -182,7 +185,6 @@
       </fieldset>
       @if (l.tipo === 'VIDEO') {
         <app-campo-youtube [id]="'youtube-leccion-' + m.id" [(enlace)]="l.youtubeUrl" [bloqueado]="deshabilitado()" [errorServidor]="p.campos()['youtubeUrl'] || ''" />
-        <label class="casilla-preview"><input type="checkbox" name="vistaPrevia" [(ngModel)]="l.vistaPrevia" [disabled]="deshabilitado()" /> Permitir ver este vídeo como vista previa antes de inscribirse</label>
       } @else if (l.id === null && l.tipo === 'EVALUACION') {
         <p class="texto-suave">Después de crearla escribirás aquí mismo sus preguntas: de 5 a 10, con cuatro opciones y una correcta.</p>
       } @else if (l.id === null) {

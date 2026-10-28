@@ -6,6 +6,8 @@ import { esquemasGestionCursos, rutasGestionCursos } from './openapi-gestion-cur
 import { esquemasSolicitudes, rutasSolicitudes } from './openapi-solicitudes.js';
 import { esquemasAprendizaje, rutasAprendizaje } from './openapi-aprendizaje.js';
 import { esquemasEvaluaciones, rutasEvaluaciones } from './openapi-evaluaciones.js';
+import { esquemasCategorias, rutasCategorias } from './openapi-categorias.js';
+import { esquemasResenas, rutasResenas } from './openapi-resenas.js';
 
 const usuarioSesion = {
   type: 'object',
@@ -111,14 +113,32 @@ const esquemasCatalogo = {
       estado: { type: 'string', enum: ['PUBLICADO'] },
     },
   },
+  CalificacionCurso: {
+    type: 'object', required: ['promedio', 'total'],
+    properties: {
+      promedio: { type: 'number', nullable: true, minimum: 1, maximum: 5, description: 'Un decimal; null sin reseñas.' },
+      total: { type: 'integer', minimum: 0 },
+    },
+  },
   CursoPublicoDetalle: {
     allOf: [
       ref('CursoPublico'),
       {
         type: 'object',
-        required: ['descripcion', 'docenteBio', 'objetivos', 'requisitos', 'temario'],
+        required: ['descripcion', 'docenteBio', 'instructor', 'calificacion', 'objetivos', 'requisitos', 'temario'],
         properties: {
           descripcion: { type: 'string', description: 'Cadena vacía si no tiene.' }, docenteBio: { type: 'string', nullable: true },
+          instructor: {
+            type: 'object', required: ['nombre', 'especialidad', 'biografia', 'fotoUrl', 'cursosPublicados', 'estudiantes'],
+            description: 'Ficha pública del docente: nunca incluye su correo.',
+            properties: {
+              nombre: { type: 'string' }, especialidad: { type: 'string' },
+              biografia: { type: 'string', nullable: true }, fotoUrl: { type: 'string', nullable: true },
+              cursosPublicados: { type: 'integer', minimum: 0 },
+              estudiantes: { type: 'integer', minimum: 0, description: 'Inscripciones en todos sus cursos publicados.' },
+            },
+          },
+          calificacion: ref('CalificacionCurso'),
           objetivos: { type: 'array', items: { type: 'string' } },
           requisitos: { type: 'array', items: { type: 'string' } },
           temario: { type: 'array', items: { type: 'object', required: ['id', 'orden', 'titulo', 'lecciones'], properties: {
@@ -178,6 +198,8 @@ export const openApi = {
       ...esquemasSolicitudes,
       ...esquemasAprendizaje,
       ...esquemasEvaluaciones,
+      ...esquemasCategorias,
+      ...esquemasResenas,
     },
     responses: respuestasComunes,
     securitySchemes: {
@@ -192,6 +214,8 @@ export const openApi = {
     ...rutasSolicitudes,
     ...rutasAprendizaje,
     ...rutasEvaluaciones,
+    ...rutasCategorias,
+    ...rutasResenas,
     '/salud': {
       get: {
         tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL',
@@ -390,6 +414,58 @@ export const openApi = {
           ...erroresCuerpoJson('Datos inválidos (SOLICITUD_INVALIDA)'),
           401: sinSesion,
           404: cuentaInexistente,
+          500: errorInterno,
+        },
+      },
+    },
+    '/perfil/foto': {
+      put: {
+        tags: ['Identidad'],
+        summary: 'Subir o reemplazar mi foto de perfil',
+        description: 'JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. La foto anterior se borra. ' +
+          'Queda en `fotoUrl` como `/api/fotos/{nombre}`. Hasta 20 subidas cada 15 minutos por IP.',
+        security: [{ bearer: [] }],
+        requestBody: {
+          required: true,
+          content: { 'multipart/form-data': { schema: {
+            type: 'object', additionalProperties: false, required: ['foto'],
+            properties: { foto: { type: 'string', format: 'binary' } },
+          } } },
+        },
+        responses: {
+          200: json(perfil),
+          400: error('Formulario sin foto o ilegible (SOLICITUD_INVALIDA)'),
+          401: sinSesion,
+          404: cuentaInexistente,
+          413: error('La foto supera 2 MiB (ARCHIVO_DEMASIADO_GRANDE)'),
+          415: error('No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO)'),
+          429: limite,
+          500: errorInterno,
+        },
+      },
+      delete: {
+        tags: ['Identidad'],
+        summary: 'Quitar mi foto de perfil (vuelven las iniciales)',
+        security: [{ bearer: [] }],
+        responses: { 200: json(perfil), 401: sinSesion, 404: cuentaInexistente, 500: errorInterno },
+      },
+    },
+    '/fotos/{nombre}': {
+      get: {
+        tags: ['Identidad'],
+        summary: 'Foto de perfil pública (catálogo, reseñas, panel)',
+        description: 'El nombre es un UUID con su extensión; cualquier otro valor da 404. Se puede guardar en caché un año.',
+        parameters: [{ in: 'path', name: 'nombre', required: true, schema: { type: 'string', pattern: '^[0-9a-f-]{36}\.(jpg|png|webp)$' } }],
+        responses: {
+          200: {
+            description: 'Bytes de la imagen',
+            content: {
+              'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+              'image/png': { schema: { type: 'string', format: 'binary' } },
+              'image/webp': { schema: { type: 'string', format: 'binary' } },
+            },
+          },
+          404: error('La foto no existe (NO_ENCONTRADO)'),
           500: errorInterno,
         },
       },

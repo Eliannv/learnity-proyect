@@ -5,7 +5,7 @@ import { AppError } from '../../shared/http/app-error.js';
 import type { DatosProgreso, PaginacionEstudiantes } from './aprendizaje.esquemas.js';
 import type {
   CursoInscrito, DetalleAprendizaje, InscripcionResumen, ModuloAprendizaje, ProgresoGuardado, SeguimientoDocente,
-  TipoLeccionAprendizaje,
+  RecursoAprendizaje, TipoLeccionAprendizaje,
 } from './aprendizaje.modelo.js';
 import { aprendizajeRepository as repo, type FilaCursoInscrito, type FilaInscripcion, type FilaLeccion } from './aprendizaje.repository.js';
 
@@ -33,7 +33,7 @@ function cursoInscrito(fila: FilaCursoInscrito): CursoInscrito {
   };
 }
 
-function ordenarTemario(filas: FilaLeccion[]): ModuloAprendizaje[] {
+function ordenarTemario(filas: FilaLeccion[], recursos: (RecursoAprendizaje & { leccionId: number })[] = []): ModuloAprendizaje[] {
   const modulos: ModuloAprendizaje[] = [];
   for (const fila of filas) {
     let modulo = modulos.at(-1);
@@ -44,9 +44,10 @@ function ordenarTemario(filas: FilaLeccion[]): ModuloAprendizaje[] {
     if (fila.id !== null && fila.orden !== null && fila.titulo !== null && fila.tipo !== null) {
       modulo.lecciones.push({
         id: fila.id, orden: fila.orden, titulo: fila.titulo, tipo: fila.tipo,
-        vistaPrevia: fila.vistaPrevia ?? false, archivoId: fila.archivoId,
+        archivoId: fila.archivoId,
         youtubeVideoId: fila.tipo === 'VIDEO' ? fila.youtubeVideoId : null,
         evaluacionId: fila.tipo === 'EVALUACION' ? fila.evaluacionId : null,
+        recursos: recursos.filter((r) => r.leccionId === fila.id).map(({ leccionId: _, ...r }) => r),
         progreso: { segundosVistos: fila.segundosVistos ?? 0, completada: fila.completada ?? false },
       });
     }
@@ -112,7 +113,11 @@ export const aprendizajeService = {
     exigirEstudiante(usuario);
     const fila = await repo.cursoDelEstudiante(usuario.idPersona, idCurso);
     if (!fila) throw AppError.noEncontrado('Curso no disponible.');
-    return { ...cursoInscrito(fila), modulos: ordenarTemario(await repo.temarioDelEstudiante(fila.id, idCurso)) };
+    const [temario, recursos] = await Promise.all([
+      repo.temarioDelEstudiante(fila.id, idCurso),
+      repo.recursosDelCurso(idCurso),
+    ]);
+    return { ...cursoInscrito(fila), modulos: ordenarTemario(temario, recursos) };
   },
 
   async guardarProgreso(idLeccion: number, datos: DatosProgreso, usuario: UsuarioSesion): Promise<ProgresoGuardado> {

@@ -21,7 +21,7 @@
   </header>
 
   @if (carga.ocupada()) {
-    <p class="mensaje" role="status">Cargando editor…</p>
+    <app-esqueleto forma="filas" [cantidad]="6" etiqueta="Cargando editor…" />
   } @else if (carga.error()) {
     <div class="mensaje error" role="alert">
       <p>{{ carga.error() }}</p>

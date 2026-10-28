@@ -1,7 +1,9 @@
 import { consultar } from '../../shared/database/pool.js';
 import type {
+  CalificacionCurso,
   CategoriaPublica,
   FiltrosPublicos,
+  InstructorPublico,
   NivelCurso,
   OrdenCatalogo,
   TipoLeccionPublica,
@@ -199,5 +201,34 @@ export const catalogoRepository = {
       [id],
     );
     return rows;
+  },
+  /** Ficha pública del docente de un curso publicado: lo que ayuda a decidir la inscripción. */
+  async instructorDeCurso(id: number): Promise<InstructorPublico | null> {
+    const { rows } = await consultar<InstructorPublico>(
+      `SELECT concat_ws(' ', p.nombres, p.apellidos) AS nombre, d.especialidad,
+              p.biografia, p.foto_url AS "fotoUrl",
+              (SELECT count(*)::int FROM curso c2
+                WHERE c2.id_docente = d.id_docente AND c2.estado = 'PUBLICADO') AS "cursosPublicados",
+              (SELECT count(*)::int FROM inscripcion i JOIN curso c3 ON c3.id_curso = i.id_curso
+                WHERE c3.id_docente = d.id_docente AND c3.estado = 'PUBLICADO') AS estudiantes
+         FROM curso c
+         JOIN docente d ON d.id_docente = c.id_docente
+         JOIN persona p ON p.id_persona = d.id_persona
+        WHERE c.id_curso = $1 AND c.estado = 'PUBLICADO'`,
+      [id],
+    );
+    return rows[0] ?? null;
+  },
+
+  /** Promedio de estrellas (una reseña por inscripción) redondeado a un decimal. */
+  async calificacion(id: number): Promise<CalificacionCurso> {
+    const { rows } = await consultar<{ promedio: string | null; total: number }>(
+      `SELECT round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS total
+         FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+        WHERE i.id_curso = $1`,
+      [id],
+    );
+    const fila = rows[0]!;
+    return { promedio: fila.promedio === null ? null : Number(fila.promedio), total: fila.total };
   },
 };

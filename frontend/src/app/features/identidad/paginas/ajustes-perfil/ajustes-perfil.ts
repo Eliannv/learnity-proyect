@@ -1,4 +1,5 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FotoPerfil } from '../../componentes/foto-perfil';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
@@ -17,8 +18,6 @@ const DESCRIPCION_ROL = {
   ADMIN: 'Gestionas usuarios, solicitudes, categorías y la revisión de cursos.',
 } as const;
 
-const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_FOTO_BYTES = 500 * 1024;
 
 function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
   const nueva = grupo.get('nueva')?.value as string;
@@ -28,11 +27,11 @@ function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-ajustes-perfil',
-  imports: [ReactiveFormsModule, LucideAngularModule, Avatar],
+  imports: [ReactiveFormsModule, LucideAngularModule, Avatar, FotoPerfil],
   templateUrl: './ajustes-perfil.html',
   styleUrl: './ajustes-perfil.scss',
 })
-export class AjustesPerfil implements OnDestroy {
+export class AjustesPerfil {
   protected readonly auth = inject(AuthService);
   private readonly perfiles = inject(PerfilService);
   private readonly fb = inject(FormBuilder).nonNullable;
@@ -106,37 +105,6 @@ export class AjustesPerfil implements OnDestroy {
     }
   }
 
-  protected readonly fotoVista = signal<string | null>(null);
-  protected readonly fotoError = signal('');
-
-  protected elegirFoto(evento: Event) {
-    const entrada = evento.target as HTMLInputElement;
-    const archivo = entrada.files?.[0];
-    entrada.value = '';
-    if (!archivo) return;
-    if (!TIPOS_FOTO.includes(archivo.type)) {
-      this.fotoError.set(`«${archivo.name}» no es JPG, PNG ni WEBP.`);
-      return;
-    }
-    if (archivo.size > MAX_FOTO_BYTES) {
-      this.fotoError.set(`«${archivo.name}» pesa ${Math.round(archivo.size / 1024)} KB; el máximo es 500 KB.`);
-      return;
-    }
-    this.fotoError.set('');
-    this.liberarVista();
-    this.fotoVista.set(URL.createObjectURL(archivo));
-  }
-
-  protected quitarFoto() {
-    this.liberarVista();
-    this.fotoVista.set(null);
-  }
-
-  private liberarVista() {
-    const url = this.fotoVista();
-    if (url) URL.revokeObjectURL(url);
-  }
-
   protected readonly ayudaContrasena = AYUDA_CONTRASENA;
   protected readonly mensajeContrasena = mensajeContrasena;
   protected readonly formContrasena = this.fb.group(
@@ -178,9 +146,5 @@ export class AjustesPerfil implements OnDestroy {
 
   protected invalido(control: AbstractControl): boolean {
     return control.invalid && control.touched;
-  }
-
-  ngOnDestroy() {
-    this.liberarVista();
   }
 }

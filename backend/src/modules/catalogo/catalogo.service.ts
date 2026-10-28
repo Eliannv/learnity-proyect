@@ -85,11 +85,21 @@ export const catalogoService = {
       throw AppError.noEncontrado('Curso no disponible.');
     }
 
-    const temario = await catalogoRepository.temarioPublico(id);
+    const [temario, instructor, calificacion] = await Promise.all([
+      catalogoRepository.temarioPublico(id),
+      catalogoRepository.instructorDeCurso(id),
+      catalogoRepository.calificacion(id),
+    ]);
+    // Entre las dos lecturas el curso pudo dejar de estar publicado.
+    if (!instructor) {
+      throw AppError.noEncontrado('Curso no disponible.');
+    }
     return {
       ...cursoPublico(fila),
       descripcion: fila.descripcion,
       docenteBio: fila.docenteBio,
+      instructor,
+      calificacion,
       objetivos: fila.objetivos,
       requisitos: fila.requisitos,
       temario: ordenarTemario(temario),

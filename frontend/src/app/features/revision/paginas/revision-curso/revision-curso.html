@@ -4,7 +4,7 @@
   <h1 class="titulo-pagina">Revisión del curso</h1>
 
   @if (carga.ocupada()) {
-    <p class="mensaje" role="status">Cargando revisión…</p>
+    <app-esqueleto forma="filas" [cantidad]="6" etiqueta="Cargando revisión…" />
   } @else if (carga.error()) {
     <div class="mensaje error" role="alert">
       <p>{{ carga.error() }}</p>

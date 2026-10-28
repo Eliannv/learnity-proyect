@@ -27,10 +27,12 @@ export const contenidoRepository = {
         a.nombre_original AS "nombreOriginal",
         a.ruta,
         a.tamano_bytes AS "tamanoBytes",
-        l.id_leccion AS "leccionId"
+        COALESCE(l.id_leccion, ra.id_leccion) AS "leccionId"
       FROM archivo a
       LEFT JOIN leccion l
         ON l.id_archivo = a.id_archivo
+      LEFT JOIN recurso_adjunto ra
+        ON ra.id_archivo = a.id_archivo
       WHERE a.id_archivo = $1
     `;
 
@@ -53,6 +55,7 @@ export const contenidoRepository = {
     original: string,
     nombre: string,
     bytes: number,
+    tipo: 'PDF' | 'PPT' | 'ZIP' = 'PDF',
   ): Promise<number> {
     const { rows } = await cliente.query<{
       id: number;
@@ -65,7 +68,7 @@ export const contenidoRepository = {
           ruta,
           tamano_bytes
         )
-        VALUES ($1, 'PDF', $2, $3, $4)
+        VALUES ($1, $5, $2, $3, $4)
         RETURNING id_archivo AS id
       `,
       [
@@ -73,6 +76,7 @@ export const contenidoRepository = {
         original,
         nombre,
         bytes,
+        tipo,
       ],
     );
 

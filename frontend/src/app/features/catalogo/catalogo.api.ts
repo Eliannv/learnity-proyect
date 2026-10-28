@@ -12,7 +12,6 @@ import type {
   OrdenCatalogo,
   PaginaCatalogo,
   TipoLeccionPublica,
-  VistaPreviaVideo,
 } from '../../core/api/contrato';
 
 export type {
@@ -25,7 +24,6 @@ export type {
   OrdenCatalogo,
   PaginaCatalogo,
   TipoLeccionPublica,
-  VistaPreviaVideo,
 };
 export type NivelCurso = NivelCursoPublico;
 export type PaginaCursos = PaginaCatalogo;
@@ -89,14 +87,6 @@ export class CatalogoApi {
     );
     if ('estado' in curso && curso.estado !== 'PUBLICADO') return null;
     return curso;
-  }
-
-  videoVistaPrevia(idLeccion: number): Promise<VistaPreviaVideo> {
-    const idValido = aIdCursoValido(idLeccion);
-    if (!idValido) return Promise.reject(new Error('La lección no es válida.'));
-    return firstValueFrom(
-      this.http.get<VistaPreviaVideo>(`${this.base}/lecciones/${idValido}/video-preview`),
-    );
   }
 }
 

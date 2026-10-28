@@ -1,151 +1,109 @@
 import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api';
+import { EstadoVistaComponent } from '../../../../shared/ui/estado-vista';
+import { Modal } from '../../../../shared/ui/modal';
 import { ICONO_CATEGORIA } from '../../../../shared/ui/tipos-ui';
-import { CatalogoApi } from '../../../catalogo/catalogo.api';
+import { ToastService } from '../../../../shared/ui/toast.service';
+import { AdminCategoriasApi, type CategoriaAdmin } from '../../admin-categorias.api';
 
-interface FilaCategoria {
+interface Formulario {
+  id: number | null;
   nombre: string;
-  icono: string;
-  cursos: number;
-  estudiantes: string;
+  descripcion: string;
   activa: boolean;
 }
 
-const CATEGORIAS_BASE: FilaCategoria[] = [
-  { nombre: 'Programación', icono: 'code', cursos: 12, estudiantes: '1 840', activa: true },
-  { nombre: 'Diseño', icono: 'pen-tool', cursos: 8, estudiantes: '920', activa: true },
-  { nombre: 'Idiomas', icono: 'languages', cursos: 6, estudiantes: '610', activa: true },
-  { nombre: 'Negocios', icono: 'briefcase', cursos: 4, estudiantes: '380', activa: true },
-  { nombre: 'Marketing', icono: 'megaphone', cursos: 3, estudiantes: '250', activa: true },
-  { nombre: 'Ofimática', icono: 'monitor', cursos: 1, estudiantes: '90', activa: false },
-];
-
-/** Categorías del catálogo (RF-23; el CRUD administrativo depende de la aprobación de ADR-012). */
+/** Categorías del catálogo (ADR-012): crear, editar y activar o desactivar. No se borran. */
 @Component({
   selector: 'app-categorias',
-  imports: [LucideAngularModule],
-  template: `
-    <header class="cabecera">
-      <div>
-        <h1 class="titulo-pagina">Categorías</h1>
-        <p class="subtitulo">Organizan el catálogo. Los docentes eligen una categoría al crear su curso.</p>
-      </div>
-      <button type="button" class="btn btn-primario btn-lg"><lucide-icon name="plus" [size]="20" /> Nueva categoría</button>
-    </header>
-
-    <div class="tabla-contenedor">
-      <table class="tabla">
-        <thead>
-          <tr>
-            <th>Categoría</th>
-            <th>Cursos</th>
-            <th>Estudiantes</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (c of categorias(); track c.nombre; let i = $index) {
-            <tr>
-              <td>
-                <div class="nombre">
-                  <span class="icono"><lucide-icon [name]="c.icono" [size]="20" /></span>
-                  <strong>{{ c.nombre }}</strong>
-                </div>
-              </td>
-              <td>{{ c.cursos }}</td>
-              <td>{{ c.estudiantes }}</td>
-              <td>
-                <span class="punto-estado" [class.activo]="c.activa" [class.inactivo]="!c.activa">{{ c.activa ? 'Activa' : 'Inactiva' }}</span>
-              </td>
-              <td>
-                <div class="acciones">
-                  <button type="button" class="enlace">Editar</button>
-                  <button type="button" class="enlace" [class.peligro]="c.activa" (click)="alternar(i)">{{ c.activa ? 'Desactivar' : 'Activar' }}</button>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  `,
-  styles: `
-    :host {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-    .cabecera {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
-    .nombre {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      strong {
-        font-weight: 600;
-      }
-    }
-    .icono {
-      display: grid;
-      place-items: center;
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radio);
-      background: var(--azul-100);
-      color: var(--azul-700);
-    }
-    .acciones {
-      display: flex;
-      gap: 20px;
-    }
-    .peligro {
-      color: var(--rojo-700);
-    }
-    td {
-      white-space: nowrap;
-    }
-    @media (max-width: 900px) {
-      .cabecera {
-        flex-direction: column;
-        .btn {
-          width: 100%;
-        }
-      }
-    }
-  `,
+  imports: [FormsModule, LucideAngularModule, EstadoVistaComponent, Modal],
+  templateUrl: './categorias.html',
+  styleUrl: './categorias.scss',
 })
 export class Categorias {
-  private readonly catalogoApi = inject(CatalogoApi);
-  protected readonly categorias = signal<FilaCategoria[]>(CATEGORIAS_BASE.map((c) => ({ ...c })));
+  private readonly api = inject(AdminCategoriasApi);
+  private readonly toast = inject(ToastService);
+
+  protected readonly categorias = signal<CategoriaAdmin[] | null>(null);
+  protected readonly error = signal('');
+  protected readonly formulario = signal<Formulario | null>(null);
+  protected readonly errores = signal<Record<string, string>>({});
+  protected readonly guardando = signal(false);
+  protected readonly desactivando = signal<CategoriaAdmin | null>(null);
 
   constructor() {
-    void this.cargarActivas();
+    void this.cargar();
   }
 
-  private async cargarActivas(): Promise<void> {
+  protected icono(nombre: string): string {
+    return ICONO_CATEGORIA[nombre] ?? 'tags';
+  }
+
+  protected async cargar(): Promise<void> {
+    this.error.set('');
     try {
-      const publicas = await this.catalogoApi.categorias();
-      if (!publicas.length) return;
-      this.categorias.set(
-        publicas.map((c) => ({
-          nombre: c.nombre,
-          icono: ICONO_CATEGORIA[c.nombre] ?? 'book-open',
-          cursos: 0,
-          estudiantes: '—',
-          activa: true,
-        })),
-      );
-    } catch {
-      // Conserva el estado local cuando la API no está disponible.
+      this.categorias.set(await this.api.listar());
+    } catch (error) {
+      this.error.set(mensajeDeError(error, 'Cargar las categorías'));
     }
   }
 
-  protected alternar(i: number) {
-    this.categorias.update((lista) => lista.map((c, idx) => (idx === i ? { ...c, activa: !c.activa } : c)));
+  protected nueva(): void {
+    this.errores.set({});
+    this.formulario.set({ id: null, nombre: '', descripcion: '', activa: true });
+  }
+
+  protected editar(c: CategoriaAdmin): void {
+    this.errores.set({});
+    this.formulario.set({ id: c.id, nombre: c.nombre, descripcion: c.descripcion ?? '', activa: c.activa });
+  }
+
+  protected async guardar(): Promise<void> {
+    const f = this.formulario();
+    if (!f || this.guardando()) return;
+    if (!f.nombre.trim()) {
+      this.errores.set({ nombre: 'Escribe el nombre de la categoría.' });
+      return;
+    }
+    this.guardando.set(true);
+    try {
+      const datos = { nombre: f.nombre.trim(), descripcion: f.descripcion.trim() || null };
+      const guardada = f.id === null
+        ? await this.api.crear(datos)
+        : await this.api.actualizar(f.id, { ...datos, activa: f.activa });
+      this.aplicar(guardada);
+      this.formulario.set(null);
+      this.toast.exito(f.id === null ? `Categoría «${guardada.nombre}» creada.` : 'Categoría guardada.');
+    } catch (error) {
+      const campos = erroresPorCampo(error);
+      this.errores.set(Object.keys(campos).length ? campos : { general: mensajeDeError(error, 'Guardar la categoría') });
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  /** Activar es inmediato; desactivar se confirma porque afecta a los docentes que la usan. */
+  protected pedirCambio(c: CategoriaAdmin): void {
+    if (c.activa) this.desactivando.set(c);
+    else void this.cambiarActiva(c, true);
+  }
+
+  protected async cambiarActiva(c: CategoriaAdmin, activa: boolean): Promise<void> {
+    this.desactivando.set(null);
+    try {
+      this.aplicar(await this.api.actualizar(c.id, { nombre: c.nombre, descripcion: c.descripcion, activa }));
+      this.toast.exito(activa ? `«${c.nombre}» vuelve a estar disponible.` : `«${c.nombre}» desactivada.`);
+    } catch (error) {
+      this.toast.error(mensajeDeError(error, 'Cambiar el estado de la categoría'));
+    }
+  }
+
+  private aplicar(guardada: CategoriaAdmin): void {
+    this.categorias.update((lista) => {
+      const resto = (lista ?? []).filter((c) => c.id !== guardada.id);
+      return [...resto, guardada].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    });
   }
 }

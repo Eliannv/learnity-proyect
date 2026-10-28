@@ -4,7 +4,7 @@ import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { validarParametros } from '../../shared/http/validar.js';
 import { contenidoController as controller } from './contenido.controller.js';
 import { idContenidoRuta } from './contenido.esquemas.js';
-import { recibirPdf } from './contenido.multipart.js';
+import { recibirPdf, recibirRecurso } from './contenido.multipart.js';
 
 export const contenidoRoutes = Router();
 
@@ -19,6 +19,18 @@ contenidoRoutes.post(
   controller.autorizarCarga,
   recibirPdf,
   controller.subir,
+);
+
+// Recurso adjunto (PDF, PPT, PPTX o ZIP), mismo orden de middlewares que el PDF principal.
+contenidoRoutes.post(
+  '/lecciones/:id/recursos',
+  limitarPorIp('subida-pdf', 30, 15),
+  autenticar,
+  autorizar('DOCENTE'),
+  validarParametros(idContenidoRuta),
+  controller.autorizarCarga,
+  recibirRecurso,
+  controller.subirRecurso,
 );
 
 contenidoRoutes.get(

@@ -1,14 +1,6 @@
-<nav class="franja-categorias" aria-label="Categorías">
-  <div class="franja-interior">
-    @for (c of categorias(); track c.id) {
-      <a routerLink="/cursos" [queryParams]="{ categoria: c.nombre }">{{ c.nombre }}</a>
-    }
-  </div>
-</nav>
-
 <div class="contenedor pagina">
   <header class="saludo">
-    <app-avatar [texto]="auth.iniciales()" [tamano]="64" [solido]="true" />
+    <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="64" [solido]="true" />
     <div>
       <h1>Hola de nuevo, {{ auth.usuario()?.nombres }}</h1>
       <div class="enlaces-saludo">
@@ -79,6 +71,7 @@
             [meta]="c.docente"
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
+            [imagen]="c.portadaUrl"
           >
             <p class="detalles"><span>{{ c.nivel }}</span><span>{{ duracion(c) }}</span></p>
           </app-tarjeta-curso>
@@ -104,6 +97,7 @@
             [meta]="c.docente"
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
+            [imagen]="c.portadaUrl"
           >
             <p class="detalles"><span>{{ c.nivel }}</span><span>{{ duracion(c) }}</span></p>
           </app-tarjeta-curso>
@@ -133,6 +127,7 @@
             [tono]="tonoDe(c.categoria.id)"
             [nuevo]="p === 'nuevos'"
             [enlace]="'/cursos/' + c.id"
+            [imagen]="c.portadaUrl"
           >
             <p class="detalles"><span>{{ c.nivel }}</span><span>{{ duracion(c) }}</span></p>
           </app-tarjeta-curso>

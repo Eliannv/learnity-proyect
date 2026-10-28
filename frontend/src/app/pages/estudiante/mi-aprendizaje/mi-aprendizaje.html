@@ -7,7 +7,7 @@
 
 <div class="contenedor pagina">
   @if (cargando()) {
-    <div class="tarjeta estado-carga" role="status">Cargando tus cursos…</div>
+    <app-esqueleto forma="tarjetas" [cantidad]="3" etiqueta="Cargando tus cursos…" />
   } @else if (error()) {
     <div class="tarjeta estado-carga" role="alert">
       <h2>No se pudo cargar Mi aprendizaje</h2>
@@ -92,11 +92,12 @@
       <div class="grid">
         @for (i of lista(); track i.curso.id) {
           <article class="curso tarjeta-curso">
-            <div class="curso-portada">
+            <!-- La portada y el título abren la ficha del curso; «Continuar» va directo a la lección -->
+            <a class="curso-portada" [routerLink]="['/cursos', i.curso.id]" tabindex="-1" aria-hidden="true">
               <app-portada-curso [categoria]="i.curso.categoria.nombre" [tono]="tono(i.curso.categoria.id)"
                 [imagen]="i.curso.portadaUrl" />
-            </div>
-            <strong class="curso-titulo">{{ i.curso.titulo }}</strong>
+            </a>
+            <a class="curso-titulo" [routerLink]="['/cursos', i.curso.id]">{{ i.curso.titulo }}</a>
             <span class="curso-docente">{{ i.curso.docente }}</span>
             <div class="curso-avance">
               <app-barra-progreso [valor]="i.inscripcion.progresoPct" [verde]="i.inscripcion.estado === 'COMPLETADA'" />

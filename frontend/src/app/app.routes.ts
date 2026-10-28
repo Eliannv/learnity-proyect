@@ -4,9 +4,8 @@ import { conSesionMatch, rolGuard } from './core/auth/guards';
 
 import { LayoutPanel } from './layouts/layout-panel';
 import { LayoutSitio } from './layouts/layout-sitio';
-import { environment } from '../environments/environment';
 
-// La portada personalizada y las evaluaciones pertenecen a un sprint posterior.
+// Portada personalizada del estudiante con sesión iniciada.
 const inicioEstudiante: Routes = [
   {
     path: '',
@@ -50,16 +49,6 @@ const rutasSeguimientoDocente: Routes = [
       import('./pages/docente/estudiantes/estudiantes').then(
         (m) => m.EstudiantesCurso,
       ),
-  },
-];
-
-const rutasAdminFuturas: Routes = [
-  {
-    path: 'usuarios',
-    title: 'Usuarios · Learnity',
-    data: { seccion: 'Usuarios' },
-    loadComponent: () =>
-      import('./pages/admin/usuarios/usuarios').then((m) => m.Usuarios),
   },
 ];
 
@@ -140,7 +129,11 @@ export const routes: Routes = [
         pathMatch: 'full',
         redirectTo: 'revision',
       },
-      ...(environment.sprint34Habilitado ? rutasAdminFuturas : []),
+      {
+        path: 'usuarios',
+        loadChildren: () =>
+          import('./features/admin-usuarios/admin-usuarios.routes').then((m) => m.rutasAdminUsuarios),
+      },
       {
         path: 'solicitudes',
         loadChildren: () => import('./features/usuarios/usuarios.routes').then((m) => m.rutasSolicitudes),
@@ -163,9 +156,27 @@ export const routes: Routes = [
     ],
   },
 
-  // Dirección desconocida: volver al inicio.
+  // Sin el rol necesario (lo decide rolGuard): explica por qué en vez de redirigir sin aviso.
+  {
+    path: 'acceso-denegado',
+    component: LayoutSitio,
+    children: [{
+      path: '',
+      title: 'Acceso denegado · Learnity',
+      data: { tipo: '403' },
+      loadComponent: () => import('./features/errores/pagina-error').then((m) => m.PaginaError),
+    }],
+  },
+
+  // Dirección desconocida: página 404 con caminos de vuelta.
   {
     path: '**',
-    redirectTo: '',
+    component: LayoutSitio,
+    children: [{
+      path: '',
+      title: 'Página no encontrada · Learnity',
+      data: { tipo: '404' },
+      loadComponent: () => import('./features/errores/pagina-error').then((m) => m.PaginaError),
+    }],
   },
 ];

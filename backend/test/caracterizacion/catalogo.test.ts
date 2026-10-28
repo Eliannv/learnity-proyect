@@ -228,7 +228,7 @@ describe('GET /api/cursos/:id (CAR-CAT-18..22)', () => {
   it('CAR-CAT-18 y 21: detalle con temario ordenado, módulo vacío y sin ruta', async () => {
     const r = await srv.pedir(`/api/cursos/${cursos['c1']}`);
     assert.equal(r.status, 200);
-    assert.deepEqual(claves(r.json), [...ITEM, 'descripcion', 'docenteBio', 'objetivos', 'requisitos', 'temario']);
+    assert.deepEqual(claves(r.json), [...ITEM, 'descripcion', 'docenteBio', 'instructor', 'calificacion', 'objetivos', 'requisitos', 'temario']);
     assert.deepEqual(claves(r.json.temario[0]), ['id', 'orden', 'titulo', 'lecciones']);
     assert.deepEqual(claves(r.json.temario[0].lecciones[0]), ['id', 'orden', 'titulo', 'tipo', 'minutos']);
     assert.deepEqual(r.json.temario.map((m: any) => m.orden), [1, 2]);

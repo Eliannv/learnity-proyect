@@ -1,7 +1,5 @@
 @if (cargando()) {
-<div class="contenedor pagina">
-  <section class="estado-carga" role="status">Cargando la lección…</section>
-</div>
+<app-esqueleto forma="leccion" [cantidad]="8" etiqueta="Cargando la lección…" />
 } @else if (error()) {
 <div class="contenedor pagina">
   <section class="estado-carga" role="alert">
@@ -50,7 +48,7 @@
         @if (videoDisponible() && l.youtubeVideoId; as videoId) {
         <app-reproductor-youtube [videoId]="videoId" [leccionId]="l.id" [titulo]="l.titulo" [oscuro]="true"
           [posicionGuardada]="l.progreso.segundosVistos" [observarPosicion]="true"
-          (posicion)="registrarPosicion($event)" />
+          (posicion)="registrarPosicion($event)" (terminado)="alTerminarVideo($event)" />
         } @else {
         <div class="contenido-pendiente" role="status">
           <lucide-icon name="video" [size]="30" aria-hidden="true" />
@@ -119,6 +117,8 @@
         </div>
       </div>
 
+      @if (l.recursos.length) { <app-recursos-estudiante [recursos]="l.recursos" /> }
+
       <section class="descripcion-general" aria-label="Descripción general de la lección">
         <h2 class="seccion-titulo">Descripción general</h2>
         @if (d.curso.subtitulo) { <p class="subtitulo-curso">{{ d.curso.subtitulo }}</p> }
@@ -141,6 +141,9 @@
           </div>
         </dl>
       </section>
+
+      <!-- El estudiante inscrito valora el curso sin salir del aula -->
+      <app-resenas-curso class="resenas-aula" [cursoId]="d.curso.id" [estudiante]="true" />
     </div>
   </div>
 

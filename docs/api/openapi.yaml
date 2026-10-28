@@ -168,6 +168,26 @@
           }
         }
       },
+      "CalificacionCurso": {
+        "type": "object",
+        "required": [
+          "promedio",
+          "total"
+        ],
+        "properties": {
+          "promedio": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Un decimal; null sin reseñas."
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
       "CursoPublicoDetalle": {
         "allOf": [
           {
@@ -178,6 +198,8 @@
             "required": [
               "descripcion",
               "docenteBio",
+              "instructor",
+              "calificacion",
               "objetivos",
               "requisitos",
               "temario"
@@ -190,6 +212,46 @@
               "docenteBio": {
                 "type": "string",
                 "nullable": true
+              },
+              "instructor": {
+                "type": "object",
+                "required": [
+                  "nombre",
+                  "especialidad",
+                  "biografia",
+                  "fotoUrl",
+                  "cursosPublicados",
+                  "estudiantes"
+                ],
+                "description": "Ficha pública del docente: nunca incluye su correo.",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "especialidad": {
+                    "type": "string"
+                  },
+                  "biografia": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "fotoUrl": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "cursosPublicados": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "estudiantes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Inscripciones en todos sus cursos publicados."
+                  }
+                }
+              },
+              "calificacion": {
+                "$ref": "#/components/schemas/CalificacionCurso"
               },
               "objetivos": {
                 "type": "array",
@@ -418,10 +480,6 @@
                 "minLength": 1,
                 "maxLength": 255,
                 "description": "Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID."
-              },
-              "vistaPrevia": {
-                "type": "boolean",
-                "default": false
               }
             }
           },
@@ -629,8 +687,8 @@
           "tipo",
           "archivo",
           "youtubeVideoId",
-          "vistaPrevia",
-          "preguntas"
+          "preguntas",
+          "recursos"
         ],
         "properties": {
           "id": {
@@ -667,14 +725,59 @@
             "minLength": 11,
             "maxLength": 11
           },
-          "vistaPrevia": {
-            "type": "boolean"
-          },
           "preguntas": {
             "type": "integer",
             "minimum": 0,
             "maximum": 10,
             "description": "Preguntas guardadas de una EVALUACION (necesita 5 para estar completa); 0 en los demás tipos."
+          },
+          "recursos": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "$ref": "#/components/schemas/RecursoLeccion"
+            }
+          }
+        }
+      },
+      "RecursoLeccion": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "archivoId",
+          "tipo",
+          "nombreOriginal",
+          "tamanoBytes"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "archivoId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "PDF",
+              "PPT",
+              "ZIP"
+            ]
+          },
+          "nombreOriginal": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "tamanoBytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10485760
           }
         }
       },
@@ -1229,10 +1332,10 @@
           "orden",
           "titulo",
           "tipo",
-          "vistaPrevia",
           "archivoId",
           "youtubeVideoId",
           "evaluacionId",
+          "recursos",
           "progreso"
         ],
         "properties": {
@@ -1253,9 +1356,6 @@
               "EVALUACION"
             ]
           },
-          "vistaPrevia": {
-            "type": "boolean"
-          },
           "archivoId": {
             "type": "integer",
             "nullable": true
@@ -1271,6 +1371,47 @@
             "type": "integer",
             "nullable": true,
             "description": "Para `GET /evaluaciones/{id}` en una lección EVALUACION; null en los demás tipos."
+          },
+          "recursos": {
+            "type": "array",
+            "description": "Material descargable con `GET /archivos/{archivoId}`.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "titulo",
+                "archivoId",
+                "tipo",
+                "nombreOriginal",
+                "tamanoBytes"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "titulo": {
+                  "type": "string"
+                },
+                "archivoId": {
+                  "type": "integer"
+                },
+                "tipo": {
+                  "type": "string",
+                  "enum": [
+                    "PDF",
+                    "PPT",
+                    "ZIP"
+                  ]
+                },
+                "nombreOriginal": {
+                  "type": "string"
+                },
+                "tamanoBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
           },
           "progreso": {
             "type": "object",
@@ -1668,6 +1809,235 @@
               "ACTIVA",
               "COMPLETADA"
             ]
+          }
+        }
+      },
+      "CategoriaAdmin": {
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "descripcion",
+          "activa",
+          "cursos",
+          "cursosPublicados"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "activa": {
+            "type": "boolean"
+          },
+          "cursos": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Cursos de cualquier estado con esta categoría."
+          },
+          "cursosPublicados": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "DatosCategoriaNueva": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nombre"
+        ],
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Se recortan los espacios y se normaliza a NFC. Único sin distinguir mayúsculas."
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 300,
+            "description": "Vacía o ausente se guarda como null."
+          }
+        }
+      },
+      "DatosCategoria": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nombre",
+          "activa"
+        ],
+        "description": "Reemplazo completo. Desactivar no borra ni oculta cursos publicados; deja de ofrecerse al crear o editar cursos.",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Se recortan los espacios y se normaliza a NFC. Único sin distinguir mayúsculas."
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 300,
+            "description": "Vacía o ausente se guarda como null."
+          },
+          "activa": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Resena": {
+        "type": "object",
+        "required": [
+          "id",
+          "autor",
+          "fotoUrl",
+          "estrellas",
+          "comentario",
+          "creadoEn",
+          "actualizadoEn"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "autor": {
+            "type": "string",
+            "description": "Nombre y la inicial del apellido; nunca el correo."
+          },
+          "fotoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "estrellas": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actualizadoEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaginaResenas": {
+        "type": "object",
+        "required": [
+          "resumen",
+          "items",
+          "pagina",
+          "limite",
+          "total",
+          "totalPaginas"
+        ],
+        "properties": {
+          "resumen": {
+            "type": "object",
+            "required": [
+              "promedio",
+              "total",
+              "distribucion"
+            ],
+            "properties": {
+              "promedio": {
+                "type": "number",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Un decimal; null sin reseñas."
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "distribucion": {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 5,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Reseñas con 1, 2, 3, 4 y 5 estrellas, en ese orden."
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Resena"
+            }
+          },
+          "pagina": {
+            "type": "integer"
+          },
+          "limite": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPaginas": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MiResena": {
+        "type": "object",
+        "required": [
+          "puedeResenar",
+          "resena"
+        ],
+        "properties": {
+          "puedeResenar": {
+            "type": "boolean",
+            "description": "Inscrito en el curso publicado."
+          },
+          "resena": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Resena"
+              }
+            ]
+          }
+        }
+      },
+      "DatosResena": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "estrellas"
+        ],
+        "properties": {
+          "estrellas": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000,
+            "description": "Vacío o solo espacios se guarda como null."
           }
         }
       }
@@ -2179,12 +2549,248 @@
         }
       }
     },
+    "/lecciones/{id}/recursos": {
+      "post": {
+        "tags": [
+          "Contenido"
+        ],
+        "summary": "Añadir un recurso descargable a la lección (DOCENTE propietario)",
+        "description": "Lecciones DOCUMENTO o VIDEO de un curso BORRADOR, RECHAZADO o PUBLICADO. PDF, PPT, PPTX o ZIP de 1 a 10485760 bytes; el contenido debe corresponder a la extensión. Hasta 5 recursos por lección. El título es el nombre del archivo sin la extensión. Comparte el límite de 30 subidas cada 15 minutos por IP con el PDF principal.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "archivo"
+                ],
+                "properties": {
+                  "archivo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF, PPT, PPTX o ZIP de hasta 10 MiB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Curso completo, directamente en la raíz",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Formulario o archivo inválidos, más de 5 recursos o lección que no es DOCUMENTO ni VIDEO, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente, inválida o revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE o la lección no es de un curso propio (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La lección no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Curso bloqueado (CURSO_BLOQUEADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Supera 10 MiB (ARCHIVO_DEMASIADO_GRANDE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Extensión o formato de envío no admitido (TIPO_ARCHIVO_INVALIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/recursos/{id}": {
+      "delete": {
+        "tags": [
+          "Contenido"
+        ],
+        "summary": "Quitar un recurso de la lección (DOCENTE propietario); su archivo se retira del disco",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Curso completo, directamente en la raíz",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursoDetalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sesión ausente, inválida o revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE o el recurso no es de un curso propio (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El recurso no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Curso bloqueado (CURSO_BLOQUEADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
     "/archivos/{id}": {
       "get": {
         "tags": [
           "Contenido"
         ],
-        "summary": "Descargar PDF privado (ADMIN o DOCENTE propietario)",
+        "summary": "Descargar el PDF principal o un recurso de una lección (ADMIN, DOCENTE propietario o ESTUDIANTE inscrito)",
         "security": [
           {
             "bearer": []
@@ -2228,6 +2834,24 @@
                   "type": "string",
                   "format": "binary"
                 }
+              },
+              "application/vnd.ms-powerpoint": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
               }
             }
           },
@@ -2262,7 +2886,7 @@
             }
           },
           "404": {
-            "description": "El archivo no existe o no es un PDF de una lección (NO_ENCONTRADO)",
+            "description": "El archivo no existe o no es el PDF ni un recurso de una lección (NO_ENCONTRADO)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3593,78 +4217,6 @@
             }
           }
         ]
-      }
-    },
-    "/lecciones/{id}/video-preview": {
-      "get": {
-        "tags": [
-          "Cursos"
-        ],
-        "summary": "Video de muestra de una lección pública",
-        "description": "Solo VIDEO con vistaPrevia=true de un curso PUBLICADO. Devuelve un ID de YouTube, nunca una URL arbitraria.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 1,
-              "maximum": 2147483647
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Correcto",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "leccionId",
-                    "youtubeVideoId"
-                  ],
-                  "properties": {
-                    "leccionId": {
-                      "type": "integer"
-                    },
-                    "youtubeVideoId": {
-                      "type": "string",
-                      "minLength": 11,
-                      "maxLength": 11
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorApi"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Lección sin vista previa pública",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorApi"
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/ErrorInterno"
-          }
-        }
       }
     },
     "/cursos/{id}/enviar-revision": {
@@ -5162,6 +5714,577 @@
         }
       }
     },
+    "/admin/categorias": {
+      "get": {
+        "tags": [
+          "Categorías (administración)"
+        ],
+        "summary": "Todas las categorías, activas e inactivas, por nombre",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoriaAdmin"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetro de consulta desconocido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Categorías (administración)"
+        ],
+        "summary": "Crear una categoría (nace activa)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosCategoriaNueva"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Categoría creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoriaAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nombre o descripción inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ya existe una categoría con ese nombre, sin distinguir mayúsculas (CATEGORIA_DUPLICADA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/categorias/{id}": {
+      "put": {
+        "tags": [
+          "Categorías (administración)"
+        ],
+        "summary": "Editar, activar o desactivar una categoría",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosCategoria"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoriaAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nombre o descripción inválidos o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La categoría no existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ya existe una categoría con ese nombre, sin distinguir mayúsculas (CATEGORIA_DUPLICADA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/cursos/{id}/resenas": {
+      "get": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Reseñas públicas de un curso publicado, con su promedio y distribución",
+        "description": "Primero las que tienen comentario y, dentro de ellas, las más recientes.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaResenas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID o paginación inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso no existe o no está publicado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/cursos/{id}/resena": {
+      "get": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Mi reseña del curso y si puedo escribirla",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MiResena"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ESTUDIANTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Escribir o reemplazar mi reseña (una por inscripción)",
+        "description": "Hasta 30 peticiones por IP y 15 minutos.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosResena"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resena"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Estrellas fuera de 1 a 5, comentario de más de 1000 caracteres o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ESTUDIANTE, o no está inscrito en el curso publicado (NO_INSCRITO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Límite de peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Borrar mi reseña",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Reseña borrada"
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ESTUDIANTE, o no está inscrito en el curso publicado (NO_INSCRITO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Todavía no hay reseña propia",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
     "/salud": {
       "get": {
         "tags": [
@@ -6169,6 +7292,321 @@
           },
           "415": {
             "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/perfil/foto": {
+      "put": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "Subir o reemplazar mi foto de perfil",
+        "description": "JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. La foto anterior se borra. Queda en `fotoUrl` como `/api/fotos/{nombre}`. Hasta 20 subidas cada 15 minutos por IP.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "foto"
+                ],
+                "properties": {
+                  "foto": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idUsuario": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "idPersona": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "nombres": {
+                      "type": "string",
+                      "example": "Rosa"
+                    },
+                    "apellidos": {
+                      "type": "string",
+                      "example": "Vera Chávez"
+                    },
+                    "correo": {
+                      "type": "string",
+                      "example": "rosa.vera@correo.com"
+                    },
+                    "fotoUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "ESTUDIANTE",
+                          "DOCENTE",
+                          "ADMIN"
+                        ]
+                      }
+                    },
+                    "ciudad": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Machala"
+                    },
+                    "biografia": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "creadoEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Formulario sin foto o ilegible (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La cuenta ya no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "La foto supera 2 MiB (ARCHIVO_DEMASIADO_GRANDE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "Quitar mi foto de perfil (vuelven las iniciales)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idUsuario": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "idPersona": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "nombres": {
+                      "type": "string",
+                      "example": "Rosa"
+                    },
+                    "apellidos": {
+                      "type": "string",
+                      "example": "Vera Chávez"
+                    },
+                    "correo": {
+                      "type": "string",
+                      "example": "rosa.vera@correo.com"
+                    },
+                    "fotoUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "ESTUDIANTE",
+                          "DOCENTE",
+                          "ADMIN"
+                        ]
+                      }
+                    },
+                    "ciudad": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Machala"
+                    },
+                    "biografia": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "creadoEn": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La cuenta ya no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/fotos/{nombre}": {
+      "get": {
+        "tags": [
+          "Identidad"
+        ],
+        "summary": "Foto de perfil pública (catálogo, reseñas, panel)",
+        "description": "El nombre es un UUID con su extensión; cualquier otro valor da 404. Se puede guardar en caché un año.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nombre",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f-]{36}.(jpg|png|webp)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bytes de la imagen",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La foto no existe (NO_ENCONTRADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"

@@ -5,12 +5,13 @@ import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { aprendizajeApi } from '../aprendizaje/index.js';
 import { esPortadaValida } from './cursos.esquemas.js';
-import type {
-  ContextoLeccion,
-  CursoDetalle,
-  DecisionRevision,
-  ModuloPrivado,
-  ProblemaCurso,
+import {
+  MAX_RECURSOS_LECCION,
+  type ContextoLeccion,
+  type CursoDetalle,
+  type DecisionRevision,
+  type ModuloPrivado,
+  type ProblemaCurso,
 } from './cursos.modelo.js';
 import { fichaRepository } from './ficha.repository.js';
 import { MENSAJES, politicaCurso } from './politica-curso.js';
@@ -180,6 +181,7 @@ export async function detallePrivado(
   }
 
   const filas = await temarioRepository.temario(cliente, id);
+  const recursos = await temarioRepository.recursosDelCurso(cliente, id);
   const modulos: ModuloPrivado[] = [];
   const pdfValidos = new Set<number>();
 
@@ -216,8 +218,8 @@ export async function detallePrivado(
       tipo: fila.leccionTipo,
       archivo,
       youtubeVideoId: fila.leccionTipo === 'VIDEO' ? fila.youtubeVideoId : null,
-      vistaPrevia: fila.leccionTipo === 'VIDEO' ? fila.vistaPrevia ?? false : false,
       preguntas: fila.leccionTipo === 'EVALUACION' ? fila.preguntas : 0,
+      recursos: recursos.filter((r) => r.leccionId === fila.leccionId).map(({ leccionId: _, ...r }) => r),
     });
 
     if (fila.leccionTipo === 'DOCUMENTO' && archivo && fila.archivoRuta) {
@@ -317,6 +319,23 @@ export const detallePrivadoService = {
     }, { actor: usuario.idPersona });
   },
 
+  /** Dentro de `conLeccionEditable`: añade el archivo ya guardado como recurso de la lección. */
+  async asociarRecurso(
+    cliente: PoolClient,
+    contexto: ContextoLeccion,
+    archivoId: number,
+    titulo: string,
+  ): Promise<void> {
+    if (await temarioRepository.contarRecursos(cliente, contexto.leccionId) >= MAX_RECURSOS_LECCION) {
+      throw AppError.solicitudInvalida(`Una lección admite como máximo ${MAX_RECURSOS_LECCION} recursos.`, [
+        { campo: 'archivo', mensaje: 'Quita un recurso antes de subir otro.' },
+      ]);
+    }
+    if (!(await temarioRepository.asociarRecurso(cliente, contexto, archivoId, titulo))) {
+      throw AppError.conflicto('No se pudo asociar el recurso a esta lección.');
+    }
+  },
+
   async asociarPdfPrincipal(
     cliente: PoolClient,
     contexto: ContextoLeccion,
@@ -336,7 +355,11 @@ export const detallePrivadoService = {
   ): Promise<void> {
     await enTransaccion(async (cliente) => {
       const contexto = await temarioRepository.leccion(cliente, idLeccion);
-      if (!contexto || contexto.id !== idCursoArchivo || contexto.archivoId !== idArchivo) {
+      // El archivo es el PDF principal de la lección o uno de sus recursos adjuntos.
+      const deLaLeccion = !!contexto && contexto.id === idCursoArchivo && (
+        contexto.archivoId === idArchivo || await temarioRepository.esRecursoDe(cliente, idLeccion, idArchivo)
+      );
+      if (!contexto || !deLaLeccion) {
         throw AppError.noEncontrado('Archivo no disponible.');
       }
       if (politicaCurso.puedeLeerArchivos(contexto, usuario)) return;

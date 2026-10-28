@@ -46,9 +46,27 @@ export interface ModuloTemarioPublico {
   lecciones: LeccionTemarioPublico[];
 }
 
+export interface InstructorPublico {
+  nombre: string;
+  especialidad: string;
+  biografia: string | null;
+  fotoUrl: string | null;
+  cursosPublicados: number;
+  /** Inscripciones en todos sus cursos publicados. */
+  estudiantes: number;
+}
+
+export interface CalificacionCurso {
+  /** Promedio de 1 a 5 con un decimal; null sin reseñas. */
+  promedio: number | null;
+  total: number;
+}
+
 export interface CursoPublicoDetalle extends CursoPublico {
   descripcion: string;
   docenteBio: string | null;
+  instructor: InstructorPublico;
+  calificacion: CalificacionCurso;
   objetivos: string[];
   requisitos: string[];
   temario: ModuloTemarioPublico[];

@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../../shared/ui/esqueleto';
 import {
   Component,
   computed,
@@ -29,10 +30,11 @@ import { ArbolTemario } from '../../componentes/arbol-temario';
 import { FormularioFicha } from '../../componentes/formulario-ficha';
 import { PanelPublicacion } from '../../componentes/panel-publicacion';
 import { DocenteCursosApi } from '../../docente-cursos.api';
+import { ConfirmacionService } from '../../../../shared/ui/confirmacion.service';
 
 @Component({
   selector: 'app-editor-curso',
-  imports: [
+  imports: [Esqueleto, 
     RouterLink,
     EstadoCursoBadge,
     FormularioFicha,
@@ -91,6 +93,7 @@ export class EditorCurso {
   private readonly contenidoApi = inject(ContenidoApi);
   private readonly catalogoApi = inject(CatalogoApi);
   private readonly router = inject(Router);
+  private readonly confirmacion = inject(ConfirmacionService);
   private version = 0;
 
   protected readonly guardarModuloFn = (
@@ -260,9 +263,11 @@ export class EditorCurso {
       return;
     }
 
-    const confirmado = confirm(
-      '¿Enviar el curso a revisión? Mientras esté en revisión no podrás modificarlo.',
-    );
+    const confirmado = await this.confirmacion.confirmar({
+      titulo: '¿Enviar el curso a revisión?',
+      mensaje: 'Un administrador lo revisará antes de publicarlo. Mientras tanto no podrás modificarlo.',
+      accion: 'Enviar a revisión', icono: 'shield-check',
+    });
     if (!confirmado) return;
 
     await this.p.ejecutar(

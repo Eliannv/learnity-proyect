@@ -1,6 +1,7 @@
 import { HttpEvent } from '@angular/common/http';
 import {
   Component,
+  inject,
   input,
   output,
   signal,
@@ -24,6 +25,8 @@ import { ReproductorYoutube } from '../../contenido/componentes/reproductor-yout
 import { esIdYoutube, validarEnlaceYoutube } from '../../contenido/youtube';
 import { CampoYoutube } from './campo-youtube';
 import { EditorEvaluacion } from './editor-evaluacion';
+import { RecursosLeccion } from './recursos-leccion';
+import { ConfirmacionService } from '../../../shared/ui/confirmacion.service';
 
 type TipoContenido = LeccionPrivada['tipo'];
 
@@ -35,7 +38,7 @@ const NOMBRE_TIPO: Record<TipoContenido, string> = {
 
 @Component({
   selector: 'app-arbol-temario',
-  imports: [NgTemplateOutlet, FormsModule, PdfLeccion, CampoYoutube, ReproductorYoutube, EditorEvaluacion],
+  imports: [NgTemplateOutlet, FormsModule, PdfLeccion, CampoYoutube, ReproductorYoutube, EditorEvaluacion, RecursosLeccion],
   templateUrl: './arbol-temario.html',
   styleUrl: './arbol-temario.scss',
 })
@@ -86,6 +89,7 @@ export class ArbolTemario {
   readonly volver = output<void>();
 
   protected readonly p = new Peticion();
+  private readonly confirmacion = inject(ConfirmacionService);
   private readonly trabajo = signal(false);
 
   protected deshabilitado(): boolean {
@@ -105,7 +109,6 @@ export class ArbolTemario {
     orden: number;
     tipo: TipoContenido;
     youtubeUrl: string;
-    vistaPrevia: boolean;
   } | null = null;
 
   protected hayFormulario(): boolean {
@@ -133,7 +136,6 @@ export class ArbolTemario {
       orden: l?.orden ?? siguienteOrden(m.lecciones, 12),
       tipo: l?.tipo ?? tipo,
       youtubeUrl: this.urlVideo(l),
-      vistaPrevia: l?.vistaPrevia ?? false,
     };
     this.formularioAbierto.emit(true);
   }
@@ -193,7 +195,7 @@ export class ArbolTemario {
         return;
       }
       datos = { titulo: l.titulo.trim(), orden: l.orden, tipo: 'VIDEO',
-        youtubeUrl: enlace.enlaceCanonico, vistaPrevia: l.vistaPrevia };
+        youtubeUrl: enlace.enlaceCanonico };
     } else {
       datos = { titulo: l.titulo.trim(), orden: l.orden, tipo: l.tipo };
     }
@@ -211,9 +213,17 @@ export class ArbolTemario {
     const fn = this.eliminarContenidoFn();
     if (!fn) return;
 
-    const confirmado = confirm(
-      '¿Eliminar este contenido? También se eliminarán sus lecciones o archivos asociados.',
-    );
+    const confirmado = await this.confirmacion.confirmar(tipo === 'modulos'
+      ? {
+          titulo: '¿Eliminar este módulo?',
+          mensaje: 'Se eliminarán también todas sus lecciones, evaluaciones y archivos. No se puede deshacer.',
+          accion: 'Eliminar módulo', peligro: true, icono: 'trash-2',
+        }
+      : {
+          titulo: '¿Eliminar este contenido?',
+          mensaje: 'Se eliminarán también su PDF, sus recursos y, si es una evaluación, sus preguntas. No se puede deshacer.',
+          accion: 'Eliminar contenido', peligro: true, icono: 'trash-2',
+        });
     if (!confirmado) return;
 
     await this.mutar(() => fn(tipo, id));

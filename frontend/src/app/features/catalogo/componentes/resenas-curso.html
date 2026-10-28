@@ -1,0 +1,124 @@
+<section class="resenas" id="resenas" aria-labelledby="titulo-resenas">
+  <h2 id="titulo-resenas">Reseñas de estudiantes</h2>
+
+  @if (cargando() && !pagina()) {
+    <div class="esqueletos" aria-busy="true" aria-label="Cargando reseñas">
+      <span class="esqueleto bloque-resumen"></span>
+      <span class="esqueleto bloque-item"></span>
+    </div>
+  } @else if (error()) {
+    <div class="aviso-error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" class="btn btn-contorno btn-sm" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else if (pagina(); as p) {
+    <div class="resumen">
+      <div class="nota">
+        @if (p.resumen.promedio !== null) {
+          <strong class="numero">{{ p.resumen.promedio | number: '1.1-1' }}</strong>
+          <app-estrellas [valor]="p.resumen.promedio" />
+          <span class="texto-suave">{{ p.resumen.total }} {{ p.resumen.total === 1 ? 'reseña' : 'reseñas' }}</span>
+        } @else {
+          <strong class="sin-nota">Sin reseñas todavía</strong>
+          <span class="texto-suave">Las opiniones de quienes tomen el curso aparecerán aquí.</span>
+        }
+      </div>
+      @if (p.resumen.total) {
+        <ul class="distribucion" aria-label="Reseñas por número de estrellas">
+          @for (n of [5, 4, 3, 2, 1]; track n) {
+            <li>
+              <span class="etiqueta">{{ n }} ★</span>
+              <span class="barra" aria-hidden="true"><span [style.width.%]="porcentaje(p.resumen.distribucion[n - 1]!)"></span></span>
+              <span class="texto-suave cantidad">{{ porcentaje(p.resumen.distribucion[n - 1]!) }} %</span>
+              <span class="visualmente-oculto">{{ p.resumen.distribucion[n - 1] }} con {{ n }} estrellas</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    @if (puedeResenar()) {
+      <div class="mi-resena">
+        @if (editando()) {
+          <form (ngSubmit)="guardar()" novalidate>
+            <fieldset class="selector">
+              <legend>Tu valoración</legend>
+              <div class="estrellas-input">
+                @for (n of [1, 2, 3, 4, 5]; track n) {
+                  <label [class.activa]="estrellas() >= n">
+                    <input type="radio" name="estrellas" [value]="n" [checked]="estrellas() === n"
+                      (change)="estrellas.set(n)" [attr.aria-label]="n + (n === 1 ? ' estrella' : ' estrellas') + ': ' + nombreNota[n]" />
+                    <span aria-hidden="true">★</span>
+                  </label>
+                }
+                <span class="texto-suave nombre-nota" aria-live="polite">{{ nombreNota[estrellas()] }}</span>
+              </div>
+            </fieldset>
+            <label class="campo">
+              <span>Tu comentario <small class="texto-suave">(opcional)</small></span>
+              <textarea class="control" name="comentario" rows="3" maxlength="1000" [(ngModel)]="comentario"
+                placeholder="¿Qué te pareció el curso? ¿A quién se lo recomendarías?"></textarea>
+            </label>
+            @if (errorForm()) { <p class="error" role="alert">{{ errorForm() }}</p> }
+            <div class="acciones">
+              <button type="button" class="btn btn-contorno" (click)="editando.set(false)">Cancelar</button>
+              <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+                {{ guardando() ? 'Publicando…' : mia() ? 'Guardar cambios' : 'Publicar reseña' }}
+              </button>
+            </div>
+          </form>
+        } @else if (mia(); as r) {
+          <div class="propia">
+            <div>
+              <strong>Tu reseña</strong>
+              <app-estrellas [valor]="r.estrellas" />
+              @if (r.comentario) { <p>{{ r.comentario }}</p> }
+            </div>
+            <div class="acciones">
+              <button type="button" class="btn btn-suave btn-sm" (click)="empezar()">Editar</button>
+              <button type="button" class="btn btn-texto btn-sm peligro" (click)="confirmarBorrado.set(true)">Borrar</button>
+            </div>
+          </div>
+        } @else {
+          <div class="invitacion">
+            <p><strong>¿Ya avanzaste en el curso?</strong> Tu opinión ayuda a otros estudiantes a decidir.</p>
+            <button type="button" class="btn btn-primario btn-sm" (click)="empezar()">Escribir una reseña</button>
+          </div>
+        }
+      </div>
+    }
+
+    @if (items().length) {
+      <ul class="lista">
+        @for (r of items(); track r.id) {
+          <li>
+            <app-avatar [texto]="iniciales(r.autor)" [imagen]="r.fotoUrl" [tamano]="40" />
+            <div>
+              <div class="cabecera-item">
+                <strong>{{ r.autor }}</strong>
+                <app-estrellas [valor]="r.estrellas" />
+                <time class="texto-suave" [attr.datetime]="r.actualizadoEn">{{ r.actualizadoEn | date: 'd MMM y' }}</time>
+              </div>
+              @if (r.comentario) { <p class="comentario">{{ r.comentario }}</p> }
+            </div>
+          </li>
+        }
+      </ul>
+      @if (hayMas()) {
+        <button type="button" class="btn btn-contorno" [disabled]="cargandoMas()" (click)="verMas()">
+          {{ cargandoMas() ? 'Cargando…' : 'Ver más reseñas' }}
+        </button>
+      }
+    }
+  }
+</section>
+
+@if (confirmarBorrado()) {
+  <app-modal titulo="¿Borrar tu reseña?" icono="trash-2" [ancho]="440" (cerrar)="confirmarBorrado.set(false)">
+    <p class="texto-modal">Dejará de aparecer en el curso y no contará en su valoración. Puedes escribir otra cuando quieras.</p>
+    <div class="acciones">
+      <button type="button" class="btn btn-contorno" (click)="confirmarBorrado.set(false)">Cancelar</button>
+      <button type="button" class="btn btn-peligro" (click)="borrar()">Borrar reseña</button>
+    </div>
+  </app-modal>
+}

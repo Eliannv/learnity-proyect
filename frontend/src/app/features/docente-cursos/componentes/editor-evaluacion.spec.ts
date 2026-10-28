@@ -5,7 +5,7 @@ import { EditorEvaluacion } from './editor-evaluacion';
 
 const leccion = (preguntas: number): LeccionPrivada => ({
   id: 7, titulo: 'Repaso', orden: 2, tipo: 'EVALUACION', archivo: null,
-  youtubeVideoId: null, vistaPrevia: false, preguntas,
+  youtubeVideoId: null, preguntas, recursos: [],
 });
 
 describe('editor de evaluación del docente', () => {

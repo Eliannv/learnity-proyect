@@ -15,6 +15,13 @@ import {
 } from '@angular/core/testing';
 
 import { Router, provideRouter } from '@angular/router';
+import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
+import { ICONOS } from '../../shared/ui/iconos';
+import { ConfirmacionService } from '../../shared/ui/confirmacion.service';
+import { ToastService } from '../../shared/ui/toast.service';
+
+/** La confirmación es asíncrona (modal): deja correr la respuesta antes de comprobar la petición. */
+const confirmado = () => new Promise((resolver) => setTimeout(resolver, 0));
 
 import { AuthService } from '../auth/auth.service';
 import { authInterceptor } from '../auth/auth.interceptor';
@@ -60,8 +67,8 @@ function curso(
             orden: 1,
             tipo: 'DOCUMENTO',
             youtubeVideoId: null,
-            vistaPrevia: false,
             preguntas: 0,
+            recursos: [],
             archivo: {
               id: 12,
               tipo: 'PDF',
@@ -116,6 +123,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
+        { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) },
         provideRouter([]),
 
         provideHttpClient(
@@ -272,10 +280,11 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
   });
 
   it('envía a revisión solo al confirmar la API y conserva BORRADOR si falla', async () => {
-    vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(ConfirmacionService), 'confirmar').mockResolvedValue(true);
     const f = await editor(curso());
 
     boton(f, 'Enviar a revisión').click();
+    await confirmado();
     f.detectChanges();
 
     expect(
@@ -310,6 +319,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     await actualizar(f);
 
     boton(f, 'Enviar a revisión').click();
+    await confirmado();
 
     http.expectOne('/api/cursos/41/enviar-revision').flush(
       curso('EN_REVISION'),
@@ -479,8 +489,9 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
 
     expect(recibir).toHaveBeenCalledWith(curso());
 
-    expect(f.nativeElement.textContent).toContain(
-      'PDF guardado y asociado',
+    // El éxito se anuncia como toast, no dentro del formulario.
+    expect(TestBed.inject(ToastService).avisos().map((a) => a.mensaje)).toContain(
+      'PDF guardado y asociado a la lección.',
     );
   });
 
@@ -620,7 +631,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
 
   // Prepara la pantalla de revisión del administrador.
   async function revision(): Promise<ComponentFixture<RevisionCurso>> {
-    vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(ConfirmacionService), 'confirmar').mockResolvedValue(true);
     const f = TestBed.createComponent(RevisionCurso);
 
     f.componentRef.setInput('id', '41');
@@ -653,6 +664,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     const f = await revision();
 
     boton(f, 'Aprobar y publicar').click();
+    await confirmado();
     f.detectChanges();
 
     expect(
@@ -704,6 +716,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     await actualizar(f);
 
     boton(f, 'Rechazar con motivo').click();
+    await confirmado();
 
     const solicitud = http.expectOne(
       '/api/admin/cursos/41/revision',

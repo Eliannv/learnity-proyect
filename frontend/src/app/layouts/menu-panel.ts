@@ -1,5 +1,4 @@
 import { ItemTab } from '../shared/layout/tab-bar';
-import { environment } from '../../environments/environment';
 
 /** Menú lateral y barra inferior de cada panel, según el rol. */
 export interface ItemMenu {
@@ -63,9 +62,7 @@ export const MENU: Record<
         etiqueta: 'Mi perfil',
         ruta: '/admin/perfil',
       },
-      ...(environment.sprint34Habilitado
-        ? [{ icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios' }]
-        : []),
+      { icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios' },
       {
         icono: 'user-check',
         etiqueta: 'Solicitudes de docente',
@@ -84,9 +81,7 @@ export const MENU: Record<
     ],
 
     tabs: [
-      ...(environment.sprint34Habilitado
-        ? [{ icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios' }]
-        : []),
+      { icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios' },
       {
         icono: 'user-check',
         etiqueta: 'Solicitudes',

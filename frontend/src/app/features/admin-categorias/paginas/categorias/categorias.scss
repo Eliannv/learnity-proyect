@@ -1,0 +1,61 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  .btn { display: inline-flex; align-items: center; gap: 8px; }
+}
+.nombre {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  > span:last-child { display: grid; gap: 2px; }
+  strong { font-weight: 600; }
+  small { font-size: 13px; white-space: normal; max-width: 42ch; }
+}
+.icono {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radio);
+  background: var(--azul-100);
+  color: var(--azul-700);
+}
+tr.inactiva .icono { background: var(--gris-100); color: var(--gris-500); }
+td { white-space: nowrap; }
+.acciones { display: flex; justify-content: flex-end; gap: 6px; }
+.btn-texto-peligro {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--rojo-700);
+  &:hover:not(:disabled) { background: var(--rojo-050); }
+}
+.fila-esqueleto { height: 56px; margin: 8px 12px; border-radius: var(--radio); }
+
+.formulario { display: grid; gap: 16px; }
+.campo {
+  display: grid;
+  gap: 6px;
+  > span { font-weight: 600; }
+  textarea { resize: vertical; }
+}
+.interruptor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  input { width: 18px; height: 18px; accent-color: var(--azul-600); }
+}
+.error { margin: 0; color: var(--rojo-700); }
+.texto-modal { margin: 0 0 20px; line-height: 1.55; color: var(--tinta-800); }
+.pie { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .cabecera { flex-direction: column; .btn { width: 100%; justify-content: center; } }
+}

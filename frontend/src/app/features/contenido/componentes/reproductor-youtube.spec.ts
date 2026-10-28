@@ -98,7 +98,7 @@ describe('reproductor compartido YouTube', () => {
     expect(muestras).toEqual([]);
   });
 
-  it('muestrea cada 15 segundos, conserva la última pausa y elimina duplicados', async () => {
+  it('muestrea cada 15 segundos, guarda cada pausa en el acto y elimina duplicados', async () => {
     await cargar();
     opciones[0].events.onStateChange({ data: 1 });
     jugadores[0].segundos = 14;
@@ -107,19 +107,17 @@ describe('reproductor compartido YouTube', () => {
     jugadores[0].segundos = 15.9;
     await vi.advanceTimersByTimeAsync(1000);
     expect(muestras).toEqual([{ leccionId: 8, videoId: id, segundos: 15, motivo: 'intervalo' }]);
+    // Pausar es una interrupción: se emite sin esperar al intervalo.
     jugadores[0].segundos = 17;
     opciones[0].events.onStateChange({ data: 2 });
-    jugadores[0].segundos = 18;
-    opciones[0].events.onStateChange({ data: 2 });
-    expect(muestras).toHaveLength(1);
-    await vi.advanceTimersByTimeAsync(15_000);
-    expect(muestras[1]).toEqual({ leccionId: 8, videoId: id, segundos: 18, motivo: 'pausa' });
+    expect(muestras[1]).toEqual({ leccionId: 8, videoId: id, segundos: 17, motivo: 'pausa' });
+    // Una segunda pausa en el mismo segundo no se repite.
     opciones[0].events.onStateChange({ data: 2 });
     await vi.advanceTimersByTimeAsync(15_000);
     expect(muestras).toHaveLength(2);
   });
 
-  it('no emite progreso para la vista previa pública', async () => {
+  it('no emite progreso cuando no se observa la posición', async () => {
     fixture.componentRef.setInput('observarPosicion', false);
     await cargar();
     opciones[0].events.onStateChange({ data: 1 });
@@ -129,13 +127,23 @@ describe('reproductor compartido YouTube', () => {
     expect(muestras).toEqual([]);
   });
 
-  it('emitir el final del vídeo no equivale a completar una lección', async () => {
+  it('al llegar al final guarda la posición y avisa que el vídeo terminó', async () => {
+    const fines: unknown[] = [];
+    fixture.componentInstance.terminado.subscribe((f) => fines.push(f));
     await cargar();
     opciones[0].events.onStateChange({ data: 1 });
     jugadores[0].segundos = 180;
     opciones[0].events.onStateChange({ data: 0 });
-    expect(muestras).toEqual([{ leccionId: 8, videoId: id, segundos: 180, motivo: 'pausa' }]);
-    expect('completada' in fixture.componentInstance).toBe(false);
+    expect(muestras).toEqual([{ leccionId: 8, videoId: id, segundos: 180, motivo: 'fin' }]);
+    expect(fines).toEqual([{ leccionId: 8, videoId: id }]);
+  });
+
+  it('sin reproducción previa, el final no completa nada', async () => {
+    const fines: unknown[] = [];
+    fixture.componentInstance.terminado.subscribe((f) => fines.push(f));
+    await cargar();
+    opciones[0].events.onStateChange({ data: 0 });
+    expect(fines).toEqual([]);
   });
 
   it('identifica la última muestra del vídeo anterior al cambiar de lección', async () => {

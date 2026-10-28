@@ -1,20 +1,7 @@
 import type { Correo } from '../../shared/correo/correo.js';
+import { escapar, marco } from '../../shared/correo/plantilla.js';
 
 // Plantillas de los correos del módulo Identidad. Nunca incluyen contraseñas ni datos de sesión.
-
-const escapar = (texto: string) =>
-  texto.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-
-function marco(titulo: string, cuerpo: string): string {
-  return `<!doctype html><html lang="es"><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
-<table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border-radius:12px;border:1px solid #e2e8f0">
-<tr><td style="padding:28px 32px">
-<p style="margin:0 0 20px;font-size:20px;font-weight:bold;color:#1d4ed8">Learnity</p>
-<h1 style="margin:0 0 16px;font-size:20px">${escapar(titulo)}</h1>
-${cuerpo}
-</td></tr></table></td></tr></table></body></html>`;
-}
 
 export function correoRecuperacion(datos: { para: string; nombres: string; enlace: string; minutos: number }): Correo {
   const { para, nombres, enlace, minutos } = datos;

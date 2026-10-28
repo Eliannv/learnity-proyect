@@ -430,6 +430,18 @@
       "estado": "PUBLICADO",
       "descripcion": "Desc Alfa 100%",
       "docenteBio": null,
+      "instructor": {
+        "nombre": "<marca> estudiante-docente",
+        "especialidad": "Pruebas",
+        "biografia": null,
+        "fotoUrl": null,
+        "cursosPublicados": 5,
+        "estudiantes": 3
+      },
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "objetivos": [
         "a",
         "b",
@@ -482,6 +494,18 @@
       "estado": "PUBLICADO",
       "descripcion": "Desc Beta",
       "docenteBio": null,
+      "instructor": {
+        "nombre": "<marca> estudiante-docente",
+        "especialidad": "Pruebas",
+        "biografia": null,
+        "fotoUrl": null,
+        "cursosPublicados": 5,
+        "estudiantes": 3
+      },
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "objetivos": [
         "a",
         "b",
@@ -513,6 +537,18 @@
       "estado": "PUBLICADO",
       "descripcion": "Desc Delta heredado",
       "docenteBio": null,
+      "instructor": {
+        "nombre": "<marca> estudiante-docente",
+        "especialidad": "Pruebas",
+        "biografia": null,
+        "fotoUrl": null,
+        "cursosPublicados": 5,
+        "estudiantes": 3
+      },
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "objetivos": [
         "a",
         "b",
@@ -544,6 +580,18 @@
       "estado": "PUBLICADO",
       "descripcion": "Desc Eta categoria inactiva",
       "docenteBio": null,
+      "instructor": {
+        "nombre": "<marca> estudiante-docente",
+        "especialidad": "Pruebas",
+        "biografia": null,
+        "fotoUrl": null,
+        "cursosPublicados": 5,
+        "estudiantes": 3
+      },
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "objetivos": [
         "a",
         "b",
@@ -575,6 +623,18 @@
       "estado": "PUBLICADO",
       "descripcion": "Desc Theta docente inactivo",
       "docenteBio": null,
+      "instructor": {
+        "nombre": "<marca> estudiante-docente",
+        "especialidad": "Pruebas",
+        "biografia": null,
+        "fotoUrl": null,
+        "cursosPublicados": 1,
+        "estudiantes": 0
+      },
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "objetivos": [
         "a",
         "b",

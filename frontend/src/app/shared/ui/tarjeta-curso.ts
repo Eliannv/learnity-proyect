@@ -4,7 +4,7 @@ import type { Tono } from './tipos-ui';
 import { PortadaCurso } from './portada-curso';
 
 /**
- * Tarjeta de curso (CourseCard). La portada usa el ícono de la categoría mientras no hay imagen.
+ * Tarjeta de curso (CourseCard). Muestra la portada del curso o, si no tiene, el ícono de la categoría.
  * Lo que va debajo del título (progreso, botones) se pasa como contenido.
  */
 @Component({
@@ -14,10 +14,10 @@ import { PortadaCurso } from './portada-curso';
     <article class="tarjeta-curso">
       @if (enlace()) {
         <a class="portada" [routerLink]="enlace()" tabindex="-1" aria-hidden="true">
-          <app-portada-curso [categoria]="categoria()" [tono]="tono()" />
+          <app-portada-curso [categoria]="categoria()" [tono]="tono()" [imagen]="imagen()" />
         </a>
       } @else {
-        <div class="portada"><app-portada-curso [categoria]="categoria()" [tono]="tono()" /></div>
+        <div class="portada"><app-portada-curso [categoria]="categoria()" [tono]="tono()" [imagen]="imagen()" /></div>
       }
       <div class="cuerpo">
         <div class="chips">
@@ -90,4 +90,6 @@ export class TarjetaCurso {
   readonly tono = input<Tono>(1);
   readonly nuevo = input(false);
   readonly enlace = input<string>();
+  /** Portada que subió el docente; sin ella se dibuja el ícono de la categoría. */
+  readonly imagen = input<string | null>(null);
 }

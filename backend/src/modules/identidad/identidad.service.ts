@@ -19,6 +19,8 @@ import type {
 } from './identidad.esquemas.js';
 import { type CuentaConRoles, type Perfil, identidadRepository as repo } from './identidad.repository.js';
 import { exigirContrasenaSegura } from './politica-contrasena.js';
+import { almacenFotos } from '../../shared/archivos/fotos.js';
+import type { PoolClient } from 'pg';
 
 // Capa service: reglas del negocio del módulo Identidad (RF-01, RF-02, RF-04, RF-06).
 
@@ -357,6 +359,37 @@ export const identidadService = {
     return this.obtenerPerfil(usuario);
   },
 
+  /**
+   * Foto de perfil: se guarda el archivo nuevo, se cambia la URL en una transacción y, ya confirmada,
+   * se borra la foto anterior. Si la transacción falla, se borra la nueva.
+   */
+  async cambiarFoto(usuario: UsuarioSesion, bytes: Buffer | undefined): Promise<Perfil> {
+    if (!bytes) {
+      throw AppError.solicitudInvalida('Selecciona una foto.', [{ campo: 'foto', mensaje: 'El campo foto es obligatorio.' }]);
+    }
+    const nueva = await almacenFotos.guardar(bytes);
+    let anterior: string | null;
+    try {
+      anterior = await enTransaccion((cliente) => repo.cambiarFoto(usuario.idPersona, nueva, cliente), {
+        actor: usuario.idPersona,
+      });
+    } catch (error) {
+      await almacenFotos.eliminarPorUrl(nueva).catch(() => undefined);
+      throw error;
+    }
+    await almacenFotos.eliminarPorUrl(anterior).catch(() => registrarEvento('foto_anterior_sin_borrar', {}, 'aviso'));
+    registrarEvento('foto_perfil_cambiada', { idUsuario: usuario.idUsuario });
+    return this.obtenerPerfil(usuario);
+  },
+
+  async quitarFoto(usuario: UsuarioSesion): Promise<Perfil> {
+    const anterior = await enTransaccion((cliente) => repo.cambiarFoto(usuario.idPersona, null, cliente), {
+      actor: usuario.idPersona,
+    });
+    await almacenFotos.eliminarPorUrl(anterior).catch(() => registrarEvento('foto_anterior_sin_borrar', {}, 'aviso'));
+    return this.obtenerPerfil(usuario);
+  },
+
   /** RF-04 · Cambiar contraseña: exige la actual, aplica la política y cierra las demás sesiones. */
   async cambiarContrasena(usuario: UsuarioSesion, datos: CambiarContrasenaDto, ctx: Contexto): Promise<{ mensaje: string }> {
     const cuenta = await repo.buscarCuentaPorId(usuario.idUsuario);
@@ -395,9 +428,14 @@ export interface ServicioIdentidad {
   sesionVigente(usuario: UsuarioSesion): Promise<Rol[] | null>;
   /** Espera los correos en segundo plano: cierre ordenado y pruebas. */
   esperarTareas(): Promise<void>;
+  /** Cierra todas las sesiones de una cuenta desactivada, dentro de la transacción de quien la desactiva. */
+  revocarSesionesDeCuentaInactiva(idUsuario: number, cliente: PoolClient): Promise<void>;
 }
 
 export const identidadApi: ServicioIdentidad = {
   sesionVigente: (usuario) => identidadService.sesionVigente(usuario),
   esperarTareas: () => identidadService.esperarTareas(),
+  async revocarSesionesDeCuentaInactiva(idUsuario, cliente) {
+    await repo.revocarSesionesUsuario(idUsuario, 'CUENTA_INACTIVA', null, cliente);
+  },
 };

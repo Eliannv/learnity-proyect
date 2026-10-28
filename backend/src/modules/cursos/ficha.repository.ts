@@ -322,4 +322,18 @@ export const fichaRepository = {
 
     return resultado.rowCount === 1;
   },
+
+  /** Correo y nombre del docente de un curso, para avisarle de la decisión de revisión. */
+  async contactoDocente(idCurso: number): Promise<{ correo: string; nombres: string } | null> {
+    const { rows } = await consultar<{ correo: string; nombres: string }>(
+      `SELECT u.correo, p.nombres
+         FROM curso c
+         JOIN docente d ON d.id_docente = c.id_docente
+         JOIN persona p ON p.id_persona = d.id_persona
+         JOIN usuario u ON u.id_persona = p.id_persona
+        WHERE c.id_curso = $1`,
+      [idCurso],
+    );
+    return rows[0] ?? null;
+  },
 };

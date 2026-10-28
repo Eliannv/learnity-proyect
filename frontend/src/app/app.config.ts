@@ -1,5 +1,8 @@
+import { registerLocaleData } from '@angular/common';
+import localeEs from '@angular/common/locales/es';
 import {
   ApplicationConfig,
+  LOCALE_ID,
   importProvidersFrom,
   inject,
   provideAppInitializer,
@@ -14,9 +17,13 @@ import { authInterceptor } from './core/auth/auth.interceptor';
 import { AuthService } from './core/auth/auth.service';
 import { ICONOS } from './shared/ui/iconos';
 
+// Fechas («28 oct 2026») y decimales («4,5») en español en todos los pipes.
+registerLocaleData(localeEs);
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    { provide: LOCALE_ID, useValue: 'es' },
     provideRouter(
       routes,
       withComponentInputBinding(),

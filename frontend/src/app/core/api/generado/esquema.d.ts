@@ -378,6 +378,216 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/lecciones/{id}/recursos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Añadir un recurso descargable a la lección (DOCENTE propietario)
+         * @description Lecciones DOCUMENTO o VIDEO de un curso BORRADOR, RECHAZADO o PUBLICADO. PDF, PPT, PPTX o ZIP de 1 a 10485760 bytes; el contenido debe corresponder a la extensión. Hasta 5 recursos por lección. El título es el nombre del archivo sin la extensión. Comparte el límite de 30 subidas cada 15 minutos por IP con el PDF principal.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description PDF, PPT, PPTX o ZIP de hasta 10 MiB
+                         */
+                        archivo: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Curso completo, directamente en la raíz */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CursoDetalle"];
+                    };
+                };
+                /** @description Formulario o archivo inválidos, más de 5 recursos o lección que no es DOCUMENTO ni VIDEO, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión ausente, inválida o revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE o la lección no es de un curso propio (SIN_PERMISO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La lección no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Curso bloqueado (CURSO_BLOQUEADO) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Supera 10 MiB (ARCHIVO_DEMASIADO_GRANDE) */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Extensión o formato de envío no admitido (TIPO_ARCHIVO_INVALIDO) */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After) */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recursos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Quitar un recurso de la lección (DOCENTE propietario); su archivo se retira del disco */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Curso completo, directamente en la raíz */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CursoDetalle"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión ausente, inválida o revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE o el recurso no es de un curso propio (SIN_PERMISO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El recurso no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Curso bloqueado (CURSO_BLOQUEADO) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/archivos/{id}": {
         parameters: {
             query?: never;
@@ -385,7 +595,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Descargar PDF privado (ADMIN o DOCENTE propietario) */
+        /** Descargar el PDF principal o un recurso de una lección (ADMIN, DOCENTE propietario o ESTUDIANTE inscrito) */
         get: {
             parameters: {
                 query?: never;
@@ -408,6 +618,9 @@ export interface paths {
                     };
                     content: {
                         "application/pdf": string;
+                        "application/vnd.ms-powerpoint": string;
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation": string;
+                        "application/zip": string;
                     };
                 };
                 /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
@@ -437,7 +650,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description El archivo no existe o no es un PDF de una lección (NO_ENCONTRADO) */
+                /** @description El archivo no existe o no es el PDF ni un recurso de una lección (NO_ENCONTRADO) */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -1511,70 +1724,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/lecciones/{id}/video-preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Video de muestra de una lección pública
-         * @description Solo VIDEO con vistaPrevia=true de un curso PUBLICADO. Devuelve un ID de YouTube, nunca una URL arbitraria.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Correcto */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            leccionId: number;
-                            youtubeVideoId: string;
-                        };
-                    };
-                };
-                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorApi"];
-                    };
-                };
-                /** @description Lección sin vista previa pública */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorApi"];
-                    };
-                };
-                500: components["responses"]["ErrorInterno"];
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/cursos/{id}/enviar-revision": {
         parameters: {
             query?: never;
@@ -1966,6 +2115,248 @@ export interface paths {
                 };
                 413: components["responses"]["CuerpoDemasiadoGrande"];
                 415: components["responses"]["TipoNoAdmitido"];
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/usuarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar usuarios con filtros y conteos (administrador) */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    rol?: "ESTUDIANTE" | "DOCENTE" | "ADMIN";
+                    estado?: "ACTIVO" | "INACTIVO";
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Lista de usuarios */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RespuestaUsuariosAdmin"];
+                    };
+                };
+                /** @description Parámetros de consulta inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/usuarios/{id}/estado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Activar o desactivar usuario (administrador)
+         * @description Al desactivar, revoca de inmediato todas las sesiones activas de la cuenta.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        activo?: boolean;
+                        /** @enum {string} */
+                        estado?: "ACTIVO" | "INACTIVO";
+                    };
+                };
+            };
+            responses: {
+                /** @description Estado actualizado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UsuarioAdmin"];
+                    };
+                };
+                /** @description No puede desactivarse a sí mismo o al único admin activo */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Usuario no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/usuarios/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar roles de usuario (administrador)
+         * @description Toda cuenta debe conservar el rol ESTUDIANTE.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        roles: ("ESTUDIANTE" | "DOCENTE" | "ADMIN")[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Roles actualizados */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UsuarioAdmin"];
+                    };
+                };
+                /** @description No puede quitarse el rol admin a sí mismo o al único admin activo */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Usuario no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
                 500: components["responses"]["ErrorInterno"];
             };
         };
@@ -2556,6 +2947,482 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/categorias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Todas las categorías, activas e inactivas, por nombre */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CategoriaAdmin"][];
+                    };
+                };
+                /** @description Parámetro de consulta desconocido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        /** Crear una categoría (nace activa) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosCategoriaNueva"];
+                };
+            };
+            responses: {
+                /** @description Categoría creada */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CategoriaAdmin"];
+                    };
+                };
+                /** @description Nombre o descripción inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Ya existe una categoría con ese nombre, sin distinguir mayúsculas (CATEGORIA_DUPLICADA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/categorias/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Editar, activar o desactivar una categoría */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosCategoria"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CategoriaAdmin"];
+                    };
+                };
+                /** @description Nombre o descripción inválidos o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La categoría no existe */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Ya existe una categoría con ese nombre, sin distinguir mayúsculas (CATEGORIA_DUPLICADA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cursos/{id}/resenas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reseñas públicas de un curso publicado, con su promedio y distribución
+         * @description Primero las que tienen comentario y, dentro de ellas, las más recientes.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaResenas"];
+                    };
+                };
+                /** @description ID o paginación inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso no existe o no está publicado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cursos/{id}/resena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mi reseña del curso y si puedo escribirla */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MiResena"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        /**
+         * Escribir o reemplazar mi reseña (una por inscripción)
+         * @description Hasta 30 peticiones por IP y 15 minutos.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosResena"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Resena"];
+                    };
+                };
+                /** @description Estrellas fuera de 1 a 5, comentario de más de 1000 caracteres o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE, o no está inscrito en el curso publicado (NO_INSCRITO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                /** @description Límite de peticiones */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        /** Borrar mi reseña */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reseña borrada */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ESTUDIANTE, o no está inscrito en el curso publicado (NO_INSCRITO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Todavía no hay reseña propia */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3357,6 +4224,237 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/perfil/foto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Subir o reemplazar mi foto de perfil
+         * @description JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. La foto anterior se borra. Queda en `fotoUrl` como `/api/fotos/{nombre}`. Hasta 20 subidas cada 15 minutos por IP.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        foto: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example 3 */
+                            idUsuario?: number;
+                            /** @example 3 */
+                            idPersona?: number;
+                            /** @example Rosa */
+                            nombres?: string;
+                            /** @example Vera Chávez */
+                            apellidos?: string;
+                            /** @example rosa.vera@correo.com */
+                            correo?: string;
+                            /** @example null */
+                            fotoUrl?: string | null;
+                            roles?: ("ESTUDIANTE" | "DOCENTE" | "ADMIN")[];
+                            /** @example Machala */
+                            ciudad?: string | null;
+                            biografia?: string | null;
+                            /** Format: date-time */
+                            creadoEn?: string;
+                        };
+                    };
+                };
+                /** @description Formulario sin foto o ilegible (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión, token inválido o sesión revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La cuenta ya no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La foto supera 2 MiB (ARCHIVO_DEMASIADO_GRANDE) */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO) */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After) */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        /** Quitar mi foto de perfil (vuelven las iniciales) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example 3 */
+                            idUsuario?: number;
+                            /** @example 3 */
+                            idPersona?: number;
+                            /** @example Rosa */
+                            nombres?: string;
+                            /** @example Vera Chávez */
+                            apellidos?: string;
+                            /** @example rosa.vera@correo.com */
+                            correo?: string;
+                            /** @example null */
+                            fotoUrl?: string | null;
+                            roles?: ("ESTUDIANTE" | "DOCENTE" | "ADMIN")[];
+                            /** @example Machala */
+                            ciudad?: string | null;
+                            biografia?: string | null;
+                            /** Format: date-time */
+                            creadoEn?: string;
+                        };
+                    };
+                };
+                /** @description Sin sesión, token inválido o sesión revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La cuenta ya no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fotos/{nombre}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Foto de perfil pública (catálogo, reseñas, panel)
+         * @description El nombre es un UUID con su extensión; cualquier otro valor da 404. Se puede guardar en caché un año.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    nombre: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Bytes de la imagen */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/jpeg": string;
+                        "image/png": string;
+                        "image/webp": string;
+                    };
+                };
+                /** @description La foto no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/perfil/contrasena": {
         parameters: {
             query?: never;
@@ -3481,10 +4579,26 @@ export interface components {
             /** @enum {string} */
             estado: "PUBLICADO";
         };
+        CalificacionCurso: {
+            /** @description Un decimal; null sin reseñas. */
+            promedio: number | null;
+            total: number;
+        };
         CursoPublicoDetalle: components["schemas"]["CursoPublico"] & {
             /** @description Cadena vacía si no tiene. */
             descripcion: string;
             docenteBio: string | null;
+            /** @description Ficha pública del docente: nunca incluye su correo. */
+            instructor: {
+                nombre: string;
+                especialidad: string;
+                biografia: string | null;
+                fotoUrl: string | null;
+                cursosPublicados: number;
+                /** @description Inscripciones en todos sus cursos publicados. */
+                estudiantes: number;
+            };
+            calificacion: components["schemas"]["CalificacionCurso"];
             objetivos: string[];
             requisitos: string[];
             temario: {
@@ -3544,8 +4658,6 @@ export interface components {
             tipo: "VIDEO";
             /** @description Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID. */
             youtubeUrl: string;
-            /** @default false */
-            vistaPrevia: boolean;
         } | {
             /** @description Se recortan los espacios de los extremos antes de validar. */
             titulo: string;
@@ -3596,9 +4708,18 @@ export interface components {
             tipo: "DOCUMENTO" | "VIDEO" | "EVALUACION";
             archivo: components["schemas"]["ArchivoPdf"] | null;
             youtubeVideoId: string | null;
-            vistaPrevia: boolean;
             /** @description Preguntas guardadas de una EVALUACION (necesita 5 para estar completa); 0 en los demás tipos. */
             preguntas: number;
+            recursos: components["schemas"]["RecursoLeccion"][];
+        };
+        RecursoLeccion: {
+            id: number;
+            titulo: string;
+            archivoId: number;
+            /** @enum {string} */
+            tipo: "PDF" | "PPT" | "ZIP";
+            nombreOriginal: string;
+            tamanoBytes: number;
         };
         ModuloPrivado: {
             id: number;
@@ -3666,6 +4787,67 @@ export interface components {
                 cursosCompletados: number;
             };
         };
+        UsuarioAdmin: {
+            /** @example 3 */
+            id: number;
+            /** @example 3 */
+            idPersona: number;
+            /** @example Rosa Vera Chávez */
+            nombre: string;
+            /** @example Rosa */
+            nombres: string;
+            /** @example Vera Chávez */
+            apellidos: string;
+            /**
+             * Format: email
+             * @example rosa.vera@correo.com
+             */
+            correo: string;
+            /** @example Machala */
+            ciudad?: string | null;
+            /** @example null */
+            fotoUrl?: string | null;
+            /**
+             * @example [
+             *       "ESTUDIANTE"
+             *     ]
+             */
+            roles: ("ESTUDIANTE" | "DOCENTE" | "ADMIN")[];
+            /** @example true */
+            activo: boolean;
+            /**
+             * @example ACTIVO
+             * @enum {string}
+             */
+            estado: "ACTIVO" | "INACTIVO";
+            /** Format: date-time */
+            creadoEn: string;
+            /** Format: date-time */
+            ultimoAcceso?: string | null;
+        };
+        RespuestaUsuariosAdmin: {
+            items: components["schemas"]["UsuarioAdmin"][];
+            paginacion: {
+                /** @example 12 */
+                total: number;
+                /** @example 1 */
+                pagina: number;
+                /** @example 20 */
+                limite: number;
+                /** @example 1 */
+                totalPaginas: number;
+            };
+            conteos: {
+                /** @example 12 */
+                total: number;
+                /** @example 12 */
+                estudiantes: number;
+                /** @example 2 */
+                docentes: number;
+                /** @example 1 */
+                administradores: number;
+            };
+        };
         InscripcionAprendizaje: {
             id: number;
             cursoId: number;
@@ -3703,12 +4885,21 @@ export interface components {
             titulo: string;
             /** @enum {string} */
             tipo: "DOCUMENTO" | "VIDEO" | "EVALUACION";
-            vistaPrevia: boolean;
             archivoId: number | null;
             /** @description ID de YouTube de la lección VIDEO; null en los demás tipos. */
             youtubeVideoId: string | null;
             /** @description Para `GET /evaluaciones/{id}` en una lección EVALUACION; null en los demás tipos. */
             evaluacionId: number | null;
+            /** @description Material descargable con `GET /archivos/{archivoId}`. */
+            recursos: {
+                id: number;
+                titulo: string;
+                archivoId: number;
+                /** @enum {string} */
+                tipo: "PDF" | "PPT" | "ZIP";
+                nombreOriginal: string;
+                tamanoBytes: number;
+            }[];
             progreso: {
                 segundosVistos: number;
                 completada: boolean;
@@ -3803,6 +4994,65 @@ export interface components {
             progresoPct: number;
             /** @enum {string} */
             estado: "ACTIVA" | "COMPLETADA";
+        };
+        CategoriaAdmin: {
+            id: number;
+            nombre: string;
+            descripcion: string | null;
+            activa: boolean;
+            /** @description Cursos de cualquier estado con esta categoría. */
+            cursos: number;
+            cursosPublicados: number;
+        };
+        DatosCategoriaNueva: {
+            /** @description Se recortan los espacios y se normaliza a NFC. Único sin distinguir mayúsculas. */
+            nombre: string;
+            /** @description Vacía o ausente se guarda como null. */
+            descripcion?: string | null;
+        };
+        /** @description Reemplazo completo. Desactivar no borra ni oculta cursos publicados; deja de ofrecerse al crear o editar cursos. */
+        DatosCategoria: {
+            /** @description Se recortan los espacios y se normaliza a NFC. Único sin distinguir mayúsculas. */
+            nombre: string;
+            /** @description Vacía o ausente se guarda como null. */
+            descripcion?: string | null;
+            activa: boolean;
+        };
+        Resena: {
+            id: number;
+            /** @description Nombre y la inicial del apellido; nunca el correo. */
+            autor: string;
+            fotoUrl: string | null;
+            estrellas: number;
+            comentario: string | null;
+            /** Format: date-time */
+            creadoEn: string;
+            /** Format: date-time */
+            actualizadoEn: string;
+        };
+        PaginaResenas: {
+            resumen: {
+                /** @description Un decimal; null sin reseñas. */
+                promedio: number | null;
+                total: number;
+                /** @description Reseñas con 1, 2, 3, 4 y 5 estrellas, en ese orden. */
+                distribucion: number[];
+            };
+            items: components["schemas"]["Resena"][];
+            pagina: number;
+            limite: number;
+            total: number;
+            totalPaginas: number;
+        };
+        MiResena: {
+            /** @description Inscrito en el curso publicado. */
+            puedeResenar: boolean;
+            resena: components["schemas"]["Resena"] | null;
+        };
+        DatosResena: {
+            estrellas: number;
+            /** @description Vacío o solo espacios se guarda como null. */
+            comentario?: string | null;
         };
     };
     responses: {

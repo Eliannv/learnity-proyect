@@ -33,12 +33,22 @@ export interface LeccionAprendizaje {
   orden: number;
   titulo: string;
   tipo: TipoLeccionAprendizaje;
-  vistaPrevia: boolean;
   archivoId: number | null;
   youtubeVideoId: string | null;
   /** Evaluación de una lección EVALUACION; null en los demás tipos. */
   evaluacionId: number | null;
+  /** Material descargable de la lección; se descarga con GET /api/archivos/{archivoId}. */
+  recursos: RecursoAprendizaje[];
   progreso: { segundosVistos: number; completada: boolean };
+}
+
+export interface RecursoAprendizaje {
+  id: number;
+  titulo: string;
+  archivoId: number;
+  tipo: 'PDF' | 'PPT' | 'ZIP';
+  nombreOriginal: string;
+  tamanoBytes: number;
 }
 
 export interface ModuloAprendizaje {

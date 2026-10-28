@@ -13,13 +13,6 @@ function usuario(req: Request): UsuarioSesion {
 }
 
 export const cursosController = {
-  async videoVistaPrevia(_req: Request, res: Response) {
-    const { parametros: id } = datosValidados<number>(res);
-    const video = await cursosService.videoVistaPrevia(id);
-    res.setHeader('Cache-Control', 'public, max-age=60');
-    res.status(200).json(video);
-  },
-
   async crearCurso(req: Request, res: Response) {
     const curso = await cursosService.crearCurso(req.body as DatosCurso, usuario(req));
     res.status(201).json(curso);
@@ -58,6 +51,11 @@ export const cursosController = {
     const { parametros: id } = datosValidados<number>(res);
     const curso = await cursosService.guardarCuestionario(id, req.body as DatosCuestionario, usuario(req));
     res.status(200).json(curso);
+  },
+
+  async eliminarRecurso(req: Request, res: Response) {
+    const { parametros: id } = datosValidados<number>(res);
+    res.status(200).json(await cursosService.eliminarRecurso(id, usuario(req)));
   },
 
   async eliminarModulo(req: Request, res: Response) {

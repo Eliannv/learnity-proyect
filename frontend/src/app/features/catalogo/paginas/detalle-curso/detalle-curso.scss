@@ -31,6 +31,14 @@
   align-items: flex-start;
   gap: 16px;
   min-width: 0;
+  // Bloques que ocupan todo el ancho de la columna (si no, se encogen a su contenido).
+  > .separador,
+  > .instructor,
+  > .temario,
+  > app-resenas-curso {
+    align-self: stretch;
+  }
+  > .separador { margin: 8px 0; }
 }
 
 .titulo-curso {
@@ -121,23 +129,43 @@
   }
 }
 
-.muestra-accion { margin-left: auto; white-space: nowrap; }
-.muestra-panel { padding: 20px; border-top: 1px solid var(--gris-200); background: var(--blanco); }
-.muestra-panel h3 { margin: 0 0 12px; font-size: 18px; }
-@media (max-width: 600px) {
-  .modulo ul li:has(.muestra-accion) { flex-wrap: wrap; }
-  .muestra-accion { margin-left: 32px; }
+
+.calificacion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--tinta-800);
+  font-size: 15px;
+  strong { color: #8a4f06; font-size: 16px; }
+  &:hover span { text-decoration: underline; }
 }
 
-.docente {
+.instructor {
+  display: grid;
+  gap: 14px;
+  h2 { margin: 0; font-size: 22px; }
+}
+.instructor-cabecera {
   display: flex;
   align-items: center;
   gap: 18px;
-  strong {
-    font-size: 17px;
-    font-weight: 600;
-  }
+  > div { display: grid; gap: 4px; }
 }
+.instructor-nombre { font-size: 19px; font-weight: 700; color: var(--azul-700); }
+.instructor-especialidad { color: var(--tinta-800); }
+.instructor-datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--gris-600, #475569);
+  li { display: inline-flex; align-items: center; gap: 6px; }
+}
+.instructor-bio { margin: 0; line-height: 1.6; white-space: pre-line; color: var(--tinta-800); }
 
 aside {
   position: sticky;
@@ -220,3 +248,4 @@ aside {
     align-items: flex-start;
   }
 }
+.carga-detalle { padding: 32px 0 56px; }

@@ -1,0 +1,119 @@
+<header class="cabecera">
+  <div>
+    <h1 class="titulo-pagina">Categorías</h1>
+    <p class="subtitulo">Organizan el catálogo. Los docentes eligen una categoría activa al crear su curso.</p>
+  </div>
+  <button type="button" class="btn btn-primario btn-lg" (click)="nueva()">
+    <lucide-icon name="plus" [size]="20" aria-hidden="true" /> Nueva categoría
+  </button>
+</header>
+
+@if (error()) {
+  <app-estado-vista estado="error" titulo="No se pudieron cargar las categorías" [mensaje]="error()" (reintentar)="cargar()" />
+} @else if (categorias(); as lista) {
+  @if (!lista.length) {
+    <app-estado-vista estado="vacio" titulo="Todavía no hay categorías"
+      mensaje="Crea la primera para que los docentes puedan clasificar sus cursos.">
+      <button type="button" class="btn btn-primario btn-sm" (click)="nueva()">Nueva categoría</button>
+    </app-estado-vista>
+  } @else {
+    <div class="tabla-contenedor">
+      <table class="tabla">
+        <caption class="visualmente-oculto">Categorías del catálogo</caption>
+        <thead>
+          <tr>
+            <th scope="col">Categoría</th>
+            <th scope="col">Cursos</th>
+            <th scope="col">Publicados</th>
+            <th scope="col">Estado</th>
+            <th scope="col"><span class="visualmente-oculto">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of lista; track c.id) {
+            <tr [class.inactiva]="!c.activa">
+              <td>
+                <div class="nombre">
+                  <span class="icono" aria-hidden="true"><lucide-icon [name]="icono(c.nombre)" [size]="20" /></span>
+                  <span>
+                    <strong>{{ c.nombre }}</strong>
+                    @if (c.descripcion) { <small class="texto-suave">{{ c.descripcion }}</small> }
+                  </span>
+                </div>
+              </td>
+              <td>{{ c.cursos }}</td>
+              <td>{{ c.cursosPublicados }}</td>
+              <td>
+                <span class="punto-estado" [class.activo]="c.activa" [class.inactivo]="!c.activa">{{ c.activa ? 'Activa' : 'Inactiva' }}</span>
+              </td>
+              <td>
+                <div class="acciones">
+                  <button type="button" class="btn btn-suave btn-sm" (click)="editar(c)"
+                    [attr.aria-label]="'Editar ' + c.nombre">Editar</button>
+                  <button type="button" class="btn btn-sm" [class.btn-contorno]="!c.activa" [class.btn-texto-peligro]="c.activa"
+                    (click)="pedirCambio(c)" [attr.aria-label]="(c.activa ? 'Desactivar ' : 'Activar ') + c.nombre">
+                    {{ c.activa ? 'Desactivar' : 'Activar' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+} @else {
+  <div class="tabla-contenedor" aria-busy="true" aria-label="Cargando categorías">
+    @for (i of [1, 2, 3, 4]; track i) { <div class="fila-esqueleto esqueleto"></div> }
+  </div>
+}
+
+@if (formulario(); as f) {
+  <app-modal [titulo]="f.id === null ? 'Nueva categoría' : 'Editar categoría'" icono="tags" [ancho]="500" (cerrar)="formulario.set(null)">
+    <form class="formulario" (ngSubmit)="guardar()" novalidate>
+      <label class="campo">
+        <span>Nombre</span>
+        <input class="control" name="nombre" [(ngModel)]="f.nombre" maxlength="80" required
+          [attr.aria-invalid]="!!errores()['nombre']" placeholder="Ej. Ciencia de datos" />
+        @if (errores()['nombre']) { <small class="error" role="alert">{{ errores()['nombre'] }}</small> }
+      </label>
+      <label class="campo">
+        <span>Descripción <small class="texto-suave">(opcional)</small></span>
+        <textarea class="control" name="descripcion" rows="3" [(ngModel)]="f.descripcion" maxlength="300"
+          placeholder="Qué tipo de cursos agrupa"></textarea>
+        @if (errores()['descripcion']) { <small class="error" role="alert">{{ errores()['descripcion'] }}</small> }
+      </label>
+      @if (f.id !== null) {
+        <label class="interruptor">
+          <input type="checkbox" name="activa" [(ngModel)]="f.activa" />
+          <span>Activa: los docentes pueden elegirla</span>
+        </label>
+      }
+      @if (errores()['general']) { <p class="error" role="alert">{{ errores()['general'] }}</p> }
+      <div class="pie">
+        <button type="button" class="btn btn-contorno" (click)="formulario.set(null)">Cancelar</button>
+        <button type="submit" class="btn btn-primario" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando…' : f.id === null ? 'Crear categoría' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </form>
+  </app-modal>
+}
+
+@if (desactivando(); as c) {
+  <app-modal [titulo]="'¿Desactivar «' + c.nombre + '»?'" icono="tags" [ancho]="480" (cerrar)="desactivando.set(null)">
+    <p class="texto-modal">
+      Dejará de aparecer al crear o editar cursos.
+      @if (c.cursosPublicados) {
+        Sus {{ c.cursosPublicados }} cursos publicados siguen visibles en el catálogo.
+      }
+      @if (c.cursos - c.cursosPublicados > 0) {
+        {{ c.cursos - c.cursosPublicados }} cursos en preparación no podrán enviarse a revisión hasta que cambien de categoría o la reactives.
+      }
+    </p>
+    <div class="pie">
+      <button type="button" class="btn btn-contorno" (click)="desactivando.set(null)">Cancelar</button>
+      <button type="button" class="btn btn-peligro" (click)="cambiarActiva(c, false)">Desactivar categoría</button>
+    </div>
+  </app-modal>
+}

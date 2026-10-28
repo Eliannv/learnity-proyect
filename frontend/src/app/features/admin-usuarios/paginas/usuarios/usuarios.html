@@ -1,0 +1,150 @@
+<header>
+  <h1 class="titulo-pagina">Usuarios</h1>
+  <p class="subtitulo">Busca cuentas, activa o desactiva el acceso y asigna roles.</p>
+</header>
+
+<div class="filtros">
+  <label class="control-icono buscador">
+    <lucide-icon name="search" [size]="18" aria-hidden="true" />
+    <input class="control" type="search" placeholder="Buscar por nombre o correo" aria-label="Buscar por nombre o correo"
+      [value]="busqueda()" (input)="buscar($any($event.target).value)" />
+  </label>
+  <div class="grupo" role="group" aria-label="Filtrar por rol">
+    @for (f of filtrosRol(); track f.valor) {
+      <button type="button" class="chip-filtro" [class.activo]="rol() === f.valor" [attr.aria-pressed]="rol() === f.valor"
+        (click)="filtrarRol(f.valor)">
+        {{ f.texto }}@if (f.total !== undefined) { · {{ f.total }} }
+      </button>
+    }
+  </div>
+  <label class="estado-select">
+    <span class="visualmente-oculto">Filtrar por estado</span>
+    <select class="control" [value]="estado()" (change)="filtrarEstado($any($event.target).value)">
+      <option value="TODOS">Todos los estados</option>
+      <option value="ACTIVO">Activos</option>
+      <option value="INACTIVO">Inactivos</option>
+    </select>
+  </label>
+</div>
+
+@if (error()) {
+  <app-estado-vista estado="error" titulo="No se pudieron cargar los usuarios" [mensaje]="error()" (reintentar)="cargar()" />
+} @else if (!datos() && cargando()) {
+  <div class="tabla-contenedor" aria-busy="true" aria-label="Cargando usuarios">
+    @for (i of [1, 2, 3, 4, 5]; track i) { <div class="fila-esqueleto esqueleto"></div> }
+  </div>
+} @else if (datos(); as d) {
+  @if (!d.items.length) {
+    <app-estado-vista estado="vacio" titulo="Ninguna cuenta coincide"
+      mensaje="Prueba con otro nombre, otro rol o todos los estados." />
+  } @else {
+    <div class="tabla-contenedor" [attr.aria-busy]="cargando()">
+      <table class="tabla">
+        <caption class="visualmente-oculto">Cuentas de Learnity</caption>
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">Correo</th>
+            <th scope="col">Roles</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Registro</th>
+            <th scope="col"><span class="visualmente-oculto">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of d.items; track u.id) {
+            <tr [class.inactiva]="!u.activo">
+              <td>
+                <div class="persona">
+                  <app-avatar [texto]="iniciales(u)" [imagen]="u.fotoUrl" [tamano]="40" />
+                  <span>
+                    <strong>{{ u.nombre }}</strong>
+                    @if (esYo(u)) { <small class="texto-suave">(tú)</small> }
+                  </span>
+                </div>
+              </td>
+              <td class="texto-suave">{{ u.correo }}</td>
+              <td>
+                <div class="roles">
+                  @for (r of u.roles; track r) {
+                    <span class="chip" [class.docente]="r === 'DOCENTE'" [class.admin]="r === 'ADMIN'">{{ nombreRol[r] }}</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="punto-estado" [class.activo]="u.activo" [class.inactivo]="!u.activo">
+                  {{ u.activo ? 'Activa' : 'Inactiva' }}
+                </span>
+              </td>
+              <td class="texto-suave">{{ u.creadoEn | date: 'd MMM y' }}</td>
+              <td>
+                <div class="acciones">
+                  <button type="button" class="btn btn-suave btn-sm" [disabled]="ocupadoId() === u.id"
+                    (click)="abrirRoles(u)" [attr.aria-label]="'Editar roles de ' + u.nombre">Editar roles</button>
+                  <button type="button" class="btn btn-sm" [class.btn-contorno]="!u.activo" [class.btn-texto-peligro]="u.activo"
+                    [disabled]="ocupadoId() === u.id || esYo(u)" (click)="pedirCambioEstado(u)"
+                    [title]="esYo(u) ? 'No puedes desactivar tu propia cuenta' : ''"
+                    [attr.aria-label]="(u.activo ? 'Desactivar la cuenta de ' : 'Activar la cuenta de ') + u.nombre">
+                    {{ u.activo ? 'Desactivar' : 'Activar' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <nav class="paginacion" aria-label="Páginas de usuarios">
+      <span class="texto-suave" aria-live="polite">
+        Página {{ d.paginacion.pagina }} de {{ d.paginacion.totalPaginas || 1 }} · {{ d.paginacion.total }} cuentas
+      </span>
+      <div class="botones">
+        <button type="button" class="btn btn-contorno btn-sm" [disabled]="d.paginacion.pagina <= 1 || cargando()"
+          (click)="irA(d.paginacion.pagina - 1)"><lucide-icon name="arrow-left" [size]="16" aria-hidden="true" /> Anterior</button>
+        <button type="button" class="btn btn-contorno btn-sm"
+          [disabled]="d.paginacion.pagina >= d.paginacion.totalPaginas || cargando()"
+          (click)="irA(d.paginacion.pagina + 1)">Siguiente <lucide-icon name="arrow-right" [size]="16" aria-hidden="true" /></button>
+      </div>
+    </nav>
+  }
+}
+
+@if (editando(); as u) {
+  <app-modal [titulo]="'Roles de ' + u.nombre" icono="users" [ancho]="460" (cerrar)="editando.set(null)">
+    <form class="form-roles" (submit)="$event.preventDefault(); guardarRoles()">
+      <fieldset>
+        <legend class="texto-suave">Toda cuenta es Estudiante. Docente permite crear cursos; Administrador da acceso a este panel.</legend>
+        @for (r of rolesDisponibles; track r) {
+          <label class="casilla">
+            <input type="checkbox" [checked]="rolesElegidos().includes(r)"
+              [disabled]="r === 'ESTUDIANTE' || (r === 'ADMIN' && esYo(u))"
+              (change)="alternarRol(r, $any($event.target).checked)" />
+            <span>
+              <strong>{{ nombreRol[r] }}</strong>
+              @if (r === 'ADMIN' && esYo(u)) { <small class="texto-suave">No puedes quitarte este rol.</small> }
+            </span>
+          </label>
+        }
+      </fieldset>
+      @if (errorRoles()) { <p class="error" role="alert">{{ errorRoles() }}</p> }
+      <div class="pie">
+        <button type="button" class="btn btn-contorno" (click)="editando.set(null)">Cancelar</button>
+        <button type="submit" class="btn btn-primario" [disabled]="ocupadoId() === u.id">
+          {{ ocupadoId() === u.id ? 'Guardando…' : 'Guardar roles' }}
+        </button>
+      </div>
+    </form>
+  </app-modal>
+}
+
+@if (desactivando(); as u) {
+  <app-modal [titulo]="'¿Desactivar la cuenta de ' + u.nombre + '?'" icono="lock" [ancho]="460" (cerrar)="desactivando.set(null)">
+    <p class="texto-modal">No podrá iniciar sesión y se cerrarán sus sesiones abiertas. Sus cursos e inscripciones se conservan
+      y puedes reactivarla cuando quieras.</p>
+    <div class="pie">
+      <button type="button" class="btn btn-contorno" (click)="desactivando.set(null)">Cancelar</button>
+      <button type="button" class="btn btn-peligro" (click)="cambiarEstado(u, false)">Desactivar cuenta</button>
+    </div>
+  </app-modal>
+}

@@ -33,6 +33,8 @@ export class ReproductorYoutube implements OnDestroy {
   readonly posicion = output<PosicionYoutube>();
   readonly fallo = output<string>();
   readonly listo = output<void>();
+  /** El estudiante vio el vídeo hasta el final (solo con observarPosicion). */
+  readonly terminado = output<{ leccionId: number; videoId: string }>();
 
   protected readonly estado = signal<'inicial' | 'cargando' | 'listo' | 'error'>('inicial');
   protected readonly error = signal('');
@@ -147,9 +149,15 @@ export class ReproductorYoutube implements OnDestroy {
       if (this.observarPosicion()) {
         this.intervalo = setInterval(() => this.muestrear('intervalo'), 15_000);
       }
-    } else if (estado === 2 || estado === 0) {
-      this.muestrear('pausa');
-      // Llegar al final nunca completa una lección automáticamente.
+    } else if (estado === 2) {
+      // Pausar es una interrupción: la posición se guarda en el acto.
+      this.muestrear('pausa', true);
+    } else if (estado === 0) {
+      this.muestrear('fin', true);
+      const leccionId = this.leccionActiva;
+      if (this.observarPosicion() && this.huboReproduccion && leccionId !== null) {
+        this.terminado.emit({ leccionId, videoId: this.videoActivo });
+      }
     } else if (estado === 3) {
       this.limiteBuffer = setTimeout(() => this.lenta.set(true), 15_000);
     }

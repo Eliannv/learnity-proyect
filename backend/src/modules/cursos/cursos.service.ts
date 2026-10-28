@@ -33,6 +33,7 @@ export interface ServicioCursos {
     trabajo: (contexto: ContextoLeccion, cliente: PoolClient) => Promise<T>,
   ): Promise<T>;
   asociarPdfPrincipal(cliente: PoolClient, contexto: ContextoLeccion, archivoId: number): Promise<void>;
+  asociarRecurso(cliente: PoolClient, contexto: ContextoLeccion, archivoId: number, titulo: string): Promise<void>;
   detallePrivado(
     cliente: PoolClient,
     idCurso: number,
@@ -45,11 +46,15 @@ export interface ServicioCursos {
   listarParaRevision(usuario: UsuarioSesion): Promise<{ items: CursoResumen[] }>;
   detalleParaRevision(idCurso: number, usuario: UsuarioSesion): Promise<CursoDetalle>;
   decidirRevision(idCurso: number, decision: DecisionRevision, usuario: UsuarioSesion): Promise<CursoDetalle>;
+  /** Para avisar al docente por correo; null si el curso no existe. */
+  contactoDocente(idCurso: number): Promise<{ correo: string; nombres: string } | null>;
 }
 
 export const cursosService = {
   ...detallePrivadoService,
   ...temarioService,
+
+  contactoDocente: (idCurso: number) => fichaRepository.contactoDocente(idCurso),
 
   async listarMisCursos(usuario: UsuarioSesion): Promise<{ items: CursoResumen[] }> {
     politicaCurso.exigirRol(usuario, 'DOCENTE');

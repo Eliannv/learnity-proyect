@@ -136,8 +136,7 @@ export const esquemasGestionCursos = {
       properties: { titulo, orden: { type: 'integer', minimum: 1, maximum: 12 },
         tipo: { type: 'string', enum: ['VIDEO'] },
         youtubeUrl: { type: 'string', minLength: 1, maxLength: 255,
-          description: 'Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID.' },
-        vistaPrevia: { type: 'boolean', default: false } },
+          description: 'Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID.' } },
     }, {
       type: 'object', additionalProperties: false, required: ['titulo', 'orden', 'tipo'],
       description: 'Las preguntas se guardan aparte, con `PUT /lecciones/{id}/evaluacion`.',
@@ -233,8 +232,8 @@ export const esquemasGestionCursos = {
       'tipo',
       'archivo',
       'youtubeVideoId',
-      'vistaPrevia',
       'preguntas',
+      'recursos',
     ],
     properties: {
       id: entero,
@@ -254,11 +253,22 @@ export const esquemasGestionCursos = {
         allOf: [ref('ArchivoPdf')],
       },
       youtubeVideoId: { type: 'string', nullable: true, minLength: 11, maxLength: 11 },
-      vistaPrevia: { type: 'boolean' },
       preguntas: {
         type: 'integer', minimum: 0, maximum: 10,
         description: 'Preguntas guardadas de una EVALUACION (necesita 5 para estar completa); 0 en los demás tipos.',
       },
+      recursos: { type: 'array', maxItems: 5, items: ref('RecursoLeccion') },
+    },
+  },
+
+  RecursoLeccion: {
+    type: 'object',
+    required: ['id', 'titulo', 'archivoId', 'tipo', 'nombreOriginal', 'tamanoBytes'],
+    properties: {
+      id: entero, titulo: texto, archivoId: entero,
+      tipo: { type: 'string', enum: ['PDF', 'PPT', 'ZIP'] },
+      nombreOriginal: { ...texto, maxLength: 200 },
+      tamanoBytes: { type: 'integer', minimum: 1, maximum: 10485760 },
     },
   },
 
@@ -521,21 +531,6 @@ export const rutasGestionCursos = {
         cuerpo(ref('DatosCuestionario')),
       ),
       parameters: [idRuta],
-    },
-  },
-
-  '/lecciones/{id}/video-preview': {
-    get: {
-      tags: ['Cursos'], summary: 'Video de muestra de una lección pública',
-      description: 'Solo VIDEO con vistaPrevia=true de un curso PUBLICADO. Devuelve un ID de YouTube, nunca una URL arbitraria.',
-      parameters: [idRuta],
-      responses: {
-        200: json({ type: 'object', required: ['leccionId', 'youtubeVideoId'], properties: {
-          leccionId: { type: 'integer' },
-          youtubeVideoId: { type: 'string', minLength: 11, maxLength: 11 },
-        } }),
-        400: error(idInvalido), 404: error('Lección sin vista previa pública'), 500: errorInterno,
-      },
     },
   },
 

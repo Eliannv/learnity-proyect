@@ -54,8 +54,8 @@
 </section>
 
 @if (cargando()) {
-  <section class="contenedor seccion" role="status">
-    <p class="texto-suave">Cargando cursos…</p>
+  <section class="contenedor seccion">
+    <app-esqueleto forma="tarjetas" [cantidad]="4" etiqueta="Cargando cursos…" />
   </section>
 } @else if (error()) {
   <section class="contenedor seccion" role="alert">
@@ -78,6 +78,7 @@
             [meta]="c.docente + ' · ' + c.minutos + ' min · ' + c.lecciones + ' lecciones'"
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
+            [imagen]="c.portadaUrl"
           />
         }
       </div>
@@ -105,6 +106,7 @@
             [tono]="tonoDe(c.categoria.id)"
             [nuevo]="true"
             [enlace]="'/cursos/' + c.id"
+            [imagen]="c.portadaUrl"
           />
         }
       </div>

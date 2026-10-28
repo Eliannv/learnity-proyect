@@ -92,22 +92,21 @@ describe('Sprint 3: VIDEO YouTube y PDF del estudiante', () => {
     assert.equal(ajenoResultado.status, 403, ajenoResultado.texto);
     const vista = await c.como(docente, 'POST', ruta, {
       titulo: 'Vista previa', orden: 2, tipo: 'VIDEO',
-      youtubeUrl: `https://www.youtube.com/watch?v=${videoId}&t=10`, vistaPrevia: true,
+      youtubeUrl: `https://www.youtube.com/watch?v=${videoId}&t=10`,
     });
     assert.equal(vista.status, 201, vista.texto);
     vistaId = vista.json.modulos[0].lecciones.find((l: { orden: number }) => l.orden === 2).id;
     const leccion = vista.json.modulos[0].lecciones.find((l: { id: number }) => l.id === vistaId);
     assert.equal(leccion.youtubeVideoId, videoId);
-    assert.equal(leccion.vistaPrevia, true);
+    assert.equal('vistaPrevia' in leccion, false);
     assert.equal(leccion.archivo, null);
     const privado = await c.como(docente, 'POST', ruta, {
       titulo: 'Video privado', orden: 3, tipo: 'VIDEO', youtubeUrl: `https://youtu.be/${videoId}`,
     });
     assert.equal(privado.status, 201, privado.texto);
     privadoId = privado.json.modulos[0].lecciones.find((l: { orden: number }) => l.orden === 3).id;
-    assert.equal((await srv.pedir(`/api/lecciones/${vistaId}/video-preview`)).status, 404);
     const editado = await c.como(docente, 'PUT', `/api/lecciones/${privadoId}`, {
-      titulo: 'Video privado actualizado', orden: 3, tipo: 'VIDEO', youtubeUrl: videoId, vistaPrevia: false,
+      titulo: 'Video privado actualizado', orden: 3, tipo: 'VIDEO', youtubeUrl: videoId,
     });
     assert.equal(editado.status, 200, editado.texto);
     await c.enviarARevision(docente, cursoId);
@@ -115,18 +114,17 @@ describe('Sprint 3: VIDEO YouTube y PDF del estudiante', () => {
     assert.equal(aprobado.status, 200, aprobado.texto);
     // Sprint 3: el curso publicado se sigue editando y no vuelve a revisión.
     const publicado = await c.como(docente, 'PUT', `/api/lecciones/${vistaId}`, {
-      titulo: 'Vista previa', orden: 2, tipo: 'VIDEO', youtubeUrl: videoId, vistaPrevia: true,
+      titulo: 'Vista previa', orden: 2, tipo: 'VIDEO', youtubeUrl: videoId,
     });
     assert.equal(publicado.status, 200, publicado.texto);
     assert.equal(publicado.json.estado, 'PUBLICADO');
   });
 
-  it('publica solo la vista previa explícita; PDF requiere inscripción y vínculo con su curso', async () => {
-    const vista = await srv.pedir(`/api/lecciones/${vistaId}/video-preview`);
-    assert.equal(vista.status, 200, vista.texto);
-    assert.deepEqual(vista.json, { leccionId: vistaId, youtubeVideoId: videoId });
-    assert.equal((await srv.pedir(`/api/lecciones/${privadoId}/video-preview`)).status, 404);
-    assert.equal((await srv.pedir(`/api/lecciones/${documentoId}/video-preview`)).status, 404);
+  it('sin muestras públicas: vídeo y PDF exigen inscripción y vínculo con su curso', async () => {
+    // La ruta de vista previa ya no existe para ninguna lección.
+    for (const id of [vistaId, privadoId, documentoId]) {
+      assert.equal((await srv.pedir(`/api/lecciones/${id}/video-preview`)).status, 404);
+    }
     const rutaPdf = `/api/archivos/${archivoId}`;
     assert.equal((await srv.pedir(rutaPdf)).status, 401);
     assert.equal((await c.como(estudiante, 'GET', rutaPdf)).status, 403);

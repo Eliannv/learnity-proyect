@@ -18,9 +18,9 @@ import { AppError } from '../http/app-error.js';
 
 import {
   MAX_PDF_BYTES,
-  NOMBRE_PDF_INTERNO,
   validarBytesPdf,
 } from './pdf-validacion.js';
+import { NOMBRE_ARCHIVO_INTERNO } from './recurso-validacion.js';
 
 /** Archivo ya recibido en el directorio temporal del almacén (ver `reservarTemporal`). */
 export interface ArchivoTemporal {
@@ -90,7 +90,7 @@ function directorioTemporal(): string {
 }
 
 function rutaInterna(nombre: string): string {
-  if (!NOMBRE_PDF_INTERNO.test(nombre)) {
+  if (!NOMBRE_ARCHIVO_INTERNO.test(nombre)) {
     throw AppError.noEncontrado(
       'Archivo no disponible.',
     );

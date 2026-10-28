@@ -3,7 +3,7 @@ export interface PosicionYoutube {
   readonly leccionId: number;
   readonly videoId: string;
   readonly segundos: number;
-  readonly motivo: 'intervalo' | 'pausa' | 'oculto' | 'salida';
+  readonly motivo: 'intervalo' | 'pausa' | 'oculto' | 'salida' | 'fin';
 }
 
 export type ResultadoEnlaceYoutube =

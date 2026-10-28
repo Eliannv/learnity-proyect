@@ -22,6 +22,8 @@ const entornoApi = {
   // Sin red en las pruebas: la consulta a Have I Been Pwned queda desactivada solo aquí.
   HIBP_ACTIVO: 'false',
   COOKIE_SECURE: 'false',
+  // Todas las cuentas entran desde 127.0.0.1: el límite por IP de producción (20/15 min) no alcanza para la suite.
+  LOGIN_MAX_POR_IP: '200',
 };
 
 export default defineConfig({

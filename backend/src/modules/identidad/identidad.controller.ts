@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { borrarCookiesSesion, emitirCookiesSesion, leerRefreshToken } from '../../shared/http/cookies-sesion.js';
 import { type Contexto, type SesionEmitida, identidadService } from './identidad.service.js';
+import { almacenFotos } from '../../shared/archivos/fotos.js';
 
 // Capa controller: recibe la petición ya validada, llama al service y responde.
 // Sin SQL ni reglas del negocio. Aquí vive lo propio de HTTP: cookies y códigos de estado.
@@ -54,6 +55,21 @@ export const identidadController = {
 
   async obtenerPerfil(req: Request, res: Response) {
     res.json(await identidadService.obtenerPerfil(req.usuario!));
+  },
+
+  async cambiarFoto(req: Request, res: Response) {
+    res.json(await identidadService.cambiarFoto(req.usuario!, req.file?.buffer));
+  },
+
+  async quitarFoto(req: Request, res: Response) {
+    res.json(await identidadService.quitarFoto(req.usuario!));
+  },
+
+  /** Público: las fotos se ven en el catálogo y en las reseñas. El nombre es un UUID validado. */
+  async foto(req: Request, res: Response) {
+    const foto = await almacenFotos.leer(String(req.params['nombre']));
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.type(foto.tipo).send(foto.bytes);
   },
 
   async actualizarPerfil(req: Request, res: Response) {

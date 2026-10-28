@@ -42,7 +42,7 @@
   }
 
   @if (p.ocupada()) {
-    <p class="mensaje" role="status">Cargando cursos…</p>
+    <app-esqueleto forma="tarjetas" [cantidad]="4" etiqueta="Cargando cursos…" />
   } @else if (p.error()) {
     <div class="mensaje error" role="alert">
       <p>{{ p.error() }}</p>

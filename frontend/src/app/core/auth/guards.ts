@@ -10,13 +10,13 @@ export const autenticadoGuard: CanActivateFn = (_route, state) => {
   return inject(Router).createUrlTree(['/login'], { queryParams: { volver: state.url } });
 };
 
-/** Solo usuarios con el rol indicado. Si no lo tienen, van a su pantalla de inicio. */
+/** Solo usuarios con el rol indicado. Si no lo tienen, ven la página 403 que explica por qué. */
 export function rolGuard(rol: Rol): CanActivateFn {
   return (_route, state) => {
     const auth = inject(AuthService);
     const router = inject(Router);
     if (!auth.autenticado()) return router.createUrlTree(['/login'], { queryParams: { volver: state.url } });
-    return auth.tieneRol(rol) ? true : router.parseUrl(auth.rutaInicio());
+    return auth.tieneRol(rol) ? true : router.parseUrl('/acceso-denegado');
   };
 }
 

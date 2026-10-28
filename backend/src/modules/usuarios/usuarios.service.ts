@@ -1,8 +1,10 @@
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
+import { env } from '../../shared/config/env.js';
+import { notificar } from '../../shared/correo/plantilla.js';
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { registrarEvento } from '../../shared/log/registro.js';
-import { identidadRepository } from '../identidad/identidad.repository.js';
+import { identidadApi } from '../identidad/index.js';
 import type {
   CambioEstadoUsuario,
   CambioRolesUsuario,
@@ -11,6 +13,7 @@ import type {
   NuevaSolicitudDocente,
 } from './usuarios.esquemas.js';
 import type { EstadoSolicitud, RespuestaUsuariosAdmin, RolUsuario, SolicitudDocente, UsuarioAdmin } from './usuarios.modelo.js';
+import { correoSolicitudAprobada, correoSolicitudRechazada } from './usuarios.correos.js';
 import { usuariosRepository as repo } from './usuarios.repository.js';
 
 // Capa service: reglas del negocio de las solicitudes para ser docente y gestión de usuarios por administrador.
@@ -61,7 +64,12 @@ export const usuariosService = {
       }
    }, { actor: admin.idPersona });
     registrarEvento('solicitud_docente_decidida', { idSolicitud: id, decision: datos.decision, idAdmin: admin.idUsuario });
-    return (await repo.buscarSolicitud(id))!;
+    const decidida = (await repo.buscarSolicitud(id))!;
+    const { correo, nombres } = decidida.solicitante;
+    notificar('solicitud_docente', datos.decision === 'APROBAR'
+      ? correoSolicitudAprobada({ para: correo, nombres, enlace: `${env.FRONTEND_URL}/docente/cursos` })
+      : correoSolicitudRechazada({ para: correo, nombres, observacion: datos.observacion, enlace: `${env.FRONTEND_URL}/perfil` }));
+    return decidida;
   },
 
   /** RF-21 · Listar usuarios con paginación, búsqueda y filtros por rol/estado. */
@@ -90,7 +98,7 @@ export const usuariosService = {
           }
         }
         await repo.actualizarEstadoUsuario(cliente, idUsuario, 'INACTIVO');
-        await identidadRepository.revocarSesionesUsuario(idUsuario, 'CUENTA_INACTIVA', null, cliente);
+        await identidadApi.revocarSesionesDeCuentaInactiva(idUsuario, cliente);
       } else {
         await repo.actualizarEstadoUsuario(cliente, idUsuario, 'ACTIVO');
       }

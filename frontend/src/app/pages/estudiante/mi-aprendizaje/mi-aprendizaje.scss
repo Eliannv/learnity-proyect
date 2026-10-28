@@ -261,6 +261,7 @@
 
 .curso-portada {
   position: relative;
+  cursor: pointer;
   display: block;
   height: 160px;
   margin-bottom: 6px;
@@ -298,6 +299,8 @@
 }
 
 .curso-titulo {
+  font-weight: 700;
+  color: inherit;
   font-size: 16px;
   line-height: 1.35;
   display: -webkit-box;

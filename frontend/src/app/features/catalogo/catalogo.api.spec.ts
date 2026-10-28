@@ -75,14 +75,4 @@ describe('CatalogoApi', () => {
       .flush({ ...publicado, estado: 'EN_REVISION', temario: [] } as unknown as DetalleCursoPublico);
     expect(await detalle).toBeNull();
   });
-
-  it('solicita una muestra de video solo por ID de lección válido', async () => {
-    const muestra = servicio.videoVistaPrevia(17);
-    http.expectOne('/api/lecciones/17/video-preview').flush({
-      leccionId: 17, youtubeVideoId: 'dQw4w9WgXcQ',
-    });
-    expect((await muestra).youtubeVideoId).toBe('dQw4w9WgXcQ');
-    await expect(servicio.videoVistaPrevia(-1)).rejects.toThrow();
-    http.expectNone('/api/lecciones/-1/video-preview');
-  });
 });

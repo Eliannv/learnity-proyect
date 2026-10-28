@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../../shared/ui/esqueleto';
 import { TitleCasePipe } from '@angular/common';
 import {
   Component,
@@ -16,10 +17,11 @@ import { ContenidoApi } from '../../../contenido/contenido.api';
 import { ArbolTemario } from '../../../docente-cursos/componentes/arbol-temario';
 import { DocenteCursosApi } from '../../../docente-cursos/docente-cursos.api';
 import { RevisionApi } from '../../revision.api';
+import { ConfirmacionService } from '../../../../shared/ui/confirmacion.service';
 
 @Component({
   selector: 'app-revision-curso',
-  imports: [
+  imports: [Esqueleto, 
     FormsModule,
     RouterLink,
     TitleCasePipe,
@@ -43,6 +45,7 @@ export class RevisionCurso {
   private readonly api = inject(RevisionApi);
   private readonly contenidoApi = inject(ContenidoApi);
   private readonly docenteApi = inject(DocenteCursosApi);
+  private readonly confirmacion = inject(ConfirmacionService);
   private version = 0;
 
   protected readonly subirArchivoFn = (leccionId: number, archivo: File) =>
@@ -109,11 +112,17 @@ export class RevisionCurso {
       return;
     }
 
-    const confirmado = confirm(
-      decision === 'APROBAR'
-        ? '¿Aprobar y publicar este curso en el catálogo?'
-        : '¿Rechazar el curso con el motivo indicado?',
-    );
+    const confirmado = await this.confirmacion.confirmar(decision === 'APROBAR'
+      ? {
+          titulo: '¿Aprobar y publicar este curso?',
+          mensaje: 'Aparecerá en el catálogo y el docente recibirá un correo con la noticia.',
+          accion: 'Aprobar y publicar', icono: 'shield-check',
+        }
+      : {
+          titulo: '¿Rechazar este curso?',
+          mensaje: 'El docente recibirá un correo con el motivo y podrá corregirlo y reenviarlo.',
+          accion: 'Rechazar curso', peligro: true,
+        });
     if (!confirmado) return;
 
     await this.p.ejecutar(

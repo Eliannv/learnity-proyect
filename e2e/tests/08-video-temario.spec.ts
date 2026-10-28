@@ -70,13 +70,14 @@ test('docente crea vídeos con PDF de apoyo, amplía el curso publicado con una 
   // La vista del vídeo está siempre presente (sin botón «Cargar vídeo») y admite un PDF de apoyo.
   await expect(primero.locator('app-reproductor-youtube')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Cargar vídeo' })).toHaveCount(0);
-  await primero.locator('input[type=file]').setInputFiles({
+  await primero.locator('input[type=file][accept*="application/pdf"]').setInputFiles({
     name: 'apoyo.pdf', mimeType: 'application/pdf', buffer: await pdfMinimo(2),
   });
   await expect(primero.getByText(/Material de apoyo: apoyo\.pdf/)).toBeVisible();
 
   await expect(page.getByRole('button', { name: 'Enviar a revisión' })).toBeEnabled();
   await page.getByRole('button', { name: 'Enviar a revisión' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Enviar a revisión' }).click();
   await expect(page.getByText('Curso enviado a revisión.')).toBeVisible();
 
   const { contexto: adminContexto, pagina: adminPagina } = await otroContexto(context);
@@ -87,6 +88,7 @@ test('docente crea vídeos con PDF de apoyo, amplía el curso publicado con una 
     await expect(adminPagina).toHaveURL(new RegExp(`/admin/revision/${idCurso}$`));
     adminPagina.on('dialog', (dialogo) => void dialogo.accept());
     await adminPagina.getByRole('button', { name: 'Aprobar y publicar' }).click();
+    await adminPagina.getByRole('dialog').getByRole('button', { name: 'Aprobar y publicar' }).click();
     await expect(adminPagina.getByText('Este curso ya no está pendiente de revisión.')).toBeVisible();
   } finally {
     await adminContexto.close();
@@ -144,16 +146,21 @@ test('docente crea vídeos con PDF de apoyo, amplía el curso publicado con una 
 
     // La evaluación: suspender no bloquea nada y se puede repetir hasta aprobar.
     await estudiantePagina.locator('.temario-lateral').getByRole('link', { name: /Evaluación final/ }).click();
-    await expect(estudiantePagina.getByRole('heading', { name: 'Evaluación final', level: 2 })).toBeVisible();
-    await expect(estudiantePagina.getByText(/Correcta|Distractor/).first()).toBeVisible();
-    const enviar = estudiantePagina.getByRole('button', { name: 'Enviar respuestas' });
-    await expect(enviar).toBeDisabled();
-    for (let i = 1; i <= 5; i++) {
-      // Dos aciertos y tres fallos: 40 %.
-      await estudiantePagina.getByRole('group', { name: new RegExp(`Pregunta ${i} de 5`) })
-        .getByLabel(i <= 2 ? `Correcta ${i}` : 'Distractor B').check();
-    }
-    await enviar.click();
+    const evaluacionEstudiante = estudiantePagina.getByRole('region', { name: 'Evaluación: Evaluación final' });
+    await expect(evaluacionEstudiante).toBeVisible();
+    /** Una pregunta cada vez: elige la opción y avanza; en la última, envía. */
+    const responder = async (opcion: (i: number) => string) => {
+      for (let i = 1; i <= 5; i++) {
+        await expect(evaluacionEstudiante.getByText(`Pregunta ${i} de 5`)).toBeVisible();
+        const siguiente = evaluacionEstudiante.getByRole('button', { name: 'Siguiente' });
+        if (i < 5) await expect(siguiente).toBeDisabled();
+        await evaluacionEstudiante.getByRole('radio', { name: opcion(i) }).check();
+        if (i < 5) await siguiente.click();
+      }
+      await evaluacionEstudiante.getByRole('button', { name: 'Enviar respuestas' }).click();
+    };
+    // Dos aciertos y tres fallos: 40 %.
+    await responder((i) => (i <= 2 ? `Correcta ${i}` : 'Distractor B'));
     await expect(estudiantePagina.getByText('Esta vez no alcanzaste el 60 %.')).toBeVisible();
     await expect(estudiantePagina.getByText('2 de 5 respuestas correctas.')).toBeVisible();
     await expect(estudiantePagina.getByText('Pendiente de aprobar')).toBeVisible();
@@ -161,10 +168,7 @@ test('docente crea vídeos con PDF de apoyo, amplía el curso publicado con una 
     await revisarAccesibilidad(estudiantePagina);
 
     await estudiantePagina.getByRole('button', { name: 'Intentar de nuevo' }).click();
-    for (let i = 1; i <= 5; i++) {
-      await estudiantePagina.getByRole('group', { name: new RegExp(`Pregunta ${i} de 5`) }).getByLabel(`Correcta ${i}`).check();
-    }
-    await enviar.click();
+    await responder((i) => `Correcta ${i}`);
     await expect(estudiantePagina.getByText('¡Aprobaste la evaluación!')).toBeVisible();
     await expect(estudiantePagina.getByRole('img', { name: 'Evaluación aprobada' })).toBeVisible();
     await estudiantePagina.reload();

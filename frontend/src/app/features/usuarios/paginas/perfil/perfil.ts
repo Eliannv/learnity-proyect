@@ -1,4 +1,5 @@
 import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { FotoPerfil } from '../../../identidad/componentes/foto-perfil';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -6,7 +7,6 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { PerfilService, fechaCorta } from '../../../../core/auth/perfil.service';
 import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api';
 import { SolicitudesDocenteService, type SolicitudDocente } from '../../../../core/solicitudes/solicitudes-docente.service';
-import { Avatar } from '../../../../shared/ui/avatar';
 import { Modal } from '../../../../shared/ui/modal';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../../shared/validadores/contrasena';
 
@@ -19,7 +19,7 @@ function contrasenaOpcional(grupo: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-perfil-estudiante',
-  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, Avatar, Modal],
+  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, Modal, FotoPerfil],
   templateUrl: './perfil.html',
   styleUrl: './perfil.scss',
 })

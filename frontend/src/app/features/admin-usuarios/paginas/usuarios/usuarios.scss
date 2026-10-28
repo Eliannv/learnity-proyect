@@ -1,0 +1,81 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.buscador { flex: 1 1 280px; max-width: 380px; }
+.grupo { display: flex; flex-wrap: wrap; gap: 8px; }
+.estado-select { margin-left: auto; select { min-width: 180px; } }
+
+.persona {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+  span { display: grid; }
+}
+
+.roles { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip.docente { background: var(--azul-100); color: var(--azul-800); font-weight: 600; }
+.chip.admin { background: var(--tinta-900); color: var(--blanco); }
+
+tr.inactiva td { color: var(--gris-500); }
+
+.acciones { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.btn-texto-peligro {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--rojo-700);
+  &:hover:not(:disabled) { background: var(--rojo-050); }
+}
+
+td { white-space: nowrap; font-size: 14px; }
+.tabla td, .tabla th { padding-left: 12px; padding-right: 12px; }
+
+.fila-esqueleto { height: 56px; margin: 8px 12px; border-radius: var(--radio); }
+
+.paginacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  .botones { display: flex; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; gap: 4px; }
+}
+
+.form-roles {
+  display: grid;
+  gap: 16px;
+  fieldset { display: grid; gap: 10px; border: 0; margin: 0; padding: 0; }
+  legend { margin-bottom: 8px; font-size: 14px; line-height: 1.5; }
+}
+.casilla {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio);
+  cursor: pointer;
+  input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--azul-600); }
+  span { display: grid; gap: 2px; }
+  small { font-size: 13px; }
+}
+.casilla:has(input:disabled) { cursor: default; background: var(--gris-050, #f8fafc); }
+
+.texto-modal { margin: 0 0 20px; line-height: 1.55; color: var(--tinta-800); }
+.error { margin: 0; color: var(--rojo-700); }
+.pie { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  .estado-select { margin-left: 0; width: 100%; select { width: 100%; } }
+  .buscador { max-width: none; }
+}

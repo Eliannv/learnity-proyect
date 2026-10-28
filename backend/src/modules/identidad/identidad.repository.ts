@@ -166,6 +166,18 @@ export const identidadRepository = {
     );
   },
 
+  /** Cambia la foto y devuelve la anterior, para borrar su archivo después del commit. */
+  async cambiarFoto(idPersona: number, fotoUrl: string | null, cliente: Ejecutor = pool): Promise<string | null> {
+    const { rows } = await cliente.query<{ anterior: string | null }>(
+      `UPDATE persona p SET foto_url = $2
+         FROM (SELECT foto_url AS anterior FROM persona WHERE id_persona = $1 FOR UPDATE) a
+        WHERE p.id_persona = $1
+       RETURNING a.anterior`,
+      [idPersona, fotoUrl],
+    );
+    return rows[0]?.anterior ?? null;
+  },
+
   /** Guarda el nuevo hash y limpia los intentos fallidos y el bloqueo. */
   async actualizarContrasena(idUsuario: number, contrasenaHash: string, cliente: Ejecutor = pool): Promise<void> {
     await cliente.query(

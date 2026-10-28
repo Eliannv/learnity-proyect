@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { consultar } from '../../shared/database/pool.js';
-import type { EstadoInscripcion, FichaCursoAprendizaje, TipoLeccionAprendizaje } from './aprendizaje.modelo.js';
+import type { EstadoInscripcion, FichaCursoAprendizaje, RecursoAprendizaje, TipoLeccionAprendizaje } from './aprendizaje.modelo.js';
 
 export interface FilaInscripcion {
   id: number;
@@ -32,7 +32,6 @@ export interface FilaLeccion {
   orden: number | null;
   titulo: string | null;
   tipo: TipoLeccionAprendizaje | null;
-  vistaPrevia: boolean | null;
   archivoId: number | null;
   youtubeVideoId: string | null;
   evaluacionId: number | null;
@@ -146,7 +145,7 @@ export const aprendizajeRepository = {
   async temarioDelEstudiante(idInscripcion: number, idCurso: number): Promise<FilaLeccion[]> {
     const { rows } = await consultar<FilaLeccion>(
       `SELECT m.id_modulo AS "moduloId", m.orden AS "moduloOrden", m.titulo AS "moduloTitulo",
-              l.id_leccion AS id, l.orden, l.titulo, l.tipo, l.vista_previa AS "vistaPrevia",
+              l.id_leccion AS id, l.orden, l.titulo, l.tipo,
               a.id_archivo AS "archivoId", l.youtube_video_id AS "youtubeVideoId",
               e.id_evaluacion AS "evaluacionId",
               pl.segundos_vistos AS "segundosVistos", pl.completada
@@ -158,6 +157,21 @@ export const aprendizajeRepository = {
         WHERE m.id_curso = $2
         ORDER BY m.orden, m.id_modulo, l.orden, l.id_leccion`,
       [idInscripcion, idCurso],
+    );
+    return rows;
+  },
+
+  async recursosDelCurso(idCurso: number): Promise<(RecursoAprendizaje & { leccionId: number })[]> {
+    const { rows } = await consultar<RecursoAprendizaje & { leccionId: number }>(
+      `SELECT ra.id_recurso AS id, ra.id_leccion AS "leccionId", ra.titulo, a.id_archivo AS "archivoId",
+              a.tipo, a.nombre_original AS "nombreOriginal", a.tamano_bytes AS "tamanoBytes"
+         FROM recurso_adjunto ra
+         JOIN archivo a ON a.id_archivo = ra.id_archivo AND a.tipo IN ('PDF', 'PPT', 'ZIP')
+         JOIN leccion l ON l.id_leccion = ra.id_leccion
+         JOIN modulo m ON m.id_modulo = l.id_modulo AND m.id_curso = a.id_curso
+        WHERE m.id_curso = $1
+        ORDER BY ra.id_leccion, ra.id_recurso`,
+      [idCurso],
     );
     return rows;
   },

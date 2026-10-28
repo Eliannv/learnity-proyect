@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { almacenLocal } from '../../shared/archivos/almacen.js';
-import { NOMBRE_PDF_INTERNO } from '../../shared/archivos/pdf-validacion.js';
+import { NOMBRE_ARCHIVO_INTERNO } from '../../shared/archivos/recurso-validacion.js';
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { registrarEvento } from '../../shared/log/registro.js';
@@ -56,12 +56,13 @@ export const limpiezaPdfService = {
     for (const id of new Set(ids)) {
       const archivo = await repo.buscar(id, cliente);
 
-      if (!archivo || archivo.idCurso !== idCurso || archivo.tipo !== 'PDF') {
+      // PDF principal de una lección o recurso adjunto (PDF, PPT o ZIP). Los vídeos no se gestionan aquí.
+      if (!archivo || archivo.idCurso !== idCurso || !['PDF', 'PPT', 'ZIP'].includes(archivo.tipo)) {
         continue;
       }
 
-      if (!NOMBRE_PDF_INTERNO.test(archivo.ruta)) {
-        throw AppError.conflicto('Un PDF antiguo requiere revisión antes de eliminarlo.');
+      if (!NOMBRE_ARCHIVO_INTERNO.test(archivo.ruta)) {
+        throw AppError.conflicto('Un archivo antiguo requiere revisión antes de eliminarlo.');
       }
 
       const nombre = await repo.retirarSiHuerfano(cliente, id, idCurso);

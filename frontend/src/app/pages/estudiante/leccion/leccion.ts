@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../shared/ui/esqueleto';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
@@ -12,6 +13,8 @@ import {
   type ProgresoGuardado, type ResultadoIntento,
 } from '../../../features/aprendizaje/aprendizaje.api';
 import { EvaluacionEstudiante } from '../../../features/aprendizaje/componentes/evaluacion-estudiante';
+import { RecursosEstudiante } from '../../../features/aprendizaje/componentes/recursos-estudiante';
+import { ResenasCurso } from '../../../features/catalogo/componentes/resenas-curso';
 import { BarraProgreso } from '../../../shared/ui/barra-progreso';
 
 const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
@@ -22,7 +25,7 @@ const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
 
 @Component({
   selector: 'app-leccion',
-  imports: [RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube, EvaluacionEstudiante],
+  imports: [Esqueleto, RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube, EvaluacionEstudiante, RecursosEstudiante, ResenasCurso],
   templateUrl: './leccion.html',
   styleUrl: './leccion.scss',
 })
@@ -36,7 +39,8 @@ export class Leccion {
   private solicitud = 0;
   private pdfObjeto: string | null = null;
   private guardandoPosicion = false;
-  private posicionPendiente: PosicionYoutube | null = null;
+  /** Última posición sin enviar por lección: cambiar de lección no descarta la anterior. */
+  private readonly posicionesPendientes = new Map<number, PosicionYoutube>();
 
   protected readonly detalle = signal<DetalleAprendizaje | null>(null);
   protected readonly cargando = signal(true);
@@ -236,17 +240,34 @@ export class Leccion {
   }
 
   protected registrarPosicion(posicion: PosicionYoutube): void {
-    if (posicion.leccionId !== this.leccion()?.id || posicion.videoId !== this.leccion()?.youtubeVideoId) return;
-    this.posicionPendiente = posicion;
+    // Puede llegar justo después de cambiar de lección (al salir del vídeo): vale si es de este curso.
+    const leccion = this.todas().find((l) => l.id === posicion.leccionId);
+    if (!leccion || leccion.youtubeVideoId !== posicion.videoId) return;
+    this.posicionesPendientes.set(posicion.leccionId, posicion);
     if (!this.guardandoPosicion) void this.enviarPosiciones();
+  }
+
+  /** Ver el vídeo hasta el final completa la lección (sin deshacer nada si ya lo estaba). */
+  protected async alTerminarVideo(fin: { leccionId: number; videoId: string }): Promise<void> {
+    const leccion = this.todas().find((l) => l.id === fin.leccionId);
+    if (!leccion || leccion.tipo !== 'VIDEO' || leccion.youtubeVideoId !== fin.videoId || leccion.progreso.completada) return;
+    try {
+      const resultado = await this.api.guardarProgreso(leccion.id, { completada: true });
+      this.aplicar(resultado);
+      if (this.leccion()?.id === leccion.id) {
+        this.confirmacion.set('Terminaste el vídeo: lección completada.');
+        setTimeout(() => this.confirmacion.set(''), 4000);
+      }
+    } catch (error) {
+      this.errorProgreso.set(mensajeDeError(error, 'Completar la lección'));
+    }
   }
 
   private async enviarPosiciones(): Promise<void> {
     this.guardandoPosicion = true;
     try {
-      while (this.posicionPendiente) {
-        const muestra = this.posicionPendiente;
-        this.posicionPendiente = null;
+      for (const [id, muestra] of this.posicionesPendientes) {
+        this.posicionesPendientes.delete(id);
         try {
           const resultado = await this.api.guardarProgreso(muestra.leccionId, {
             segundosVistos: Math.min(86_400, muestra.segundos),

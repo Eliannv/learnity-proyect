@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../../shared/ui/esqueleto';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, effect, inject, input, linkedSignal, signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -22,7 +23,7 @@ const NIVELES: { valor: NivelCurso; texto: string }[] = [
 
 @Component({
   selector: 'app-catalogo',
-  imports: [NgTemplateOutlet, LucideAngularModule, TarjetaCurso, Modal, BuscadorMovil],
+  imports: [Esqueleto, NgTemplateOutlet, LucideAngularModule, TarjetaCurso, Modal, BuscadorMovil],
   templateUrl: './catalogo.html',
   styleUrl: './catalogo.scss',
 })

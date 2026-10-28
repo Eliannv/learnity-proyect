@@ -123,6 +123,11 @@ export class AuthService {
     this._sesion.update((s) => (s ? { ...s, usuario: { ...s.usuario, nombres, apellidos } } : s));
   }
 
+  /** Tras subir o quitar la foto: el header y los avatares la muestran sin esperar a la renovación. */
+  actualizarFoto(fotoUrl: string | null): void {
+    this._sesion.update((s) => (s ? { ...s, usuario: { ...s.usuario, fotoUrl } } : s));
+  }
+
   /** Modo demostración: entra con una cuenta simulada (solo en memoria; se pierde al recargar). */
   iniciarDemo(rol: Rol): void {
     this.establecer(SESIONES_DEMO[rol]);

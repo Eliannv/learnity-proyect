@@ -71,7 +71,7 @@
     }
 
     @if (cargando()) {
-      <div class="vacio" role="status"><p>Cargando cursos…</p></div>
+      <app-esqueleto forma="tarjetas" [cantidad]="6" etiqueta="Cargando cursos…" />
     } @else if (error()) {
       <div class="vacio" role="alert">
         <p>No se pudo cargar el catálogo. Comprueba tu conexión e inténtalo de nuevo.</p>
@@ -86,6 +86,7 @@
             [meta]="c.docente + ' · ' + c.minutos + ' min · ' + c.lecciones + ' lecciones'"
             [tono]="c.categoria.id % 3 === 0 ? 3 : c.categoria.id % 3 === 1 ? 1 : 2"
             [enlace]="'/cursos/' + c.id"
+            [imagen]="c.portadaUrl"
           />
         }
       </div>

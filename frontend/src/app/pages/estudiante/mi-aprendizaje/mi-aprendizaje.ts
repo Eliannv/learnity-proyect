@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../shared/ui/esqueleto';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -14,7 +15,7 @@ type Orden = 'reciente' | 'avance' | 'titulo';
 /** Cursos realmente inscritos: la API conserva el avance entre sesiones. */
 @Component({
   selector: 'app-mi-aprendizaje',
-  imports: [RouterLink, LucideAngularModule, AnilloProgreso, BarraProgreso, PortadaCurso],
+  imports: [Esqueleto, RouterLink, LucideAngularModule, AnilloProgreso, BarraProgreso, PortadaCurso],
   templateUrl: './mi-aprendizaje.html',
   styleUrl: './mi-aprendizaje.scss',
 })

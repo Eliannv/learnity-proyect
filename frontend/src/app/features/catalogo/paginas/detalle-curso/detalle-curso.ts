@@ -1,5 +1,6 @@
+import { Esqueleto } from '../../../../shared/ui/esqueleto';
 import { HttpErrorResponse } from '@angular/common/http';
-import { I18nPluralPipe, NgTemplateOutlet } from '@angular/common';
+import { DecimalPipe, I18nPluralPipe, NgTemplateOutlet } from '@angular/common';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -13,11 +14,16 @@ import { PortadaCurso } from '../../../../shared/ui/portada-curso';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { mensajeDeError } from '../../../../core/http/error-api';
 import { AprendizajeApi, type DetalleAprendizaje } from '../../../aprendizaje/aprendizaje.api';
-import { ReproductorYoutube } from '../../../contenido/componentes/reproductor-youtube';
+import { Estrellas } from '../../../../shared/ui/estrellas';
+import { ResenasCurso } from '../../componentes/resenas-curso';
+import type { PaginaResenas } from '../../resenas.api';
 
 @Component({
   selector: 'app-detalle-curso',
-  imports: [NgTemplateOutlet, I18nPluralPipe, RouterLink, LucideAngularModule, Avatar, PortadaCurso, ReproductorYoutube],
+  imports: [Esqueleto, 
+    NgTemplateOutlet, I18nPluralPipe, DecimalPipe, RouterLink, LucideAngularModule, Avatar, PortadaCurso,
+    Estrellas, ResenasCurso,
+  ],
   templateUrl: './detalle-curso.html',
   styleUrl: './detalle-curso.scss',
 })
@@ -42,9 +48,6 @@ export class DetalleCurso {
   protected readonly consultandoInscripcion = signal(false);
   protected readonly procesando = signal(false);
   protected readonly errorInscripcion = signal('');
-  protected readonly muestra = signal<{ leccionId: number; titulo: string; videoId: string } | null>(null);
-  protected readonly cargandoMuestra = signal<number | null>(null);
-  protected readonly errorMuestra = signal('');
   protected readonly puedeInscribirse = computed(() => this.auth.tieneRol('ESTUDIANTE'));
   protected readonly tono = computed<1 | 2 | 3>(() => {
     const id = this.curso()?.categoria.id ?? 1;
@@ -68,8 +71,6 @@ export class DetalleCurso {
     this.abiertos.set([]);
     this.inscripcion.set(null);
     this.errorInscripcion.set('');
-    this.muestra.set(null);
-    this.errorMuestra.set('');
     try {
       const curso = await this.api.detalle(id);
       if (actual !== this.solicitud) return;
@@ -135,36 +136,6 @@ export class DetalleCurso {
     this.reintento.update((n) => n + 1);
   }
 
-  protected async alternarMuestra(leccion: { id: number; titulo: string }): Promise<void> {
-    if (this.muestra()?.leccionId === leccion.id) {
-      this.muestra.set(null);
-      return;
-    }
-    this.errorMuestra.set('');
-    this.muestra.set(null);
-    this.cargandoMuestra.set(leccion.id);
-    const actual = this.solicitud;
-    try {
-      const respuesta = await this.api.videoVistaPrevia(leccion.id);
-      if (actual === this.solicitud) {
-        this.muestra.set({ leccionId: leccion.id, titulo: leccion.titulo,
-          videoId: respuesta.youtubeVideoId });
-      }
-    } catch (error) {
-      if (actual === this.solicitud) {
-        this.errorMuestra.set(error instanceof HttpErrorResponse && error.status === 404
-          ? 'Esta lección no tiene una muestra pública.'
-          : mensajeDeError(error, 'Cargar la muestra'));
-      }
-    } finally {
-      if (actual === this.solicitud) this.cargandoMuestra.set(null);
-    }
-  }
-
-  protected contieneMuestra(lecciones: readonly { id: number }[], id: number): boolean {
-    return lecciones.some((leccion) => leccion.id === id);
-  }
-
   protected alternar(id: number) {
     this.abiertos.update((a) => (a.includes(id) ? a.filter((n) => n !== id) : [...a, id]));
   }
@@ -182,5 +153,15 @@ export class DetalleCurso {
 
   protected nombreNivel(nivel: DetalleCursoPublico['nivel']): string {
     return nivel.charAt(0) + nivel.slice(1).toLowerCase();
+  }
+
+  /** Las reseñas del estudiante cambian el promedio de la cabecera sin recargar el curso. */
+  protected actualizarCalificacion(resumen: PaginaResenas['resumen']): void {
+    this.curso.update((c) => c && { ...c, calificacion: { promedio: resumen.promedio, total: resumen.total } });
+  }
+
+  protected irAResenas(evento: Event): void {
+    evento.preventDefault();
+    document.getElementById('resenas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }

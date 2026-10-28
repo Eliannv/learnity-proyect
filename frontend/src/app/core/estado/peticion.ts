@@ -1,10 +1,25 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { signal } from '@angular/core';
+import { inject, signal } from '@angular/core';
 
+import { ToastService } from '../../shared/ui/toast.service';
 import { erroresPorCampo } from '../http/error-api';
 
+/** Toasts de la app si la petición se crea en un componente; fuera de inyección (pruebas puras), ninguno. */
+function toastsDisponibles(): ToastService | null {
+  try {
+    return inject(ToastService, { optional: true });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Estado de una petición de pantalla. Los éxitos se anuncian como toast (si hay toasts) y los errores
+ * se quedan junto al formulario, con sus campos; la falta de conexión se anuncia también como toast.
+ */
 export class Peticion {
   private version = 0;
+  private readonly toasts = toastsDisponibles();
 
   readonly ocupada = signal(false);
   readonly error = signal('');
@@ -45,6 +60,10 @@ export class Peticion {
       !!http && [403, 404, 409].includes(http.status),
     );
 
+    if (http?.status === 0) {
+      this.toasts?.error('Sin conexión con el servidor. Revisa tu conexión y vuelve a intentarlo.');
+    }
+
     this.error.set(
       http?.status === 0
         ? 'No se pudo conectar. Comprueba tu conexión y vuelve a intentarlo.'
@@ -83,8 +102,9 @@ export class Peticion {
 
       aplicar(dato);
 
-      if (version === this.version) {
-        this.exito.set(mensaje);
+      if (version === this.version && mensaje) {
+        if (this.toasts) this.toasts.exito(mensaje);
+        else this.exito.set(mensaje);
       }
     } catch (error) {
       if (version === this.version) {

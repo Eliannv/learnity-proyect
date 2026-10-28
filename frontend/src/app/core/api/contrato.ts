@@ -19,8 +19,6 @@ export type ModuloPublico = CursoPublicoDetalle['temario'][number];
 export type LeccionPublica = ModuloPublico['lecciones'][number];
 export type PaginaCatalogo =
   paths['/cursos']['get']['responses'][200]['content']['application/json'];
-export type VistaPreviaVideo =
-  paths['/lecciones/{id}/video-preview']['get']['responses'][200]['content']['application/json'];
 export type ConsultaCatalogo = NonNullable<
   paths['/cursos']['get']['parameters']['query']
 >;
@@ -61,3 +59,21 @@ export type ResumenIntentos = Esquemas['ResumenIntentos'];
 export type ResultadoIntento = Esquemas['ResultadoIntento'];
 export type DatosIntento =
   paths['/evaluaciones/{id}/intentos']['post']['requestBody']['content']['application/json'];
+
+export type UsuarioAdmin = Esquemas['UsuarioAdmin'];
+export type RespuestaUsuariosAdmin = Esquemas['RespuestaUsuariosAdmin'];
+export type RolUsuario = UsuarioAdmin['roles'][number];
+export type ConsultaUsuariosAdmin = NonNullable<paths['/admin/usuarios']['get']['parameters']['query']>;
+
+export type CategoriaAdmin = Esquemas['CategoriaAdmin'];
+export type DatosCategoriaNueva = Esquemas['DatosCategoriaNueva'];
+export type DatosCategoria = Esquemas['DatosCategoria'];
+
+export type InstructorPublico = CursoPublicoDetalle['instructor'];
+export type CalificacionCurso = Esquemas['CalificacionCurso'];
+export type Resena = Esquemas['Resena'];
+export type PaginaResenas = Esquemas['PaginaResenas'];
+export type MiResena = Esquemas['MiResena'];
+export type DatosResena = Esquemas['DatosResena'];
+export type RecursoLeccion = Esquemas['RecursoLeccion'];
+export type RecursoAprendizaje = LeccionAprendizaje['recursos'][number];

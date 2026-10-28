@@ -3,6 +3,7 @@ import { consultar } from '../../../shared/database/pool.js';
 
 import type {
   ContextoLeccion,
+  RecursoLeccion,
   TipoLeccion,
 } from '../cursos.modelo.js';
 import type { DatosLeccion } from './temario.esquemas.js';
@@ -17,7 +18,6 @@ export interface FilaTemario {
   leccionOrden: number | null;
   leccionTipo: TipoLeccion | null;
   youtubeVideoId: string | null;
-  vistaPrevia: boolean | null;
   preguntas: number;
 
   archivoId: number | null;
@@ -34,19 +34,6 @@ export interface ArchivoCursoFila {
 }
 
 export const temarioRepository = {
-  async videoVistaPrevia(idLeccion: number): Promise<{ leccionId: number; youtubeVideoId: string } | null> {
-    const { rows } = await consultar<{ leccionId: number; youtubeVideoId: string }>(
-      `SELECT l.id_leccion AS "leccionId", l.youtube_video_id AS "youtubeVideoId"
-         FROM leccion l
-         JOIN modulo m ON m.id_modulo = l.id_modulo
-         JOIN curso c ON c.id_curso = m.id_curso
-        WHERE l.id_leccion = $1 AND l.tipo = 'VIDEO' AND l.vista_previa = TRUE
-          AND l.youtube_video_id IS NOT NULL AND c.estado = 'PUBLICADO'`,
-      [idLeccion],
-    );
-    return rows[0] ?? null;
-  },
-
   async archivosPdfDelCurso(idCurso: number): Promise<ArchivoCursoFila[]> {
     const { rows } = await consultar<ArchivoCursoFila>(
       `SELECT id_archivo AS id, ruta, tamano_bytes AS tamano
@@ -209,7 +196,7 @@ export const temarioRepository = {
           JOIN archivo a
             ON a.id_archivo = ra.id_archivo
           WHERE l.id_modulo = $1
-            AND a.tipo = 'PDF'
+            AND a.tipo IN ('PDF', 'PPT', 'ZIP')
         ) archivos
       `,
       [idModulo],
@@ -276,13 +263,10 @@ export const temarioRepository = {
     youtubeVideoId: string | null,
   ): Promise<number> {
     const { rows } = await cliente.query<{ id: number }>(
-      `INSERT INTO leccion (
-         id_modulo, titulo, orden, tipo, youtube_video_id, vista_previa
-       )
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO leccion (id_modulo, titulo, orden, tipo, youtube_video_id)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id_leccion AS id`,
-      [idModulo, datos.titulo, datos.orden, datos.tipo, youtubeVideoId,
-        datos.tipo === 'VIDEO' ? datos.vistaPrevia : false],
+      [idModulo, datos.titulo, datos.orden, datos.tipo, youtubeVideoId],
     );
 
     return rows[0]!.id;
@@ -330,7 +314,8 @@ export const temarioRepository = {
         SET titulo = $3,
             orden = $4,
             youtube_video_id = $6,
-            vista_previa = $7
+            -- Sin vistas previas: el contenido solo se ve tras inscribirse.
+            vista_previa = FALSE
         WHERE id_leccion = $1
           AND id_modulo = $2
           AND tipo = $5
@@ -342,7 +327,6 @@ export const temarioRepository = {
         datos.orden,
         datos.tipo,
         youtubeVideoId,
-        datos.tipo === 'VIDEO' ? datos.vistaPrevia : false,
       ],
     );
 
@@ -373,7 +357,7 @@ export const temarioRepository = {
           JOIN archivo a
             ON a.id_archivo = ra.id_archivo
           WHERE ra.id_leccion = $1
-            AND a.tipo = 'PDF'
+            AND a.tipo IN ('PDF', 'PPT', 'ZIP')
         ) archivos
       `,
       [idLeccion],
@@ -447,7 +431,6 @@ export const temarioRepository = {
           l.orden AS "leccionOrden",
           l.tipo AS "leccionTipo",
           l.youtube_video_id AS "youtubeVideoId",
-          l.vista_previa AS "vistaPrevia",
           (SELECT count(*)::int
              FROM evaluacion e
              JOIN pregunta p ON p.id_evaluacion = e.id_evaluacion
@@ -510,5 +493,71 @@ export const temarioRepository = {
     );
 
     return resultado.rowCount === 1;
+  },
+
+  async recursosDelCurso(cliente: PoolClient, idCurso: number): Promise<(RecursoLeccion & { leccionId: number })[]> {
+    const { rows } = await cliente.query<RecursoLeccion & { leccionId: number }>(
+      `SELECT ra.id_recurso AS id, ra.id_leccion AS "leccionId", ra.titulo, a.id_archivo AS "archivoId",
+              a.tipo, a.nombre_original AS "nombreOriginal", a.tamano_bytes AS "tamanoBytes"
+         FROM recurso_adjunto ra
+         JOIN archivo a ON a.id_archivo = ra.id_archivo
+         JOIN leccion l ON l.id_leccion = ra.id_leccion
+         JOIN modulo m ON m.id_modulo = l.id_modulo
+        WHERE m.id_curso = $1
+        ORDER BY ra.id_leccion, ra.id_recurso`,
+      [idCurso],
+    );
+    return rows;
+  },
+
+  async contarRecursos(cliente: PoolClient, idLeccion: number): Promise<number> {
+    const { rows } = await cliente.query<{ total: number }>(
+      'SELECT count(*)::int AS total FROM recurso_adjunto WHERE id_leccion = $1',
+      [idLeccion],
+    );
+    return rows[0]?.total ?? 0;
+  },
+
+  /** Solo asocia un archivo del mismo curso que todavía no esté asociado a nada. */
+  async asociarRecurso(
+    cliente: PoolClient, contexto: ContextoLeccion, archivoId: number, titulo: string,
+  ): Promise<boolean> {
+    const resultado = await cliente.query(
+      `INSERT INTO recurso_adjunto (id_leccion, id_archivo, titulo)
+       SELECT $1, a.id_archivo, $3
+         FROM archivo a
+        WHERE a.id_archivo = $2 AND a.id_curso = $4 AND a.tipo IN ('PDF', 'PPT', 'ZIP')
+          AND NOT EXISTS (SELECT 1 FROM leccion l WHERE l.id_archivo = a.id_archivo)`,
+      [contexto.leccionId, archivoId, titulo, contexto.id],
+    );
+    return resultado.rowCount === 1;
+  },
+
+  async buscarRecurso(idRecurso: number): Promise<{ idLeccion: number; idArchivo: number; idCurso: number } | null> {
+    const { rows } = await consultar<{ idLeccion: number; idArchivo: number; idCurso: number }>(
+      `SELECT ra.id_leccion AS "idLeccion", ra.id_archivo AS "idArchivo", m.id_curso AS "idCurso"
+         FROM recurso_adjunto ra
+         JOIN leccion l ON l.id_leccion = ra.id_leccion
+         JOIN modulo m ON m.id_modulo = l.id_modulo
+        WHERE ra.id_recurso = $1`,
+      [idRecurso],
+    );
+    return rows[0] ?? null;
+  },
+
+  async eliminarRecurso(cliente: PoolClient, idRecurso: number, idLeccion: number): Promise<number | null> {
+    const { rows } = await cliente.query<{ idArchivo: number }>(
+      `DELETE FROM recurso_adjunto WHERE id_recurso = $1 AND id_leccion = $2 RETURNING id_archivo AS "idArchivo"`,
+      [idRecurso, idLeccion],
+    );
+    return rows[0]?.idArchivo ?? null;
+  },
+
+  async esRecursoDe(cliente: PoolClient, idLeccion: number, idArchivo: number): Promise<boolean> {
+    const { rows } = await cliente.query(
+      'SELECT 1 FROM recurso_adjunto WHERE id_leccion = $1 AND id_archivo = $2',
+      [idLeccion, idArchivo],
+    );
+    return rows.length > 0;
   },
 };

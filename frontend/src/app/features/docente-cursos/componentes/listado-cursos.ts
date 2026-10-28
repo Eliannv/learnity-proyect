@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../shared/ui/esqueleto';
 import {
   Component,
   computed,
@@ -18,7 +19,7 @@ import { EstadoCursoBadge } from '../../../shared/ui/estado-curso';
 
 @Component({
   selector: 'app-listado-cursos',
-  imports: [RouterLink, EstadoCursoBadge],
+  imports: [Esqueleto, RouterLink, EstadoCursoBadge],
   templateUrl: './listado-cursos.html',
   styleUrl: './listado-cursos.scss',
 })

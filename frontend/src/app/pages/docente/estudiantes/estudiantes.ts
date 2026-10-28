@@ -1,3 +1,4 @@
+import { Esqueleto } from '../../../shared/ui/esqueleto';
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -12,7 +13,7 @@ import { Indicador } from '../../../shared/ui/indicador';
 /** Seguimiento paginado: el servidor comprueba que el curso pertenezca al docente. */
 @Component({
   selector: 'app-estudiantes-curso',
-  imports: [DatePipe, RouterLink, Avatar, BarraProgreso, Indicador],
+  imports: [Esqueleto, DatePipe, RouterLink, Avatar, BarraProgreso, Indicador],
   templateUrl: './estudiantes.html',
   styleUrl: './estudiantes.scss',
 })

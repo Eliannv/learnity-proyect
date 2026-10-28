@@ -22,13 +22,13 @@ import { Avatar } from '../ui/avatar';
   },
   template: `
     <a class="avatar-btn" [routerLink]="auth.rutaPerfil()" [attr.aria-expanded]="abierto()" aria-haspopup="menu" [attr.aria-label]="'Mi perfil, ' + auth.nombreCompleto()" (click)="cerrar()">
-      <app-avatar [texto]="auth.iniciales()" [tamano]="40" [solido]="true" />
+      <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="40" [solido]="true" />
     </a>
 
     @if (abierto()) {
       <div class="menu" role="menu">
         <a class="quien" [routerLink]="auth.rutaPerfil()" (click)="cerrar()" role="menuitem">
-          <app-avatar [texto]="auth.iniciales()" [tamano]="56" [solido]="true" />
+          <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="56" [solido]="true" />
           <span>
             <strong>{{ auth.nombreCompleto() }}</strong>
             <small>{{ auth.usuario()?.correo }}</small>

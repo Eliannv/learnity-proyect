@@ -1,6 +1,6 @@
 import { Component, ElementRef, OnDestroy, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MIS_CURSOS } from '../../data/datos-demo';
+import { AprendizajeApi, type CursoInscrito } from '../../features/aprendizaje/aprendizaje.api';
 import { BarraProgreso } from '../ui/barra-progreso';
 import { PortadaCurso } from '../ui/portada-curso';
 
@@ -25,20 +25,26 @@ import { PortadaCurso } from '../ui/portada-curso';
 
     @if (abierto()) {
       <div class="panel">
-        @if (recientes.length) {
+        @if (cargando() && !recientes()) {
+          <div class="cargando" aria-busy="true" aria-label="Cargando tus cursos">
+            @for (i of [1, 2]; track i) { <span class="esqueleto fila-esqueleto"></span> }
+          </div>
+        } @else if (error()) {
+          <p class="vacio">No se pudieron cargar tus cursos. Abre Mi aprendizaje para verlos.</p>
+        } @else if (recientes()?.length) {
           <ul>
-            @for (i of recientes; track i.curso.id) {
+            @for (i of recientes(); track i.curso.id) {
               <li>
-                <a [routerLink]="i.ultimaLeccion.ruta" (click)="abierto.set(false)">
+                <a [routerLink]="ruta(i)" (click)="abierto.set(false)">
                   <span class="miniatura">
-                    <app-portada-curso [categoria]="i.curso.categoria" [tono]="i.curso.tono" [compacta]="true" />
+                    <app-portada-curso [categoria]="i.curso.categoria.nombre" [imagen]="i.curso.portadaUrl" [compacta]="true" />
                   </span>
                   <span class="texto">
                     <strong>{{ i.curso.titulo }}</strong>
-                    @if (i.progreso === 0) {
+                    @if (i.inscripcion.progresoPct === 0) {
                       <small>Empieza el curso</small>
                     } @else {
-                      <app-barra-progreso [valor]="i.progreso" />
+                      <app-barra-progreso [valor]="i.inscripcion.progresoPct" [etiqueta]="'Progreso de ' + i.curso.titulo" />
                     }
                   </span>
                 </a>
@@ -143,6 +149,15 @@ import { PortadaCurso } from '../ui/portada-curso';
         font-weight: 600;
       }
     }
+    .cargando {
+      display: grid;
+      gap: 10px;
+      padding: 14px 16px 4px;
+    }
+    .fila-esqueleto {
+      height: 64px;
+      border-radius: var(--radio);
+    }
     .vacio {
       padding: 20px 16px 4px;
       font-size: 14px;
@@ -167,15 +182,41 @@ import { PortadaCurso } from '../ui/portada-curso';
 })
 export class VistaPreviaAprendizaje implements OnDestroy {
   private readonly elemento = inject(ElementRef<HTMLElement>);
+  private readonly api = inject(AprendizajeApi);
   private temporizador?: ReturnType<typeof setTimeout>;
+  private cargadoEn = 0;
 
-  /** Sprint 3: GET /api/mis-cursos?orden=reciente&limite=4 */
-  protected readonly recientes = MIS_CURSOS.filter((i) => !i.completado).slice(0, 4);
+  /** Hasta 4 cursos sin terminar, de la inscripción más reciente a la más antigua (GET /api/mi-aprendizaje). */
+  protected readonly recientes = signal<CursoInscrito[] | null>(null);
+  protected readonly cargando = signal(false);
+  protected readonly error = signal(false);
   protected readonly abierto = signal(false);
 
   protected abrir() {
     clearTimeout(this.temporizador);
     this.abierto.set(true);
+    // Se pide al abrir el panel, como mucho cada 30 s, para no cargar la API en cada pasada del mouse.
+    if (!this.cargando() && Date.now() - this.cargadoEn > 30_000) void this.cargar();
+  }
+
+  protected ruta(i: CursoInscrito): string {
+    return i.inscripcion.ultimaLeccionId
+      ? `/aprender/${i.curso.id}/${i.inscripcion.ultimaLeccionId}`
+      : `/cursos/${i.curso.id}`;
+  }
+
+  private async cargar(): Promise<void> {
+    this.cargando.set(true);
+    try {
+      const { items } = await this.api.listar();
+      this.recientes.set(items.filter((i) => i.inscripcion.estado !== 'COMPLETADA').slice(0, 4));
+      this.error.set(false);
+      this.cargadoEn = Date.now();
+    } catch {
+      this.error.set(true);
+    } finally {
+      this.cargando.set(false);
+    }
   }
 
   /** Pequeña pausa al salir: evita que el panel se cierre al mover el mouse en diagonal. */

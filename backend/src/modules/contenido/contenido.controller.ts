@@ -31,6 +31,14 @@ export const contenidoController = {
     res.status(200).json(curso);
   },
 
+  async subirRecurso(
+    req: Request,
+    res: Response,
+  ): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.status(201).json(await service.subirRecurso(id, req.file, usuario(req)));
+  },
+
   async descargar(
     req: Request,
     res: Response,
@@ -40,7 +48,7 @@ export const contenidoController = {
 
     res.setHeader('Cache-Control', 'private, no-store');
     res
-      .type('application/pdf')
+      .type(archivo.tipoMime)
       .attachment(archivo.nombreOriginal)
       .send(archivo.bytes);
   },

@@ -16,6 +16,7 @@ import {
   MAX_PDF_BYTES,
   nombreOriginalPdf,
 } from '../../shared/archivos/pdf-validacion.js';
+import { nombreOriginalRecurso } from '../../shared/archivos/recurso-validacion.js';
 
 import {
   registrarEvento,
@@ -78,7 +79,7 @@ const almacenamientoTemporal: multer.StorageEngine = {
   },
 };
 
-const recibir = multer({
+const crearRecepcion = (validarNombre: (nombre: string) => string) => multer({
   storage: almacenamientoTemporal,
 
   limits: {
@@ -116,7 +117,7 @@ const recibir = multer({
       }
 
       archivo.originalname =
-        nombreOriginalPdf(nombre);
+        validarNombre(nombre);
 
       callback(null, true);
     } catch (error) {
@@ -138,7 +139,14 @@ function esErrorDeDisco(
   );
 }
 
-export const recibirPdf: RequestHandler = (
+function receptor(
+  etiqueta: string,
+  /** «un PDF» / «un archivo»: para el mensaje que pide el campo. */
+  indefinido: string,
+  validarNombre: (nombre: string) => string,
+): RequestHandler {
+  const recibir = crearRecepcion(validarNombre);
+  return (
   req,
   res,
   next,
@@ -153,7 +161,7 @@ export const recibirPdf: RequestHandler = (
           {
             campo: 'archivo',
             mensaje:
-              'Envía un PDF en el campo archivo.',
+              `Envía ${indefinido} en el campo archivo.`,
           },
         ],
       ),
@@ -183,7 +191,7 @@ export const recibirPdf: RequestHandler = (
           grande ? 413 : 400,
 
           grande
-            ? 'El PDF supera 10 MiB.'
+            ? `${etiqueta[0]!.toUpperCase()}${etiqueta.slice(1)} supera 10 MiB.`
             : 'Envía un único archivo en el campo archivo, sin otros campos.',
 
           grande
@@ -214,7 +222,7 @@ export const recibirPdf: RequestHandler = (
       next(
         new AppError(
           500,
-          'No se pudo guardar el PDF. Inténtalo nuevamente.',
+          `No se pudo guardar ${etiqueta}. Inténtalo nuevamente.`,
           'ERROR_INTERNO',
         ),
       );
@@ -226,7 +234,7 @@ export const recibirPdf: RequestHandler = (
             {
               campo: 'archivo',
               mensaje:
-                'Vuelve a seleccionar el PDF.',
+                `Vuelve a seleccionar ${etiqueta}.`,
             },
           ],
         ),
@@ -236,3 +244,9 @@ export const recibirPdf: RequestHandler = (
     }
   });
 };
+}
+
+export const recibirPdf = receptor('el PDF', 'un PDF', nombreOriginalPdf);
+
+/** Recurso adjunto: PDF, PPT, PPTX o ZIP. El tipo se valida de nuevo con el contenido en el servicio. */
+export const recibirRecurso = receptor('el archivo', 'un archivo', (nombre) => nombreOriginalRecurso(nombre).original);

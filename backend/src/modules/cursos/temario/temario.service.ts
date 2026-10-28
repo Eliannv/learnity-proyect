@@ -39,12 +39,6 @@ async function prevalidarDe(idCurso: number | null): Promise<ReadonlySet<string>
 }
 
 export const temarioService = {
-  async videoVistaPrevia(idLeccion: number): Promise<{ leccionId: number; youtubeVideoId: string }> {
-    const video = await temarioRepository.videoVistaPrevia(idLeccion);
-    if (!video) throw AppError.noEncontrado('Lección no disponible.');
-    return video;
-  },
-
   async crearModulo(
     idCurso: number,
     datos: DatosModulo,
@@ -321,6 +315,28 @@ export const temarioService = {
       await cuestionarioRepository.reemplazar(cliente, idLeccion, datos);
       return exigirVigencia(previos, await detallePrivado(cliente, contexto.id, prevalidados));
     }, { actor: usuario.idPersona });
+  },
+
+  /** Quita un recurso adjunto y retira su archivo del disco si ya nadie lo usa. */
+  async eliminarRecurso(idRecurso: number, usuario: UsuarioSesion): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'DOCENTE');
+    const recurso = await temarioRepository.buscarRecurso(idRecurso);
+    if (!recurso) throw AppError.noEncontrado('Recurso no disponible.');
+    const prevalidados = await prevalidarPdfCurso(recurso.idCurso);
+
+    const resultado = await enTransaccion(async (cliente) => {
+      const contexto = await temarioRepository.leccion(cliente, recurso.idLeccion, true);
+      if (!contexto) throw AppError.noEncontrado('Recurso no disponible.');
+      politicaCurso.exigirEditable(contexto, usuario, MENSAJES.archivoDeLeccion);
+
+      const idArchivo = await temarioRepository.eliminarRecurso(cliente, idRecurso, recurso.idLeccion);
+      if (idArchivo === null) throw AppError.noEncontrado('Recurso no disponible.');
+      await obtenerLiberadorArchivos()?.retirarSinUso(cliente, contexto.id, [idArchivo]);
+      return detallePrivado(cliente, contexto.id, prevalidados);
+    }, { actor: usuario.idPersona });
+
+    await limpiarPendientesFueraDeTransaccion();
+    return resultado;
   },
 
   async eliminarModulo(

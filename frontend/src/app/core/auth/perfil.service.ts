@@ -19,7 +19,7 @@ export function fechaCorta(iso: string | null | undefined): string {
   return iso ? fecha.format(new Date(iso)).replace('.', '') : '';
 }
 
-/** RF-04 · Perfil de la cuenta (GET/PUT /api/perfil y PUT /api/perfil/contrasena). */
+/** RF-04 · Perfil de la cuenta (GET/PUT /api/perfil, /perfil/foto y /perfil/contrasena). */
 @Injectable({ providedIn: 'root' })
 export class PerfilService {
   private readonly http = inject(HttpClient);
@@ -34,6 +34,21 @@ export class PerfilService {
   async actualizar(datos: DatosPerfil): Promise<Perfil> {
     const perfil = await firstValueFrom(this.http.put<Perfil>(this.api, datos));
     this.auth.actualizarNombre(perfil.nombres, perfil.apellidos);
+    return perfil;
+  }
+
+  /** Sube la foto (JPG, PNG o WebP de hasta 2 MB) y la muestra al momento en el header. */
+  async subirFoto(archivo: File): Promise<Perfil> {
+    const datos = new FormData();
+    datos.append('foto', archivo, archivo.name);
+    const perfil = await firstValueFrom(this.http.put<Perfil>(`${this.api}/foto`, datos));
+    this.auth.actualizarFoto(perfil.fotoUrl);
+    return perfil;
+  }
+
+  async quitarFoto(): Promise<Perfil> {
+    const perfil = await firstValueFrom(this.http.delete<Perfil>(`${this.api}/foto`));
+    this.auth.actualizarFoto(null);
     return perfil;
   }
 
