@@ -1,5 +1,5 @@
 import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
-import { FotoPerfil } from '../../../identidad/componentes/foto-perfil';
+import { FotoPerfil } from '../../componentes/foto-perfil';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -20,8 +20,8 @@ function contrasenaOpcional(grupo: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-perfil-estudiante',
   imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, Modal, FotoPerfil],
-  templateUrl: './perfil.html',
-  styleUrl: './perfil.scss',
+  templateUrl: './perfil-estudiante.html',
+  styleUrl: './perfil-estudiante.scss',
 })
 export class PerfilEstudiante {
   protected readonly auth = inject(AuthService);

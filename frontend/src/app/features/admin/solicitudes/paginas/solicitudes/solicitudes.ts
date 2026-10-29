@@ -1,15 +1,15 @@
-import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
+import { Esqueleto } from '../../../../../shared/ui/retroalimentacion/esqueleto';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
-import { fechaCorta } from '../../../../core/auth/perfil.service';
-import { mensajeDeError } from '../../../../core/http/error-api';
+import { fechaCorta } from '../../../../../core/auth/perfil.service';
+import { mensajeDeError } from '../../../../../core/http/error-api';
 import {
   type EstadoSolicitud,
   type SolicitudDocente,
   SolicitudesDocenteService,
-} from '../../../../core/solicitudes/solicitudes-docente.service';
-import { Avatar } from '../../../../shared/ui/marca/avatar';
+} from '../../../../../core/solicitudes/solicitudes-docente.service';
+import { Avatar } from '../../../../../shared/ui/marca/avatar';
 
 const PESTANAS: { estado: EstadoSolicitud; texto: string }[] = [
   { estado: 'PENDIENTE', texto: 'Pendientes' },

@@ -47,7 +47,7 @@ export const rutasPerfilEstudiante: Routes = [
     canActivate: [autenticadoGuard, perfilEstudianteGuard],
     title: 'Mi perfil · Learnity',
     loadComponent: () =>
-      import('../usuarios/paginas/perfil/perfil').then((m) => m.PerfilEstudiante),
+      import('./paginas/perfil-estudiante/perfil-estudiante').then((m) => m.PerfilEstudiante),
   },
 ];
 

@@ -1,12 +1,12 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import type {
   ConsultaUsuariosAdmin, RespuestaUsuariosAdmin, RolUsuario, UsuarioAdmin,
-} from '../../core/api/contrato';
+} from '../../../core/api/contrato';
 
-export type { ConsultaUsuariosAdmin, RespuestaUsuariosAdmin, RolUsuario, UsuarioAdmin } from '../../core/api/contrato';
+export type { ConsultaUsuariosAdmin, RespuestaUsuariosAdmin, RolUsuario, UsuarioAdmin } from '../../../core/api/contrato';
 
 /** Gestión de cuentas del administrador (RF-21). */
 @Injectable({ providedIn: 'root' })

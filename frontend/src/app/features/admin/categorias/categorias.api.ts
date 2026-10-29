@@ -1,10 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import type { CategoriaAdmin, DatosCategoria, DatosCategoriaNueva } from '../../core/api/contrato';
+import { environment } from '../../../../environments/environment';
+import type { CategoriaAdmin, DatosCategoria, DatosCategoriaNueva } from '../../../core/api/contrato';
 
-export type { CategoriaAdmin, DatosCategoria, DatosCategoriaNueva } from '../../core/api/contrato';
+export type { CategoriaAdmin, DatosCategoria, DatosCategoriaNueva } from '../../../core/api/contrato';
 
 /** CRUD de categorías del administrador (ADR-012). No hay borrado: se desactivan. */
 @Injectable({ providedIn: 'root' })

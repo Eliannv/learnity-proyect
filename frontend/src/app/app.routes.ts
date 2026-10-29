@@ -142,26 +142,26 @@ export const routes: Routes = [
       {
         path: 'usuarios',
         loadChildren: () =>
-          import('./features/admin-usuarios/admin-usuarios.routes').then((m) => m.rutasAdminUsuarios),
+          import('./features/admin/usuarios/usuarios.routes').then((m) => m.rutasAdminUsuarios),
       },
       {
         path: 'solicitudes',
-        loadChildren: () => import('./features/usuarios/usuarios.routes').then((m) => m.rutasSolicitudes),
+        loadChildren: () => import('./features/admin/solicitudes/solicitudes.routes').then((m) => m.rutasSolicitudes),
       },
       {
         path: 'revision',
         loadChildren: () =>
-          import('./features/revision/revision.routes').then((m) => m.rutasRevision),
+          import('./features/admin/revision/revision.routes').then((m) => m.rutasRevision),
       },
       {
         path: 'categorias',
         loadChildren: () =>
-          import('./features/admin-categorias/admin-categorias.routes').then((m) => m.rutasAdminCategorias),
+          import('./features/admin/categorias/categorias.routes').then((m) => m.rutasAdminCategorias),
       },
       {
         path: 'resenas',
         loadChildren: () =>
-          import('./features/admin-resenas/admin-resenas.routes').then((m) => m.rutasAdminResenas),
+          import('./features/admin/resenas/resenas.routes').then((m) => m.rutasAdminResenas),
       },
       {
         path: 'perfil',

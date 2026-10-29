@@ -1,8 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import type { EstadoReporte, PaginaResenasAdmin, ReporteResena } from '../../core/api/contrato';
+import { environment } from '../../../../environments/environment';
+import type { EstadoReporte, PaginaResenasAdmin, ReporteResena } from '../../../core/api/contrato';
 
 /** Moderación de reseñas reportadas por los docentes (solo ADMIN). */
 @Injectable({ providedIn: 'root' })

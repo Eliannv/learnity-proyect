@@ -1,12 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import type {
   CursoDetalle,
   DecisionRevision,
   ColaRevision,
-} from '../../core/api/contrato';
+} from '../../../core/api/contrato';
 
 @Injectable({ providedIn: 'root' })
 export class RevisionApi {

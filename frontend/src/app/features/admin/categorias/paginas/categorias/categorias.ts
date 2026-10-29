@@ -1,12 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
-import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api';
-import { EstadoVistaComponent } from '../../../../shared/ui/retroalimentacion/estado-vista';
-import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
-import { ICONO_CATEGORIA } from '../../../../shared/ui/tipos-ui';
-import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
-import { AdminCategoriasApi, type CategoriaAdmin } from '../../admin-categorias.api';
+import { erroresPorCampo, mensajeDeError } from '../../../../../core/http/error-api';
+import { EstadoVistaComponent } from '../../../../../shared/ui/retroalimentacion/estado-vista';
+import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
+import { ICONO_CATEGORIA } from '../../../../../shared/ui/tipos-ui';
+import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
+import { AdminCategoriasApi, type CategoriaAdmin } from '../../categorias.api';
 
 interface Formulario {
   id: number | null;

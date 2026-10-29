@@ -6,6 +6,6 @@ export const rutasAdminResenas: Routes = [
     path: '',
     title: 'Reseñas · Learnity',
     data: { seccion: 'Reseñas' },
-    loadComponent: () => import('./paginas/reportes/reportes').then((m) => m.ReportesResenas),
+    loadComponent: () => import('./paginas/moderacion/moderacion').then((m) => m.ModeracionResenas),
   },
 ];

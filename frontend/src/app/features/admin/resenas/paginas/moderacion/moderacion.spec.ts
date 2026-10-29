@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
-import type { ReporteResena } from '../../../../core/api/contrato';
-import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
-import { ICONOS } from '../../../../shared/ui/marca/iconos';
-import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
-import { AdminResenasApi } from '../../admin-resenas.api';
-import { ReportesResenas } from './reportes';
+import type { ReporteResena } from '../../../../../core/api/contrato';
+import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
+import { ICONOS } from '../../../../../shared/ui/marca/iconos';
+import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
+import { AdminResenasApi } from '../../resenas.api';
+import { ModeracionResenas } from './moderacion';
 
 const reporte: ReporteResena = {
   id: 3, motivo: 'OFENSIVO', detalle: 'Insulta al docente.', estado: 'PENDIENTE',
@@ -40,7 +40,7 @@ function montar(confirmar: boolean) {
       { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) },
     ],
   });
-  const fixture = TestBed.createComponent(ReportesResenas);
+  const fixture = TestBed.createComponent(ModeracionResenas);
   fixture.detectChanges();
   return { fixture, api, toasts };
 }

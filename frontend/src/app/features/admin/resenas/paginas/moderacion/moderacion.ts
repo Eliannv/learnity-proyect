@@ -4,14 +4,14 @@ import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type {
   EntradaHistorialResena, EstadoReporte, MotivoReporte, PaginaResenasAdmin, ReporteResena,
-} from '../../../../core/api/contrato';
-import { Peticion } from '../../../../core/estado/peticion';
-import { mensajeDeError } from '../../../../core/http/error-api';
-import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
-import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
-import { Estrellas } from '../../../../shared/ui/datos/estrellas';
-import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
-import { AdminResenasApi } from '../../admin-resenas.api';
+} from '../../../../../core/api/contrato';
+import { Peticion } from '../../../../../core/estado/peticion';
+import { mensajeDeError } from '../../../../../core/http/error-api';
+import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
+import { Esqueleto } from '../../../../../shared/ui/retroalimentacion/esqueleto';
+import { Estrellas } from '../../../../../shared/ui/datos/estrellas';
+import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
+import { AdminResenasApi } from '../../resenas.api';
 
 type Vista = 'TODAS' | EstadoReporte;
 type FiltroTodas = 'todas' | 'vigentes' | 'borradas';
@@ -38,12 +38,12 @@ const ACCION: Record<EntradaHistorialResena['accion'], string> = {
  * y los reportes de los docentes para decidir si se ocultan.
  */
 @Component({
-  selector: 'app-reportes-resenas',
+  selector: 'app-moderacion-resenas',
   imports: [DatePipe, NgTemplateOutlet, RouterLink, LucideAngularModule, Esqueleto, Estrellas],
-  templateUrl: './reportes.html',
-  styleUrl: './reportes.scss',
+  templateUrl: './moderacion.html',
+  styleUrl: './moderacion.scss',
 })
-export class ReportesResenas {
+export class ModeracionResenas {
   private readonly api = inject(AdminResenasApi);
   private readonly toasts = inject(ToastService);
   private readonly confirmacion = inject(ConfirmacionService);

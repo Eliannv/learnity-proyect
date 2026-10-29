@@ -34,8 +34,8 @@ import { DocenteCursosApi } from '../../features/docente-cursos/docente-cursos.a
 import { ArbolTemario } from '../../features/docente-cursos/componentes/arbol-temario';
 import { EditorCurso } from '../../features/docente-cursos/paginas/editor-curso/editor-curso';
 import { MisCursosDocente } from '../../features/docente-cursos/paginas/mis-cursos/mis-cursos';
-import { RevisionCurso } from '../../features/revision/paginas/revision-curso/revision-curso';
-import { RevisionCursos } from '../../features/revision/paginas/revision-cursos/revision-cursos';
+import { RevisionCurso } from '../../features/admin/revision/paginas/revision-curso/revision-curso';
+import { RevisionCursos } from '../../features/admin/revision/paginas/revision-cursos/revision-cursos';
 
 // Datos utilizados exclusivamente por las pruebas.
 function curso(
