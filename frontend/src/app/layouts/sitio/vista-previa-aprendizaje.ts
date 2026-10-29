@@ -1,8 +1,8 @@
 import { Component, ElementRef, OnDestroy, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AprendizajeApi, type CursoInscrito } from '../../features/aprendizaje/aprendizaje.api';
-import { BarraProgreso } from '../ui/datos/barra-progreso';
-import { PortadaCurso } from '../ui/cursos/portada-curso';
+import { BarraProgreso } from '../../shared/ui/datos/barra-progreso';
+import { PortadaCurso } from '../../shared/ui/cursos/portada-curso';
 
 /**
  * Enlace "Mi aprendizaje" del header. Al pasar el mouse (o al enfocarlo con el teclado)

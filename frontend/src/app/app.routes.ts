@@ -2,8 +2,8 @@ import { Routes } from '@angular/router';
 
 import { conSesionMatch, rolGuard } from './core/auth/guards';
 
-import { LayoutPanel } from './layouts/layout-panel';
-import { LayoutSitio } from './layouts/layout-sitio';
+import { LayoutPanel } from './layouts/panel/layout-panel';
+import { LayoutSitio } from './layouts/sitio/layout-sitio';
 
 // Portada personalizada del estudiante con sesión iniciada.
 const inicioEstudiante: Routes = [

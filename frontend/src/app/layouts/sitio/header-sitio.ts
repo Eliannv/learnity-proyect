@@ -5,9 +5,9 @@ import { filter, map } from 'rxjs';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogoApi, type CursoPublico } from '../../features/catalogo/catalogo.api';
-import { PortadaCurso } from '../ui/cursos/portada-curso';
-import { Logo } from '../ui/marca/logo';
-import { MenuCuenta } from './menu-cuenta';
+import { PortadaCurso } from '../../shared/ui/cursos/portada-curso';
+import { Logo } from '../../shared/ui/marca/logo';
+import { MenuCuenta } from '../comun/menu-cuenta';
 import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
 
 /**

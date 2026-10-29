@@ -1,9 +1,9 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AuthService } from '../core/auth/auth.service';
-import { FooterSitio } from '../shared/layout/footer-sitio';
-import { HeaderSitio } from '../shared/layout/header-sitio';
-import { ItemTab, TabBar } from '../shared/layout/tab-bar';
+import { AuthService } from '../../core/auth/auth.service';
+import { FooterSitio } from '../comun/footer-sitio';
+import { HeaderSitio } from './header-sitio';
+import { ItemTab, TabBar } from '../comun/tab-bar';
 
 /** Layout del sitio público y de la vista Estudiante: header, contenido, footer y barra inferior móvil. */
 @Component({

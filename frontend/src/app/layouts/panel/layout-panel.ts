@@ -18,10 +18,10 @@ import {
 import { LucideAngularModule } from 'lucide-angular';
 import { filter, map } from 'rxjs';
 
-import { FooterSitio } from '../shared/layout/footer-sitio';
-import { MenuCuenta } from '../shared/layout/menu-cuenta';
-import { TabBar } from '../shared/layout/tab-bar';
-import { Logo } from '../shared/ui/marca/logo';
+import { FooterSitio } from '../comun/footer-sitio';
+import { MenuCuenta } from '../comun/menu-cuenta';
+import { TabBar } from '../comun/tab-bar';
+import { Logo } from '../../shared/ui/marca/logo';
 import { MENU } from './menu-panel';
 
 @Component({

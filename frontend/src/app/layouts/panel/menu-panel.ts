@@ -1,4 +1,4 @@
-import { ItemTab } from '../shared/layout/tab-bar';
+import { ItemTab } from '../comun/tab-bar';
 
 /** Menú lateral y barra inferior de cada panel, según el rol. */
 export interface ItemMenu {
