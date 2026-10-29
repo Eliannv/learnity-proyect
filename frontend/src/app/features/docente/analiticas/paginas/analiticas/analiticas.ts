@@ -2,13 +2,13 @@ import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import type { Analiticas } from '../../../../core/api/contrato';
-import { Peticion } from '../../../../core/estado/peticion';
-import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
-import { GraficoSeries, etiquetasMes } from '../../../../shared/ui/datos/grafico-series';
-import { GraficoEcharts } from '../../../../shared/ui/datos/grafico-echarts';
-import { Indicador } from '../../../../shared/ui/datos/indicador';
-import { DocenteAnaliticasApi } from '../../docente-analiticas.api';
+import type { Analiticas } from '../../../../../core/api/contrato';
+import { Peticion } from '../../../../../core/estado/peticion';
+import { Esqueleto } from '../../../../../shared/ui/retroalimentacion/esqueleto';
+import { GraficoSeries, etiquetasMes } from '../../../../../shared/ui/datos/grafico-series';
+import { GraficoEcharts } from '../../../../../shared/ui/datos/grafico-echarts';
+import { Indicador } from '../../../../../shared/ui/datos/indicador';
+import { DocenteAnaliticasApi } from '../../analiticas.api';
 
 type LeccionEmbudo = NonNullable<Analiticas['embudo']>[number];
 

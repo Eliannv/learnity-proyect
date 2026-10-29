@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { ListadoCursos } from '../../../../docente-cursos/componentes/listado-cursos';
+import { ListadoCursos } from '../../../../docente/cursos/componentes/listado-cursos';
 import { RevisionApi } from '../../revision.api';
 
 @Component({

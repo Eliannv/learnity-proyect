@@ -14,8 +14,8 @@ import type { CursoDetalle } from '../../../../../core/cursos/gestion-cursos.mod
 import { Peticion } from '../../../../../core/estado/peticion';
 import { EstadoCursoBadge } from '../../../../../shared/ui/cursos/estado-curso';
 import { ContenidoApi } from '../../../../contenido/contenido.api';
-import { ArbolTemario } from '../../../../docente-cursos/componentes/arbol-temario';
-import { DocenteCursosApi } from '../../../../docente-cursos/docente-cursos.api';
+import { ArbolTemario } from '../../../../docente/cursos/componentes/arbol-temario';
+import { DocenteCursosApi } from '../../../../docente/cursos/cursos.api';
 import { RevisionApi } from '../../revision.api';
 import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
 

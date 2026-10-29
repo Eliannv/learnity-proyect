@@ -1,5 +1,5 @@
 import { Component, computed, input, model, signal } from '@angular/core';
-import { validarEnlaceYoutube } from '../../contenido/youtube';
+import { validarEnlaceYoutube } from '../../../contenido/youtube';
 
 /** Campo de formulario sin HTTP, reutilizable en el módulo y el editor de contenido. */
 @Component({

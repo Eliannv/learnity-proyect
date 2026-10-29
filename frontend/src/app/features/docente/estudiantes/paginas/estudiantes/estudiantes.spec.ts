@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import type { CursoResumen, SeguimientoDocente } from '../../../core/api/contrato';
-import { DocenteCursosApi } from '../../../features/docente-cursos/docente-cursos.api';
-import { SeguimientoDocenteApi } from '../../../features/docente-cursos/seguimiento-docente.api';
+import type { CursoResumen, SeguimientoDocente } from '../../../../../core/api/contrato';
+import { DocenteCursosApi } from '../../../cursos/cursos.api';
+import { SeguimientoDocenteApi } from '../../estudiantes.api';
 import { EstudiantesCurso } from './estudiantes';
 
 const curso = { id: 7, titulo: 'Álgebra inicial', estado: 'PUBLICADO' } as CursoResumen;

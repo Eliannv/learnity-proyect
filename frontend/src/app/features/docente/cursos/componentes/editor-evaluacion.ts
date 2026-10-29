@@ -6,8 +6,8 @@ import type {
   DatosCuestionario,
   LeccionPrivada,
   LetraOpcion,
-} from '../../../core/cursos/gestion-cursos.model';
-import { Peticion } from '../../../core/estado/peticion';
+} from '../../../../core/cursos/gestion-cursos.model';
+import { Peticion } from '../../../../core/estado/peticion';
 
 export const MIN_PREGUNTAS = 5;
 export const MAX_PREGUNTAS = 10;

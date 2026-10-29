@@ -1,8 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import type { Analiticas } from '../../core/api/contrato';
+import { environment } from '../../../../environments/environment';
+import type { Analiticas } from '../../../core/api/contrato';
 
 @Injectable({ providedIn: 'root' })
 export class DocenteAnaliticasApi {

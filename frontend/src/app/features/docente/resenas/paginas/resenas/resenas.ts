@@ -5,18 +5,18 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type {
   BandejaResenas, FiltrosBandejaResenas, MotivoReporte, ResenaDocente,
-} from '../../../../core/api/contrato';
-import { Peticion } from '../../../../core/estado/peticion';
-import { mensajeDeError } from '../../../../core/http/error-api';
-import { Avatar } from '../../../../shared/ui/marca/avatar';
-import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
-import { Estrellas } from '../../../../shared/ui/datos/estrellas';
-import { GraficoSeries, etiquetasMes } from '../../../../shared/ui/datos/grafico-series';
-import { Indicador } from '../../../../shared/ui/datos/indicador';
-import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
-import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
-import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
-import { DocenteResenasApi } from '../../docente-resenas.api';
+} from '../../../../../core/api/contrato';
+import { Peticion } from '../../../../../core/estado/peticion';
+import { mensajeDeError } from '../../../../../core/http/error-api';
+import { Avatar } from '../../../../../shared/ui/marca/avatar';
+import { Esqueleto } from '../../../../../shared/ui/retroalimentacion/esqueleto';
+import { Estrellas } from '../../../../../shared/ui/datos/estrellas';
+import { GraficoSeries, etiquetasMes } from '../../../../../shared/ui/datos/grafico-series';
+import { Indicador } from '../../../../../shared/ui/datos/indicador';
+import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
+import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
+import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
+import { DocenteResenasApi } from '../../resenas.api';
 
 type Filtro = Required<Pick<FiltrosBandejaResenas, 'pagina'>> & Omit<FiltrosBandejaResenas, 'pagina' | 'limite'>;
 

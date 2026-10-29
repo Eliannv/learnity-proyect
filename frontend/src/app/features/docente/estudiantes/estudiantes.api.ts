@@ -1,8 +1,8 @@
 import { HttpClient, HttpParams, type HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import type { SeguimientoDocente } from '../../core/api/contrato';
+import { environment } from '../../../../environments/environment';
+import type { SeguimientoDocente } from '../../../core/api/contrato';
 
 @Injectable({ providedIn: 'root' })
 export class SeguimientoDocenteApi {

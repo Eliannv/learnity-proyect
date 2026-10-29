@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ListadoCursos } from '../../componentes/listado-cursos';
-import { DocenteCursosApi } from '../../docente-cursos.api';
+import { DocenteCursosApi } from '../../cursos.api';
 
 @Component({
   selector: 'app-mis-cursos-docente',

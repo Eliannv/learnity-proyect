@@ -1,4 +1,4 @@
-import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
+import { Esqueleto } from '../../../../../shared/ui/retroalimentacion/esqueleto';
 import {
   Component,
   computed,
@@ -18,19 +18,19 @@ import {
   type DatosModulo,
   type NivelCurso,
   esEditable,
-} from '../../../../core/cursos/gestion-cursos.model';
-import { Peticion } from '../../../../core/estado/peticion';
-import { EstadoCursoBadge } from '../../../../shared/ui/cursos/estado-curso';
+} from '../../../../../core/cursos/gestion-cursos.model';
+import { Peticion } from '../../../../../core/estado/peticion';
+import { EstadoCursoBadge } from '../../../../../shared/ui/cursos/estado-curso';
 import {
   CatalogoApi,
   type CategoriaPublica,
-} from '../../../catalogo/catalogo.api';
-import { ContenidoApi } from '../../../contenido/contenido.api';
+} from '../../../../catalogo/catalogo.api';
+import { ContenidoApi } from '../../../../contenido/contenido.api';
 import { ArbolTemario } from '../../componentes/arbol-temario';
 import { FormularioFicha } from '../../componentes/formulario-ficha';
 import { PanelPublicacion } from '../../componentes/panel-publicacion';
-import { DocenteCursosApi } from '../../docente-cursos.api';
-import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
+import { DocenteCursosApi } from '../../cursos.api';
+import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
 
 @Component({
   selector: 'app-editor-curso',

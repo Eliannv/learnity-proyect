@@ -18,15 +18,15 @@ import {
   type LeccionPrivada,
   type ModuloPrivado,
   siguienteOrden,
-} from '../../../core/cursos/gestion-cursos.model';
-import { Peticion } from '../../../core/estado/peticion';
-import { PdfLeccion } from '../../contenido/componentes/pdf-leccion';
-import { ReproductorYoutube } from '../../contenido/componentes/reproductor-youtube';
-import { esIdYoutube, validarEnlaceYoutube } from '../../contenido/youtube';
+} from '../../../../core/cursos/gestion-cursos.model';
+import { Peticion } from '../../../../core/estado/peticion';
+import { PdfLeccion } from '../../../contenido/componentes/pdf-leccion';
+import { ReproductorYoutube } from '../../../contenido/componentes/reproductor-youtube';
+import { esIdYoutube, validarEnlaceYoutube } from '../../../contenido/youtube';
 import { CampoYoutube } from './campo-youtube';
 import { EditorEvaluacion } from './editor-evaluacion';
 import { RecursosLeccion } from './recursos-leccion';
-import { ConfirmacionService } from '../../../shared/ui/retroalimentacion/confirmacion.service';
+import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
 
 type TipoContenido = LeccionPrivada['tipo'];
 

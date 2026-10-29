@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
-import type { CuestionarioDocente, LeccionPrivada } from '../../../core/cursos/gestion-cursos.model';
+import type { CuestionarioDocente, LeccionPrivada } from '../../../../core/cursos/gestion-cursos.model';
 import { EditorEvaluacion } from './editor-evaluacion';
 
 const leccion = (preguntas: number): LeccionPrivada => ({

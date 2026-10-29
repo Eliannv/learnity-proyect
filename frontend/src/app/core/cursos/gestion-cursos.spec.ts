@@ -30,10 +30,10 @@ import { CursoDetalle } from './gestion-cursos.model';
 
 import { ContenidoApi } from '../../features/contenido/contenido.api';
 import { PdfLeccion } from '../../features/contenido/componentes/pdf-leccion';
-import { DocenteCursosApi } from '../../features/docente-cursos/docente-cursos.api';
-import { ArbolTemario } from '../../features/docente-cursos/componentes/arbol-temario';
-import { EditorCurso } from '../../features/docente-cursos/paginas/editor-curso/editor-curso';
-import { MisCursosDocente } from '../../features/docente-cursos/paginas/mis-cursos/mis-cursos';
+import { DocenteCursosApi } from '../../features/docente/cursos/cursos.api';
+import { ArbolTemario } from '../../features/docente/cursos/componentes/arbol-temario';
+import { EditorCurso } from '../../features/docente/cursos/paginas/editor-curso/editor-curso';
+import { MisCursosDocente } from '../../features/docente/cursos/paginas/mis-cursos/mis-cursos';
 import { RevisionCurso } from '../../features/admin/revision/paginas/revision-curso/revision-curso';
 import { RevisionCursos } from '../../features/admin/revision/paginas/revision-cursos/revision-cursos';
 

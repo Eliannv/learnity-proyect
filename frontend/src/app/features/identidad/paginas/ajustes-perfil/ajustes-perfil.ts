@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import type { CalificacionCurso } from '../../../../core/api/contrato';
-import { DocenteResenasApi } from '../../../docente-resenas/docente-resenas.api';
+import { DocenteResenasApi } from '../../../docente/resenas/resenas.api';
 import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 import { FotoPerfil } from '../../componentes/foto-perfil';
 import { toSignal } from '@angular/core/rxjs-interop';

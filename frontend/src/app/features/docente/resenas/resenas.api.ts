@@ -1,10 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import type {
   BandejaResenas, CalificacionCurso, DatosReporteResena, FiltrosBandejaResenas, ResenaDocente,
-} from '../../core/api/contrato';
+} from '../../../core/api/contrato';
 
 /** Reseñas de los cursos del docente: el servidor solo entrega las de sus cursos. */
 @Injectable({ providedIn: 'root' })

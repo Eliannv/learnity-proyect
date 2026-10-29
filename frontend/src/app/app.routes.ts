@@ -46,7 +46,7 @@ const rutasSeguimientoDocente: Routes = [
     title: 'Estudiantes del curso · Learnity',
     data: { seccion: 'Estudiantes' },
     loadComponent: () =>
-      import('./pages/docente/estudiantes/estudiantes').then(
+      import('./features/docente/estudiantes/paginas/estudiantes/estudiantes').then(
         (m) => m.EstudiantesCurso,
       ),
   },
@@ -104,7 +104,7 @@ export const routes: Routes = [
       {
         path: 'cursos',
         loadChildren: () =>
-          import('./features/docente-cursos/docente-cursos.routes').then(
+          import('./features/docente/cursos/cursos.routes').then(
             (m) => m.rutasDocenteCursos,
           ),
       },
@@ -112,12 +112,12 @@ export const routes: Routes = [
       {
         path: 'resenas',
         loadChildren: () =>
-          import('./features/docente-resenas/docente-resenas.routes').then((m) => m.rutasDocenteResenas),
+          import('./features/docente/resenas/resenas.routes').then((m) => m.rutasDocenteResenas),
       },
       {
         path: 'analiticas',
         loadChildren: () =>
-          import('./features/docente-analiticas/docente-analiticas.routes').then((m) => m.rutasDocenteAnaliticas),
+          import('./features/docente/analiticas/analiticas.routes').then((m) => m.rutasDocenteAnaliticas),
       },
       {
         path: 'perfil',

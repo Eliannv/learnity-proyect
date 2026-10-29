@@ -1,6 +1,6 @@
 import { Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import type { CursoDetalle, ProblemaCampo } from '../../../core/api/contrato';
+import type { CursoDetalle, ProblemaCampo } from '../../../../core/api/contrato';
 
 @Component({
   selector: 'app-panel-publicacion',

@@ -1,18 +1,18 @@
-import { Esqueleto } from '../../../shared/ui/retroalimentacion/esqueleto';
+import { Esqueleto } from '../../../../../shared/ui/retroalimentacion/esqueleto';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import type { CursoResumen, SeguimientoDocente } from '../../../core/api/contrato';
-import { Peticion } from '../../../core/estado/peticion';
-import { DocenteCursosApi } from '../../../features/docente-cursos/docente-cursos.api';
-import { SeguimientoDocenteApi } from '../../../features/docente-cursos/seguimiento-docente.api';
-import { Avatar } from '../../../shared/ui/marca/avatar';
-import { BarraProgreso } from '../../../shared/ui/datos/barra-progreso';
-import { Indicador } from '../../../shared/ui/datos/indicador';
-import { Estrellas } from '../../../shared/ui/datos/estrellas';
-import { ToastService } from '../../../shared/ui/retroalimentacion/toast.service';
-import { guardarBlob } from '../../../shared/util/descargar';
-import { mensajeDeError } from '../../../core/http/error-api';
+import type { CursoResumen, SeguimientoDocente } from '../../../../../core/api/contrato';
+import { Peticion } from '../../../../../core/estado/peticion';
+import { DocenteCursosApi } from '../../../cursos/cursos.api';
+import { SeguimientoDocenteApi } from '../../estudiantes.api';
+import { Avatar } from '../../../../../shared/ui/marca/avatar';
+import { BarraProgreso } from '../../../../../shared/ui/datos/barra-progreso';
+import { Indicador } from '../../../../../shared/ui/datos/indicador';
+import { Estrellas } from '../../../../../shared/ui/datos/estrellas';
+import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
+import { guardarBlob } from '../../../../../shared/util/descargar';
+import { mensajeDeError } from '../../../../../core/http/error-api';
 
 /** Seguimiento paginado: el servidor comprueba que el curso pertenezca al docente. */
 @Component({
