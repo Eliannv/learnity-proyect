@@ -2,6 +2,8 @@ import type { PoolClient } from 'pg';
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
+import { aCsv, nombreArchivo } from '../../shared/http/csv.js';
+import { registrarEvento } from '../../shared/log/registro.js';
 import type { DatosProgreso, PaginacionEstudiantes } from './aprendizaje.esquemas.js';
 import type {
   CursoInscrito, DetalleAprendizaje, InscripcionResumen, ModuloAprendizaje, ProgresoGuardado, SeguimientoDocente,
@@ -135,12 +137,7 @@ export const aprendizajeService = {
   },
 
   async seguimiento(idCurso: number, filtro: PaginacionEstudiantes, usuario: UsuarioSesion): Promise<SeguimientoDocente> {
-    if (!usuario.roles.includes('DOCENTE') && !usuario.roles.includes('ADMIN')) throw AppError.sinPermiso();
-    const curso = await repo.cursoParaSeguimiento(idCurso);
-    if (!curso || (!usuario.roles.includes('ADMIN') &&
-        (curso.docentePersonaId !== usuario.idPersona || !curso.docenteActivo))) {
-      throw AppError.noEncontrado('Curso no disponible.');
-    }
+    const curso = await cursoParaSeguimiento(idCurso, usuario);
     const resumen = await repo.resumenSeguimiento(idCurso);
     const filas = await repo.estudiantesDelCurso(idCurso, filtro.limite, (filtro.pagina - 1) * filtro.limite);
     return {
@@ -149,14 +146,45 @@ export const aprendizajeService = {
         idPersona: fila.idPersona, nombre: fila.nombre, estado: fila.estado,
         progresoPct: fila.progresoPct, ultimaLeccionId: fila.ultimaLeccionId,
         inscritoEn: fila.inscritoEn.toISOString(), ultimaActividadEn: fila.ultimaActividadEn.toISOString(),
+        estrellas: fila.estrellas,
       })),
       pagina: filtro.pagina, limite: filtro.limite, total: resumen.inscritos,
       totalPaginas: Math.ceil(resumen.inscritos / filtro.limite), resumen,
     };
   },
 
+  /** Todos los inscritos del curso en CSV para Excel (mismos permisos que el seguimiento). */
+  async exportarEstudiantes(idCurso: number, usuario: UsuarioSesion): Promise<{ nombre: string; contenido: string }> {
+    const curso = await cursoParaSeguimiento(idCurso, usuario);
+    const filas = await repo.exportarEstudiantes(idCurso);
+    const fecha = (valor: Date | null) => (valor ? valor.toISOString().slice(0, 10) : null);
+    registrarEvento('estudiantes_exportados', { idCurso, filas: filas.length });
+    return {
+      nombre: nombreArchivo(`estudiantes-${curso.titulo}`, 'csv'),
+      contenido: aCsv(
+        ['Estudiante', 'Estado', 'Progreso (%)', 'Calificación (1-5)', 'Comentario de su reseña',
+          'Inscrito el', 'Completado el', 'Última actividad'],
+        filas.map((f) => [
+          f.nombre, f.estado === 'COMPLETADA' ? 'Completado' : 'En curso', f.progresoPct, f.estrellas, f.comentario,
+          fecha(f.inscritoEn), fecha(f.completadoEn), fecha(f.ultimaActividadEn),
+        ]),
+      ),
+    };
+  },
+
   estaInscritoEnCurso: (idPersona: number, idCurso: number) => repo.tieneInscripcionPublicada(idPersona, idCurso),
 };
+
+/** El curso es del docente (activo) o quien pide es ADMIN; si no, 404 para no revelar cursos ajenos. */
+async function cursoParaSeguimiento(idCurso: number, usuario: UsuarioSesion): Promise<{ id: number; titulo: string }> {
+  if (!usuario.roles.includes('DOCENTE') && !usuario.roles.includes('ADMIN')) throw AppError.sinPermiso();
+  const curso = await repo.cursoParaSeguimiento(idCurso);
+  if (!curso || (!usuario.roles.includes('ADMIN') &&
+      (curso.docentePersonaId !== usuario.idPersona || !curso.docenteActivo))) {
+    throw AppError.noEncontrado('Curso no disponible.');
+  }
+  return curso;
+}
 
 export const aprendizajeApi: ServicioAprendizaje = {
   estaInscritoEnCurso: (idPersona, idCurso) => aprendizajeService.estaInscritoEnCurso(idPersona, idCurso),

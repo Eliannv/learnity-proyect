@@ -204,20 +204,41 @@ export const catalogoRepository = {
   },
   /** Ficha pública del docente de un curso publicado: lo que ayuda a decidir la inscripción. */
   async instructorDeCurso(id: number): Promise<InstructorPublico | null> {
-    const { rows } = await consultar<InstructorPublico>(
+    const { rows } = await consultar<Omit<InstructorPublico, 'calificacion'> & { promedio: string | null; total: number }>(
       `SELECT concat_ws(' ', p.nombres, p.apellidos) AS nombre, d.especialidad,
               p.biografia, p.foto_url AS "fotoUrl",
               (SELECT count(*)::int FROM curso c2
                 WHERE c2.id_docente = d.id_docente AND c2.estado = 'PUBLICADO') AS "cursosPublicados",
               (SELECT count(*)::int FROM inscripcion i JOIN curso c3 ON c3.id_curso = i.id_curso
-                WHERE c3.id_docente = d.id_docente AND c3.estado = 'PUBLICADO') AS estudiantes
+                WHERE c3.id_docente = d.id_docente AND c3.estado = 'PUBLICADO') AS estudiantes,
+              v.promedio, v.total
          FROM curso c
+         CROSS JOIN LATERAL (
+           -- Valoración global del docente: todas las reseñas vigentes de sus cursos publicados.
+           SELECT round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS total
+             FROM resena r
+             JOIN inscripcion i4 ON i4.id_inscripcion = r.id_inscripcion
+             JOIN curso c4 ON c4.id_curso = i4.id_curso
+            WHERE c4.id_docente = c.id_docente AND c4.estado = 'PUBLICADO' AND r.eliminado_en IS NULL
+         ) v
          JOIN docente d ON d.id_docente = c.id_docente
          JOIN persona p ON p.id_persona = d.id_persona
         WHERE c.id_curso = $1 AND c.estado = 'PUBLICADO'`,
       [id],
     );
-    return rows[0] ?? null;
+    const fila = rows[0];
+    if (!fila) return null;
+    const { promedio, total, ...instructor } = fila;
+    return { ...instructor, calificacion: { promedio: promedio === null ? null : Number(promedio), total } };
+  },
+
+  /** Cuenta una vista de la ficha pública (un contador por curso y día, sin datos de quien visita). */
+  async registrarVisita(id: number): Promise<void> {
+    await consultar(
+      `INSERT INTO visita_curso_dia (id_curso, dia) VALUES ($1, current_date)
+       ON CONFLICT (id_curso, dia) DO UPDATE SET visitas = visita_curso_dia.visitas + 1`,
+      [id],
+    );
   },
 
   /** Promedio de estrellas (una reseña por inscripción) redondeado a un decimal. */
@@ -225,7 +246,7 @@ export const catalogoRepository = {
     const { rows } = await consultar<{ promedio: string | null; total: number }>(
       `SELECT round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS total
          FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
-        WHERE i.id_curso = $1`,
+        WHERE i.id_curso = $1 AND r.eliminado_en IS NULL`,
       [id],
     );
     const fila = rows[0]!;

@@ -1,4 +1,5 @@
 import { AppError } from '../../shared/http/app-error.js';
+import { registrarEvento } from '../../shared/log/registro.js';
 import type {
   CursoPublico,
   CursoPublicoDetalle,
@@ -94,6 +95,9 @@ export const catalogoService = {
     if (!instructor) {
       throw AppError.noEncontrado('Curso no disponible.');
     }
+    // La vista alimenta la tasa de conversión del docente; si falla, la ficha se sirve igual.
+    await catalogoRepository.registrarVisita(id).catch((error: unknown) =>
+      registrarEvento('visita_curso_fallida', { idCurso: id, error: error instanceof Error ? error.message : String(error) }, 'aviso'));
     return {
       ...cursoPublico(fila),
       descripcion: fila.descripcion,

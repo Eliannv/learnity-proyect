@@ -1,0 +1,70 @@
+:host { display: flex; flex-direction: column; gap: 24px; }
+
+.cabecera { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+.subtitulo { margin: 4px 0 0; color: var(--gris-500); }
+.selector { width: min(340px, 100%); span { font-size: 13px; font-weight: 600; color: var(--tinta-700); } }
+
+.contenido { display: grid; gap: 20px; }
+.grid-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.nota { margin: -8px 0 0; font-size: 13px; }
+
+.tarjeta {
+  display: grid; gap: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio-md);
+  background: var(--blanco);
+  h2 { margin: 0; font-size: 17px; }
+  p { margin: 0; }
+}
+.cabecera-seccion { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px;
+  .texto-suave { font-size: 13px; } }
+
+.alerta {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radio);
+  background: var(--ambar-100);
+  color: var(--ambar-800);
+  font-size: 14px;
+  lucide-icon { flex: none; margin-top: 1px; }
+}
+
+.modulo h3 { margin: 4px 0 8px; font-size: 14px; color: var(--tinta-700); }
+.embudo {
+  display: grid; gap: 6px; margin: 0; padding: 0; list-style: none;
+  li {
+    display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 92px; align-items: center; gap: 14px;
+    padding: 8px 10px;
+    border-radius: var(--radio);
+    &.peor { background: var(--ambar-100); }
+  }
+}
+.leccion {
+  display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px;
+  lucide-icon { flex: none; color: var(--gris-500); }
+  .titulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  small { flex: none; }
+}
+.pista { height: 10px; border-radius: 5px; background: var(--gris-100); overflow: hidden; }
+.relleno { display: block; height: 100%; min-width: 2px; border-radius: 5px; background: var(--azul-700); }
+.valor { text-align: right; font-size: 14px; white-space: nowrap; }
+
+.tabla-contenedor { overflow-x: auto; }
+.tabla { width: 100%; min-width: 620px; th[scope='row'] { font-weight: 600; } }
+.acciones { text-align: right; white-space: nowrap; }
+
+.mensaje {
+  display: grid; justify-items: start; gap: 8px; padding: 24px; border-radius: var(--radio-md);
+  &.error { border: 1px solid var(--rojo-200); background: var(--rojo-050); color: var(--rojo-700); }
+  p { margin: 0; }
+}
+
+@media (max-width: 1000px) { .grid-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .cabecera { flex-direction: column; align-items: stretch; }
+  .selector { width: 100%; }
+  .grid-stats { grid-template-columns: 1fr; }
+  .embudo li { grid-template-columns: 1fr 70px; }
+  .embudo .pista { grid-column: 1 / -1; grid-row: 2; }
+}

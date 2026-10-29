@@ -1,4 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import type { CalificacionCurso } from '../../../../core/api/contrato';
+import { DocenteResenasApi } from '../../../docente-resenas/docente-resenas.api';
+import { Estrellas } from '../../../../shared/ui/estrellas';
 import { FotoPerfil } from '../../componentes/foto-perfil';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
@@ -27,7 +31,7 @@ function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-ajustes-perfil',
-  imports: [ReactiveFormsModule, LucideAngularModule, Avatar, FotoPerfil],
+  imports: [ReactiveFormsModule, LucideAngularModule, Avatar, FotoPerfil, DecimalPipe, Estrellas],
   templateUrl: './ajustes-perfil.html',
   styleUrl: './ajustes-perfil.scss',
 })
@@ -59,9 +63,21 @@ export class AjustesPerfil {
   protected readonly guardandoPerfil = signal(false);
   protected readonly perfilMensaje = signal<string | null>(null);
   protected readonly perfilError = signal<string | null>(null);
+  private readonly resenasApi = inject(DocenteResenasApi);
+  /** Valoración global como docente; null mientras carga o si no se pudo leer. */
+  protected readonly valoracion = signal<CalificacionCurso | null>(null);
 
   constructor() {
     void this.cargar();
+    if (this.auth.esDocente()) void this.cargarValoracion();
+  }
+
+  private async cargarValoracion(): Promise<void> {
+    try {
+      this.valoracion.set(await this.resenasApi.valoracion());
+    } catch {
+      this.valoracion.set(null); // la vista previa se muestra igual, sin la valoración
+    }
   }
 
   private async cargar() {

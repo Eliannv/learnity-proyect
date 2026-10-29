@@ -1,5 +1,5 @@
 import { Esqueleto } from '../../../shared/ui/esqueleto';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { CursoResumen, SeguimientoDocente } from '../../../core/api/contrato';
@@ -9,11 +9,15 @@ import { SeguimientoDocenteApi } from '../../../features/docente-cursos/seguimie
 import { Avatar } from '../../../shared/ui/avatar';
 import { BarraProgreso } from '../../../shared/ui/barra-progreso';
 import { Indicador } from '../../../shared/ui/indicador';
+import { Estrellas } from '../../../shared/ui/estrellas';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { guardarBlob } from '../../../shared/util/descargar';
+import { mensajeDeError } from '../../../core/http/error-api';
 
 /** Seguimiento paginado: el servidor comprueba que el curso pertenezca al docente. */
 @Component({
   selector: 'app-estudiantes-curso',
-  imports: [Esqueleto, DatePipe, RouterLink, Avatar, BarraProgreso, Indicador],
+  imports: [Esqueleto, DatePipe, DecimalPipe, RouterLink, Avatar, BarraProgreso, Indicador, Estrellas],
   templateUrl: './estudiantes.html',
   styleUrl: './estudiantes.scss',
 })
@@ -22,7 +26,10 @@ export class EstudiantesCurso {
   private readonly seguimientoApi = inject(SeguimientoDocenteApi);
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly toasts = inject(ToastService);
   private version = 0;
+
+  protected readonly exportando = signal(false);
 
   protected readonly cargaCursos = new Peticion();
   protected readonly cargaEstudiantes = new Peticion();
@@ -78,6 +85,22 @@ export class EstudiantesCurso {
   protected reintentarEstudiantes(): void {
     const id = this.cursoId();
     if (id !== null) void this.cargarEstudiantes(id, this.pagina());
+  }
+
+  /** Descarga el CSV (se abre en Excel) con todos los inscritos, no solo los de esta página. */
+  protected async exportar(): Promise<void> {
+    const id = this.cursoId();
+    if (id === null || this.exportando()) return;
+    this.exportando.set(true);
+    try {
+      const { blob, nombre } = await this.seguimientoApi.exportar(id);
+      guardarBlob(blob, nombre);
+      this.toasts.exito(`Descargaste «${nombre}».`);
+    } catch (error) {
+      this.toasts.error(mensajeDeError(error, 'Exportar los estudiantes'));
+    } finally {
+      this.exportando.set(false);
+    }
   }
 
   protected iniciales(nombre: string): string {

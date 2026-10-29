@@ -436,7 +436,11 @@
         "biografia": null,
         "fotoUrl": null,
         "cursosPublicados": 5,
-        "estudiantes": 3
+        "estudiantes": 3,
+        "calificacion": {
+          "promedio": null,
+          "total": 0
+        }
       },
       "calificacion": {
         "promedio": null,
@@ -500,7 +504,11 @@
         "biografia": null,
         "fotoUrl": null,
         "cursosPublicados": 5,
-        "estudiantes": 3
+        "estudiantes": 3,
+        "calificacion": {
+          "promedio": null,
+          "total": 0
+        }
       },
       "calificacion": {
         "promedio": null,
@@ -543,7 +551,11 @@
         "biografia": null,
         "fotoUrl": null,
         "cursosPublicados": 5,
-        "estudiantes": 3
+        "estudiantes": 3,
+        "calificacion": {
+          "promedio": null,
+          "total": 0
+        }
       },
       "calificacion": {
         "promedio": null,
@@ -586,7 +598,11 @@
         "biografia": null,
         "fotoUrl": null,
         "cursosPublicados": 5,
-        "estudiantes": 3
+        "estudiantes": 3,
+        "calificacion": {
+          "promedio": null,
+          "total": 0
+        }
       },
       "calificacion": {
         "promedio": null,
@@ -629,7 +645,11 @@
         "biografia": null,
         "fotoUrl": null,
         "cursosPublicados": 1,
-        "estudiantes": 0
+        "estudiantes": 0,
+        "calificacion": {
+          "promedio": null,
+          "total": 0
+        }
       },
       "calificacion": {
         "promedio": null,

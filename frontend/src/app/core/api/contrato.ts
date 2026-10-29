@@ -40,6 +40,9 @@ export type NivelCurso = CursoDetalle['nivel'];
 
 export type ListaCursos =
   paths['/docente/cursos']['get']['responses'][200]['content']['application/json'];
+export type CursoDelDocente = Esquemas['CursoDelDocente'];
+/** Cola de revisión del administrador: cursos sin los datos de inscritos ni valoración. */
+export type ColaRevision = { items: CursoResumen[] };
 
 export type DecisionRevision =
   paths['/admin/cursos/{id}/revision']['put']['requestBody']['content']['application/json'];
@@ -76,4 +79,15 @@ export type PaginaResenas = Esquemas['PaginaResenas'];
 export type MiResena = Esquemas['MiResena'];
 export type DatosResena = Esquemas['DatosResena'];
 export type RecursoLeccion = Esquemas['RecursoLeccion'];
+export type ResenaDocente = Esquemas['ResenaDocente'];
+export type BandejaResenas = Esquemas['BandejaResenas'];
+export type FiltrosBandejaResenas = NonNullable<paths['/docente/resenas']['get']['parameters']['query']>;
+export type DatosReporteResena = Esquemas['DatosReporteResena'];
+export type MotivoReporte = DatosReporteResena['motivo'];
+export type ReporteResena = Esquemas['ReporteResena'];
+export type EstadoReporte = ReporteResena['estado'];
+export type EntradaHistorialResena = Esquemas['EntradaHistorialResena'];
+export type ResenaAdmin = Esquemas['ResenaAdmin'];
+export type PaginaResenasAdmin = Esquemas['PaginaResenasAdmin'];
+export type Analiticas = Esquemas['Analiticas'];
 export type RecursoAprendizaje = LeccionAprendizaje['recursos'][number];

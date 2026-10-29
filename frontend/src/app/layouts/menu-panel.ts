@@ -35,6 +35,8 @@ export const MENU: Record<
         ruta: '/docente/cursos',
       },
       { icono: 'graduation-cap', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' },
+      { icono: 'message-square-text', etiqueta: 'Reseñas', ruta: '/docente/resenas' },
+      { icono: 'chart-line', etiqueta: 'Analíticas', ruta: '/docente/analiticas' },
     ],
 
     tabs: [
@@ -43,7 +45,9 @@ export const MENU: Record<
         etiqueta: 'Mis cursos',
         ruta: '/docente/cursos',
       },
-      { icono: 'chart-no-axes-column', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' },
+      { icono: 'graduation-cap', etiqueta: 'Estudiantes', ruta: '/docente/estudiantes' },
+      { icono: 'message-square-text', etiqueta: 'Reseñas', ruta: '/docente/resenas' },
+      { icono: 'chart-line', etiqueta: 'Analíticas', ruta: '/docente/analiticas' },
       {
         icono: 'user',
         etiqueta: 'Perfil',
@@ -78,8 +82,10 @@ export const MENU: Record<
         etiqueta: 'Categorías',
         ruta: '/admin/categorias',
       },
+      { icono: 'message-square-text', etiqueta: 'Reseñas', ruta: '/admin/resenas' },
     ],
 
+    // Máximo cinco pestañas en móvil: el perfil sigue en el menú de la cuenta (avatar).
     tabs: [
       { icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios' },
       {
@@ -97,11 +103,7 @@ export const MENU: Record<
         etiqueta: 'Categorías',
         ruta: '/admin/categorias',
       },
-      {
-        icono: 'user',
-        etiqueta: 'Perfil',
-        ruta: '/admin/perfil',
-      },
+      { icono: 'message-square-text', etiqueta: 'Reseñas', ruta: '/admin/resenas' },
     ],
   },
 };

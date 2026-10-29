@@ -17,3 +17,5 @@ aprendizajeRoutes.put('/lecciones/:id/progreso', limitarPorIp('progreso_leccion'
   validarCuerpo(progresoLeccionSchema), controller.guardarProgreso);
 aprendizajeRoutes.get('/docente/cursos/:id/estudiantes', autenticar, autorizar('DOCENTE', 'ADMIN'),
   validarParametros(idAprendizajeRuta), validarConsulta(paginacionEstudiantesSchema), controller.seguimiento);
+aprendizajeRoutes.get('/docente/cursos/:id/estudiantes/exportar', limitarPorIp('exportar_estudiantes', 30, 15),
+  autenticar, autorizar('DOCENTE', 'ADMIN'), validarParametros(idAprendizajeRuta), controller.exportarEstudiantes);

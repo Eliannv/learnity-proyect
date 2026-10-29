@@ -7,31 +7,36 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
   type CursoResumen,
   type EstadoCurso,
   esEditable,
 } from '../../../core/cursos/gestion-cursos.model';
-import type { ListaCursos } from '../../../core/api/contrato';
+import type { CursoDelDocente } from '../../../core/api/contrato';
 import { Peticion } from '../../../core/estado/peticion';
 import { EstadoCursoBadge } from '../../../shared/ui/estado-curso';
+import { Estrellas } from '../../../shared/ui/estrellas';
+
+/** En «Mis cursos» llegan también inscritos y valoración; la cola de revisión no los trae. */
+type CursoListado = CursoResumen & Partial<Pick<CursoDelDocente, 'estudiantes' | 'calificacion'>>;
 
 @Component({
   selector: 'app-listado-cursos',
-  imports: [Esqueleto, RouterLink, EstadoCursoBadge],
+  imports: [Esqueleto, DecimalPipe, RouterLink, EstadoCursoBadge, Estrellas],
   templateUrl: './listado-cursos.html',
   styleUrl: './listado-cursos.scss',
 })
 export class ListadoCursos {
   readonly admin = input(false);
-  readonly cargarCursos = input.required<() => Promise<ListaCursos>>();
+  readonly cargarCursos = input.required<() => Promise<{ items: CursoListado[] }>>();
 
   protected readonly p = new Peticion();
   protected readonly editable = esEditable;
   protected readonly filtro = signal<EstadoCurso | 'TODOS'>('TODOS');
 
-  private readonly cursos = signal<CursoResumen[]>([]);
+  private readonly cursos = signal<CursoListado[]>([]);
   private readonly portadasFallidas = signal<ReadonlySet<number>>(new Set());
   private version = 0;
 

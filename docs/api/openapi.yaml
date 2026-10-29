@@ -221,7 +221,8 @@
                   "biografia",
                   "fotoUrl",
                   "cursosPublicados",
-                  "estudiantes"
+                  "estudiantes",
+                  "calificacion"
                 ],
                 "description": "Ficha pública del docente: nunca incluye su correo.",
                 "properties": {
@@ -247,6 +248,14 @@
                     "type": "integer",
                     "minimum": 0,
                     "description": "Inscripciones en todos sus cursos publicados."
+                  },
+                  "calificacion": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/CalificacionCurso"
+                      }
+                    ],
+                    "description": "Valoración global: reseñas vigentes de todos sus cursos publicados."
                   }
                 }
               },
@@ -873,6 +882,30 @@
             "description": "Portada del curso para el listado; null si no tiene."
           }
         }
+      },
+      "CursoDelDocente": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CursoResumen"
+          },
+          {
+            "type": "object",
+            "required": [
+              "estudiantes",
+              "calificacion"
+            ],
+            "properties": {
+              "estudiantes": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Inscripciones en el curso."
+              },
+              "calificacion": {
+                "$ref": "#/components/schemas/CalificacionCurso"
+              }
+            }
+          }
+        ]
       },
       "CursoDetalle": {
         "type": "object",
@@ -1551,7 +1584,8 @@
                 "progresoPct",
                 "ultimaLeccionId",
                 "inscritoEn",
-                "ultimaActividadEn"
+                "ultimaActividadEn",
+                "estrellas"
               ],
               "properties": {
                 "idPersona": {
@@ -1583,6 +1617,13 @@
                 "ultimaActividadEn": {
                   "type": "string",
                   "format": "date-time"
+                },
+                "estrellas": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5,
+                  "nullable": true,
+                  "description": "Su reseña vigente; null si no reseñó."
                 }
               }
             }
@@ -1606,7 +1647,8 @@
             "required": [
               "inscritos",
               "completados",
-              "progresoPromedio"
+              "progresoPromedio",
+              "valoracion"
             ],
             "properties": {
               "inscritos": {
@@ -1621,6 +1663,9 @@
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 100
+              },
+              "valoracion": {
+                "$ref": "#/components/schemas/CalificacionCurso"
               }
             }
           }
@@ -1903,7 +1948,9 @@
           "estrellas",
           "comentario",
           "creadoEn",
-          "actualizadoEn"
+          "actualizadoEn",
+          "editado",
+          "respuesta"
         ],
         "properties": {
           "id": {
@@ -1933,6 +1980,29 @@
           "actualizadoEn": {
             "type": "string",
             "format": "date-time"
+          },
+          "editado": {
+            "type": "boolean",
+            "description": "Cambió estrellas o comentario después de publicarla."
+          },
+          "respuesta": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "texto",
+              "fecha"
+            ],
+            "description": "Respuesta pública del docente; null si no respondió.",
+            "properties": {
+              "texto": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "fecha": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
           }
         }
       },
@@ -2038,6 +2108,786 @@
             "nullable": true,
             "maxLength": 1000,
             "description": "Vacío o solo espacios se guarda como null."
+          }
+        }
+      },
+      "ResenaDocente": {
+        "type": "object",
+        "description": "Reseña de un curso propio vista por el docente: sin IPs ni detalles técnicos de auditoría.",
+        "required": [
+          "id",
+          "curso",
+          "estudiante",
+          "fotoUrl",
+          "estrellas",
+          "estrellasOriginales",
+          "comentario",
+          "creadoEn",
+          "editado",
+          "editadoEn",
+          "progresoAlResenar",
+          "respuesta",
+          "reporte"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "curso": {
+            "type": "object",
+            "required": [
+              "id",
+              "titulo"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "titulo": {
+                "type": "string"
+              }
+            }
+          },
+          "estudiante": {
+            "type": "string"
+          },
+          "fotoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "estrellas": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "estrellasOriginales": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Con las que la publicó."
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "editado": {
+            "type": "boolean"
+          },
+          "editadoEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "progresoAlResenar": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Avance (%) del estudiante al publicarla."
+          },
+          "respuesta": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "texto",
+              "fecha"
+            ],
+            "description": "Respuesta pública del docente; null si no respondió.",
+            "properties": {
+              "texto": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "fecha": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "reporte": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "estado",
+              "motivo"
+            ],
+            "description": "Último reporte del docente.",
+            "properties": {
+              "estado": {
+                "type": "string",
+                "enum": [
+                  "PENDIENTE",
+                  "OCULTADA",
+                  "DESESTIMADA"
+                ]
+              },
+              "motivo": {
+                "type": "string",
+                "enum": [
+                  "SPAM",
+                  "OFENSIVO",
+                  "OTRO"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "BandejaResenas": {
+        "type": "object",
+        "required": [
+          "cursos",
+          "resumen",
+          "evolucion",
+          "items",
+          "pagina",
+          "limite",
+          "total",
+          "totalPaginas"
+        ],
+        "properties": {
+          "cursos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "titulo"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "titulo": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "resumen": {
+            "allOf": [
+              {
+                "type": "object",
+                "required": [
+                  "promedio",
+                  "total",
+                  "distribucion"
+                ],
+                "properties": {
+                  "promedio": {
+                    "type": "number",
+                    "nullable": true,
+                    "minimum": 1,
+                    "maximum": 5,
+                    "description": "Un decimal; null sin reseñas."
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "distribucion": {
+                    "type": "array",
+                    "minItems": 5,
+                    "maxItems": 5,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "description": "Reseñas con 1, 2, 3, 4 y 5 estrellas, en ese orden."
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "sinResponder"
+                ],
+                "properties": {
+                  "sinResponder": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            ]
+          },
+          "evolucion": {
+            "type": "array",
+            "description": "Últimos 12 meses con reseñas.",
+            "items": {
+              "type": "object",
+              "required": [
+                "mes",
+                "total",
+                "promedio",
+                "promedioAcumulado"
+              ],
+              "properties": {
+                "mes": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}$"
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "promedio": {
+                  "type": "number"
+                },
+                "promedioAcumulado": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResenaDocente"
+            }
+          },
+          "pagina": {
+            "type": "integer"
+          },
+          "limite": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPaginas": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "DatosRespuestaResena": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "texto"
+        ],
+        "properties": {
+          "texto": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "DatosReporteResena": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "motivo"
+        ],
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "enum": [
+              "SPAM",
+              "OFENSIVO",
+              "OTRO"
+            ]
+          },
+          "detalle": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          }
+        }
+      },
+      "EntradaHistorialResena": {
+        "type": "object",
+        "required": [
+          "accion",
+          "fecha",
+          "actor",
+          "estrellasAnterior",
+          "estrellasNueva",
+          "comentarioAnterior",
+          "comentarioNuevo"
+        ],
+        "properties": {
+          "accion": {
+            "type": "string",
+            "enum": [
+              "CREADA",
+              "EDITADA",
+              "ELIMINADA",
+              "REPUBLICADA",
+              "RESPONDIDA_POR_DOCENTE"
+            ]
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "id",
+              "nombre"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "nombre": {
+                "type": "string"
+              }
+            }
+          },
+          "estrellasAnterior": {
+            "type": "integer",
+            "nullable": true
+          },
+          "estrellasNueva": {
+            "type": "integer",
+            "nullable": true
+          },
+          "comentarioAnterior": {
+            "type": "string",
+            "nullable": true
+          },
+          "comentarioNuevo": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ResenaAdmin": {
+        "type": "object",
+        "required": [
+          "id",
+          "curso",
+          "estudiante",
+          "estrellas",
+          "comentario",
+          "creadoEn",
+          "eliminadaEn",
+          "respuesta",
+          "reportesPendientes",
+          "historial"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "curso": {
+            "type": "object",
+            "required": [
+              "id",
+              "titulo"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "titulo": {
+                "type": "string"
+              }
+            }
+          },
+          "estudiante": {
+            "type": "string"
+          },
+          "estrellas": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eliminadaEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "respuesta": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "texto",
+              "fecha"
+            ],
+            "description": "Respuesta pública del docente; null si no respondió.",
+            "properties": {
+              "texto": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "fecha": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "reportesPendientes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "historial": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntradaHistorialResena"
+            }
+          }
+        }
+      },
+      "PaginaResenasAdmin": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagina",
+          "limite",
+          "total",
+          "totalPaginas"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResenaAdmin"
+            }
+          },
+          "pagina": {
+            "type": "integer"
+          },
+          "limite": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPaginas": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ReporteResena": {
+        "type": "object",
+        "required": [
+          "id",
+          "motivo",
+          "detalle",
+          "estado",
+          "creadoEn",
+          "resueltoEn",
+          "reportadoPor",
+          "resena",
+          "historial"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "motivo": {
+            "type": "string",
+            "enum": [
+              "SPAM",
+              "OFENSIVO",
+              "OTRO"
+            ]
+          },
+          "detalle": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "PENDIENTE",
+              "OCULTADA",
+              "DESESTIMADA"
+            ]
+          },
+          "creadoEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resueltoEn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reportadoPor": {
+            "type": "string"
+          },
+          "resena": {
+            "type": "object",
+            "required": [
+              "id",
+              "curso",
+              "estudiante",
+              "estrellas",
+              "comentario",
+              "eliminadaEn",
+              "respuesta"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "curso": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "titulo"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "titulo": {
+                    "type": "string"
+                  }
+                }
+              },
+              "estudiante": {
+                "type": "string"
+              },
+              "estrellas": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "comentario": {
+                "type": "string",
+                "nullable": true
+              },
+              "eliminadaEn": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "respuesta": {
+                "type": "object",
+                "nullable": true,
+                "required": [
+                  "texto",
+                  "fecha"
+                ],
+                "description": "Respuesta pública del docente; null si no respondió.",
+                "properties": {
+                  "texto": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "fecha": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          },
+          "historial": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntradaHistorialResena"
+            }
+          }
+        }
+      },
+      "Analiticas": {
+        "type": "object",
+        "required": [
+          "cursos",
+          "resumen",
+          "actividad",
+          "conversion",
+          "embudo",
+          "porCurso"
+        ],
+        "properties": {
+          "cursos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "titulo"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "titulo": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "resumen": {
+            "type": "object",
+            "required": [
+              "inscritos",
+              "completados",
+              "diasPromedioFinalizacion",
+              "diasMedianaFinalizacion"
+            ],
+            "properties": {
+              "inscritos": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "completados": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "diasPromedioFinalizacion": {
+                "type": "number",
+                "nullable": true,
+                "minimum": 0,
+                "description": "Días promedio entre inscribirse y completar."
+              },
+              "diasMedianaFinalizacion": {
+                "type": "number",
+                "nullable": true,
+                "minimum": 0,
+                "description": "Dos decimales; null si nadie completó."
+              }
+            }
+          },
+          "actividad": {
+            "type": "array",
+            "minItems": 12,
+            "maxItems": 12,
+            "description": "Últimos 12 meses, incluidos los que no tuvieron movimiento.",
+            "items": {
+              "type": "object",
+              "required": [
+                "mes",
+                "inscripciones",
+                "completados"
+              ],
+              "properties": {
+                "mes": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}$"
+                },
+                "inscripciones": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "completados": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "conversion": {
+            "type": "object",
+            "required": [
+              "dias",
+              "visitas",
+              "inscripciones",
+              "tasaPct"
+            ],
+            "properties": {
+              "dias": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "visitas": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Vistas de la ficha pública (cada carga cuenta; no son visitantes únicos)."
+              },
+              "inscripciones": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "tasaPct": {
+                "type": "number",
+                "nullable": true,
+                "minimum": 0,
+                "description": "inscripciones / visitas en %; null sin visitas."
+              }
+            }
+          },
+          "embudo": {
+            "type": "array",
+            "nullable": true,
+            "description": "Solo con un curso elegido: lecciones en el orden del temario.",
+            "items": {
+              "type": "object",
+              "required": [
+                "leccionId",
+                "modulo",
+                "titulo",
+                "tipo",
+                "completaron"
+              ],
+              "properties": {
+                "leccionId": {
+                  "type": "integer"
+                },
+                "modulo": {
+                  "type": "string"
+                },
+                "titulo": {
+                  "type": "string"
+                },
+                "tipo": {
+                  "type": "string",
+                  "enum": [
+                    "VIDEO",
+                    "DOCUMENTO",
+                    "EVALUACION"
+                  ]
+                },
+                "completaron": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "porCurso": {
+            "type": "array",
+            "nullable": true,
+            "description": "Solo sin curso elegido.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "titulo",
+                "inscritos",
+                "completados"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "titulo": {
+                  "type": "string"
+                },
+                "inscritos": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "completados": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
           }
         }
       }
@@ -2926,7 +3776,7 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/CursoResumen"
+                        "$ref": "#/components/schemas/CursoDelDocente"
                       }
                     }
                   }
@@ -5489,6 +6339,99 @@
         }
       }
     },
+    "/docente/cursos/{id}/estudiantes/exportar": {
+      "get": {
+        "tags": [
+          "Aprendizaje"
+        ],
+        "summary": "Exportar los inscritos de un curso propio (o ADMIN) a CSV para Excel",
+        "description": "UTF-8 con BOM, separador «;». Incluye estado, progreso, calificación y comentario de la reseña vigente y fechas. Las celdas que empiezan con =, +, - o @ se escapan para evitar inyección de fórmulas. Hasta 30 peticiones por IP y 15 minutos.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo CSV",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE o ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Curso no disponible o ajeno",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
     "/evaluaciones/{id}": {
       "get": {
         "tags": [
@@ -6271,6 +7214,911 @@
           },
           "404": {
             "description": "Todavía no hay reseña propia",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/resenas": {
+      "get": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Bandeja de reseñas de los cursos propios, con resumen y evolución mensual",
+        "description": "De la más reciente a la más antigua. Solo reseñas vigentes (no borradas).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "curso",
+            "description": "Solo este curso propio.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "estrellas",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            }
+          },
+          {
+            "in": "query",
+            "name": "comentario",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "con",
+                "sin"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "respuesta",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "respondidas",
+                "sin-responder"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BandejaResenas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Filtros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso no existe o no es propio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/valoracion": {
+      "get": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Valoración global del docente (reseñas vigentes de sus cursos publicados)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalificacionCurso"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/resenas/{id}/respuesta": {
+      "put": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Responder públicamente una reseña de un curso propio (o reemplazar la respuesta)",
+        "description": "Hasta 60 peticiones por IP y 15 minutos.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosRespuestaResena"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResenaDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Respuesta vacía o de más de 1000 caracteres, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La reseña no existe, está borrada o no es de un curso propio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Límite de peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Retirar la respuesta pública",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResenaDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La reseña no existe, está borrada o no es de un curso propio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/resenas/{id}/reporte": {
+      "post": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Reportar una reseña al administrador (spam, lenguaje ofensivo u otro)",
+        "description": "Como mucho un reporte pendiente por reseña. Hasta 20 peticiones por IP y 15 minutos.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosReporteResena"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResenaDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Motivo inválido, detalle de más de 500 caracteres o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La reseña no existe, está borrada o no es de un curso propio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ya hay un reporte pendiente (REPORTE_PENDIENTE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "429": {
+            "description": "Límite de peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/resenas": {
+      "get": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Todas las reseñas (también las borradas) con su historial completo",
+        "description": "Acceso total del administrador para moderar. De la más reciente a la más antigua.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "estado",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vigentes",
+                "borradas",
+                "todas"
+              ],
+              "default": "todas"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaResenasAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Filtros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/resenas/reportes": {
+      "get": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Reportes de reseñas con el historial completo de cada una (hasta 100)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "estado",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDIENTE",
+                "OCULTADA",
+                "DESESTIMADA"
+              ],
+              "default": "PENDIENTE"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReporteResena"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Estado inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/resenas/reportes/{id}": {
+      "put": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Resolver un reporte: ocultar la reseña (borrado lógico) o desestimarlo",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID del reporte",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "decision"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "OCULTAR",
+                      "DESESTIMAR"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Reporte resuelto"
+          },
+          "400": {
+            "description": "Decisión inválida o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El reporte no existe o ya fue resuelto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/resenas/{id}/historial": {
+      "get": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Historial completo de una reseña (auditoría), incluidas las borradas",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntradaHistorialResena"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/analiticas": {
+      "get": {
+        "tags": [
+          "Analíticas"
+        ],
+        "summary": "Rendimiento de los cursos propios: actividad, finalización, conversión y embudo",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "curso",
+            "description": "Solo este curso propio; activa el embudo por lección.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Analiticas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Curso inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El curso no existe o no es propio",
             "content": {
               "application/json": {
                 "schema": {

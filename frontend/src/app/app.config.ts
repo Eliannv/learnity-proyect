@@ -9,12 +9,13 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
-import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
+import { provideRouter, withComponentInputBinding, withInMemoryScrolling, withNavigationErrorHandler } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { AuthService } from './core/auth/auth.service';
+import { ErrorCargaService, esErrorDeCarga } from './core/navegacion/error-carga';
 import { ICONOS } from './shared/ui/iconos';
 
 // Fechas («28 oct 2026») y decimales («4,5») en español en todos los pipes.
@@ -28,6 +29,10 @@ export const appConfig: ApplicationConfig = {
       routes,
       withComponentInputBinding(),
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
+      // Si una sección no se puede descargar, se avisa en vez de dejar la página en blanco.
+      withNavigationErrorHandler((evento) => {
+        if (esErrorDeCarga(evento.error)) inject(ErrorCargaService).fallo(evento.url);
+      }),
     ),
     provideHttpClient(
       withInterceptors([authInterceptor]),

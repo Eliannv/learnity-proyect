@@ -78,15 +78,17 @@ export const esquemasAprendizaje = {
         id: { type: 'integer' }, titulo: { type: 'string' },
       } },
       items: { type: 'array', items: { type: 'object', required: [
-        'idPersona', 'nombre', 'estado', 'progresoPct', 'ultimaLeccionId', 'inscritoEn', 'ultimaActividadEn',
+        'idPersona', 'nombre', 'estado', 'progresoPct', 'ultimaLeccionId', 'inscritoEn', 'ultimaActividadEn', 'estrellas',
       ], properties: {
         idPersona: { type: 'integer' }, nombre: { type: 'string' }, estado, progresoPct: porcentaje,
         ultimaLeccionId: idNulo, inscritoEn: fecha,
         ultimaActividadEn: fecha,
+        estrellas: { type: 'integer', minimum: 1, maximum: 5, nullable: true, description: 'Su reseña vigente; null si no reseñó.' },
       } } },
       pagina: { type: 'integer' }, limite: { type: 'integer' }, total: entero, totalPaginas: entero,
-      resumen: { type: 'object', required: ['inscritos', 'completados', 'progresoPromedio'], properties: {
+      resumen: { type: 'object', required: ['inscritos', 'completados', 'progresoPromedio', 'valoracion'], properties: {
         inscritos: entero, completados: entero, progresoPromedio: porcentaje,
+        valoracion: ref('CalificacionCurso'),
       } },
     },
   },
@@ -161,6 +163,20 @@ export const rutasAprendizaje = {
         200: json(ref('SeguimientoDocente')),
         400: error('ID o paginación inválidos'), 401: error('Sin sesión'),
         403: error('Sin rol DOCENTE o ADMIN'), 404: error('Curso no disponible o ajeno'), 500: errorInterno,
+      },
+    },
+  },
+  '/docente/cursos/{id}/estudiantes/exportar': {
+    get: {
+      tags: ['Aprendizaje'], summary: 'Exportar los inscritos de un curso propio (o ADMIN) a CSV para Excel',
+      description: 'UTF-8 con BOM, separador «;». Incluye estado, progreso, calificación y comentario de la reseña vigente '
+        + 'y fechas. Las celdas que empiezan con =, +, - o @ se escapan para evitar inyección de fórmulas. '
+        + 'Hasta 30 peticiones por IP y 15 minutos.',
+      security: seguridad, parameters: [idRuta],
+      responses: {
+        200: { description: 'Archivo CSV', content: { 'text/csv': { schema: { type: 'string' } } } },
+        400: error(idInvalido), 401: error('Sin sesión'), 403: error('Sin rol DOCENTE o ADMIN'),
+        404: error('Curso no disponible o ajeno'), 429: error('Límite de peticiones'), 500: errorInterno,
       },
     },
   },

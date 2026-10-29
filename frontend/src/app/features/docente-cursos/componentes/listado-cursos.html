@@ -65,8 +65,22 @@
             <div class="info-curso">
               <h2 class="titulo-curso">{{ c.titulo }}</h2>
               <p class="meta-curso">
-                {{ c.modulos }} {{ c.modulos === 1 ? 'módulo' : 'módulos' }}
-                @if (admin()) { · Docente: <strong>{{ c.docente }}</strong> }
+                <span>{{ c.modulos }} {{ c.modulos === 1 ? 'módulo' : 'módulos' }}</span>
+                @if (c.estudiantes !== undefined) {
+                  <span>{{ c.estudiantes }} {{ c.estudiantes === 1 ? 'estudiante' : 'estudiantes' }}</span>
+                }
+                @if (c.calificacion; as cal) {
+                  @if (cal.promedio !== null) {
+                    <span class="valoracion">
+                      <app-estrellas [valor]="cal.promedio" />
+                      <strong>{{ cal.promedio | number:'1.1-1' }}</strong>
+                      ({{ cal.total }} {{ cal.total === 1 ? 'reseña' : 'reseñas' }})
+                    </span>
+                  } @else {
+                    <span class="sin-valoracion">Sin reseñas</span>
+                  }
+                }
+                @if (admin()) { <span>Docente: <strong>{{ c.docente }}</strong></span> }
               </p>
             </div>
             <app-estado-curso [estado]="c.estado" />

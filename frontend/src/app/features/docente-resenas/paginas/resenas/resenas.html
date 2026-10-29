@@ -1,0 +1,215 @@
+<header class="cabecera">
+  <div>
+    <h1 class="titulo-pagina">Reseñas</h1>
+    <p class="subtitulo">Lo que opinan tus estudiantes de todos tus cursos: responde en público o reporta las que incumplan las normas.</p>
+  </div>
+  <a routerLink="/docente/analiticas" class="btn btn-contorno"><lucide-icon name="chart-line" [size]="18" aria-hidden="true" /> Analíticas</a>
+</header>
+
+<form class="filtros" role="search" aria-label="Filtrar reseñas" (submit)="$event.preventDefault()">
+  <label class="campo">
+    <span>Curso</span>
+    <select class="control" [ngModel]="filtro().curso ?? ''" name="curso" (ngModelChange)="cambiar('curso', $event)">
+      <option value="">Todos los cursos</option>
+      @for (c of datos()?.cursos ?? []; track c.id) { <option [value]="c.id">{{ c.titulo }}</option> }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Calificación</span>
+    <select class="control" [ngModel]="filtro().estrellas ?? ''" name="estrellas" (ngModelChange)="cambiar('estrellas', $event)">
+      <option value="">Todas</option>
+      @for (n of [5, 4, 3, 2, 1]; track n) { <option [value]="n">{{ n }} {{ n === 1 ? 'estrella' : 'estrellas' }}</option> }
+    </select>
+  </label>
+  <label class="campo">
+    <span>Contenido</span>
+    <select class="control" [ngModel]="filtro().comentario ?? ''" name="comentario" (ngModelChange)="cambiar('comentario', $event)">
+      <option value="">Con o sin comentario</option>
+      <option value="con">Con comentario</option>
+      <option value="sin">Solo calificación</option>
+    </select>
+  </label>
+  <label class="campo">
+    <span>Respuesta</span>
+    <select class="control" [ngModel]="filtro().respuesta ?? ''" name="respuesta" (ngModelChange)="cambiar('respuesta', $event)">
+      <option value="">Respondidas o no</option>
+      <option value="sin-responder">Sin responder</option>
+      <option value="respondidas">Respondidas</option>
+    </select>
+  </label>
+  @if (hayFiltros()) {
+    <button type="button" class="btn btn-texto btn-sm quitar" (click)="quitarFiltros()">Quitar filtros</button>
+  }
+</form>
+
+@if (carga.ocupada() && !datos()) {
+  <app-esqueleto forma="filas" [cantidad]="4" etiqueta="Cargando reseñas…" />
+} @else if (carga.error()) {
+  <div class="mensaje error" role="alert">
+    <p>{{ carga.error() }}</p>
+    <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
+  </div>
+} @else if (datos(); as d) {
+  <section class="resumen" aria-label="Resumen de satisfacción">
+    <div class="grid-stats">
+      <app-indicador etiqueta="Valoración" icono="star"
+        [valor]="d.resumen.promedio === null ? '—' : (d.resumen.promedio | number: '1.1-1') + ' ★'"
+        [nota]="d.resumen.total === 0 ? 'Sin reseñas' : d.resumen.total + (d.resumen.total === 1 ? ' reseña' : ' reseñas')" />
+      <app-indicador etiqueta="Sin responder" icono="message-square-text" [valor]="'' + d.resumen.sinResponder"
+        [nota]="d.resumen.sinResponder === 0 ? 'Respondiste todas' : 'Esperan tu respuesta'" />
+      <div class="distribucion" aria-label="Reseñas por estrellas">
+        <span class="etiqueta">Distribución</span>
+        <ul>
+          @for (n of [5, 4, 3, 2, 1]; track n) {
+            <li>
+              <span>{{ n }} ★</span>
+              <span class="pista"><span class="relleno" [style.width.%]="d.resumen.total ? (d.resumen.distribucion[n - 1]! / d.resumen.total) * 100 : 0"></span></span>
+              <span class="cuenta">{{ d.resumen.distribucion[n - 1] }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="tarjeta-grafico">
+      <h2>Evolución de la valoración</h2>
+      @if (d.evolucion.length >= 2) {
+        <app-grafico-series titulo="Promedio de estrellas por mes, de 1 a 5" [categorias]="evolucion().cortas"
+          [categoriasLargas]="evolucion().largas" [series]="evolucion().series" [minimo]="1" [maximo]="5" [decimales]="1" />
+      } @else {
+        <p class="texto-suave">El gráfico aparece cuando haya reseñas en al menos dos meses distintos.
+          @if (d.evolucion.length === 1) { Este mes: {{ d.evolucion[0]!.promedio | number: '1.1-1' }} ★ con {{ d.evolucion[0]!.total }} {{ d.evolucion[0]!.total === 1 ? 'reseña' : 'reseñas' }}. }
+        </p>
+      }
+    </div>
+  </section>
+
+  <section class="bandeja" aria-labelledby="titulo-bandeja" [attr.aria-busy]="carga.ocupada()">
+    <h2 id="titulo-bandeja">{{ d.total }} {{ d.total === 1 ? 'reseña' : 'reseñas' }}<span class="texto-suave"> · de la más reciente a la más antigua</span></h2>
+
+    @for (r of d.items; track r.id) {
+      <article class="resena" [attr.aria-label]="'Reseña de ' + r.estudiante">
+        <header>
+          <app-avatar [texto]="iniciales(r.estudiante)" [imagen]="r.fotoUrl" [tamano]="40" />
+          <div class="quien">
+            <strong>{{ r.estudiante }}</strong>
+            <a class="curso" [routerLink]="['/cursos', r.curso.id]">{{ r.curso.titulo }}</a>
+          </div>
+          <time class="texto-suave" [attr.datetime]="r.creadoEn">{{ r.creadoEn | date: 'd MMM y' }}</time>
+        </header>
+
+        <div class="calificacion">
+          <app-estrellas [valor]="r.estrellas" />
+          <span class="progreso-resena">
+            <lucide-icon name="trending-up" [size]="15" aria-hidden="true" />
+            Calificó con {{ r.estrellas }} ★ al llevar el {{ r.progresoAlResenar }} % del curso
+          </span>
+          @if (r.editado) {
+            <span class="chip chip-gris" [title]="r.editadoEn ? 'Editada el ' + (r.editadoEn | date: 'd MMM y, HH:mm') : ''">
+              Reseña editada{{ r.estrellasOriginales !== r.estrellas ? ' (antes ' + r.estrellasOriginales + ' ★, ahora ' + r.estrellas + ' ★)' : '' }}
+            </span>
+          }
+          @if (r.reporte) {
+            <span class="chip" [class.chip-ambar]="r.reporte.estado === 'PENDIENTE'" [class.chip-gris]="r.reporte.estado !== 'PENDIENTE'">
+              <lucide-icon name="flag" [size]="13" aria-hidden="true" />
+              {{ r.reporte.estado === 'PENDIENTE' ? 'Reportada · en revisión' : r.reporte.estado === 'DESESTIMADA' ? 'Reporte desestimado' : 'Ocultada' }}
+            </span>
+          }
+        </div>
+
+        @if (r.comentario) {
+          <p class="comentario">{{ r.comentario }}</p>
+        } @else {
+          <p class="texto-suave sin-comentario">Solo dejó la calificación.</p>
+        }
+
+        @if (respondiendo() === r.id) {
+          <form class="responder" (ngSubmit)="enviarRespuesta(r)">
+            <label class="campo">
+              <span>Tu respuesta pública</span>
+              <textarea class="control" name="respuesta" rows="3" maxlength="1000" [ngModel]="borrador()"
+                (ngModelChange)="borrador.set($event)" placeholder="Agradece, aclara o cuenta qué vas a mejorar"></textarea>
+              <small class="texto-suave">{{ borrador().length }}/1000 · La verán todos en la página del curso.</small>
+            </label>
+            <div class="acciones">
+              <button type="button" class="btn btn-contorno btn-sm" (click)="respondiendo.set(null)">Cancelar</button>
+              <button type="submit" class="btn btn-primario btn-sm" [disabled]="!borrador().trim() || enviando() === r.id">
+                {{ enviando() === r.id ? 'Publicando…' : r.respuesta ? 'Guardar respuesta' : 'Publicar respuesta' }}
+              </button>
+            </div>
+          </form>
+        } @else if (r.respuesta; as respuesta) {
+          <div class="respuesta">
+            <strong><lucide-icon name="reply" [size]="15" aria-hidden="true" /> Tu respuesta</strong>
+            <time class="texto-suave" [attr.datetime]="respuesta.fecha">{{ respuesta.fecha | date: 'd MMM y' }}</time>
+            <p>{{ respuesta.texto }}</p>
+          </div>
+        }
+
+        @if (respondiendo() !== r.id) {
+          <footer class="acciones">
+            <button type="button" class="btn btn-suave btn-sm" (click)="abrirRespuesta(r)">
+              <lucide-icon name="reply" [size]="16" aria-hidden="true" /> {{ r.respuesta ? 'Editar respuesta' : 'Responder' }}
+            </button>
+            @if (r.respuesta) {
+              <button type="button" class="btn btn-texto btn-sm" [disabled]="enviando() === r.id" (click)="retirarRespuesta(r)">Retirar respuesta</button>
+            }
+            @if (r.reporte?.estado !== 'PENDIENTE') {
+              <button type="button" class="btn btn-texto btn-sm reportar" (click)="abrirReporte(r)">
+                <lucide-icon name="flag" [size]="16" aria-hidden="true" /> Reportar
+              </button>
+            }
+          </footer>
+        }
+      </article>
+    } @empty {
+      <div class="mensaje">
+        @if (hayFiltros()) {
+          <h3>Ninguna reseña coincide con los filtros</h3>
+          <button type="button" class="btn btn-contorno btn-sm" (click)="quitarFiltros()">Quitar filtros</button>
+        } @else {
+          <h3>Todavía no tienes reseñas</h3>
+          <p>Cuando tus estudiantes valoren tus cursos, las verás aquí para responderlas.</p>
+        }
+      </div>
+    }
+
+    @if (d.totalPaginas > 1) {
+      <nav class="paginacion" aria-label="Páginas de reseñas">
+        <button type="button" class="btn btn-contorno" [disabled]="d.pagina <= 1" (click)="irAPagina(d.pagina - 1)">Anterior</button>
+        <span>Página {{ d.pagina }} de {{ d.totalPaginas }}</span>
+        <button type="button" class="btn btn-contorno" [disabled]="d.pagina >= d.totalPaginas" (click)="irAPagina(d.pagina + 1)">Siguiente</button>
+      </nav>
+    }
+  </section>
+}
+
+@if (reportando(); as r) {
+  <app-modal titulo="Reportar reseña" icono="flag" [ancho]="520" (cerrar)="reportando.set(null)">
+    <form class="formulario" (ngSubmit)="enviarReporte()" novalidate>
+      <p class="texto-suave cita">«{{ r.comentario ?? r.estrellas + ' ★ sin comentario' }}» — {{ r.estudiante }}</p>
+      <fieldset class="motivos">
+        <legend>¿Por qué la reportas?</legend>
+        @for (m of motivos; track m.valor) {
+          <label class="motivo">
+            <input type="radio" name="motivo" [value]="m.valor" [checked]="motivo() === m.valor" (change)="motivo.set(m.valor)" />
+            <span><strong>{{ m.texto }}</strong><small>{{ m.ayuda }}</small></span>
+          </label>
+        }
+      </fieldset>
+      <label class="campo">
+        <span>Detalle <small class="texto-suave">(opcional)</small></span>
+        <textarea class="control" name="detalle" rows="3" maxlength="500" [ngModel]="detalle()" (ngModelChange)="detalle.set($event)"
+          placeholder="Qué parte incumple las normas"></textarea>
+      </label>
+      <p class="texto-suave nota">El administrador decidirá si la oculta. Mientras tanto, la reseña sigue visible.</p>
+      @if (errorReporte()) { <p class="error" role="alert">{{ errorReporte() }}</p> }
+      <div class="pie">
+        <button type="button" class="btn btn-contorno" (click)="reportando.set(null)">Cancelar</button>
+        <button type="submit" class="btn btn-primario" [disabled]="enviando() === r.id">
+          {{ enviando() === r.id ? 'Enviando…' : 'Enviar reporte' }}
+        </button>
+      </div>
+    </form>
+  </app-modal>
+}

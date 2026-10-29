@@ -7,6 +7,7 @@ export type {
   ArchivoPdf,
   ContextoCurso,
   ContextoLeccion,
+  CursoDelDocente,
   CursoDetalle,
   CursoResumen,
   DecisionRevision,

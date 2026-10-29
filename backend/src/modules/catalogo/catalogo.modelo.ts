@@ -54,6 +54,8 @@ export interface InstructorPublico {
   cursosPublicados: number;
   /** Inscripciones en todos sus cursos publicados. */
   estudiantes: number;
+  /** Valoración global: todas las reseñas vigentes de sus cursos publicados. */
+  calificacion: CalificacionCurso;
 }
 
 export interface CalificacionCurso {

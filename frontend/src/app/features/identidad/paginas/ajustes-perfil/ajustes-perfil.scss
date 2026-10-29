@@ -111,6 +111,15 @@ textarea.control {
     color: var(--tinta-700);
     overflow-wrap: anywhere;
   }
+  .valoracion-docente {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin: 0;
+    strong { display: inline; color: var(--ambar-800); }
+    span { color: var(--gris-500); font-size: 13px; }
+  }
 }
 
 .pie {

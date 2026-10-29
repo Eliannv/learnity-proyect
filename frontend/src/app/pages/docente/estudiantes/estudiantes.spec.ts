@@ -8,11 +8,11 @@ import { EstudiantesCurso } from './estudiantes';
 const curso = { id: 7, titulo: 'Álgebra inicial', estado: 'PUBLICADO' } as CursoResumen;
 const paginaUno: SeguimientoDocente = {
   curso: { id: 7, titulo: curso.titulo }, pagina: 1, limite: 20, total: 21, totalPaginas: 2,
-  resumen: { inscritos: 21, completados: 3, progresoPromedio: 35 },
+  resumen: { inscritos: 21, completados: 3, progresoPromedio: 35, valoracion: { promedio: 4.5, total: 2 } },
   items: [{
     idPersona: 8, nombre: 'Ana Pérez', estado: 'ACTIVA', progresoPct: 35,
     ultimaLeccionId: 11, inscritoEn: '2026-10-21T10:00:00.000Z',
-    ultimaActividadEn: '2026-10-22T10:00:00.000Z',
+    ultimaActividadEn: '2026-10-22T10:00:00.000Z', estrellas: 4,
   }],
 };
 
@@ -35,6 +35,10 @@ describe('seguimiento docente', () => {
       expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
     });
     expect(fixture.nativeElement.textContent).toContain('21');
+    expect(fixture.nativeElement.textContent).toContain('Valoración del curso');
+    expect(fixture.nativeElement.textContent).toMatch(/4[.,]5 ★/);
+    expect(fixture.nativeElement.textContent).toContain('2 reseñas');
+    expect(fixture.nativeElement.querySelector('td app-estrellas')?.getAttribute('aria-label')).toBe('4 de 5 estrellas');
     const siguiente = [...fixture.nativeElement.querySelectorAll('button')].find(
       (boton: HTMLButtonElement) => boton.textContent?.trim() === 'Siguiente',
     ) as HTMLButtonElement;
@@ -66,5 +70,31 @@ describe('seguimiento docente', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Aún no tienes cursos');
+  });
+
+  it('exporta todos los inscritos a CSV con el nombre que da el servidor', async () => {
+    const blob = new Blob(['Estudiante;Estado'], { type: 'text/csv' });
+    const seguimientoApi = {
+      listar: vi.fn().mockResolvedValue(paginaUno),
+      exportar: vi.fn().mockResolvedValue({ blob, nombre: 'estudiantes-algebra-inicial.csv' }),
+    };
+    URL.createObjectURL = vi.fn(() => 'blob:prueba');
+    URL.revokeObjectURL = vi.fn();
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), { provide: DocenteCursosApi, useValue: { misCursos: vi.fn().mockResolvedValue({ items: [curso] }) } },
+        { provide: SeguimientoDocenteApi, useValue: seguimientoApi }],
+    });
+    const fixture = TestBed.createComponent(EstudiantesCurso);
+    fixture.detectChanges();
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
+    });
+    const exportar = [...fixture.nativeElement.querySelectorAll('button')].find(
+      (boton: HTMLButtonElement) => boton.textContent?.includes('Exportar a CSV'),
+    ) as HTMLButtonElement;
+    exportar.click();
+    await vi.waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledWith(blob));
+    expect(seguimientoApi.exportar).toHaveBeenCalledWith(7);
   });
 });

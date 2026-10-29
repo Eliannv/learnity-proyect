@@ -694,7 +694,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            items: components["schemas"]["CursoResumen"][];
+                            items: components["schemas"]["CursoDelDocente"][];
                         };
                     };
                 };
@@ -2776,6 +2776,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docente/cursos/{id}/estudiantes/exportar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exportar los inscritos de un curso propio (o ADMIN) a CSV para Excel
+         * @description UTF-8 con BOM, separador «;». Incluye estado, progreso, calificación y comentario de la reseña vigente y fechas. Las celdas que empiezan con =, +, - o @ se escapan para evitar inyección de fórmulas. Hasta 30 peticiones por IP y 15 minutos.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Archivo CSV */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": string;
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE o ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Curso no disponible o ajeno */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Límite de peticiones */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/evaluaciones/{id}": {
         parameters: {
             query?: never;
@@ -3423,6 +3511,765 @@ export interface paths {
                 500: components["responses"]["ErrorInterno"];
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/resenas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bandeja de reseñas de los cursos propios, con resumen y evolución mensual
+         * @description De la más reciente a la más antigua. Solo reseñas vigentes (no borradas).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Solo este curso propio. */
+                    curso?: number;
+                    estrellas?: number;
+                    comentario?: "con" | "sin";
+                    respuesta?: "respondidas" | "sin-responder";
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BandejaResenas"];
+                    };
+                };
+                /** @description Filtros inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso no existe o no es propio */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/valoracion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Valoración global del docente (reseñas vigentes de sus cursos publicados) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalificacionCurso"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/resenas/{id}/respuesta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Responder públicamente una reseña de un curso propio (o reemplazar la respuesta)
+         * @description Hasta 60 peticiones por IP y 15 minutos.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosRespuestaResena"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResenaDocente"];
+                    };
+                };
+                /** @description Respuesta vacía o de más de 1000 caracteres, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La reseña no existe, está borrada o no es de un curso propio */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                /** @description Límite de peticiones */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        /** Retirar la respuesta pública */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResenaDocente"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La reseña no existe, está borrada o no es de un curso propio */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/resenas/{id}/reporte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reportar una reseña al administrador (spam, lenguaje ofensivo u otro)
+         * @description Como mucho un reporte pendiente por reseña. Hasta 20 peticiones por IP y 15 minutos.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosReporteResena"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResenaDocente"];
+                    };
+                };
+                /** @description Motivo inválido, detalle de más de 500 caracteres o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La reseña no existe, está borrada o no es de un curso propio */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Ya hay un reporte pendiente (REPORTE_PENDIENTE) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                /** @description Límite de peticiones */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/resenas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Todas las reseñas (también las borradas) con su historial completo
+         * @description Acceso total del administrador para moderar. De la más reciente a la más antigua.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    estado?: "vigentes" | "borradas" | "todas";
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaResenasAdmin"];
+                    };
+                };
+                /** @description Filtros inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/resenas/reportes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reportes de reseñas con el historial completo de cada una (hasta 100) */
+        get: {
+            parameters: {
+                query?: {
+                    estado?: "PENDIENTE" | "OCULTADA" | "DESESTIMADA";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReporteResena"][];
+                    };
+                };
+                /** @description Estado inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/resenas/reportes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Resolver un reporte: ocultar la reseña (borrado lógico) o desestimarlo */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID del reporte */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        decision: "OCULTAR" | "DESESTIMAR";
+                    };
+                };
+            };
+            responses: {
+                /** @description Reporte resuelto */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Decisión inválida o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El reporte no existe o ya fue resuelto */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/resenas/{id}/historial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historial completo de una reseña (auditoría), incluidas las borradas */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EntradaHistorialResena"][];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/analiticas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rendimiento de los cursos propios: actividad, finalización, conversión y embudo */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Solo este curso propio; activa el embudo por lección. */
+                    curso?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Analiticas"];
+                    };
+                };
+                /** @description Curso inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso no existe o no es propio */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4597,6 +5444,8 @@ export interface components {
                 cursosPublicados: number;
                 /** @description Inscripciones en todos sus cursos publicados. */
                 estudiantes: number;
+                /** @description Valoración global: reseñas vigentes de todos sus cursos publicados. */
+                calificacion: components["schemas"]["CalificacionCurso"];
             };
             calificacion: components["schemas"]["CalificacionCurso"];
             objetivos: string[];
@@ -4741,6 +5590,11 @@ export interface components {
             modulos: number;
             /** @description Portada del curso para el listado; null si no tiene. */
             portadaUrl: string | null;
+        };
+        CursoDelDocente: components["schemas"]["CursoResumen"] & {
+            /** @description Inscripciones en el curso. */
+            estudiantes: number;
+            calificacion: components["schemas"]["CalificacionCurso"];
         };
         CursoDetalle: {
             id: number;
@@ -4938,6 +5792,8 @@ export interface components {
                 inscritoEn: string;
                 /** Format: date-time */
                 ultimaActividadEn: string;
+                /** @description Su reseña vigente; null si no reseñó. */
+                estrellas: number | null;
             }[];
             pagina: number;
             limite: number;
@@ -4947,6 +5803,7 @@ export interface components {
                 inscritos: number;
                 completados: number;
                 progresoPromedio: number;
+                valoracion: components["schemas"]["CalificacionCurso"];
             };
         };
         ResumenIntentos: {
@@ -5029,6 +5886,14 @@ export interface components {
             creadoEn: string;
             /** Format: date-time */
             actualizadoEn: string;
+            /** @description Cambió estrellas o comentario después de publicarla. */
+            editado: boolean;
+            /** @description Respuesta pública del docente; null si no respondió. */
+            respuesta: {
+                texto: string;
+                /** Format: date-time */
+                fecha: string;
+            } | null;
         };
         PaginaResenas: {
             resumen: {
@@ -5053,6 +5918,194 @@ export interface components {
             estrellas: number;
             /** @description Vacío o solo espacios se guarda como null. */
             comentario?: string | null;
+        };
+        /** @description Reseña de un curso propio vista por el docente: sin IPs ni detalles técnicos de auditoría. */
+        ResenaDocente: {
+            id: number;
+            curso: {
+                id: number;
+                titulo: string;
+            };
+            estudiante: string;
+            fotoUrl: string | null;
+            estrellas: number;
+            /** @description Con las que la publicó. */
+            estrellasOriginales: number;
+            comentario: string | null;
+            /** Format: date-time */
+            creadoEn: string;
+            editado: boolean;
+            /** Format: date-time */
+            editadoEn: string | null;
+            /** @description Avance (%) del estudiante al publicarla. */
+            progresoAlResenar: number;
+            /** @description Respuesta pública del docente; null si no respondió. */
+            respuesta: {
+                texto: string;
+                /** Format: date-time */
+                fecha: string;
+            } | null;
+            /** @description Último reporte del docente. */
+            reporte: {
+                /** @enum {string} */
+                estado: "PENDIENTE" | "OCULTADA" | "DESESTIMADA";
+                /** @enum {string} */
+                motivo: "SPAM" | "OFENSIVO" | "OTRO";
+            } | null;
+        };
+        BandejaResenas: {
+            cursos: {
+                id: number;
+                titulo: string;
+            }[];
+            resumen: {
+                /** @description Un decimal; null sin reseñas. */
+                promedio: number | null;
+                total: number;
+                /** @description Reseñas con 1, 2, 3, 4 y 5 estrellas, en ese orden. */
+                distribucion: number[];
+            } & {
+                sinResponder: number;
+            };
+            /** @description Últimos 12 meses con reseñas. */
+            evolucion: {
+                mes: string;
+                total: number;
+                promedio: number;
+                promedioAcumulado: number;
+            }[];
+            items: components["schemas"]["ResenaDocente"][];
+            pagina: number;
+            limite: number;
+            total: number;
+            totalPaginas: number;
+        };
+        DatosRespuestaResena: {
+            texto: string;
+        };
+        DatosReporteResena: {
+            /** @enum {string} */
+            motivo: "SPAM" | "OFENSIVO" | "OTRO";
+            detalle?: string | null;
+        };
+        EntradaHistorialResena: {
+            /** @enum {string} */
+            accion: "CREADA" | "EDITADA" | "ELIMINADA" | "REPUBLICADA" | "RESPONDIDA_POR_DOCENTE";
+            /** Format: date-time */
+            fecha: string;
+            actor: {
+                id: number;
+                nombre: string;
+            } | null;
+            estrellasAnterior: number | null;
+            estrellasNueva: number | null;
+            comentarioAnterior: string | null;
+            comentarioNuevo: string | null;
+        };
+        ResenaAdmin: {
+            id: number;
+            curso: {
+                id: number;
+                titulo: string;
+            };
+            estudiante: string;
+            estrellas: number;
+            comentario: string | null;
+            /** Format: date-time */
+            creadoEn: string;
+            /** Format: date-time */
+            eliminadaEn: string | null;
+            /** @description Respuesta pública del docente; null si no respondió. */
+            respuesta: {
+                texto: string;
+                /** Format: date-time */
+                fecha: string;
+            } | null;
+            reportesPendientes: number;
+            historial: components["schemas"]["EntradaHistorialResena"][];
+        };
+        PaginaResenasAdmin: {
+            items: components["schemas"]["ResenaAdmin"][];
+            pagina: number;
+            limite: number;
+            total: number;
+            totalPaginas: number;
+        };
+        ReporteResena: {
+            id: number;
+            /** @enum {string} */
+            motivo: "SPAM" | "OFENSIVO" | "OTRO";
+            detalle: string | null;
+            /** @enum {string} */
+            estado: "PENDIENTE" | "OCULTADA" | "DESESTIMADA";
+            /** Format: date-time */
+            creadoEn: string;
+            /** Format: date-time */
+            resueltoEn: string | null;
+            reportadoPor: string;
+            resena: {
+                id: number;
+                curso: {
+                    id: number;
+                    titulo: string;
+                };
+                estudiante: string;
+                estrellas: number;
+                comentario: string | null;
+                /** Format: date-time */
+                eliminadaEn: string | null;
+                /** @description Respuesta pública del docente; null si no respondió. */
+                respuesta: {
+                    texto: string;
+                    /** Format: date-time */
+                    fecha: string;
+                } | null;
+            };
+            historial: components["schemas"]["EntradaHistorialResena"][];
+        };
+        Analiticas: {
+            cursos: {
+                id: number;
+                titulo: string;
+            }[];
+            resumen: {
+                inscritos: number;
+                completados: number;
+                /** @description Días promedio entre inscribirse y completar. */
+                diasPromedioFinalizacion: number | null;
+                /** @description Dos decimales; null si nadie completó. */
+                diasMedianaFinalizacion: number | null;
+            };
+            /** @description Últimos 12 meses, incluidos los que no tuvieron movimiento. */
+            actividad: {
+                mes: string;
+                inscripciones: number;
+                completados: number;
+            }[];
+            conversion: {
+                dias: number;
+                /** @description Vistas de la ficha pública (cada carga cuenta; no son visitantes únicos). */
+                visitas: number;
+                inscripciones: number;
+                /** @description inscripciones / visitas en %; null sin visitas. */
+                tasaPct: number | null;
+            };
+            /** @description Solo con un curso elegido: lecciones en el orden del temario. */
+            embudo: {
+                leccionId: number;
+                modulo: string;
+                titulo: string;
+                /** @enum {string} */
+                tipo: "VIDEO" | "DOCUMENTO" | "EVALUACION";
+                completaron: number;
+            }[] | null;
+            /** @description Solo sin curso elegido. */
+            porCurso: {
+                id: number;
+                titulo: string;
+                inscritos: number;
+                completados: number;
+            }[] | null;
         };
     };
     responses: {

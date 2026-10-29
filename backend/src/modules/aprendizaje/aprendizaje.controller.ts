@@ -31,4 +31,13 @@ export const aprendizajeController = {
     const { parametros: id, consulta } = datosValidados<number, PaginacionEstudiantes>(res);
     res.json(await aprendizajeService.seguimiento(id, consulta, usuario(req)));
   },
+
+  async exportarEstudiantes(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    const { nombre, contenido } = await aprendizajeService.exportarEstudiantes(id, usuario(req));
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.status(200).send(contenido);
+  },
 };

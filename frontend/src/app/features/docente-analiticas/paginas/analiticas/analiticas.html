@@ -1,0 +1,121 @@
+<header class="cabecera">
+  <div>
+    <h1 class="titulo-pagina">Analíticas</h1>
+    <p class="subtitulo">Cómo avanzan tus estudiantes y dónde se detienen.</p>
+  </div>
+  <label class="campo selector">
+    <span>Curso</span>
+    <select class="control" [value]="curso() ?? ''" (change)="cambiarCurso($any($event.target).value)">
+      <option value="">Todos mis cursos</option>
+      @for (c of datos()?.cursos ?? []; track c.id) { <option [value]="c.id" [selected]="c.id === curso()">{{ c.titulo }}</option> }
+    </select>
+  </label>
+</header>
+
+@if (carga.ocupada() && !datos()) {
+  <app-esqueleto forma="filas" [cantidad]="4" etiqueta="Calculando analíticas…" />
+} @else if (carga.error()) {
+  <div class="mensaje error" role="alert">
+    <p>{{ carga.error() }}</p>
+    <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
+  </div>
+} @else if (datos(); as d) {
+  <div class="contenido" [attr.aria-busy]="carga.ocupada()">
+    <div class="grid-stats" aria-label="Indicadores">
+      <app-indicador etiqueta="Inscritos" icono="users" [valor]="'' + d.resumen.inscritos"
+        [nota]="curso() ? 'En este curso' : 'En todos tus cursos'" />
+      <app-indicador etiqueta="Completaron" icono="trophy" [valor]="'' + d.resumen.completados"
+        [nota]="tasaFinalizacion() === null ? 'Sin inscritos' : tasaFinalizacion() + ' % de los inscritos'" />
+      <app-indicador etiqueta="Tiempo para completar" icono="clock" [valor]="dias(d.resumen.diasPromedioFinalizacion)"
+        [nota]="d.resumen.diasMedianaFinalizacion === null ? 'Aún nadie completó' : 'Promedio · mediana ' + dias(d.resumen.diasMedianaFinalizacion)" />
+      <app-indicador etiqueta="Conversión" icono="trending-up"
+        [valor]="d.conversion.tasaPct === null ? '—' : (d.conversion.tasaPct | number: '1.0-1') + ' %'"
+        [nota]="d.conversion.inscripciones + ' inscripciones de ' + d.conversion.visitas + ' vistas · ' + d.conversion.dias + ' días'" />
+    </div>
+    <p class="texto-suave nota">La conversión compara las inscripciones con las veces que se abrió la ficha pública del curso
+      en los últimos {{ d.conversion.dias }} días. Cada carga cuenta como una vista, no como un visitante distinto.</p>
+
+    <section class="tarjeta" aria-labelledby="t-actividad">
+      <h2 id="t-actividad">Inscripciones y cursos completados por mes</h2>
+      @if (actividad().vacia) {
+        <p class="texto-suave">Sin movimiento en los últimos 12 meses.</p>
+      } @else {
+        <app-grafico-echarts
+          titulo="Inscripciones y cursos completados en los últimos 12 meses"
+          [categorias]="actividad().cortas"
+          [categoriasLargas]="actividad().largas"
+          [series]="actividad().series"
+        />
+      }
+    </section>
+
+    @if (embudo(); as grupos) {
+      <section class="tarjeta" aria-labelledby="t-embudo">
+        <div class="cabecera-seccion">
+          <h2 id="t-embudo">Retención por lección</h2>
+          <span class="texto-suave">Estudiantes que completaron cada lección, sobre {{ d.resumen.inscritos }} inscritos</span>
+        </div>
+        @if (mayorCaida(); as caida) {
+          <p class="alerta">
+            <lucide-icon name="circle-alert" [size]="18" aria-hidden="true" />
+            <span><strong>«{{ caida.titulo }}»</strong> es donde más estudiantes se quedan: {{ caida.caida }}
+              {{ caida.caida === 1 ? 'llegó hasta ahí y no la completó' : 'llegaron hasta ahí y no la completaron' }}.</span>
+          </p>
+        }
+        @if (!grupos.length) {
+          <p class="texto-suave">El curso todavía no tiene lecciones.</p>
+        }
+        @for (g of grupos; track $index) {
+          <div class="modulo">
+            <h3>{{ g.modulo }}</h3>
+            <ol class="embudo">
+              @for (l of g.lecciones; track l.leccionId) {
+                <li [class.peor]="mayorCaida()?.leccionId === l.leccionId">
+                  <span class="leccion">
+                    <lucide-icon [name]="tipo[l.tipo].icono" [size]="16" aria-hidden="true" />
+                    <span class="titulo">{{ l.titulo }}</span>
+                    <small class="texto-suave">{{ tipo[l.tipo].texto }}</small>
+                  </span>
+                  <span class="pista" aria-hidden="true"><span class="relleno" [style.width.%]="l.pct"></span></span>
+                  <span class="valor"><strong>{{ l.pct }} %</strong> <small class="texto-suave">({{ l.completaron }})</small></span>
+                </li>
+              }
+            </ol>
+          </div>
+        }
+      </section>
+    }
+
+    @if (d.porCurso; as cursos) {
+      <section class="tarjeta" aria-labelledby="t-cursos">
+        <div class="cabecera-seccion">
+          <h2 id="t-cursos">Comparación entre tus cursos</h2>
+          <span class="texto-suave">Elige un curso arriba para ver dónde abandonan sus estudiantes.</span>
+        </div>
+        @if (cursos.length) {
+          <div class="tabla-contenedor" role="region" aria-label="Comparación entre cursos" tabindex="0">
+            <table class="tabla">
+              <thead><tr><th scope="col">Curso</th><th scope="col">Inscritos</th><th scope="col">Completaron</th><th scope="col">Tasa de finalización</th><th scope="col"><span class="visualmente-oculto">Acciones</span></th></tr></thead>
+              <tbody>
+                @for (c of cursos; track c.id) {
+                  <tr>
+                    <th scope="row">{{ c.titulo }}</th>
+                    <td>{{ c.inscritos }}</td>
+                    <td>{{ c.completados }}</td>
+                    <td>{{ c.inscritos ? pct(c.completados, c.inscritos) + ' %' : '—' }}</td>
+                    <td class="acciones">
+                      <button type="button" class="btn btn-texto btn-sm" (click)="cambiarCurso('' + c.id)">Ver detalle</button>
+                      <a class="btn btn-texto btn-sm" routerLink="/docente/resenas" [queryParams]="{ curso: c.id }">Reseñas</a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="texto-suave">Todavía no tienes cursos.</p>
+        }
+      </section>
+    }
+  </div>
+}

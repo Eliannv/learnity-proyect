@@ -1,0 +1,140 @@
+<header class="cabecera">
+  <div>
+    <h1 class="titulo-pagina">Reseñas</h1>
+    <p class="subtitulo">Todas las reseñas de la plataforma con su historial completo, y los reportes de los docentes para decidir.</p>
+  </div>
+</header>
+
+<div class="pestanas" role="tablist" aria-label="Qué reseñas ver">
+  @for (v of vistas; track v.valor) {
+    <button type="button" role="tab" [attr.aria-selected]="vista() === v.valor" [class.activa]="vista() === v.valor"
+      (click)="elegir(v.valor)">{{ v.texto }}</button>
+  }
+</div>
+
+<!-- Historial de una reseña: igual en las dos vistas. -->
+<ng-template #historial let-entradas>
+  <details class="historial">
+    <summary><lucide-icon name="history" [size]="16" aria-hidden="true" /> Historial completo ({{ entradas.length }})</summary>
+    <ol>
+      @for (h of entradas; track $index) {
+        <li>
+          <time [attr.datetime]="h.fecha">{{ h.fecha | date: 'd MMM y, HH:mm' }}</time>
+          <span><strong>{{ textoAccion(h) }}</strong> · {{ h.actor?.nombre ?? 'Sin autor registrado' }}
+            @if (cambio(h)) { · {{ cambio(h) }} }</span>
+          @if (h.accion === 'EDITADA' && h.comentarioAnterior !== h.comentarioNuevo) {
+            <span class="diff"><del>{{ h.comentarioAnterior ?? '(sin comentario)' }}</del> <ins>{{ h.comentarioNuevo ?? '(sin comentario)' }}</ins></span>
+          }
+        </li>
+      }
+    </ol>
+  </details>
+</ng-template>
+
+@if (vista() === 'TODAS') {
+  <label class="campo filtro">
+    <span>Mostrar</span>
+    <select class="control" [value]="filtroTodas()" (change)="filtrar($any($event.target).value)">
+      <option value="todas">Publicadas y borradas</option>
+      <option value="vigentes">Solo publicadas</option>
+      <option value="borradas">Solo borradas u ocultadas</option>
+    </select>
+  </label>
+}
+
+@if (carga.ocupada()) {
+  <app-esqueleto forma="filas" [cantidad]="3" etiqueta="Cargando reseñas…" />
+} @else if (carga.error()) {
+  <div class="mensaje error" role="alert">
+    <p>{{ carga.error() }}</p>
+    <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
+  </div>
+} @else if (vista() === 'TODAS') {
+  @if (todas(); as t) {
+    <div role="tabpanel" class="lista">
+      <p class="texto-suave total">{{ t.total }} {{ t.total === 1 ? 'reseña' : 'reseñas' }} · de la más reciente a la más antigua</p>
+      @for (r of t.items; track r.id) {
+        <article class="reporte" [attr.aria-label]="'Reseña de ' + r.estudiante">
+          <header>
+            @if (r.eliminadaEn) {
+              <span class="chip chip-borrada">Borrada el {{ r.eliminadaEn | date: 'd MMM y' }}</span>
+            } @else {
+              <span class="chip chip-publicada">Publicada</span>
+            }
+            @if (r.reportesPendientes) {
+              <span class="chip chip-motivo"><lucide-icon name="flag" [size]="13" aria-hidden="true" /> Reporte pendiente</span>
+            }
+            <span class="texto-suave">{{ r.creadoEn | date: 'd MMM y, HH:mm' }}</span>
+          </header>
+          <div class="resena">
+            <div class="quien">
+              <strong>{{ r.estudiante }}</strong>
+              <a [routerLink]="['/cursos', r.curso.id]">{{ r.curso.titulo }}</a>
+            </div>
+            <app-estrellas [valor]="r.estrellas" />
+            <p class="comentario">{{ r.comentario ?? 'Sin comentario (solo calificación).' }}</p>
+            @if (r.respuesta; as respuesta) {
+              <p class="respuesta"><strong>Respuesta del docente:</strong> {{ respuesta.texto }}</p>
+            }
+          </div>
+          <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial }" />
+        </article>
+      } @empty {
+        <div class="mensaje">
+          <h2>No hay reseñas {{ filtroTodas() === 'borradas' ? 'borradas' : filtroTodas() === 'vigentes' ? 'publicadas' : '' }}</h2>
+          <p class="texto-suave">Cuando los estudiantes valoren los cursos, aparecerán aquí.</p>
+        </div>
+      }
+      @if (t.totalPaginas > 1) {
+        <nav class="paginacion" aria-label="Páginas de reseñas">
+          <button type="button" class="btn btn-contorno" [disabled]="t.pagina <= 1" (click)="cargar(t.pagina - 1)">Anterior</button>
+          <span>Página {{ t.pagina }} de {{ t.totalPaginas }}</span>
+          <button type="button" class="btn btn-contorno" [disabled]="t.pagina >= t.totalPaginas" (click)="cargar(t.pagina + 1)">Siguiente</button>
+        </nav>
+      }
+    </div>
+  }
+} @else {
+  <div role="tabpanel" class="lista">
+    @for (r of reportes(); track r.id) {
+      <article class="reporte" [attr.aria-label]="'Reporte sobre la reseña de ' + r.resena.estudiante">
+        <header>
+          <span class="chip chip-motivo"><lucide-icon name="flag" [size]="13" aria-hidden="true" /> {{ motivo[r.motivo] }}</span>
+          <span class="texto-suave">Reportada por <strong>{{ r.reportadoPor }}</strong> el {{ r.creadoEn | date: 'd MMM y, HH:mm' }}</span>
+        </header>
+        @if (r.detalle) { <p class="detalle">«{{ r.detalle }}»</p> }
+
+        <div class="resena">
+          <div class="quien">
+            <strong>{{ r.resena.estudiante }}</strong>
+            <a [routerLink]="['/cursos', r.resena.curso.id]">{{ r.resena.curso.titulo }}</a>
+          </div>
+          <app-estrellas [valor]="r.resena.estrellas" />
+          <p class="comentario">{{ r.resena.comentario ?? 'Sin comentario (solo calificación).' }}</p>
+          @if (r.resena.respuesta; as respuesta) {
+            <p class="respuesta"><strong>Respuesta del docente:</strong> {{ respuesta.texto }}</p>
+          }
+          @if (r.resena.eliminadaEn) {
+            <span class="chip">Oculta desde el {{ r.resena.eliminadaEn | date: 'd MMM y' }}</span>
+          }
+        </div>
+
+        <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial }" />
+
+        @if (r.estado === 'PENDIENTE') {
+          <footer class="acciones">
+            <button type="button" class="btn btn-contorno btn-sm" [disabled]="resolviendo() === r.id" (click)="resolver(r, 'DESESTIMAR')">Desestimar reporte</button>
+            <button type="button" class="btn btn-peligro btn-sm" [disabled]="resolviendo() === r.id" (click)="resolver(r, 'OCULTAR')">Ocultar reseña</button>
+          </footer>
+        } @else {
+          <p class="texto-suave resuelto">Resuelto el {{ r.resueltoEn | date: 'd MMM y, HH:mm' }}.</p>
+        }
+      </article>
+    } @empty {
+      <div class="mensaje">
+        <h2>{{ vista() === 'PENDIENTE' ? 'No hay reportes pendientes' : 'No hay reportes en este estado' }}</h2>
+        <p class="texto-suave">Cuando un docente reporte una reseña, aparecerá aquí.</p>
+      </div>
+    }
+  </div>
+}

@@ -73,9 +73,20 @@
           }
 
           .meta-curso {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 14px;
             margin: 0;
             font-size: 13px;
             color: var(--gris-500, #64748b);
+          }
+          .valoracion {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            app-estrellas { font-size: 13px; }
+            strong { color: var(--ambar-800); }
           }
         }
       }

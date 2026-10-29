@@ -6,6 +6,7 @@ import type { DatosCurso } from './cursos.esquemas.js';
 import type {
   ContextoLeccion,
   CursoDetalle,
+  CursoDelDocente,
   CursoResumen,
   DecisionRevision,
 } from './cursos.modelo.js';
@@ -56,7 +57,7 @@ export const cursosService = {
 
   contactoDocente: (idCurso: number) => fichaRepository.contactoDocente(idCurso),
 
-  async listarMisCursos(usuario: UsuarioSesion): Promise<{ items: CursoResumen[] }> {
+  async listarMisCursos(usuario: UsuarioSesion): Promise<{ items: CursoDelDocente[] }> {
     politicaCurso.exigirRol(usuario, 'DOCENTE');
     const items = await fichaRepository.listarDelDocente(usuario.idPersona);
     return { items };

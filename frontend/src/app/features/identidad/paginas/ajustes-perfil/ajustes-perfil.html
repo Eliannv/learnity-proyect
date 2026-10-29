@@ -70,6 +70,17 @@
                   <small>Docente en Learnity</small>
                 </div>
               </div>
+              @if (valoracion(); as v) {
+                <p class="valoracion-docente">
+                  @if (v.promedio !== null) {
+                    <app-estrellas [valor]="v.promedio" />
+                    <strong>{{ v.promedio | number:'1.1-1' }}</strong>
+                    <span>Valoración como docente · {{ v.total }} {{ v.total === 1 ? 'reseña' : 'reseñas' }} en tus cursos publicados</span>
+                  } @else {
+                    <span>Todavía no tienes reseñas en tus cursos publicados.</span>
+                  }
+                </p>
+              }
               <p>{{ valores().biografia || 'Aún no escribes tu biografía.' }}</p>
             </section>
           } @else {

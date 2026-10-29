@@ -78,14 +78,10 @@ export class LayoutPanel {
   );
 
   private leerSeccion(): string {
-    let rutaActual = this.ruta.snapshot;
-
-    while (rutaActual.firstChild) {
-      rutaActual = rutaActual.firstChild;
+    let ruta = this.router.routerState.snapshot.root;
+    while (ruta.firstChild) {
+      ruta = ruta.firstChild;
     }
-
-    return (
-      (rutaActual.data['seccion'] as string) ?? ''
-    );
+    return (ruta.data['seccion'] as string) ?? '';
   }
 }

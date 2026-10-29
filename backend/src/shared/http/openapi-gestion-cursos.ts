@@ -333,6 +333,20 @@ export const esquemasGestionCursos = {
     },
   },
 
+  CursoDelDocente: {
+    allOf: [
+      ref('CursoResumen'),
+      {
+        type: 'object',
+        required: ['estudiantes', 'calificacion'],
+        properties: {
+          estudiantes: { type: 'integer', minimum: 0, description: 'Inscripciones en el curso.' },
+          calificacion: ref('CalificacionCurso'),
+        },
+      },
+    ],
+  },
+
   CursoDetalle: {
     type: 'object',
     required: [
@@ -395,7 +409,7 @@ export const rutasGestionCursos = {
         properties: {
           items: {
             type: 'array',
-            items: ref('CursoResumen'),
+            items: ref('CursoDelDocente'),
           },
         },
       },

@@ -79,6 +79,12 @@ export interface CursoResumen {
   portadaUrl: string | null;
 }
 
+/** Curso en «Mis cursos»: además, cuántos se inscribieron y cómo lo valoran. */
+export interface CursoDelDocente extends CursoResumen {
+  estudiantes: number;
+  calificacion: { promedio: number | null; total: number };
+}
+
 export interface CursoDetalle {
   id: number;
   titulo: string;

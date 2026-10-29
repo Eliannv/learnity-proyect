@@ -42,6 +42,17 @@
         <app-indicador etiqueta="Inscritos" [valor]="'' + datos.resumen.inscritos" />
         <app-indicador etiqueta="Completaron" [valor]="'' + datos.resumen.completados" />
         <app-indicador etiqueta="Progreso promedio" [valor]="datos.resumen.progresoPromedio + ' %'" />
+        <app-indicador etiqueta="Valoración del curso"
+          [valor]="datos.resumen.valoracion.promedio === null ? '—' : (datos.resumen.valoracion.promedio | number:'1.1-1') + ' ★'"
+          [nota]="datos.resumen.valoracion.total === 0 ? 'Sin reseñas todavía'
+            : datos.resumen.valoracion.total + (datos.resumen.valoracion.total === 1 ? ' reseña' : ' reseñas')" />
+      </div>
+
+      <div class="barra-tabla">
+        <p class="texto-suave">{{ datos.total }} {{ datos.total === 1 ? 'estudiante inscrito' : 'estudiantes inscritos' }}</p>
+        <button type="button" class="btn btn-contorno btn-sm" [disabled]="exportando() || datos.total === 0" (click)="exportar()">
+          {{ exportando() ? 'Preparando archivo…' : 'Exportar a CSV (Excel)' }}
+        </button>
       </div>
 
       @if (datos.items.length === 0) {
@@ -55,7 +66,7 @@
       } @else {
         <div class="tabla-contenedor" role="region" aria-label="Estudiantes inscritos" tabindex="0">
           <table class="tabla">
-            <thead><tr><th scope="col">Estudiante</th><th scope="col">Inscrito</th><th scope="col">Progreso</th><th scope="col">Última actividad</th><th scope="col">Estado</th></tr></thead>
+            <thead><tr><th scope="col">Estudiante</th><th scope="col">Inscrito</th><th scope="col">Progreso</th><th scope="col">Última actividad</th><th scope="col">Calificación</th><th scope="col">Estado</th></tr></thead>
             <tbody>
               @for (estudiante of datos.items; track estudiante.idPersona) {
                 <tr>
@@ -63,6 +74,13 @@
                   <td class="texto-suave">{{ estudiante.inscritoEn | date:'dd/MM/yyyy' }}</td>
                   <td><div class="progreso"><app-barra-progreso [valor]="estudiante.progresoPct" [verde]="estudiante.estado === 'COMPLETADA'" /><strong>{{ estudiante.progresoPct }} %</strong></div></td>
                   <td class="texto-suave">{{ estudiante.ultimaActividadEn ? (estudiante.ultimaActividadEn | date:'dd/MM/yyyy HH:mm') : 'Sin actividad' }}</td>
+                  <td>
+                    @if (estudiante.estrellas !== null) {
+                      <span class="calificacion"><app-estrellas [valor]="estudiante.estrellas" /></span>
+                    } @else {
+                      <span class="texto-suave">Sin reseña</span>
+                    }
+                  </td>
                   <td><span class="chip" [class.completado]="estudiante.estado === 'COMPLETADA'" [class.en-curso]="estudiante.estado !== 'COMPLETADA'">{{ estudiante.estado === 'COMPLETADA' ? 'Completado' : 'En curso' }}</span></td>
                 </tr>
               }

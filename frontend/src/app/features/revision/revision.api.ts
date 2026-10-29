@@ -5,7 +5,7 @@ import { environment } from '../../../environments/environment';
 import type {
   CursoDetalle,
   DecisionRevision,
-  ListaCursos,
+  ColaRevision,
 } from '../../core/api/contrato';
 
 @Injectable({ providedIn: 'root' })
@@ -13,9 +13,9 @@ export class RevisionApi {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiUrl;
 
-  colaRevision(): Promise<ListaCursos> {
+  colaRevision(): Promise<ColaRevision> {
     return firstValueFrom(
-      this.http.get<ListaCursos>(`${this.base}/admin/cursos`, {
+      this.http.get<ColaRevision>(`${this.base}/admin/cursos`, {
         params: { estado: 'EN_REVISION' },
       }),
     );

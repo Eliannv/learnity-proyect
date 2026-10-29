@@ -73,6 +73,9 @@
               <strong>Tu reseña</strong>
               <app-estrellas [valor]="r.estrellas" />
               @if (r.comentario) { <p>{{ r.comentario }}</p> }
+              @if (r.respuesta; as respuesta) {
+                <p class="respuesta-propia"><strong>El docente respondió:</strong> {{ respuesta.texto }}</p>
+              }
             </div>
             <div class="acciones">
               <button type="button" class="btn btn-suave btn-sm" (click)="empezar()">Editar</button>
@@ -98,8 +101,16 @@
                 <strong>{{ r.autor }}</strong>
                 <app-estrellas [valor]="r.estrellas" />
                 <time class="texto-suave" [attr.datetime]="r.actualizadoEn">{{ r.actualizadoEn | date: 'd MMM y' }}</time>
+                @if (r.editado) { <span class="editada">Editada</span> }
               </div>
               @if (r.comentario) { <p class="comentario">{{ r.comentario }}</p> }
+              @if (r.respuesta; as respuesta) {
+                <div class="respuesta-docente">
+                  <strong>Respuesta del docente</strong>
+                  <time class="texto-suave" [attr.datetime]="respuesta.fecha">{{ respuesta.fecha | date: 'd MMM y' }}</time>
+                  <p class="comentario">{{ respuesta.texto }}</p>
+                </div>
+              }
             </div>
           </li>
         }

@@ -5,6 +5,7 @@ import { consultar } from '../../shared/database/pool.js';
 import type {
   ContextoCurso,
   CursoDetalle,
+  CursoDelDocente,
   CursoResumen,
 } from './cursos.modelo.js';
 
@@ -28,8 +29,8 @@ export interface BasePrivada extends ContextoCurso {
 }
 
 export const fichaRepository = {
-  async listarDelDocente(idPersona: number): Promise<CursoResumen[]> {
-    const { rows } = await consultar<CursoResumen>(
+  async listarDelDocente(idPersona: number): Promise<CursoDelDocente[]> {
+    const { rows } = await consultar<CursoResumen & { estudiantes: number; promedio: string | null; resenas: number }>(
       `
         SELECT
           c.id_curso AS id,
@@ -42,12 +43,27 @@ export const fichaRepository = {
             FROM modulo m
             WHERE m.id_curso = c.id_curso
           ) AS modulos,
-          NULLIF(c.portada_url, '') AS "portadaUrl"
+          NULLIF(c.portada_url, '') AS "portadaUrl",
+          (
+            SELECT count(*)::int
+            FROM inscripcion i
+            WHERE i.id_curso = c.id_curso
+          ) AS estudiantes,
+          v.promedio,
+          v.resenas
         FROM curso c
         JOIN docente d
           ON d.id_docente = c.id_docente
         JOIN persona p
           ON p.id_persona = d.id_persona
+        CROSS JOIN LATERAL (
+          -- Solo reseñas vigentes: las borradas no cuentan en el promedio.
+          SELECT round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS resenas
+          FROM resena r
+          JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+          WHERE i.id_curso = c.id_curso
+            AND r.eliminado_en IS NULL
+        ) v
         WHERE d.id_persona = $1
           AND d.estado = 'ACTIVO'
         ORDER BY c.creado_en DESC, c.id_curso DESC
@@ -55,7 +71,10 @@ export const fichaRepository = {
       [idPersona],
     );
 
-    return rows;
+    return rows.map(({ promedio, resenas, ...curso }) => ({
+      ...curso,
+      calificacion: { promedio: promedio === null ? null : Number(promedio), total: resenas },
+    }));
   },
 
   async docentePorPersona(

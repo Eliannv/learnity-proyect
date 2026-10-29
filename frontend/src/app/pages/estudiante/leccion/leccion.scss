@@ -624,10 +624,5 @@
     min-height: 360px;
   }
 }
-// Reseñas dentro del aula, después de la descripción general.
-.resenas-aula {
-  display: block;
-  margin-top: 40px;
-  padding-top: 32px;
-  border-top: 1px solid var(--gris-200);
-}
+// Reseñas dentro del aula.
+.resenas-aula { margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--gris-200); }

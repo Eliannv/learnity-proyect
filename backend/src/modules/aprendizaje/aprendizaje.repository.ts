@@ -47,6 +47,12 @@ export interface FilaEstudiante {
   ultimaLeccionId: number | null;
   inscritoEn: Date;
   ultimaActividadEn: Date;
+  estrellas: number | null;
+}
+
+export interface FilaExportacion extends FilaEstudiante {
+  completadoEn: Date | null;
+  comentario: string | null;
 }
 
 const CAMPOS_INSCRIPCION = `
@@ -255,17 +261,22 @@ export const aprendizajeRepository = {
 
   async resumenSeguimiento(idCurso: number): Promise<{
     inscritos: number; completados: number; progresoPromedio: number;
+    valoracion: { promedio: number | null; total: number };
   }> {
     const { rows } = await consultar<{
-      inscritos: number; completados: number; progresoPromedio: number;
+      inscritos: number; completados: number; progresoPromedio: number; promedio: string | null; resenas: number;
     }>(
       `SELECT count(*)::int AS inscritos,
-              count(*) FILTER (WHERE estado = 'COMPLETADA')::int AS completados,
-              COALESCE(round(avg(progreso_pct)), 0)::int AS "progresoPromedio"
-         FROM inscripcion WHERE id_curso = $1`,
+              count(*) FILTER (WHERE i.estado = 'COMPLETADA')::int AS completados,
+              COALESCE(round(avg(i.progreso_pct)), 0)::int AS "progresoPromedio",
+              round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS resenas
+         FROM inscripcion i
+         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL
+        WHERE i.id_curso = $1`,
       [idCurso],
     );
-    return rows[0]!;
+    const { promedio, resenas, ...resumen } = rows[0]!;
+    return { ...resumen, valoracion: { promedio: promedio === null ? null : Number(promedio), total: resenas } };
   },
 
   async estudiantesDelCurso(idCurso: number, limite: number, offset: number): Promise<FilaEstudiante[]> {
@@ -273,12 +284,30 @@ export const aprendizajeRepository = {
       `SELECT p.id_persona AS "idPersona", concat_ws(' ', p.nombres, p.apellidos) AS nombre,
               i.estado, i.progreso_pct AS "progresoPct",
               i.id_ultima_leccion AS "ultimaLeccionId", i.inscrito_en AS "inscritoEn",
-              i.ultima_actividad_en AS "ultimaActividadEn"
+              i.ultima_actividad_en AS "ultimaActividadEn", r.estrellas
          FROM inscripcion i JOIN persona p ON p.id_persona = i.id_persona
+         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL
         WHERE i.id_curso = $1
         ORDER BY i.inscrito_en DESC, i.id_inscripcion DESC
         LIMIT $2 OFFSET $3`,
       [idCurso, limite, offset],
+    );
+    return rows;
+  },
+
+  /** Todos los inscritos para exportar (con un tope que ningún curso real alcanza). */
+  async exportarEstudiantes(idCurso: number): Promise<FilaExportacion[]> {
+    const { rows } = await consultar<FilaExportacion>(
+      `SELECT p.id_persona AS "idPersona", concat_ws(' ', p.nombres, p.apellidos) AS nombre,
+              i.estado, i.progreso_pct AS "progresoPct", i.id_ultima_leccion AS "ultimaLeccionId",
+              i.inscrito_en AS "inscritoEn", i.ultima_actividad_en AS "ultimaActividadEn",
+              i.completado_en AS "completadoEn", r.estrellas, r.comentario
+         FROM inscripcion i JOIN persona p ON p.id_persona = i.id_persona
+         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL
+        WHERE i.id_curso = $1
+        ORDER BY i.inscrito_en DESC, i.id_inscripcion DESC
+        LIMIT 20000`,
+      [idCurso],
     );
     return rows;
   },

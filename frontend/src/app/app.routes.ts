@@ -110,6 +110,16 @@ export const routes: Routes = [
       },
       ...rutasSeguimientoDocente,
       {
+        path: 'resenas',
+        loadChildren: () =>
+          import('./features/docente-resenas/docente-resenas.routes').then((m) => m.rutasDocenteResenas),
+      },
+      {
+        path: 'analiticas',
+        loadChildren: () =>
+          import('./features/docente-analiticas/docente-analiticas.routes').then((m) => m.rutasDocenteAnaliticas),
+      },
+      {
         path: 'perfil',
         loadChildren: () =>
           import('./features/identidad/identidad.routes').then((m) => m.rutasAjustesPerfil),
@@ -147,6 +157,11 @@ export const routes: Routes = [
         path: 'categorias',
         loadChildren: () =>
           import('./features/admin-categorias/admin-categorias.routes').then((m) => m.rutasAdminCategorias),
+      },
+      {
+        path: 'resenas',
+        loadChildren: () =>
+          import('./features/admin-resenas/admin-resenas.routes').then((m) => m.rutasAdminResenas),
       },
       {
         path: 'perfil',

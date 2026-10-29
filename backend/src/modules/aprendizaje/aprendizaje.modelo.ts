@@ -79,6 +79,8 @@ export interface EstudianteCurso {
   ultimaLeccionId: number | null;
   inscritoEn: string;
   ultimaActividadEn: string | null;
+  /** Estrellas de su reseña vigente; null si no reseñó el curso. */
+  estrellas: number | null;
 }
 
 export interface SeguimientoDocente {
@@ -88,5 +90,9 @@ export interface SeguimientoDocente {
   limite: number;
   total: number;
   totalPaginas: number;
-  resumen: { inscritos: number; completados: number; progresoPromedio: number };
+  resumen: {
+    inscritos: number; completados: number; progresoPromedio: number;
+    /** Reseñas vigentes del curso: promedio con un decimal (null sin reseñas) y cantidad. */
+    valoracion: { promedio: number | null; total: number };
+  };
 }

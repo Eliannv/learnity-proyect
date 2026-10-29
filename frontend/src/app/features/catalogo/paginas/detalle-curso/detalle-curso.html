@@ -92,6 +92,14 @@
                 {{ c.instructor.cursosPublicados }} {{ c.instructor.cursosPublicados === 1 ? 'curso publicado' : 'cursos publicados' }}</li>
               <li><lucide-icon name="users" [size]="16" aria-hidden="true" />
                 {{ c.instructor.estudiantes }} {{ c.instructor.estudiantes === 1 ? 'estudiante' : 'estudiantes' }}</li>
+              @if (c.instructor.calificacion.promedio !== null) {
+                <li class="instructor-valoracion">
+                  <app-estrellas [valor]="c.instructor.calificacion.promedio" />
+                  <strong>{{ c.instructor.calificacion.promedio | number: '1.1-1' }}</strong>
+                  valoración como docente ({{ c.instructor.calificacion.total }}
+                  {{ c.instructor.calificacion.total === 1 ? 'reseña' : 'reseñas' }})
+                </li>
+              }
             </ul>
           </div>
         </div>

@@ -190,7 +190,7 @@ describe('GET /api/docente/cursos (CAR-CUR-01, 02, 30)', () => {
     const ajeno = await crearCurso(docB);
     const r = await como(docA, 'GET', '/api/docente/cursos');
     assert.equal(r.status, 200);
-    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number', portadaUrl: 'string' }] });
+    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number', portadaUrl: 'string', estudiantes: 'number', calificacion: { promedio: 'null', total: 'number' } }] });
     const lista: any[] = r.json.items;
     assert.deepEqual(lista.map((c) => c.estado), ['ARCHIVADO', 'RECHAZADO', 'PUBLICADO', 'EN_REVISION', 'BORRADOR'], 'orden por id descendente');
     const propios = lista.filter((c) => c.titulo?.startsWith?.(marca));

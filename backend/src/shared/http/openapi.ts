@@ -8,6 +8,7 @@ import { esquemasAprendizaje, rutasAprendizaje } from './openapi-aprendizaje.js'
 import { esquemasEvaluaciones, rutasEvaluaciones } from './openapi-evaluaciones.js';
 import { esquemasCategorias, rutasCategorias } from './openapi-categorias.js';
 import { esquemasResenas, rutasResenas } from './openapi-resenas.js';
+import { esquemasAnaliticas, rutasAnaliticas } from './openapi-analiticas.js';
 
 const usuarioSesion = {
   type: 'object',
@@ -129,13 +130,14 @@ const esquemasCatalogo = {
         properties: {
           descripcion: { type: 'string', description: 'Cadena vacía si no tiene.' }, docenteBio: { type: 'string', nullable: true },
           instructor: {
-            type: 'object', required: ['nombre', 'especialidad', 'biografia', 'fotoUrl', 'cursosPublicados', 'estudiantes'],
+            type: 'object', required: ['nombre', 'especialidad', 'biografia', 'fotoUrl', 'cursosPublicados', 'estudiantes', 'calificacion'],
             description: 'Ficha pública del docente: nunca incluye su correo.',
             properties: {
               nombre: { type: 'string' }, especialidad: { type: 'string' },
               biografia: { type: 'string', nullable: true }, fotoUrl: { type: 'string', nullable: true },
               cursosPublicados: { type: 'integer', minimum: 0 },
               estudiantes: { type: 'integer', minimum: 0, description: 'Inscripciones en todos sus cursos publicados.' },
+              calificacion: { allOf: [ref('CalificacionCurso')], description: 'Valoración global: reseñas vigentes de todos sus cursos publicados.' },
             },
           },
           calificacion: ref('CalificacionCurso'),
@@ -200,6 +202,7 @@ export const openApi = {
       ...esquemasEvaluaciones,
       ...esquemasCategorias,
       ...esquemasResenas,
+      ...esquemasAnaliticas,
     },
     responses: respuestasComunes,
     securitySchemes: {
@@ -216,6 +219,7 @@ export const openApi = {
     ...rutasEvaluaciones,
     ...rutasCategorias,
     ...rutasResenas,
+    ...rutasAnaliticas,
     '/salud': {
       get: {
         tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL',
