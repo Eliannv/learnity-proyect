@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import type { Tono } from './tipos-ui';
+import type { Tono } from '../tipos-ui';
 import { PortadaCurso } from './portada-curso';
 
 /**

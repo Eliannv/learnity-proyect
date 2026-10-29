@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { describe, expect, it, vi } from 'vitest';
-import { ICONOS } from '../../../shared/ui/iconos';
+import { ICONOS } from '../../../shared/ui/marca/iconos';
 import { AprendizajeApi, type EvaluacionEstudiante as Evaluacion, type ResultadoIntento } from '../aprendizaje.api';
 import { EvaluacionEstudiante } from './evaluacion-estudiante';
 

@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Logo } from '../ui/logo';
+import { Logo } from '../ui/marca/logo';
 
 /**
  * Footer. Hay solo dos versiones:

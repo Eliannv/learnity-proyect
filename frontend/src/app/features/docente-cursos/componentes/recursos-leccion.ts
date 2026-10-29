@@ -2,8 +2,8 @@ import { Component, inject, input, output, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import type { CursoDetalle, LeccionPrivada } from '../../../core/cursos/gestion-cursos.model';
 import { mensajeDeError } from '../../../core/http/error-api';
-import { Modal } from '../../../shared/ui/modal';
-import { ToastService } from '../../../shared/ui/toast.service';
+import { Modal } from '../../../shared/ui/retroalimentacion/modal';
+import { ToastService } from '../../../shared/ui/retroalimentacion/toast.service';
 import { guardarBlob, tamanoLegible } from '../../../shared/util/descargar';
 import { ContenidoApi } from '../../contenido/contenido.api';
 

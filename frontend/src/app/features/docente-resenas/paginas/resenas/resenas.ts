@@ -8,14 +8,14 @@ import type {
 } from '../../../../core/api/contrato';
 import { Peticion } from '../../../../core/estado/peticion';
 import { mensajeDeError } from '../../../../core/http/error-api';
-import { Avatar } from '../../../../shared/ui/avatar';
-import { Esqueleto } from '../../../../shared/ui/esqueleto';
-import { Estrellas } from '../../../../shared/ui/estrellas';
-import { GraficoSeries, etiquetasMes } from '../../../../shared/ui/grafico-series';
-import { Indicador } from '../../../../shared/ui/indicador';
-import { Modal } from '../../../../shared/ui/modal';
-import { ToastService } from '../../../../shared/ui/toast.service';
-import { ConfirmacionService } from '../../../../shared/ui/confirmacion.service';
+import { Avatar } from '../../../../shared/ui/marca/avatar';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
+import { Estrellas } from '../../../../shared/ui/datos/estrellas';
+import { GraficoSeries, etiquetasMes } from '../../../../shared/ui/datos/grafico-series';
+import { Indicador } from '../../../../shared/ui/datos/indicador';
+import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
+import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
+import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
 import { DocenteResenasApi } from '../../docente-resenas.api';
 
 type Filtro = Required<Pick<FiltrosBandejaResenas, 'pagina'>> & Omit<FiltrosBandejaResenas, 'pagina' | 'limite'>;

@@ -1,4 +1,4 @@
-import { Esqueleto } from '../../../../shared/ui/esqueleto';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, effect, inject, input, linkedSignal, signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -10,9 +10,9 @@ import {
   type OrdenCatalogo,
   type PaginaCursos,
 } from '../../catalogo.api';
-import { BuscadorMovil } from '../../../../shared/ui/buscador-movil';
-import { Modal } from '../../../../shared/ui/modal';
-import { TarjetaCurso } from '../../../../shared/ui/tarjeta-curso';
+import { BuscadorMovil } from '../../../../shared/ui/navegacion/buscador-movil';
+import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
+import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
 
 const LIMITE = 9;
 const NIVELES: { valor: NivelCurso; texto: string }[] = [

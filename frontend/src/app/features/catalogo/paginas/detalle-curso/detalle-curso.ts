@@ -1,4 +1,4 @@
-import { Esqueleto } from '../../../../shared/ui/esqueleto';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe, I18nPluralPipe, NgTemplateOutlet } from '@angular/common';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
@@ -9,12 +9,12 @@ import {
   type DetalleCursoPublico,
   type TipoLeccionPublica,
 } from '../../catalogo.api';
-import { Avatar } from '../../../../shared/ui/avatar';
-import { PortadaCurso } from '../../../../shared/ui/portada-curso';
+import { Avatar } from '../../../../shared/ui/marca/avatar';
+import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { mensajeDeError } from '../../../../core/http/error-api';
 import { AprendizajeApi, type DetalleAprendizaje } from '../../../aprendizaje/aprendizaje.api';
-import { Estrellas } from '../../../../shared/ui/estrellas';
+import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 import { ResenasCurso } from '../../componentes/resenas-curso';
 import type { PaginaResenas } from '../../resenas.api';
 

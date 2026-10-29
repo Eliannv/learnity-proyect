@@ -2,7 +2,7 @@ import { Component, ElementRef, OnDestroy, inject, signal } from '@angular/core'
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
-import { Avatar } from '../ui/avatar';
+import { Avatar } from '../ui/marca/avatar';
 
 /**
  * Foto de perfil del header (sitio y paneles).

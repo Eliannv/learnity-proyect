@@ -2,9 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import type { ReporteResena } from '../../../../core/api/contrato';
-import { ConfirmacionService } from '../../../../shared/ui/confirmacion.service';
-import { ICONOS } from '../../../../shared/ui/iconos';
-import { ToastService } from '../../../../shared/ui/toast.service';
+import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
+import { ICONOS } from '../../../../shared/ui/marca/iconos';
+import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
 import { AdminResenasApi } from '../../admin-resenas.api';
 import { ReportesResenas } from './reportes';
 

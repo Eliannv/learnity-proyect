@@ -2,7 +2,7 @@ import { importProvidersFrom } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { ICONOS } from '../../../../shared/ui/iconos';
+import { ICONOS } from '../../../../shared/ui/marca/iconos';
 import { CatalogoApi, type PaginaCursos } from '../../catalogo.api';
 import { Catalogo } from './catalogo';
 

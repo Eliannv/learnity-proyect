@@ -2,10 +2,10 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { mensajeDeError } from '../../../core/http/error-api';
-import { Avatar } from '../../../shared/ui/avatar';
-import { Estrellas } from '../../../shared/ui/estrellas';
-import { Modal } from '../../../shared/ui/modal';
-import { ToastService } from '../../../shared/ui/toast.service';
+import { Avatar } from '../../../shared/ui/marca/avatar';
+import { Estrellas } from '../../../shared/ui/datos/estrellas';
+import { Modal } from '../../../shared/ui/retroalimentacion/modal';
+import { ToastService } from '../../../shared/ui/retroalimentacion/toast.service';
 import { ResenasApi, type PaginaResenas, type Resena } from '../resenas.api';
 
 const NOMBRE_NOTA = ['', 'Malo', 'Regular', 'Bueno', 'Muy bueno', 'Excelente'];

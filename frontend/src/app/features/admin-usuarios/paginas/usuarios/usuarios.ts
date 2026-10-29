@@ -3,10 +3,10 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { mensajeDeError } from '../../../../core/http/error-api';
-import { Avatar } from '../../../../shared/ui/avatar';
-import { EstadoVistaComponent } from '../../../../shared/ui/estado-vista';
-import { Modal } from '../../../../shared/ui/modal';
-import { ToastService } from '../../../../shared/ui/toast.service';
+import { Avatar } from '../../../../shared/ui/marca/avatar';
+import { EstadoVistaComponent } from '../../../../shared/ui/retroalimentacion/estado-vista';
+import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
+import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
 import {
   AdminUsuariosApi, type RespuestaUsuariosAdmin, type RolUsuario, type UsuarioAdmin,
 } from '../../admin-usuarios.api';

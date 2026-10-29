@@ -16,7 +16,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { AuthService } from './core/auth/auth.service';
 import { ErrorCargaService, esErrorDeCarga } from './core/navegacion/error-carga';
-import { ICONOS } from './shared/ui/iconos';
+import { ICONOS } from './shared/ui/marca/iconos';
 
 // Fechas («28 oct 2026») y decimales («4,5») en español en todos los pipes.
 registerLocaleData(localeEs);

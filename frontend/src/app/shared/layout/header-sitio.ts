@@ -5,8 +5,8 @@ import { filter, map } from 'rxjs';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogoApi, type CursoPublico } from '../../features/catalogo/catalogo.api';
-import { PortadaCurso } from '../ui/portada-curso';
-import { Logo } from '../ui/logo';
+import { PortadaCurso } from '../ui/cursos/portada-curso';
+import { Logo } from '../ui/marca/logo';
 import { MenuCuenta } from './menu-cuenta';
 import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
 

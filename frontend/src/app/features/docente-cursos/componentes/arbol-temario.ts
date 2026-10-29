@@ -26,7 +26,7 @@ import { esIdYoutube, validarEnlaceYoutube } from '../../contenido/youtube';
 import { CampoYoutube } from './campo-youtube';
 import { EditorEvaluacion } from './editor-evaluacion';
 import { RecursosLeccion } from './recursos-leccion';
-import { ConfirmacionService } from '../../../shared/ui/confirmacion.service';
+import { ConfirmacionService } from '../../../shared/ui/retroalimentacion/confirmacion.service';
 
 type TipoContenido = LeccionPrivada['tipo'];
 

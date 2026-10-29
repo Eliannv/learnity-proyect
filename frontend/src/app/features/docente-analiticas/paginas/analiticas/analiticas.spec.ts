@@ -3,9 +3,9 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import type { Analiticas } from '../../../../core/api/contrato';
-import { ICONOS } from '../../../../shared/ui/iconos';
-import { GraficoEcharts } from '../../../../shared/ui/grafico-echarts';
-import type { SerieGrafico } from '../../../../shared/ui/grafico-series';
+import { ICONOS } from '../../../../shared/ui/marca/iconos';
+import { GraficoEcharts } from '../../../../shared/ui/datos/grafico-echarts';
+import type { SerieGrafico } from '../../../../shared/ui/datos/grafico-series';
 import { DocenteAnaliticasApi } from '../../docente-analiticas.api';
 import { AnaliticasDocente } from './analiticas';
 

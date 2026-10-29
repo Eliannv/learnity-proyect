@@ -4,10 +4,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type { Analiticas } from '../../../../core/api/contrato';
 import { Peticion } from '../../../../core/estado/peticion';
-import { Esqueleto } from '../../../../shared/ui/esqueleto';
-import { GraficoSeries, etiquetasMes } from '../../../../shared/ui/grafico-series';
-import { GraficoEcharts } from '../../../../shared/ui/grafico-echarts';
-import { Indicador } from '../../../../shared/ui/indicador';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
+import { GraficoSeries, etiquetasMes } from '../../../../shared/ui/datos/grafico-series';
+import { GraficoEcharts } from '../../../../shared/ui/datos/grafico-echarts';
+import { Indicador } from '../../../../shared/ui/datos/indicador';
 import { DocenteAnaliticasApi } from '../../docente-analiticas.api';
 
 type LeccionEmbudo = NonNullable<Analiticas['embudo']>[number];

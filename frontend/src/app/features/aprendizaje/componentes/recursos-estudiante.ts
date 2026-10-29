@@ -2,7 +2,7 @@ import { Component, inject, input, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import type { RecursoAprendizaje } from '../../../core/api/contrato';
 import { mensajeDeError } from '../../../core/http/error-api';
-import { ToastService } from '../../../shared/ui/toast.service';
+import { ToastService } from '../../../shared/ui/retroalimentacion/toast.service';
 import { guardarBlob, tamanoLegible } from '../../../shared/util/descargar';
 import { ContenidoApi } from '../../contenido/contenido.api';
 

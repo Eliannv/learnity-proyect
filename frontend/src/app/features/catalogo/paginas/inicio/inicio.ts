@@ -1,10 +1,10 @@
-import { Esqueleto } from '../../../../shared/ui/esqueleto';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { BuscadorMovil } from '../../../../shared/ui/buscador-movil';
-import { TarjetaCurso } from '../../../../shared/ui/tarjeta-curso';
+import { BuscadorMovil } from '../../../../shared/ui/navegacion/buscador-movil';
+import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
 import { ICONO_CATEGORIA, type Tono } from '../../../../shared/ui/tipos-ui';
 import {
   CatalogoApi,

@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, signal } from '@angular/core';
 
-import { ToastService } from '../../shared/ui/toast.service';
+import { ToastService } from '../../shared/ui/retroalimentacion/toast.service';
 import { erroresPorCampo } from '../http/error-api';
 
 /** Toasts de la app si la petición se crea en un componente; fuera de inyección (pruebas puras), ninguno. */

@@ -1,4 +1,4 @@
-import { Esqueleto } from '../../../../shared/ui/esqueleto';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
 import { TitleCasePipe } from '@angular/common';
 import {
   Component,
@@ -12,12 +12,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import type { CursoDetalle } from '../../../../core/cursos/gestion-cursos.model';
 import { Peticion } from '../../../../core/estado/peticion';
-import { EstadoCursoBadge } from '../../../../shared/ui/estado-curso';
+import { EstadoCursoBadge } from '../../../../shared/ui/cursos/estado-curso';
 import { ContenidoApi } from '../../../contenido/contenido.api';
 import { ArbolTemario } from '../../../docente-cursos/componentes/arbol-temario';
 import { DocenteCursosApi } from '../../../docente-cursos/docente-cursos.api';
 import { RevisionApi } from '../../revision.api';
-import { ConfirmacionService } from '../../../../shared/ui/confirmacion.service';
+import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
 
 @Component({
   selector: 'app-revision-curso',

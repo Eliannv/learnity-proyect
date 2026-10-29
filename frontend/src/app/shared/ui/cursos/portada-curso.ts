@@ -1,6 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { ICONO_CATEGORIA, type Tono } from './tipos-ui';
+import { ICONO_CATEGORIA, type Tono } from '../tipos-ui';
 
 /**
  * Portada del curso. Si el curso tiene imagen (curso.portada_url) la muestra;

@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import type { BandejaResenas, ResenaDocente } from '../../../../core/api/contrato';
-import { ICONOS } from '../../../../shared/ui/iconos';
-import { ToastService } from '../../../../shared/ui/toast.service';
+import { ICONOS } from '../../../../shared/ui/marca/iconos';
+import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
 import { DocenteResenasApi } from '../../docente-resenas.api';
 import { ResenasDocente } from './resenas';
 

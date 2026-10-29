@@ -16,9 +16,9 @@ import {
 
 import { Router, provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
-import { ICONOS } from '../../shared/ui/iconos';
-import { ConfirmacionService } from '../../shared/ui/confirmacion.service';
-import { ToastService } from '../../shared/ui/toast.service';
+import { ICONOS } from '../../shared/ui/marca/iconos';
+import { ConfirmacionService } from '../../shared/ui/retroalimentacion/confirmacion.service';
+import { ToastService } from '../../shared/ui/retroalimentacion/toast.service';
 
 /** La confirmación es asíncrona (modal): deja correr la respuesta antes de comprobar la petición. */
 const confirmado = () => new Promise((resolver) => setTimeout(resolver, 0));

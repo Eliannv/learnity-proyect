@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
-import { ErrorCargaService, esErrorDeCarga } from '../../core/navegacion/error-carga';
+import { ErrorCargaService, esErrorDeCarga } from '../../../core/navegacion/error-carga';
 import { ErrorCarga } from './error-carga';
-import { ICONOS } from './iconos';
+import { ICONOS } from '../marca/iconos';
 
 describe('error al cargar una sección', () => {
   it('reconoce los mensajes de los navegadores y no otros errores', () => {

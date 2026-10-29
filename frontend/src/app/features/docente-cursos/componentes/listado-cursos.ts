@@ -1,4 +1,4 @@
-import { Esqueleto } from '../../../shared/ui/esqueleto';
+import { Esqueleto } from '../../../shared/ui/retroalimentacion/esqueleto';
 import {
   Component,
   computed,
@@ -16,8 +16,8 @@ import {
 } from '../../../core/cursos/gestion-cursos.model';
 import type { CursoDelDocente } from '../../../core/api/contrato';
 import { Peticion } from '../../../core/estado/peticion';
-import { EstadoCursoBadge } from '../../../shared/ui/estado-curso';
-import { Estrellas } from '../../../shared/ui/estrellas';
+import { EstadoCursoBadge } from '../../../shared/ui/cursos/estado-curso';
+import { Estrellas } from '../../../shared/ui/datos/estrellas';
 
 /** En «Mis cursos» llegan también inscritos y valoración; la cola de revisión no los trae. */
 type CursoListado = CursoResumen & Partial<Pick<CursoDelDocente, 'estudiantes' | 'calificacion'>>;

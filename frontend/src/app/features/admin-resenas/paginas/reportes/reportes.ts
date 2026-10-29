@@ -7,10 +7,10 @@ import type {
 } from '../../../../core/api/contrato';
 import { Peticion } from '../../../../core/estado/peticion';
 import { mensajeDeError } from '../../../../core/http/error-api';
-import { ConfirmacionService } from '../../../../shared/ui/confirmacion.service';
-import { Esqueleto } from '../../../../shared/ui/esqueleto';
-import { Estrellas } from '../../../../shared/ui/estrellas';
-import { ToastService } from '../../../../shared/ui/toast.service';
+import { ConfirmacionService } from '../../../../shared/ui/retroalimentacion/confirmacion.service';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
+import { Estrellas } from '../../../../shared/ui/datos/estrellas';
+import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
 import { AdminResenasApi } from '../../admin-resenas.api';
 
 type Vista = 'TODAS' | EstadoReporte;

@@ -3,9 +3,9 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PerfilService } from '../../../core/auth/perfil.service';
 import { mensajeDeError } from '../../../core/http/error-api';
-import { Avatar } from '../../../shared/ui/avatar';
-import { ConfirmacionService } from '../../../shared/ui/confirmacion.service';
-import { ToastService } from '../../../shared/ui/toast.service';
+import { Avatar } from '../../../shared/ui/marca/avatar';
+import { ConfirmacionService } from '../../../shared/ui/retroalimentacion/confirmacion.service';
+import { ToastService } from '../../../shared/ui/retroalimentacion/toast.service';
 
 const TIPOS = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 2 * 1024 * 1024;

@@ -8,11 +8,11 @@ import {
   type CategoriaPublica,
   type CursoPublico,
 } from '../../../features/catalogo/catalogo.api';
-import { Avatar } from '../../../shared/ui/avatar';
-import { BarraProgreso } from '../../../shared/ui/barra-progreso';
-import { Carrusel } from '../../../shared/ui/carrusel';
-import { PortadaCurso } from '../../../shared/ui/portada-curso';
-import { TarjetaCurso } from '../../../shared/ui/tarjeta-curso';
+import { Avatar } from '../../../shared/ui/marca/avatar';
+import { BarraProgreso } from '../../../shared/ui/datos/barra-progreso';
+import { Carrusel } from '../../../shared/ui/navegacion/carrusel';
+import { PortadaCurso } from '../../../shared/ui/cursos/portada-curso';
+import { TarjetaCurso } from '../../../shared/ui/cursos/tarjeta-curso';
 import { ICONO_CATEGORIA, type Tono } from '../../../shared/ui/tipos-ui';
 
 type Pestana = 'populares' | 'nuevos' | 'avanzados';

@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Confirmacion } from './shared/ui/confirmacion';
-import { Toasts } from './shared/ui/toasts';
-import { ErrorCarga } from './shared/ui/error-carga';
+import { Confirmacion } from './shared/ui/retroalimentacion/confirmacion';
+import { Toasts } from './shared/ui/retroalimentacion/toasts';
+import { ErrorCarga } from './shared/ui/retroalimentacion/error-carga';
 
 @Component({
   selector: 'app-root',

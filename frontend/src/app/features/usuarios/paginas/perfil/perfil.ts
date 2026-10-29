@@ -7,7 +7,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { PerfilService, fechaCorta } from '../../../../core/auth/perfil.service';
 import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api';
 import { SolicitudesDocenteService, type SolicitudDocente } from '../../../../core/solicitudes/solicitudes-docente.service';
-import { Modal } from '../../../../shared/ui/modal';
+import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../../shared/validadores/contrasena';
 
 function contrasenaOpcional(grupo: AbstractControl): ValidationErrors | null {

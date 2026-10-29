@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ICONOS } from './iconos';
+import { ICONOS } from '../marca/iconos';
 import { EstadoVistaComponent } from './estado-vista';
 import { Modal } from './modal';
 

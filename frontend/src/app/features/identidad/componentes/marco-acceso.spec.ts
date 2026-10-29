@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
-import { ICONOS } from '../../../shared/ui/iconos';
+import { ICONOS } from '../../../shared/ui/marca/iconos';
 import { MarcoAcceso } from './marco-acceso';
 
 describe('MarcoAcceso', () => {

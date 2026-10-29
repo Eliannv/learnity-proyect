@@ -1,4 +1,4 @@
-import { Esqueleto } from '../../../../shared/ui/esqueleto';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
@@ -9,7 +9,7 @@ import {
   type SolicitudDocente,
   SolicitudesDocenteService,
 } from '../../../../core/solicitudes/solicitudes-docente.service';
-import { Avatar } from '../../../../shared/ui/avatar';
+import { Avatar } from '../../../../shared/ui/marca/avatar';
 
 const PESTANAS: { estado: EstadoSolicitud; texto: string }[] = [
   { estado: 'PENDIENTE', texto: 'Pendientes' },

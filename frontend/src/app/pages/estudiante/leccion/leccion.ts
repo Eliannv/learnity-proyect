@@ -1,4 +1,4 @@
-import { Esqueleto } from '../../../shared/ui/esqueleto';
+import { Esqueleto } from '../../../shared/ui/retroalimentacion/esqueleto';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
@@ -15,7 +15,7 @@ import {
 import { EvaluacionEstudiante } from '../../../features/aprendizaje/componentes/evaluacion-estudiante';
 import { RecursosEstudiante } from '../../../features/aprendizaje/componentes/recursos-estudiante';
 import { ResenasCurso } from '../../../features/catalogo/componentes/resenas-curso';
-import { BarraProgreso } from '../../../shared/ui/barra-progreso';
+import { BarraProgreso } from '../../../shared/ui/datos/barra-progreso';
 
 const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
   VIDEO: 'Vídeo',

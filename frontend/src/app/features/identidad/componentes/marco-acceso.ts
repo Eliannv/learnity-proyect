@@ -2,7 +2,7 @@ import { Location } from '@angular/common';
 import { Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { Logo } from '../../../shared/ui/logo';
+import { Logo } from '../../../shared/ui/marca/logo';
 
 /**
  * Marco de las pantallas de acceso (Login, Registro, Recuperar contraseña).

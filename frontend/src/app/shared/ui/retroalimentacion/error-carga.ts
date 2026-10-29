@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { ErrorCargaService } from '../../core/navegacion/error-carga';
+import { ErrorCargaService } from '../../../core/navegacion/error-carga';
 
 /**
  * Aviso persistente cuando una sección no se pudo descargar. No recarga solo (evita bucles si el

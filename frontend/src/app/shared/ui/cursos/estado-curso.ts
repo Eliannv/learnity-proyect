@@ -6,7 +6,7 @@ import {
 
 import type {
   EstadoCurso,
-} from '../../core/cursos/gestion-cursos.model';
+} from '../../../core/cursos/gestion-cursos.model';
 
 const TEXTO: Record<EstadoCurso, string> = {
   BORRADOR: 'Borrador',

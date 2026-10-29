@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import type { CalificacionCurso } from '../../../../core/api/contrato';
 import { DocenteResenasApi } from '../../../docente-resenas/docente-resenas.api';
-import { Estrellas } from '../../../../shared/ui/estrellas';
+import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 import { FotoPerfil } from '../../componentes/foto-perfil';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
@@ -10,7 +10,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { PerfilService, fechaCorta } from '../../../../core/auth/perfil.service';
 import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api';
-import { Avatar } from '../../../../shared/ui/avatar';
+import { Avatar } from '../../../../shared/ui/marca/avatar';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../../shared/validadores/contrasena';
 
 type Pestana = 'perfil' | 'foto' | 'contrasena' | 'cuenta';
