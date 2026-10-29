@@ -75,26 +75,28 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
 
       <details class="tabla-datos">
         <summary>Ver datos en tabla</summary>
-        <table class="tabla">
-          <thead>
-            <tr>
-              <th scope="col">Mes</th>
-              @for (s of series(); track s.nombre) {
-                <th scope="col">{{ s.nombre }}</th>
-              }
-            </tr>
-          </thead>
-          <tbody>
-            @for (c of categorias(); track $index; let i = $index) {
+        <div class="tabla-contenedor" role="region" [attr.aria-label]="titulo()" tabindex="0">
+          <table class="tabla">
+            <thead>
               <tr>
-                <th scope="row">{{ etiquetaLarga(i) }}</th>
+                <th scope="col">Mes</th>
                 @for (s of series(); track s.nombre) {
-                  <td>{{ s.valores[i] ?? '—' }}</td>
+                  <th scope="col">{{ s.nombre }}</th>
                 }
               </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (c of categorias(); track $index; let i = $index) {
+                <tr>
+                  <th scope="row">{{ etiquetaLarga(i) }}</th>
+                  @for (s of series(); track s.nombre) {
+                    <td>{{ s.valores[i] ?? '—' }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </details>
     </figure>
   `,
@@ -110,8 +112,9 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
     .cabecera-grafico {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
+      justify-content: flex-end;
+      width: 100%;
+      margin-bottom: 4px;
     }
 
     .selector-tipo {
@@ -120,6 +123,7 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
       padding: 3px;
       border-radius: var(--radio-md, 8px);
       border: 1px solid var(--gris-200, #e2e8f0);
+      gap: 2px;
     }
 
     .btn-tipo {
@@ -155,37 +159,65 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
     }
 
     .tabla-datos {
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 13px;
 
       summary {
         cursor: pointer;
         color: var(--azul-700, #1d4ed8);
-        font-weight: 500;
+        font-weight: 600;
+        padding: 4px 0;
+        user-select: none;
+
         &:hover {
           text-decoration: underline;
         }
       }
 
+      .tabla-contenedor {
+        margin-top: 10px;
+        border: 1px solid var(--gris-200, #e2e8f0);
+        border-radius: var(--radio-md, 8px);
+        overflow-x: auto;
+        background: var(--blanco, #ffffff);
+        -webkit-overflow-scrolling: touch;
+      }
+
       .tabla {
         width: 100%;
-        margin-top: 8px;
+        min-width: 540px;
         border-collapse: collapse;
-
-        th,
-        td {
-          padding: 8px 12px;
-          border-bottom: 1px solid var(--gris-200, #e2e8f0);
-          text-align: left;
-        }
+        font-size: 14px;
 
         th {
+          padding: 12px 16px;
+          background: var(--azul-050, #eff6ff);
+          color: var(--gris-600, #475569);
+          font-size: 12px;
           font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          text-align: left;
+          white-space: nowrap;
+        }
+
+        th[scope="row"] {
+          background: transparent;
           color: var(--tinta-800, #1e293b);
+          font-weight: 600;
+          text-transform: none;
+          letter-spacing: normal;
+          font-size: 13px;
+          white-space: nowrap;
         }
 
         td {
-          color: var(--tinta-600, #475569);
+          padding: 12px 16px;
+          border-top: 1px solid var(--gris-200, #e2e8f0);
+          text-align: left;
+          color: var(--tinta-900, #0f172a);
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
         }
       }
     }
@@ -204,16 +236,51 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
 
     @media (max-width: 640px) {
       .cabecera-grafico {
-        justify-content: center;
+        justify-content: stretch;
+        width: 100%;
       }
-      .btn-tipo span {
-        display: none;
+
+      .selector-tipo {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        width: 100%;
+        padding: 4px;
+        gap: 4px;
+        border-radius: 10px;
       }
+
       .btn-tipo {
-        padding: 6px 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 8px 4px;
+        min-height: 48px;
+        width: 100%;
+        border-radius: 6px;
+
+        span {
+          display: block;
+          font-size: 11px;
+          line-height: 1.1;
+          font-weight: 500;
+        }
+
+        lucide-icon {
+          flex-shrink: 0;
+        }
+
+        &.activo {
+          background: var(--blanco, #ffffff);
+          color: var(--azul-700, #1d4ed8);
+          font-weight: 700;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
       }
+
       .lienzo-echarts {
-        height: 260px;
+        height: 280px;
       }
     }
   `,
