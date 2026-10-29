@@ -1,10 +1,32 @@
+import { Component, input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import type { Analiticas } from '../../../../core/api/contrato';
 import { ICONOS } from '../../../../shared/ui/iconos';
+import { GraficoEcharts } from '../../../../shared/ui/grafico-echarts';
+import type { SerieGrafico } from '../../../../shared/ui/grafico-series';
 import { DocenteAnaliticasApi } from '../../docente-analiticas.api';
 import { AnaliticasDocente } from './analiticas';
+
+/** jsdom no tiene <canvas>: un doble de ECharts que solo expone los datos recibidos. */
+@Component({
+  selector: 'app-grafico-echarts',
+  template: '@for (s of series(); track s.nombre) { <span class="serie-doble">{{ s.nombre }}: {{ s.valores.join(",") }}</span> }',
+})
+class GraficoEchartsDoble {
+  readonly titulo = input('');
+  readonly categorias = input<readonly string[]>([]);
+  readonly categoriasLargas = input<readonly string[] | undefined>(undefined);
+  readonly series = input<readonly SerieGrafico[]>([]);
+}
+
+function sinCanvas(): void {
+  TestBed.overrideComponent(AnaliticasDocente, {
+    remove: { imports: [GraficoEcharts] },
+    add: { imports: [GraficoEchartsDoble] },
+  });
+}
 
 const meses = Array.from({ length: 12 }, (_, i) => ({ mes: `2026-${String(i + 1).padStart(2, '0')}`, inscripciones: i === 9 ? 10 : 0, completados: i === 9 ? 2 : 0 }));
 
@@ -28,6 +50,7 @@ describe('analíticas del docente', () => {
       providers: [provideRouter([]), { provide: DocenteAnaliticasApi, useValue: api },
         { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) }],
     });
+    sinCanvas();
     const fixture = TestBed.createComponent(AnaliticasDocente);
     fixture.detectChanges();
     await vi.waitFor(() => {
@@ -41,7 +64,9 @@ describe('analíticas del docente', () => {
     expect(el.querySelector('li.peor')?.textContent).toContain('30 %');
     expect(el.textContent).toContain('20 % de los inscritos');
     expect(el.textContent).toContain('10 inscripciones de 40 vistas');
-    expect(el.querySelectorAll('path.barra').length).toBe(2);
+    expect([...el.querySelectorAll('.serie-doble')].map((x) => x.textContent)).toEqual([
+      'Inscripciones: 0,0,0,0,0,0,0,0,0,10,0,0', 'Cursos completados: 0,0,0,0,0,0,0,0,0,2,0,0',
+    ]);
   });
 
   it('sin curso elegido compara los cursos y permite abrir el detalle de uno', async () => {
@@ -52,6 +77,7 @@ describe('analíticas del docente', () => {
       providers: [provideRouter([]), { provide: DocenteAnaliticasApi, useValue: api },
         { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) }],
     });
+    sinCanvas();
     const fixture = TestBed.createComponent(AnaliticasDocente);
     fixture.detectChanges();
     await vi.waitFor(() => {

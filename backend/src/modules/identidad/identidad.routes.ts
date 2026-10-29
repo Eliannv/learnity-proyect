@@ -24,7 +24,7 @@ auth.use(verificarOrigen);
 
 auth.post('/registro', limitarPorIp('registro', 10, 60), validarCuerpo(registroSchema), identidadController.registrar);
 auth.post('/login', limitarPorIp('login', env.LOGIN_MAX_POR_IP, 15), validarCuerpo(loginSchema), identidadController.iniciarSesion);
-auth.post('/refresh', limitarPorIp('refresh', 120, 15), exigirCsrf, identidadController.refrescarSesion);
+auth.post('/refresh', limitarPorIp('refresh', env.REFRESH_MAX_POR_IP, 15), exigirCsrf, identidadController.refrescarSesion);
 auth.post('/logout', limitarPorIp('logout', 60, 15), exigirCsrf, identidadController.cerrarSesion);
 auth.post('/recuperar', limitarPorIp('recuperar', 5, 15), validarCuerpo(recuperarSchema), identidadController.solicitarRecuperacion);
 auth.post('/restablecer', limitarPorIp('restablecer', 10, 15), validarCuerpo(restablecerSchema), identidadController.restablecerContrasena);

@@ -44,6 +44,8 @@ const esquema = z
     RECUPERACION_MINUTOS: z.coerce.number().int().min(15).max(30).default(20),
     /** Inicios de sesión por IP cada 15 minutos. Solo las E2E (muchas cuentas desde 127.0.0.1) lo suben. */
     LOGIN_MAX_POR_IP: z.coerce.number().int().min(1).max(1000).default(20),
+    /** Renovaciones de sesión por IP cada 15 minutos (cada carga completa de la app renueva). Igual que arriba. */
+    REFRESH_MAX_POR_IP: z.coerce.number().int().min(1).max(5000).default(120),
     /** Consulta Have I Been Pwned (k-anonimato: solo viajan 5 caracteres del hash SHA-1). */
     HIBP_ACTIVO: booleano('true'),
 

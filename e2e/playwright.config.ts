@@ -24,6 +24,8 @@ const entornoApi = {
   COOKIE_SECURE: 'false',
   // Todas las cuentas entran desde 127.0.0.1: el límite por IP de producción (20/15 min) no alcanza para la suite.
   LOGIN_MAX_POR_IP: '200',
+  // Cada page.goto recarga la app y renueva la sesión: la suite completa supera las 120 renovaciones por IP.
+  REFRESH_MAX_POR_IP: '2000',
 };
 
 export default defineConfig({

@@ -37,6 +37,9 @@ test.describe('E2E-02: guards de ruta por rol', () => {
 
     await page.goto('/perfil');
     await expect(page).toHaveURL(/\/perfil$/);
+    // Esperar a que la página termine: cada carga completa rota la cookie de sesión, y navegar antes de que
+    // llegue la respuesta la deja con una cookie ya reemplazada (y sin sesión).
+    await expect(page.getByRole('heading', { name: 'Mi perfil' })).toBeVisible();
     await page.goto('/mi-aprendizaje');
     await expect(page.getByRole('heading', { name: 'Mi aprendizaje' })).toBeVisible();
     await accesoDenegado(page, ['/docente/cursos', '/docente/estudiantes', '/admin/revision', '/admin/solicitudes', '/admin/usuarios']);
@@ -56,6 +59,7 @@ test.describe('E2E-02: guards de ruta por rol', () => {
 
     await page.goto('/perfil');
     await expect(page).toHaveURL(/\/docente\/perfil$/);
+    await expect(page.getByRole('heading', { name: 'Ajustes y perfil' })).toBeVisible();
 
     await accesoDenegado(page, ['/admin/revision', '/admin/solicitudes', '/admin/usuarios']);
     await page.goto('/docente/estudiantes');
