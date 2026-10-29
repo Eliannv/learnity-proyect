@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReproductorYoutube } from './reproductor-youtube';
-import { YoutubeApi, type OpcionesYoutubeSdk, type ReproductorYoutubeSdk, type YoutubeSdk } from '../youtube-api';
+import { YoutubeApi, type OpcionesYoutubeSdk, type ReproductorYoutubeSdk, type YoutubeSdk } from '../youtube-sdk';
 import type { PosicionYoutube } from '../youtube';
 
 const id = 'M7lc1UVf-VE';

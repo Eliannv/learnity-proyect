@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { YoutubeApi, type YoutubeSdk } from './youtube-api';
+import { YoutubeApi, type YoutubeSdk } from './youtube-sdk';
 
 const ventana = window as Window & { YT?: YoutubeSdk; onYouTubeIframeAPIReady?: () => void };
 

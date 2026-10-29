@@ -1,21 +1,21 @@
-import { Esqueleto } from '../../../shared/ui/retroalimentacion/esqueleto';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { mensajeDeError } from '../../../core/http/error-api';
-import { ContenidoApi } from '../../../features/contenido/contenido.api';
-import { ReproductorYoutube } from '../../../features/contenido/componentes/reproductor-youtube';
-import { esIdYoutube, type PosicionYoutube } from '../../../features/contenido/youtube';
+import { mensajeDeError } from '../../../../core/http/error-api';
+import { ContenidoApi } from '../../../contenido/contenido.api';
+import { ReproductorYoutube } from '../../../contenido/componentes/reproductor-youtube';
+import { esIdYoutube, type PosicionYoutube } from '../../../contenido/youtube';
 import {
   AprendizajeApi, idApi, type DetalleAprendizaje, type LeccionAprendizaje,
   type ProgresoGuardado, type ResultadoIntento,
-} from '../../../features/aprendizaje/aprendizaje.api';
-import { EvaluacionEstudiante } from '../../../features/aprendizaje/componentes/evaluacion-estudiante';
-import { RecursosEstudiante } from '../../../features/aprendizaje/componentes/recursos-estudiante';
-import { ResenasCurso } from '../../../features/catalogo/componentes/resenas-curso';
-import { BarraProgreso } from '../../../shared/ui/datos/barra-progreso';
+} from '../../aprendizaje.api';
+import { EvaluacionEstudiante } from '../../componentes/evaluacion-estudiante';
+import { RecursosEstudiante } from '../../componentes/recursos-estudiante';
+import { ResenasCurso } from '../../../catalogo/componentes/resenas-curso';
+import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
 
 const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
   VIDEO: 'Vídeo',
@@ -23,13 +23,17 @@ const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
   EVALUACION: 'Evaluación',
 };
 
+/**
+ * Seguimiento del curso inscrito: el temario con el avance del estudiante, la lección abierta
+ * (vídeo, PDF o evaluación), sus recursos y la reseña del curso. La URL nombra la lección abierta.
+ */
 @Component({
-  selector: 'app-leccion',
+  selector: 'app-seguimiento-curso',
   imports: [Esqueleto, RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube, EvaluacionEstudiante, RecursosEstudiante, ResenasCurso],
-  templateUrl: './leccion.html',
-  styleUrl: './leccion.scss',
+  templateUrl: './seguimiento-curso.html',
+  styleUrl: './seguimiento-curso.scss',
 })
-export class Leccion {
+export class SeguimientoCurso {
   readonly cursoId = input.required<string>();
   readonly leccionId = input.required<string>();
 

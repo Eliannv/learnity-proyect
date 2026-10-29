@@ -1,56 +1,10 @@
 import { Routes } from '@angular/router';
 
-import { conSesionMatch, rolGuard } from './core/auth/guards';
+import { rolGuard } from './core/auth/guards';
+import { rutasAprendizaje, rutasInicioEstudiante } from './features/aprendizaje/aprendizaje.routes';
 
 import { LayoutPanel } from './layouts/panel/layout-panel';
 import { LayoutSitio } from './layouts/sitio/layout-sitio';
-
-// Portada personalizada del estudiante con sesión iniciada.
-const inicioEstudiante: Routes = [
-  {
-    path: '',
-    pathMatch: 'full',
-    canMatch: [conSesionMatch],
-    title: 'Inicio · Learnity',
-    loadComponent: () =>
-      import('./pages/estudiante/inicio-estudiante/inicio-estudiante').then(
-        (m) => m.InicioEstudiante,
-      ),
-  },
-];
-
-const rutasAprendizaje: Routes = [
-  {
-    path: 'mi-aprendizaje',
-    canActivate: [rolGuard('ESTUDIANTE')],
-    title: 'Mi aprendizaje · Learnity',
-    loadComponent: () =>
-      import('./pages/estudiante/mi-aprendizaje/mi-aprendizaje').then(
-        (m) => m.MiAprendizaje,
-      ),
-  },
-  {
-    path: 'aprender/:cursoId/:leccionId',
-    canActivate: [rolGuard('ESTUDIANTE')],
-    title: 'Lección · Learnity',
-    loadComponent: () =>
-      import('./pages/estudiante/leccion/leccion').then(
-        (m) => m.Leccion,
-      ),
-  },
-];
-
-const rutasSeguimientoDocente: Routes = [
-  {
-    path: 'estudiantes',
-    title: 'Estudiantes del curso · Learnity',
-    data: { seccion: 'Estudiantes' },
-    loadComponent: () =>
-      import('./features/docente/estudiantes/paginas/estudiantes/estudiantes').then(
-        (m) => m.EstudiantesCurso,
-      ),
-  },
-];
 
 export const routes: Routes = [
   // Acceso y recuperación de contraseña.
@@ -70,7 +24,7 @@ export const routes: Routes = [
     path: '',
     component: LayoutSitio,
     children: [
-      ...inicioEstudiante,
+      ...rutasInicioEstudiante,
       {
         path: '',
         pathMatch: 'full',
@@ -108,7 +62,11 @@ export const routes: Routes = [
             (m) => m.rutasDocenteCursos,
           ),
       },
-      ...rutasSeguimientoDocente,
+      {
+        path: 'estudiantes',
+        loadChildren: () =>
+          import('./features/docente/estudiantes/estudiantes.routes').then((m) => m.rutasDocenteEstudiantes),
+      },
       {
         path: 'resenas',
         loadChildren: () =>

@@ -59,7 +59,7 @@ const ESPERADO: string[] = [
   '/cursos | titulo=Catálogo de cursos · Learnity | pagina=Catalogo',
   '/cursos/:id | titulo=Detalle del curso · Learnity | pagina=DetalleCurso',
   '/mi-aprendizaje | titulo=Mi aprendizaje · Learnity | canActivate=rolGuard | pagina=MiAprendizaje',
-  '/aprender/:cursoId/:leccionId | titulo=Lección · Learnity | canActivate=rolGuard | pagina=Leccion',
+  '/aprender/:cursoId/:leccionId | titulo=Lección · Learnity | canActivate=rolGuard | pagina=SeguimientoCurso',
   '/perfil | titulo=Mi perfil · Learnity | canActivate=autenticadoGuard+perfilEstudianteGuard | pagina=PerfilEstudiante',
   '/docente | data={\"rol\":\"DOCENTE\"} | canActivate=rolGuard | layout=LayoutPanel',
   '/docente | match=full | redirige=cursos',

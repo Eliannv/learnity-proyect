@@ -2,9 +2,9 @@ import { importProvidersFrom } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { AuthService } from '../../../core/auth/auth.service';
-import { AprendizajeApi } from '../../../features/aprendizaje/aprendizaje.api';
-import { ICONOS } from '../../../shared/ui/marca/iconos';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { AprendizajeApi } from '../../aprendizaje.api';
+import { ICONOS } from '../../../../shared/ui/marca/iconos';
 import { MiAprendizaje } from './mi-aprendizaje';
 
 describe('Mi aprendizaje', () => {

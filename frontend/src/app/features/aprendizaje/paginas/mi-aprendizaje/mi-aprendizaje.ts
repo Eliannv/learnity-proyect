@@ -1,13 +1,13 @@
-import { Esqueleto } from '../../../shared/ui/retroalimentacion/esqueleto';
+import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { AuthService } from '../../../core/auth/auth.service';
-import { mensajeDeError } from '../../../core/http/error-api';
-import { AprendizajeApi, type CursoInscrito } from '../../../features/aprendizaje/aprendizaje.api';
-import { AnilloProgreso } from '../../../shared/ui/datos/anillo-progreso';
-import { BarraProgreso } from '../../../shared/ui/datos/barra-progreso';
-import { PortadaCurso } from '../../../shared/ui/cursos/portada-curso';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { mensajeDeError } from '../../../../core/http/error-api';
+import { AprendizajeApi, type CursoInscrito } from '../../aprendizaje.api';
+import { AnilloProgreso } from '../../../../shared/ui/datos/anillo-progreso';
+import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
+import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
 
 type FiltroProgreso = '' | 'en-curso' | 'sin-empezar' | 'completados';
 type Orden = 'reciente' | 'avance' | 'titulo';

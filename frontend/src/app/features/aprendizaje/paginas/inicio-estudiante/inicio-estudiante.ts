@@ -1,19 +1,19 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { AuthService } from '../../../core/auth/auth.service';
-import { AprendizajeApi, type CursoInscrito } from '../../../features/aprendizaje/aprendizaje.api';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { AprendizajeApi, type CursoInscrito } from '../../aprendizaje.api';
 import {
   CatalogoApi,
   type CategoriaPublica,
   type CursoPublico,
-} from '../../../features/catalogo/catalogo.api';
-import { Avatar } from '../../../shared/ui/marca/avatar';
-import { BarraProgreso } from '../../../shared/ui/datos/barra-progreso';
-import { Carrusel } from '../../../shared/ui/navegacion/carrusel';
-import { PortadaCurso } from '../../../shared/ui/cursos/portada-curso';
-import { TarjetaCurso } from '../../../shared/ui/cursos/tarjeta-curso';
-import { ICONO_CATEGORIA, type Tono } from '../../../shared/ui/tipos-ui';
+} from '../../../catalogo/catalogo.api';
+import { Avatar } from '../../../../shared/ui/marca/avatar';
+import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
+import { Carrusel } from '../../../../shared/ui/navegacion/carrusel';
+import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
+import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
+import { ICONO_CATEGORIA, type Tono } from '../../../../shared/ui/tipos-ui';
 
 type Pestana = 'populares' | 'nuevos' | 'avanzados';
 

@@ -3,7 +3,7 @@ import {
   Component, ElementRef, OnDestroy, computed, effect, inject, input, output, signal,
   untracked, viewChild,
 } from '@angular/core';
-import { YoutubeApi, type ReproductorYoutubeSdk } from '../youtube-api';
+import { YoutubeApi, type ReproductorYoutubeSdk } from '../youtube-sdk';
 import {
   esIdYoutube, mensajeErrorYoutube, segundosSeguros, tiempoYoutube, type PosicionYoutube,
 } from '../youtube';
