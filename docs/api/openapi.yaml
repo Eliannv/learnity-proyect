@@ -1,4 +1,4 @@
-# Contrato de la API de Learnity: generado desde backend/src/shared/http/openapi*.ts.
+# Contrato de la API de Learnity: generado desde backend/src/shared/openapi/openapi*.ts.
 # No se edita a mano. Ejecuta npm run api:serializar en backend/.
 # El cuerpo es JSON, que también es YAML 1.2 válido.
 {

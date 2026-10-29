@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { openApi } from '../src/shared/http/openapi.js';
+import { openApi } from '../src/shared/openapi/openapi.js';
 
 const destino = fileURLToPath(new URL('../../docs/api/openapi.yaml', import.meta.url));
 const cabecera = [
-  '# Contrato de la API de Learnity: generado desde backend/src/shared/http/openapi*.ts.',
+  '# Contrato de la API de Learnity: generado desde backend/src/shared/openapi/openapi*.ts.',
   '# No se edita a mano. Ejecuta npm run api:serializar en backend/.',
   '# El cuerpo es JSON, que también es YAML 1.2 válido.',
 ].join('\n');

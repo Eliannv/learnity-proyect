@@ -7,9 +7,9 @@ import { env } from './shared/config/env.js';
 import { registrarVerificadorSesion } from './shared/auth/middlewares.js';
 import { correlacion, ENCABEZADO_ID_PETICION } from './shared/http/correlacion.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-errores.js';
-import { comprobarConexion } from './shared/http/salud.repository.js';
+import { comprobarConexion } from './shared/database/salud.repository.js';
 import { registrarEvento } from './shared/log/registro.js';
-import { openApi } from './shared/http/openapi.js';
+import { openApi } from './shared/openapi/openapi.js';
 import { identidadApi, identidadRoutes } from './modules/identidad/index.js';
 import { catalogoRoutes } from './modules/catalogo/index.js';
 import {

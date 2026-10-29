@@ -1,4 +1,4 @@
-import { pool } from '../database/pool.js';
+import { pool } from './pool.js';
 
 /** SQL de la comprobación de arranque (antes inline en server.ts). Sin parámetros ni datos de usuario. */
 export interface EstadoEsquema {

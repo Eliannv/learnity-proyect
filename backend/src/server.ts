@@ -3,7 +3,7 @@ import { contenidoApi } from './modules/contenido/index.js';
 import { identidadApi } from './modules/identidad/index.js';
 import { env } from './shared/config/env.js';
 import { pool } from './shared/database/pool.js';
-import { verificarEsquema } from './shared/http/salud.repository.js';
+import { verificarEsquema } from './shared/database/salud.repository.js';
 import { registrarEvento } from './shared/log/registro.js';
 
 const app = crearApp();
