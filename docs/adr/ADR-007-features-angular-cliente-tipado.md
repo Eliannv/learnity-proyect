@@ -4,6 +4,7 @@
 - **Fecha:** 2026-10-19
 - **Decisores:** el usuario (Puerta 1). Propone: `arquitecto`
 - **Cambia el contrato:** No. Las URLs de la SPA y las llamadas HTTP siguen siendo las mismas.
+- **Nota (29-10-2026):** las rutas de archivo de este ADR describen el código de su fecha. La reorganización de Sprint 4 completó el punto 5 (ya no existe `pages/`) y agrupó las *features* por rol: `features/admin/*`, `features/docente/*` y las vistas del estudiante en `features/aprendizaje/`. Ver `docs/arquitectura/PROPUESTA_REORGANIZACION_ESTRUCTURA.md` y el README (§9).
 - **Depende de:**
   - ADR-008, para generar los tipos o escribirlos a mano;
   - **D3** (paneles huérfanos) y **D4** (flag para las pantallas del Sprint 3/4), que siguen **pendientes** y se preguntan en la Puerta 1. Este ADR no las da por decididas.

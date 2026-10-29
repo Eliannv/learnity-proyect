@@ -289,6 +289,8 @@ Las colaboraciones entre módulos se realizan mediante sus servicios.
 | Service    | `*.service.ts`    | Reglas de negocio, permisos, estados, límites y coordinación de transacciones   |
 | Repository | `*.repository.ts` | Consultas SQL parametrizadas y acceso a los datos del módulo                    |
 
+Además: `*.modelo.ts` (tipos), `*.esquemas.ts` (zod), `index.ts` (API pública del módulo) y, donde hacen falta, `*.correos.ts` (plantillas de correo del módulo), `*.multipart.ts` (recepción de archivos), `politica-*.ts` (reglas puras) y `puertos.ts` (interfaces que implementa otro módulo). Un módulo grande puede repartir su SQL en varios repositorios (`cursos/ficha.repository.ts`, `cursos/temario/*.repository.ts`).
+
 Reglas del equipo:
 
 - Cada módulo consulta sus tablas mediante su repositorio.
@@ -314,6 +316,31 @@ npm run crear-modulo -- nombre "descripción"
 | `usuarios`     | Solicitudes de docente y revisión administrativa de solicitudes                          |
 | `aprendizaje`  | Inscripciones y progreso previstos para Sprint 3                                         |
 | `evaluaciones` | Preguntas, intentos y notas previstos para Sprint 4                                      |
+| `categorias`   | CRUD de categorías del administrador (ADR-012)                                           |
+| `resenas`      | Valoraciones de 1 a 5 estrellas, gestión del docente y moderación (no es `revision`)     |
+| `analiticas`   | Rendimiento de los cursos del docente: actividad, finalización, conversión y embudo     |
+
+Fuera de `modules/`, `shared/` agrupa lo transversal: `http/` (errores, validación, límites, cookies), `openapi/` (el contrato que se serializa en `docs/api/openapi.yaml`), `database/` (pool, transacciones y chequeo de salud), `auth/`, `archivos/`, `correo/`, `log/`, `config/` y `seguridad/`.
+
+### Frontend: dónde va cada archivo
+
+```text
+frontend/src/app/
+├── app.routes.ts      índice de rutas: cada feature trae su *.routes.ts
+├── core/              sesión, guards, interceptor, estado de petición y tipos generados (core/api)
+├── features/
+│   ├── admin/         categorias · resenas · revision · solicitudes · usuarios
+│   ├── docente/       analiticas · cursos · estudiantes · resenas
+│   ├── aprendizaje/   vistas del estudiante: inicio, Mi aprendizaje y seguimiento del curso
+│   └── catalogo · contenido · errores · identidad
+├── layouts/           panel/ · sitio/ · comun/ (header, footer, menú de cuenta, barra inferior)
+└── shared/
+    ├── estilos/       parciales SCSS compartidos (cursos.scss)
+    └── ui/            componentes sin lógica de negocio, por función:
+                       retroalimentacion/ · datos/ · cursos/ · marca/ · navegacion/
+```
+
+Cada feature sigue el ADR-007: `<feature>.api.ts` (único lugar con `HttpClient`), `<feature>.routes.ts`, `paginas/` (componentes de ruta) y `componentes/` (piezas propias). Las URLs no dependen de las carpetas.
 
 ## 10. Sprint 1: estado
 
@@ -837,7 +864,7 @@ El backend reutiliza:
 - La limpieza de archivos de Contenido a través del puerto `LiberadorArchivos`.
 - La revisión administrativa de cursos en `modules/revision`.
 
-Angular consume los endpoints mediante clientes tipados por *feature* (`docente-cursos.api.ts`, `contenido.api.ts`, `revision.api.ts` y `catalogo.api.ts`) respaldados por `ClienteApi` y `esquema.d.ts` (ADR-007 y ADR-008).
+Angular consume los endpoints mediante clientes tipados por *feature* (`features/docente/cursos/cursos.api.ts`, `features/contenido/contenido.api.ts`, `features/admin/revision/revision.api.ts` y `features/catalogo/catalogo.api.ts`) respaldados por `ClienteApi` y `esquema.d.ts` (ADR-007 y ADR-008).
 
 ### Pruebas
 
@@ -861,7 +888,7 @@ Cinco pruebas de regresión comprueban:
 Los once endpoints están documentados en:
 
 ```text
-backend/src/shared/http/openapi-gestion-cursos.ts
+backend/src/shared/openapi/openapi-gestion-cursos.ts
 ```
 
 El contrato publicado es [`docs/api/openapi.yaml`](docs/api/openapi.yaml). La documentación interactiva está disponible con el backend iniciado con `NODE_ENV=development`:

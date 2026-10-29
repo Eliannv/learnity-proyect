@@ -2,6 +2,7 @@
 
 - **Estado:** Propuesto
 - **Fecha:** 2026-10-19
+- **Nota (29-10-2026):** la pantalla y el cliente de este ADR viven ahora en `frontend/src/app/features/admin/categorias/` (`categorias.api.ts`, `categorias.routes.ts`), tras la reorganización de carpetas de Sprint 4.
 - **Decisores:** el usuario. Propone: `arquitecto`, y coordinan `be-a` (módulo), `fe-a` (pantalla) y `db` (migración 027).
 - **Cambia el contrato:** **Sí, lo amplía.** Añade 3 operaciones (de 33 a 36), los esquemas `CategoriaAdmin`, `DatosCategoriaNueva` y `DatosCategoria`, y el código de error `CATEGORIA_DUPLICADA`. Las 33 operaciones que ya existen, `GET /api/categorias` incluida, no cambian.
 - **Pruebas de caracterización que actualiza:** ninguna. Las pruebas de las rutas nuevas son nuevas (ver *Acciones*).

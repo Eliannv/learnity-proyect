@@ -1,6 +1,6 @@
 # Sprint 3 · inscripción y aprendizaje
 
-El contrato ejecutable está en `docs/api/openapi.yaml`. Se genera desde `backend/src/shared/http/openapi-aprendizaje.ts` y `openapi-gestion-cursos.ts` con `npm run api:serializar` en `backend/`; los tipos Angular se generan con `npm run api:tipos` en `frontend/`.
+El contrato ejecutable está en `docs/api/openapi.yaml`. Se genera desde `backend/src/shared/openapi/openapi-aprendizaje.ts` y `openapi-gestion-cursos.ts` con `npm run api:serializar` en `backend/`; los tipos Angular se generan con `npm run api:tipos` en `frontend/`.
 
 | Ruta | Resultado |
 | --- | --- |

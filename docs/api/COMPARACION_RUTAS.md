@@ -1,7 +1,7 @@
 # Contrato actual frente a las rutas reales
 
 - **Fecha:** 19-10-2026 · **Commit de origen:** `3c3c159` (`integration/sprint-2`) · **Autor:** `arquitecto` (Fase 1).
-- **Contrato:** `docs/api/openapi.yaml`, serializado sin cambios desde el objeto `openApi` de `backend/src/shared/http/openapi.ts`.
+- **Contrato:** `docs/api/openapi.yaml`, serializado sin cambios desde el objeto `openApi` de `backend/src/shared/openapi/openapi.ts`.
 - **Actualización (Fase 2A, 19-10-2026):** los hallazgos de *Documentación* se cerraron en `openapi*.ts` sin cambiar el comportamiento. Ver la §6. Las §1–§5 describen el estado de la Fase 1 (commit `3c3c159`), y sus números de línea de `openapi*.ts` son los de entonces: desde `b01296c`, `openapi-integrante2.ts` se llama `openapi-gestion-cursos.ts` y `openapi-integrante3.ts`, `openapi-revision-contenido.ts`.
 - **Verificación al cierre de la Fase 3 (20-10-2026):** el contrato sigue IDÉNTICO a `openapi*.ts` y las 33 operaciones coinciden con las rutas de los módulos de la Fase 2B. Ver la §7.
 - **Alcance (Fase 1):** solo se documenta. **Ningún hallazgo se corrige aquí.** Cada `C-nn` indica cómo se cerraría:
@@ -112,7 +112,7 @@ Además, todas las operaciones comparten C-08 (esquema de error), C-13 (500 y er
 
 ## 5. Relacionado, pero no es una diferencia del contrato
 
-> **Superado (Fase 2A y Fase 3):** los dos puntos de esta sección ya no describen el código. La subida tiene `limitarPorIp('subida-pdf', 30, 15)` y recibe el archivo en un temporal de disco (ADR-011, 11.4 y 11.5), y la consulta de arranque de `server.ts` está en `shared/http/salud.repository.ts`. Ver la §7.
+> **Superado (Fase 2A y Fase 3):** los dos puntos de esta sección ya no describen el código. La subida tiene `limitarPorIp('subida-pdf', 30, 15)` y recibe el archivo en un temporal de disco (ADR-011, 11.4 y 11.5), y la consulta de arranque de `server.ts` está en `shared/database/salud.repository.ts`. Ver la §7.
 
 - `POST /lecciones/{id}/archivo` no tiene `limitarPorIp` y usa `multer.memoryStorage()` (S5; `contenido.routes.ts:18-25`, `contenido.multipart.ts:15`). El contrato coincide con el código; el cambio se propone en el ADR-011, que añadiría un 429.
 - `server.ts:36-47` consulta la base al arrancar (SQL fuera de repositorio). No forma parte del contrato; lo recoge el ADR-011.

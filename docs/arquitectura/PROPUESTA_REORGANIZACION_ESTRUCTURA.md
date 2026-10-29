@@ -1,6 +1,21 @@
 # Fase 1: diagnóstico y propuesta de reorganización
 
-**Rama analizada:** `sprint4/elian` en `43b0f54`. **Estado:** propuesta; no se ha movido ningún archivo.
+**Rama analizada:** `sprint4/elian` en `43b0f54`.
+
+**Estado (29-10-2026): aprobada completa (F1–F19, B1–B2 y `youtube-sdk.ts`) y ejecutada en la rama `sprint4/elian-estructura`.** Respuestas aplicadas: módulos `revision` y `resenas` sin renombrar (con un comentario en sus `index.ts`), nombres en español, `openapi.yaml` regenerado (solo cambia la cabecera), título "Lección · Learnity" sin cambios y clases de las APIs sin renombrar. Cada lote se hizo en dos commits (solo movimientos con similitud del 100 %, luego imports) para conservar el historial:
+
+| Lote | Commits | Validación |
+|---|---|---|
+| 1. `shared/ui` y `shared/estilos` | `9a5e0a1` | build y vitest 135/135 |
+| 2. Layouts | `bb66a8c` | build y vitest 135/135 |
+| 3. Administración | `75e5795` · `42a449c` | build, vitest 135/135 y E2E 26/26 |
+| 4. Docente | `4e2c6e0` · `14ee318` | build y vitest 135/135 |
+| 5. Aprendizaje, `seguimiento-curso`, rutas propias y `youtube-sdk` | `7c86e9c` · `d908f14` | build, vitest 135/135 y E2E 26/26 |
+| 6. Backend (`shared/openapi`, `shared/database`) | `29254a8` · `8292678` | `tsc`, node:test 319/319 y `api:verificar` |
+
+Los lotes 1 y 2 se hicieron en un solo commit cada uno; Git detectó todos sus archivos como renombrados.
+
+El resto de este documento es la propuesta original, sin cambios.
 
 **Resumen:** la arquitectura se cumple en lo esencial. En el backend no hay ninguna violación de acoplamiento. Los problemas son de organización en el frontend: restos de `pages/`, prefijos repetidos y `shared/ui` plano.
 
