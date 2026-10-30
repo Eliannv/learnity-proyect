@@ -1011,6 +1011,8 @@
           "observacion",
           "enviadaEn",
           "revisadaEn",
+          "revocacion",
+          "cursosPublicados",
           "solicitante"
         ],
         "properties": {
@@ -1023,7 +1025,8 @@
             "enum": [
               "PENDIENTE",
               "APROBADA",
-              "RECHAZADA"
+              "RECHAZADA",
+              "REVOCADA"
             ]
           },
           "especialidad": {
@@ -1046,6 +1049,29 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "revocacion": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "revocadaEn",
+              "motivo"
+            ],
+            "description": "Solo REVOCADA: cuándo y por qué un administrador retiró el rol docente aprobado.",
+            "properties": {
+              "revocadaEn": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "motivo": {
+                "type": "string"
+              }
+            }
+          },
+          "cursosPublicados": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Cursos PUBLICADO del perfil docente de la persona. Siguen publicados si se revoca el rol."
           },
           "solicitante": {
             "type": "object",
@@ -5700,7 +5726,8 @@
               "enum": [
                 "PENDIENTE",
                 "APROBADA",
-                "RECHAZADA"
+                "RECHAZADA",
+                "REVOCADA"
               ],
               "default": "PENDIENTE"
             }
@@ -5750,6 +5777,127 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/solicitudes/{id}/revocacion": {
+      "post": {
+        "tags": [
+          "Solicitudes de docente"
+        ],
+        "summary": "Revocar el rol docente de una solicitud aprobada (administrador)",
+        "description": "La solicitud pasa a REVOCADA con quién, cuándo y el motivo; se retira el rol DOCENTE (conserva los demás) y el perfil docente queda INACTIVO. Sus cursos publicados siguen publicados, pero sin el rol ya no puede editarlos (se aplica en su siguiente petición). La persona recibe un correo con el motivo y puede volver a solicitar el rol. Queda en la auditoría con el administrador como autor.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "motivo"
+                ],
+                "properties": {
+                  "motivo": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300,
+                    "description": "Se recortan los espacios de los extremos."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rol docente revocado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitudDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Motivo vacío o de más de 300 caracteres, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "La solicitud no está APROBADA (SOLICITUD_NO_APROBADA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
           },
           "500": {
             "$ref": "#/components/responses/ErrorInterno"

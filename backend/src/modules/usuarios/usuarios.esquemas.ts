@@ -3,7 +3,7 @@ import { idRuta, textoSeguro } from '../../shared/http/esquemas.js';
 
 // Solicitudes para ser docente (RF-05 y RF-22)
 
-export const ESTADOS_SOLICITUD = ['PENDIENTE', 'APROBADA', 'RECHAZADA'] as const;
+export const ESTADOS_SOLICITUD = ['PENDIENTE', 'APROBADA', 'RECHAZADA', 'REVOCADA'] as const;
 
 export const parametrosSolicitud = z.object({ id: idRuta }).transform(({ id }) => id);
 
@@ -36,7 +36,17 @@ export const decisionSolicitud = z.discriminatedUnion('decision', [
   }),
 ]);
 
+/** Revocar el rol docente de una solicitud aprobada (D3): el motivo es obligatorio y lo ve la persona. */
+export const revocacionSolicitud = z.strictObject({
+  motivo: z
+    .string()
+    .trim()
+    .min(1, 'Escribe el motivo de la revocación.')
+    .max(300, 'El motivo debe tener como máximo 300 caracteres.'),
+});
+
 export type NuevaSolicitudDocente = z.infer<typeof nuevaSolicitudDocente>;
+export type RevocacionSolicitud = z.infer<typeof revocacionSolicitud>;
 export type FiltroSolicitudes = z.infer<typeof filtroSolicitudes>;
 export type DecisionSolicitud = z.infer<typeof decisionSolicitud>;
 

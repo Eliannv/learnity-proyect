@@ -13,6 +13,7 @@ import {
   nuevoUsuarioAdmin,
   parametrosSolicitud,
   parametrosUsuario,
+  revocacionSolicitud,
 } from './usuarios.esquemas.js';
 
 // Capa routes: solicitudes para ser docente y gestión de usuarios por administrador (RF-21).
@@ -44,6 +45,15 @@ usuariosRoutes.put(
   validarParametros(parametrosSolicitud),
   validarCuerpo(decisionSolicitud),
   controller.decidirSolicitud,
+);
+
+usuariosRoutes.post(
+  '/admin/solicitudes/:id/revocacion',
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosSolicitud),
+  validarCuerpo(revocacionSolicitud),
+  controller.revocarSolicitud,
 );
 
 usuariosRoutes.get(

@@ -10,6 +10,7 @@ import type {
   FiltroUsuariosAdmin,
   NuevaSolicitudDocente,
   NuevoUsuarioAdmin,
+  RevocacionSolicitud,
 } from './usuarios.esquemas.js';
 import { usuariosService as service } from './usuarios.service.js';
 
@@ -37,6 +38,11 @@ export const usuariosController = {
   async decidirSolicitud(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
     res.json(await service.decidirSolicitud(id, req.body as DecisionSolicitud, usuario(req)));
+  },
+
+  async revocarSolicitud(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.json(await service.revocarSolicitud(id, req.body as RevocacionSolicitud, usuario(req)));
   },
 
   async listarUsuarios(_req: Request, res: Response): Promise<void> {

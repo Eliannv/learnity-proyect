@@ -53,6 +53,33 @@ export function correoSolicitudRechazada(datos: {
   };
 }
 
+/** D3 · Un administrador retiró el rol docente: la persona sigue siendo estudiante y puede volver a solicitarlo. */
+export function correoRolDocenteRevocado(datos: { para: string; nombres: string; motivo: string; enlace: string }): Correo {
+  const { para, nombres, motivo, enlace } = datos;
+  return {
+    para,
+    asunto: 'Tu rol de docente en Learnity',
+    texto: [
+      `Hola, ${nombres}:`,
+      '',
+      'El equipo de Learnity retiró tu rol de docente. Este es el motivo:',
+      '',
+      motivo,
+      '',
+      'Sigues teniendo tu cuenta de estudiante. Tus cursos publicados siguen visibles, pero ya no puedes editarlos.',
+      `Si quieres, puedes enviar una nueva solicitud desde tu perfil: ${enlace}`,
+    ].join('\n'),
+    html: marco(
+      'Retiramos tu rol de docente',
+      parrafo(`Hola, ${escapar(nombres)}:`) +
+        parrafo('El equipo de Learnity retiró tu rol de docente. Este es el motivo:') +
+        cita(motivo) +
+        parrafo('Sigues teniendo tu cuenta de estudiante. Tus cursos publicados siguen visibles, pero ya no puedes editarlos.') +
+        boton('Ir a mi perfil', enlace),
+    ),
+  };
+}
+
 /** Alta por un administrador (D1): enlace de un solo uso para crear la contraseña. */
 export function correoInvitacion(datos: { para: string; nombres: string; enlace: string; horas: number; roles: string }): Correo {
   const { para, nombres, enlace, horas, roles } = datos;

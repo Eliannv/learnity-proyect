@@ -12,11 +12,14 @@ import type {
   FiltroUsuariosAdmin,
   NuevaSolicitudDocente,
   NuevoUsuarioAdmin,
+  RevocacionSolicitud,
 } from './usuarios.esquemas.js';
 import type {
   DetalleUsuarioAdmin, EstadoSolicitud, RespuestaUsuariosAdmin, RolUsuario, SolicitudDocente, UsuarioAdmin,
 } from './usuarios.modelo.js';
-import { correoInvitacion, correoSolicitudAprobada, correoSolicitudRechazada } from './usuarios.correos.js';
+import {
+  correoInvitacion, correoRolDocenteRevocado, correoSolicitudAprobada, correoSolicitudRechazada,
+} from './usuarios.correos.js';
 
 const NOMBRE_ROL: Record<RolUsuario, string> = { ESTUDIANTE: 'Estudiante', DOCENTE: 'Docente', ADMIN: 'Administrador' };
 import { usuariosRepository as repo } from './usuarios.repository.js';
@@ -75,6 +78,30 @@ export const usuariosService = {
       ? correoSolicitudAprobada({ para: correo, nombres, enlace: `${env.FRONTEND_URL}/docente/cursos` })
       : correoSolicitudRechazada({ para: correo, nombres, observacion: datos.observacion, enlace: `${env.FRONTEND_URL}/perfil` }));
     return decidida;
+  },
+
+  /**
+   * D3 · Revoca el rol docente de una solicitud aprobada: retira DOCENTE de usuario_rol, inactiva el perfil docente
+   * y guarda quién, cuándo y por qué. Sus cursos publicados siguen publicados, pero ya no puede editarlos (sin el rol,
+   * `autorizar('DOCENTE')` lo frena desde la siguiente petición). Avisa a la persona por correo con el motivo.
+   */
+  async revocarSolicitud(id: number, datos: RevocacionSolicitud, admin: UsuarioSesion): Promise<SolicitudDocente> {
+    await enTransaccion(async (cliente) => {
+      const solicitud = await repo.bloquearSolicitud(cliente, id);
+      if (!solicitud) throw AppError.noEncontrado('La solicitud no existe.');
+      if (solicitud.estado !== 'APROBADA') {
+        throw AppError.conflicto('Solo se puede revocar una solicitud aprobada. Actualiza la lista.', 'SOLICITUD_NO_APROBADA');
+      }
+      await repo.marcarRevocada(cliente, id, datos.motivo, admin.idPersona);
+      await repo.retirarRolDocente(cliente, solicitud.idUsuario, solicitud.idPersona);
+    }, { actor: admin.idPersona });
+    registrarEvento('rol_docente_revocado', { idSolicitud: id, idAdmin: admin.idUsuario });
+    const revocada = (await repo.buscarSolicitud(id))!;
+    const { correo, nombres } = revocada.solicitante;
+    notificar('solicitud_docente', correoRolDocenteRevocado({
+      para: correo, nombres, motivo: datos.motivo, enlace: `${env.FRONTEND_URL}/perfil`,
+    }));
+    return revocada;
   },
 
   /** RF-21 · Listar usuarios con paginación, búsqueda y filtros por rol/estado. */

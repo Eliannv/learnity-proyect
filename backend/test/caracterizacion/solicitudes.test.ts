@@ -17,8 +17,10 @@ let srv: Servidor;
 let fab: ReturnType<typeof fabricaCuentas>;
 let admin: Cuenta;
 let reiniciar: () => void;
+// Sprint 4 (migración 033): `revocacion` (null salvo REVOCADA) y `cursosPublicados` se añadieron a propósito.
 const FORMA_SOLICITUD = {
   id: 'number', estado: 'string', especialidad: 'string', motivo: 'string', observacion: 'null', enviadaEn: 'string', revisadaEn: 'null',
+  revocacion: 'null', cursosPublicados: 'number',
   solicitante: { nombres: 'string', apellidos: 'string', correo: 'string', estudianteDesde: 'string', cursosCompletados: 'number' },
 };
 

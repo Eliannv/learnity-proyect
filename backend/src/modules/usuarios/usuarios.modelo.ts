@@ -10,6 +10,10 @@ export interface SolicitudDocente {
   observacion: string | null;
   enviadaEn: string;
   revisadaEn: string | null;
+  /** Solo REVOCADA: cuándo y por qué se retiró el rol docente. */
+  revocacion: { revocadaEn: string; motivo: string } | null;
+  /** Cursos publicados del perfil docente de la persona (para avisar antes de revocar, D3). */
+  cursosPublicados: number;
   solicitante: {
     nombres: string;
     apellidos: string;

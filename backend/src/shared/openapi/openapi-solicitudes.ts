@@ -1,12 +1,13 @@
 // OpenAPI · Solicitudes para ser docente (RF-05 estudiante, RF-22 administrador).
 import { error, errorInterno, erroresCuerpoJson, idInvalido, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
-const ESTADOS = ['PENDIENTE', 'APROBADA', 'RECHAZADA'];
+const ESTADOS = ['PENDIENTE', 'APROBADA', 'RECHAZADA', 'REVOCADA'];
 
 export const esquemasSolicitudes = {
   SolicitudDocente: {
     type: 'object',
-    required: ['id', 'estado', 'especialidad', 'motivo', 'observacion', 'enviadaEn', 'revisadaEn', 'solicitante'],
+    required: ['id', 'estado', 'especialidad', 'motivo', 'observacion', 'enviadaEn', 'revisadaEn', 'revocacion',
+      'cursosPublicados', 'solicitante'],
     properties: {
       id: { type: 'integer', example: 4 },
       estado: { type: 'string', enum: ESTADOS },
@@ -15,6 +16,15 @@ export const esquemasSolicitudes = {
       observacion: { type: 'string', nullable: true, description: 'Motivo del rechazo (solo RECHAZADA).' },
       enviadaEn: { type: 'string', format: 'date-time' },
       revisadaEn: { type: 'string', format: 'date-time', nullable: true },
+      revocacion: {
+        type: 'object', nullable: true, required: ['revocadaEn', 'motivo'],
+        description: 'Solo REVOCADA: cuándo y por qué un administrador retiró el rol docente aprobado.',
+        properties: { revocadaEn: { type: 'string', format: 'date-time' }, motivo: { type: 'string' } },
+      },
+      cursosPublicados: {
+        type: 'integer', minimum: 0,
+        description: 'Cursos PUBLICADO del perfil docente de la persona. Siguen publicados si se revoca el rol.',
+      },
       solicitante: {
         type: 'object',
         required: ['nombres', 'apellidos', 'correo', 'estudianteDesde', 'cursosCompletados'],
@@ -220,6 +230,41 @@ export const rutasSolicitudes = {
         400: error('Estado o parámetro de consulta inválido (SOLICITUD_INVALIDA)'),
         401: error('Sin sesión'),
         403: error('No es administrador'),
+        500: errorInterno,
+      },
+    },
+  },
+  '/admin/solicitudes/{id}/revocacion': {
+    post: {
+      tags: ['Solicitudes de docente'],
+      summary: 'Revocar el rol docente de una solicitud aprobada (administrador)',
+      description:
+        'La solicitud pasa a REVOCADA con quién, cuándo y el motivo; se retira el rol DOCENTE (conserva los demás) y el ' +
+        'perfil docente queda INACTIVO. Sus cursos publicados siguen publicados, pero sin el rol ya no puede editarlos ' +
+        '(se aplica en su siguiente petición). La persona recibe un correo con el motivo y puede volver a solicitar el rol. ' +
+        'Queda en la auditoría con el administrador como autor.',
+      security: seguridad,
+      parameters: [idRuta],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object', additionalProperties: false, required: ['motivo'],
+              properties: {
+                motivo: { type: 'string', minLength: 1, maxLength: 300, description: 'Se recortan los espacios de los extremos.' },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: json(ref('SolicitudDocente'), 'Rol docente revocado'),
+        ...erroresCuerpoJson(`Motivo vacío o de más de 300 caracteres, o ${idInvalido}`),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        404: error('No existe'),
+        409: error('La solicitud no está APROBADA (SOLICITUD_NO_APROBADA)'),
         500: errorInterno,
       },
     },

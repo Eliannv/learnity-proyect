@@ -56,6 +56,9 @@ interface FilaSolicitud {
   observacion: string | null;
   enviada_en: Date;
   revisada_en: Date | null;
+  revocada_en: Date | null;
+  motivo_revocacion: string | null;
+  cursos_publicados: number;
   nombres: string;
   apellidos: string;
   correo: string;
@@ -65,7 +68,9 @@ interface FilaSolicitud {
 
 const SELECT_SOLICITUD = `
   SELECT s.id_solicitud AS id, s.estado, s.especialidad, s.motivo, s.observacion,
-         s.enviada_en, s.revisada_en, p.nombres, p.apellidos, u.correo,
+         s.enviada_en, s.revisada_en, s.revocada_en, s.motivo_revocacion, p.nombres, p.apellidos, u.correo,
+         (SELECT count(*)::int FROM curso c JOIN docente d ON d.id_docente = c.id_docente
+           WHERE d.id_persona = s.id_persona AND c.estado = 'PUBLICADO') AS cursos_publicados,
          p.creado_en AS estudiante_desde,
          (SELECT count(*)::int FROM inscripcion i
            WHERE i.id_persona = p.id_persona AND i.estado = 'COMPLETADA') AS cursos_completados
@@ -82,6 +87,10 @@ function aSolicitud(f: FilaSolicitud): SolicitudDocente {
     observacion: f.observacion,
     enviadaEn: f.enviada_en.toISOString(),
     revisadaEn: f.revisada_en?.toISOString() ?? null,
+    revocacion: f.revocada_en && f.motivo_revocacion
+      ? { revocadaEn: f.revocada_en.toISOString(), motivo: f.motivo_revocacion }
+      : null,
+    cursosPublicados: f.cursos_publicados,
     solicitante: {
       nombres: f.nombres,
       apellidos: f.apellidos,
@@ -140,7 +149,8 @@ export const usuariosRepository = {
 
   /** Pendientes: la más antigua primero (orden de llegada). Revisadas: la más reciente primero. */
   async listarSolicitudes(estado: EstadoSolicitud): Promise<SolicitudDocente[]> {
-    const orden = estado === 'PENDIENTE' ? 's.enviada_en ASC' : 's.revisada_en DESC NULLS LAST';
+    const orden = estado === 'PENDIENTE' ? 's.enviada_en ASC'
+      : estado === 'REVOCADA' ? 's.revocada_en DESC' : 's.revisada_en DESC NULLS LAST';
     const r = await consultar<FilaSolicitud>(
       `${SELECT_SOLICITUD} WHERE s.estado = $1 ORDER BY ${orden}, s.id_solicitud LIMIT 200`,
       [estado],
@@ -177,6 +187,25 @@ export const usuariosRepository = {
         WHERE id_solicitud = $1`,
       [id, estado, observacion, revisadaPor],
     );
+  },
+
+  /** D3 · Marca la solicitud aprobada como REVOCADA con quién, cuándo y por qué. */
+  async marcarRevocada(cliente: PoolClient, id: number, motivo: string, revocadaPor: number): Promise<void> {
+    await cliente.query(
+      `UPDATE solicitud_docente
+          SET estado = 'REVOCADA', revocada_en = now(), revocada_por = $3, motivo_revocacion = $2
+        WHERE id_solicitud = $1`,
+      [id, motivo, revocadaPor],
+    );
+  },
+
+  /** D3 · Retira el rol DOCENTE (conserva los demás) e inactiva el perfil docente; sus cursos no cambian. */
+  async retirarRolDocente(cliente: PoolClient, idUsuario: number, idPersona: number): Promise<void> {
+    await cliente.query(
+      `DELETE FROM usuario_rol WHERE id_usuario = $1 AND id_rol = (SELECT id_rol FROM rol WHERE nombre = 'DOCENTE')`,
+      [idUsuario],
+    );
+    await cliente.query("UPDATE docente SET estado = 'INACTIVO' WHERE id_persona = $1", [idPersona]);
   },
 
   /** Agrega el rol DOCENTE; los roles son acumulativos (conserva ESTUDIANTE). */
