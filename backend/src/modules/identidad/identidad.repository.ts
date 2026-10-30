@@ -97,6 +97,17 @@ export interface SesionActiva {
   agente: string | null;
 }
 
+/** Sesión abierta de cualquier cuenta, para el panel del administrador (sin token ni IP). */
+export interface SesionActivaDeCuenta extends SesionActiva {
+  usuario: { id: number; nombre: string; correo: string; roles: Rol[] };
+}
+
+export interface FiltroSesiones {
+  q?: string;
+  pagina: number;
+  limite: number;
+}
+
 /** `%`, `_` y `\` del texto buscado se toman literalmente (`LIKE … ESCAPE '\'`). */
 const patronLike = (texto: string) => `%${texto.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
@@ -469,6 +480,55 @@ export const identidadRepository = {
       [idUsuario],
     );
     return rows;
+  },
+
+  /**
+   * Sesiones abiertas de todas las cuentas, la renovada más recientemente primero. Una sesión es una familia con
+   * su token vigente (ni revocado ni reemplazado ni vencido).
+   */
+  async listarSesionesActivas(filtro: FiltroSesiones): Promise<{ items: SesionActivaDeCuenta[]; total: number }> {
+    const params: unknown[] = [];
+    let buscar = '';
+    if (filtro.q) {
+      params.push(patronLike(filtro.q));
+      buscar = `AND (lower(u.correo) LIKE $1 ESCAPE '\\' OR lower(concat_ws(' ', p.nombres, p.apellidos)) LIKE $1 ESCAPE '\\')`;
+    }
+    const desde = `FROM sesion s
+      JOIN usuario u ON u.id_usuario = s.id_usuario
+      JOIN persona p ON p.id_persona = u.id_persona
+     WHERE s.revocado_en IS NULL AND s.reemplazado_en IS NULL AND s.expira_en > now() ${buscar}`;
+    const { rows: [conteo] } = await consultar<{ total: number }>(`SELECT count(*)::int AS total ${desde}`, params);
+    const { rows } = await consultar<SesionActiva & {
+      idUsuario: number; nombre: string; correo: string; roles: Rol[];
+    }>(
+      `SELECT s.familia AS id, s.iniciada_en AS "iniciadaEn", s.creado_en AS "renovadaEn", s.expira_en AS "expiraEn",
+              s.agente, u.id_usuario AS "idUsuario", concat_ws(' ', p.nombres, p.apellidos) AS nombre, u.correo,
+              ARRAY(SELECT r.nombre FROM usuario_rol ur JOIN rol r ON r.id_rol = ur.id_rol
+                     WHERE ur.id_usuario = u.id_usuario ORDER BY r.nombre) AS roles
+         ${desde}
+        ORDER BY s.creado_en DESC, s.id_sesion DESC
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, filtro.limite, (filtro.pagina - 1) * filtro.limite],
+    );
+    return {
+      total: conteo?.total ?? 0,
+      items: rows.map(({ idUsuario, nombre, correo, roles, ...s }) => ({
+        ...s, usuario: { id: idUsuario, nombre, correo, roles },
+      })),
+    };
+  },
+
+  /** Revoca una sesión abierta (su familia) con el motivo ADMIN. Devuelve la cuenta, o null si no estaba abierta. */
+  async revocarSesionAbierta(familia: string): Promise<number | null> {
+    const { rows } = await consultar<{ idUsuario: number }>(
+      `UPDATE sesion SET revocado_en = now(), motivo_revocacion = 'ADMIN'
+        WHERE familia = $1 AND revocado_en IS NULL
+          AND EXISTS (SELECT 1 FROM sesion v WHERE v.familia = $1 AND v.revocado_en IS NULL
+                         AND v.reemplazado_en IS NULL AND v.expira_en > now())
+        RETURNING id_usuario AS "idUsuario"`,
+      [familia],
+    );
+    return rows[0]?.idUsuario ?? null;
   },
 
   /** Vencimiento de la invitación sin usar más reciente, o null si no hay ninguna vigente. */

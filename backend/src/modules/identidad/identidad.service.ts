@@ -24,7 +24,9 @@ import {
   type FiltroAccesos,
   type NuevoEventoAcceso,
   type Perfil,
+  type FiltroSesiones,
   type SesionActiva,
+  type SesionActivaDeCuenta,
   identidadRepository as repo,
 } from './identidad.repository.js';
 import { exigirContrasenaSegura } from './politica-contrasena.js';
@@ -505,6 +507,10 @@ export interface ServicioIdentidad {
   invitacionPendiente(idUsuario: number): Promise<Date | null>;
   /** Cierra todas las sesiones abiertas de la cuenta con el motivo ADMIN. Devuelve cuántas cerró. */
   cerrarSesionesPorAdmin(idUsuario: number): Promise<number>;
+  /** Sesiones abiertas de todas las cuentas (panel de Sesiones), la renovada más recientemente primero. */
+  listarSesionesActivas(filtro: FiltroSesiones): Promise<{ items: SesionActivaDeCuenta[]; total: number }>;
+  /** Cierra una sesión abierta (por su id, la familia) con el motivo ADMIN. Devuelve la cuenta, o null si no estaba abierta. */
+  revocarSesionPorAdmin(familia: string): Promise<number | null>;
 }
 
 /** Validez del enlace de invitación (migración 032: como mucho 72 horas). */
@@ -530,4 +536,6 @@ export const identidadApi: ServicioIdentidad = {
   sesionesActivas: (idUsuario) => repo.sesionesActivas(idUsuario),
   invitacionPendiente: (idUsuario) => repo.invitacionPendiente(idUsuario),
   cerrarSesionesPorAdmin: (idUsuario) => repo.revocarSesionesUsuario(idUsuario, 'ADMIN'),
+  listarSesionesActivas: (filtro) => repo.listarSesionesActivas(filtro),
+  revocarSesionPorAdmin: (familia) => repo.revocarSesionAbierta(familia),
 };

@@ -7,7 +7,9 @@ export type {
   CuentaBloqueada,
   EventoAcceso,
   FiltroAccesos,
+  FiltroSesiones,
   MotivoAcceso,
   PasoAcceso,
   SesionActiva,
+  SesionActivaDeCuenta,
 } from './identidad.repository.js';
