@@ -90,6 +90,8 @@ describe('seguimiento docente', () => {
     });
     const input = fixture.nativeElement.querySelector('input#curso-seguimiento') as HTMLInputElement;
     input.focus();
+    input.value = 'Álgebra';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
     const opcion = fixture.nativeElement.querySelector('#curso-seguimiento-opt-7') as HTMLElement;
     opcion.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));

@@ -36,9 +36,9 @@ function normalizar(texto: string): string {
 }
 
 /**
- * Buscador y selector accesible de cursos con autocompletado, previsualización
- * y navegación por teclado (flechas arriba/abajo y Enter).
- * Reutilizable tanto en el encabezado general como en los módulos del docente.
+ * Buscador y selector accesible de cursos con autocompletado y previsualización.
+ * No despliega lista previa al enfocar: solo muestra cursos al escribir una búsqueda.
+ * El estado por defecto (sin búsqueda activa) es "Todos los cursos".
  */
 @Component({
   selector: 'app-buscador-curso',
@@ -72,7 +72,7 @@ function normalizar(texto: string): string {
           [attr.aria-controls]="idLista()"
           [attr.aria-activedescendant]="idOpcionActiva()"
           [value]="textoVisible()"
-          (focus)="alEnfocar()"
+          (focus)="alEnfocar(campo)"
           (input)="alEscribir(campo.value)"
           (keydown)="alTeclar($event, campo)"
           (focusout)="alSalir($event)"
@@ -97,7 +97,7 @@ function normalizar(texto: string): string {
             <p class="estado-sugerencias" role="status">Buscando cursos…</p>
           } @else if (opcionesVisibles().length === 0) {
             <p class="estado-sugerencias" role="status">
-              {{ consulta() ? 'Ningún curso coincide con «' + consulta() + '».' : 'No hay cursos disponibles.' }}
+              Ningún curso coincide con «{{ consulta() }}».
             </p>
           } @else {
             <ul class="lista-opciones">
@@ -112,11 +112,7 @@ function normalizar(texto: string): string {
                   (mousedown)="seleccionar(opcion, $event)"
                 >
                   <div class="miniatura" aria-hidden="true">
-                    @if (opcion.id === 0) {
-                      <span class="icono-cuadro">
-                        <lucide-icon [name]="iconoTodos()" [size]="18" />
-                      </span>
-                    } @else if (opcion.portadaUrl) {
+                    @if (opcion.portadaUrl) {
                       <img [src]="opcion.portadaUrl" alt="" loading="lazy" />
                     } @else if (opcion.iconoCategoria) {
                       <app-portada-curso [iconoCategoria]="opcion.iconoCategoria" [compacta]="true" />
@@ -169,7 +165,6 @@ export class BuscadorCurso {
   readonly cursoId = input<number | null>(null);
   readonly permitirTodos = input<boolean>(true);
   readonly textoTodos = input<string>('Todos los cursos');
-  readonly iconoTodos = input<string>('layout-grid');
   readonly mostrarBotonVerTodos = input<boolean>(false);
   readonly buscarRemoto = input<((termino: string) => Promise<OpcionCursoBusqueda[]>) | null>(null);
 
@@ -183,12 +178,22 @@ export class BuscadorCurso {
 
   protected readonly consulta = signal('');
   protected readonly escribiendo = signal(false);
-  protected readonly desplegado = signal(false);
+  protected readonly enfocado = signal(false);
+  protected readonly cerradoManual = signal(false);
   protected readonly cargando = signal(false);
   protected readonly indiceActivo = signal(-1);
   protected readonly resultadosRemotos = signal<OpcionCursoBusqueda[]>([]);
 
   protected readonly idLista = computed(() => `${this.idCampo()}-lista`);
+
+  /** Solo se despliega cuando hay texto de búsqueda activo (como el navbar de la página principal). */
+  protected readonly desplegado = computed(() => {
+    if (this.cerradoManual()) return false;
+    if (!this.enfocado()) return false;
+    const q = this.consulta().trim();
+    const minLongitud = this.buscarRemoto() ? 2 : 1;
+    return q.length >= minLongitud;
+  });
 
   protected readonly cursoActual = computed(() => {
     const id = this.cursoId();
@@ -203,39 +208,29 @@ export class BuscadorCurso {
     return '';
   });
 
+  /** Por defecto (sin búsqueda ni selección) muestra la opción predeterminada "Todos los cursos". */
   protected readonly placeholderActual = computed(() => {
     const actual = this.cursoActual();
     if (actual) return actual.titulo;
-    if (this.permitirTodos() && this.cursoId() === null && this.textoTodos()) {
+    if (this.cursoId() === null && this.permitirTodos() && this.textoTodos()) {
       return this.textoTodos();
     }
     return this.placeholder();
   });
 
+  /** Solo devuelve cursos reales coincidentes. No incluye la opción sintética de "Todos los cursos". */
   protected readonly opcionesVisibles = computed<OpcionCursoBusqueda[]>(() => {
+    const q = normalizar(this.consulta().trim());
+    if (!q) {
+      return [];
+    }
+
     if (this.buscarRemoto()) {
       return this.resultadosRemotos();
     }
 
     const todos = this.cursos();
-    const q = normalizar(this.consulta().trim());
-
-    const filtrados = q ? todos.filter((c) => normalizar(c.titulo).includes(q)) : todos;
-
-    if (!this.permitirTodos()) {
-      return filtrados;
-    }
-
-    const opcionTodos: OpcionCursoBusqueda = {
-      id: 0,
-      titulo: this.textoTodos(),
-      subtitulo: 'Ver todos los cursos',
-    };
-
-    if (!q || normalizar(this.textoTodos()).includes(q)) {
-      return [opcionTodos, ...filtrados];
-    }
-    return filtrados;
+    return todos.filter((c) => normalizar(c.titulo).includes(q));
   });
 
   protected readonly idOpcionActiva = computed(() => {
@@ -260,21 +255,29 @@ export class BuscadorCurso {
   }
 
   protected estaSeleccionado(opcion: OpcionCursoBusqueda): boolean {
-    if (opcion.id === 0) return this.cursoId() === null;
     return this.cursoId() === opcion.id;
   }
 
-  protected alEnfocar(): void {
-    this.desplegado.set(true);
+  protected alEnfocar(campo?: HTMLInputElement): void {
+    this.enfocado.set(true);
+    this.cerradoManual.set(false);
     this.indiceActivo.set(-1);
+    if (this.cursoActual()) {
+      campo?.select();
+    }
   }
 
   protected alEscribir(valor: string): void {
     this.escribiendo.set(true);
+    this.cerradoManual.set(false);
     this.consulta.set(valor);
-    this.desplegado.set(true);
     this.indiceActivo.set(-1);
     this.terminoCambio.emit(valor);
+
+    if (!valor.trim() && this.cursoId() !== null) {
+      this.seleccion.emit(null);
+      this.cursoSeleccionado.emit(null);
+    }
 
     const buscarFn = this.buscarRemoto();
     if (buscarFn) {
@@ -301,20 +304,14 @@ export class BuscadorCurso {
 
   protected alTeclar(evento: KeyboardEvent, campo: HTMLInputElement): void {
     if (!this.desplegado()) {
-      if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
-        evento.preventDefault();
-        this.desplegado.set(true);
-        this.indiceActivo.set(0);
-        return;
-      }
+      return;
     }
 
     const opciones = this.opcionesVisibles();
     const total = opciones.length + (this.mostrarBotonVerTodos() && this.consulta() ? 1 : 0);
     if (total === 0) {
       if (evento.key === 'Escape') {
-        this.desplegado.set(false);
-        this.escribiendo.set(false);
+        this.alPulsarEscape();
         campo.blur();
       }
       return;
@@ -353,18 +350,13 @@ export class BuscadorCurso {
 
   protected seleccionar(opcion: OpcionCursoBusqueda, evento?: Event): void {
     if (evento) evento.preventDefault();
-    this.desplegado.set(false);
+    this.cerradoManual.set(true);
     this.escribiendo.set(false);
     this.consulta.set('');
     this.indiceActivo.set(-1);
 
-    if (opcion.id === 0) {
-      this.seleccion.emit(null);
-      this.cursoSeleccionado.emit(null);
-    } else {
-      this.seleccion.emit(opcion.id);
-      this.cursoSeleccionado.emit(opcion);
-    }
+    this.seleccion.emit(opcion.id);
+    this.cursoSeleccionado.emit(opcion);
   }
 
   protected limpiar(campo: HTMLInputElement, evento?: Event): void {
@@ -374,7 +366,7 @@ export class BuscadorCurso {
     }
     this.consulta.set('');
     this.escribiendo.set(false);
-    this.desplegado.set(false);
+    this.cerradoManual.set(true);
     this.indiceActivo.set(-1);
     campo.value = '';
     this.terminoCambio.emit('');
@@ -389,7 +381,7 @@ export class BuscadorCurso {
 
   private ejecutarBuscarTodos(): void {
     const q = this.consulta().trim();
-    this.desplegado.set(false);
+    this.cerradoManual.set(true);
     this.escribiendo.set(false);
     this.indiceActivo.set(-1);
     this.buscarTodos.emit(q);
@@ -398,7 +390,7 @@ export class BuscadorCurso {
   protected alSalir(evento: FocusEvent): void {
     const destino = evento.relatedTarget as Node | null;
     if (!this.elemento.nativeElement.contains(destino)) {
-      this.desplegado.set(false);
+      this.enfocado.set(false);
       this.escribiendo.set(false);
       this.indiceActivo.set(-1);
     }
@@ -406,14 +398,14 @@ export class BuscadorCurso {
 
   protected alHacerClickFuera(evento: MouseEvent): void {
     if (!this.elemento.nativeElement.contains(evento.target as Node)) {
-      this.desplegado.set(false);
+      this.enfocado.set(false);
       this.escribiendo.set(false);
       this.indiceActivo.set(-1);
     }
   }
 
   protected alPulsarEscape(): void {
-    this.desplegado.set(false);
+    this.cerradoManual.set(true);
     this.escribiendo.set(false);
     this.indiceActivo.set(-1);
   }

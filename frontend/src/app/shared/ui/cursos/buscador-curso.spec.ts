@@ -40,32 +40,35 @@ describe('BuscadorCurso', () => {
     }).compileComponents();
   });
 
-  it('muestra las opciones y permite navegar con flechas y seleccionar con Enter', async () => {
+  it('no muestra lista previa al enfocar y solo despliega al escribir una búsqueda', async () => {
     const fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
 
     const input = fixture.nativeElement.querySelector('input#test-buscador') as HTMLInputElement;
     expect(input).toBeTruthy();
+    // Por defecto sin selección muestra el placeholder de "Todos mis cursos"
+    expect(input.placeholder).toBe('Todos mis cursos');
 
-    // Enfocar abre el desplegable con "Todos mis cursos" + los 3 cursos
+    // Enfocar sin escribir NO abre el desplegable (no hay lista previa)
     input.focus();
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.desplegable-sugerencias')).toBeNull();
 
-    const opcionesIniciales = fixture.nativeElement.querySelectorAll('.lista-opciones li');
-    expect(opcionesIniciales.length).toBe(4); // 0 (Todos) + 3 cursos
+    // Al escribir un término aparecen únicamente los cursos coincidentes (sin opción "Todos los cursos")
+    input.value = 'algeb';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    const opciones = fixture.nativeElement.querySelectorAll('.lista-opciones li');
+    expect(opciones.length).toBe(1);
+    expect(opciones[0].textContent).toContain('Álgebra inicial');
+    expect(opciones[0].textContent).not.toContain('Todos mis cursos');
 
     // Navegar con flecha abajo
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     fixture.detectChanges();
 
-    let activo = fixture.nativeElement.querySelector('.lista-opciones li.activo');
-    expect(activo?.textContent).toContain('Todos mis cursos');
-
-    // Flecha abajo otra vez -> Álgebra inicial
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-    fixture.detectChanges();
-
-    activo = fixture.nativeElement.querySelector('.lista-opciones li.activo');
+    const activo = fixture.nativeElement.querySelector('.lista-opciones li.activo');
     expect(activo?.textContent).toContain('Álgebra inicial');
 
     // Presionar Enter para elegir
@@ -74,18 +77,20 @@ describe('BuscadorCurso', () => {
 
     expect(fixture.componentInstance.cursoId()).toBe(1);
     expect(fixture.componentInstance.seleccionado()?.titulo).toBe('Álgebra inicial');
-
-    // El input muestra el curso seleccionado
     expect(input.value).toBe('Álgebra inicial');
+
+    // Al elegir se cierra el desplegable
+    expect(fixture.nativeElement.querySelector('.desplegable-sugerencias')).toBeNull();
   });
 
-  it('filtra por texto ignorando mayúsculas y acentos y limpia con el botón X', async () => {
+  it('filtra por texto ignorando mayúsculas y acentos y limpia con el botón X para volver al valor por defecto', async () => {
     const fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
 
     const input = fixture.nativeElement.querySelector('input#test-buscador') as HTMLInputElement;
 
     // Escribir "calculo" sin acento
+    input.focus();
     input.value = 'calculo';
     input.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
@@ -94,13 +99,13 @@ describe('BuscadorCurso', () => {
     expect(opciones.length).toBe(1);
     expect(opciones[0].textContent).toContain('Cálculo avanzado');
 
-    // Presionar Enter con única coincidencia selecciona
+    // Presionar Enter selecciona la única coincidencia
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.cursoId()).toBe(2);
 
-    // Botón limpiar
+    // Botón limpiar X restablece a null (todos los cursos por defecto)
     const btnLimpiar = fixture.nativeElement.querySelector('.btn-limpiar') as HTMLButtonElement;
     expect(btnLimpiar).toBeTruthy();
     btnLimpiar.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -108,5 +113,6 @@ describe('BuscadorCurso', () => {
 
     expect(fixture.componentInstance.cursoId()).toBeNull();
     expect(input.value).toBe('');
+    expect(input.placeholder).toBe('Todos mis cursos');
   });
 });
