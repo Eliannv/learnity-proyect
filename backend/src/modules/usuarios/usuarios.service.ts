@@ -109,6 +109,16 @@ export const usuariosService = {
   },
 
   /**
+   * Quita el bloqueo temporal por intentos fallidos y reinicia el contador. Si la cuenta no estaba bloqueada,
+   * no cambia nada (la auditoría no registra un UPDATE sin cambios).
+   */
+  async desbloquear(idUsuario: number, admin: UsuarioSesion): Promise<void> {
+    const existe = await enTransaccion((cliente) => identidadApi.desbloquearCuenta(idUsuario, cliente), { actor: admin.idPersona });
+    if (!existe) throw AppError.noEncontrado('El usuario no existe.');
+    registrarEvento('cuenta_desbloqueada', { idUsuario, idAdmin: admin.idUsuario });
+  },
+
+  /**
    * RF-21 · Editar roles de un usuario.
    * Toda cuenta debe conservar al menos el rol ESTUDIANTE.
    * No permite quitarse el rol ADMIN a uno mismo ni dejar el sistema sin administradores.

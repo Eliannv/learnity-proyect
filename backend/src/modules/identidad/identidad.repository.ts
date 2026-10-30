@@ -45,7 +45,51 @@ export interface FilaSesion {
   revocadoEn: Date | null;
 }
 
-export type MotivoRevocacion = 'CIERRE' | 'REUTILIZACION' | 'CAMBIO_CONTRASENA' | 'RESTABLECIMIENTO' | 'CUENTA_INACTIVA';
+export type MotivoRevocacion =
+  | 'CIERRE' | 'REUTILIZACION' | 'CAMBIO_CONTRASENA' | 'RESTABLECIMIENTO' | 'CUENTA_INACTIVA' | 'ADMIN';
+
+/** Un intento de entrar a una cuenta (migración 032). REFRESH solo se registra cuando falla. */
+export interface NuevoEventoAcceso {
+  idUsuario: number | null;
+  correo: string | null;
+  paso: PasoAcceso;
+  motivo: MotivoAcceso;
+  agente?: string;
+}
+
+export type PasoAcceso = 'CLAVE' | 'REFRESH' | 'RECUPERACION';
+export type MotivoAcceso =
+  | 'OK' | 'CLAVE_INCORRECTA' | 'CUENTA_BLOQUEADA' | 'CUENTA_INACTIVA'
+  | 'CORREO_DESCONOCIDO' | 'TOKEN_REUTILIZADO' | 'TOKEN_INVALIDO';
+
+export interface EventoAcceso {
+  id: number;
+  fecha: Date;
+  usuario: { id: number; nombre: string } | null;
+  correo: string | null;
+  paso: PasoAcceso;
+  exito: boolean;
+  motivo: MotivoAcceso;
+  agente: string | null;
+}
+
+export interface FiltroAccesos {
+  soloFallidos: boolean;
+  q?: string;
+  pagina: number;
+  limite: number;
+}
+
+export interface CuentaBloqueada {
+  idUsuario: number;
+  nombre: string;
+  correo: string;
+  intentosFallidos: number;
+  bloqueadoHasta: Date;
+}
+
+/** `%`, `_` y `\` del texto buscado se toman literalmente (`LIKE … ESCAPE '\'`). */
+const patronLike = (texto: string) => `%${texto.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 const SELECT_CUENTA = `
   SELECT u.id_usuario        AS "idUsuario",
@@ -325,5 +369,74 @@ export const identidadRepository = {
     await cliente.query('UPDATE token_recuperacion SET usado_en = now() WHERE id_usuario = $1 AND usado_en IS NULL', [
       idUsuario,
     ]);
+  },
+
+  // ───────────────────────────────────────────────────────────── registro de accesos (032)
+  async registrarEventoAcceso(evento: NuevoEventoAcceso): Promise<void> {
+    await consultar(
+      `INSERT INTO evento_acceso (id_usuario, correo, paso, exito, motivo, agente)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [evento.idUsuario, evento.correo?.slice(0, 120) ?? null, evento.paso, evento.motivo === 'OK', evento.motivo,
+        evento.agente ?? null],
+    );
+  },
+
+  /** Más recientes primero. `q` busca en el correo escrito y en el nombre de la cuenta. */
+  async listarAccesos(filtro: FiltroAccesos): Promise<{ items: EventoAcceso[]; total: number }> {
+    const condiciones: string[] = [];
+    const params: unknown[] = [];
+    if (filtro.soloFallidos) condiciones.push('NOT e.exito');
+    if (filtro.q) {
+      params.push(patronLike(filtro.q));
+      condiciones.push(`(lower(e.correo) LIKE $${params.length} ESCAPE '\\'
+        OR lower(concat_ws(' ', p.nombres, p.apellidos)) LIKE $${params.length} ESCAPE '\\')`);
+    }
+    const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+    const desde = `FROM evento_acceso e
+      LEFT JOIN usuario u ON u.id_usuario = e.id_usuario
+      LEFT JOIN persona p ON p.id_persona = u.id_persona`;
+
+    const { rows: [conteo] } = await consultar<{ total: number }>(`SELECT count(*)::int AS total ${desde} ${where}`, params);
+    const { rows } = await consultar<{
+      id: string; fecha: Date; idUsuario: number | null; nombre: string | null; correo: string | null;
+      paso: PasoAcceso; exito: boolean; motivo: MotivoAcceso; agente: string | null;
+    }>(
+      `SELECT e.id_evento AS id, e.ocurrido_en AS fecha, u.id_usuario AS "idUsuario",
+              concat_ws(' ', p.nombres, p.apellidos) AS nombre, COALESCE(e.correo, u.correo) AS correo,
+              e.paso, e.exito, e.motivo, e.agente
+         ${desde} ${where}
+        ORDER BY e.ocurrido_en DESC, e.id_evento DESC
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, filtro.limite, (filtro.pagina - 1) * filtro.limite],
+    );
+    return {
+      total: conteo?.total ?? 0,
+      items: rows.map((f) => ({
+        id: Number(f.id), fecha: f.fecha, correo: f.correo, paso: f.paso, exito: f.exito, motivo: f.motivo, agente: f.agente,
+        usuario: f.idUsuario === null ? null : { id: f.idUsuario, nombre: f.nombre ?? '' },
+      })),
+    };
+  },
+
+  /** Cuentas con un bloqueo temporal vigente, la que vence antes primero. */
+  async cuentasBloqueadas(): Promise<CuentaBloqueada[]> {
+    const { rows } = await consultar<CuentaBloqueada>(
+      `SELECT u.id_usuario AS "idUsuario", concat_ws(' ', p.nombres, p.apellidos) AS nombre, u.correo,
+              u.intentos_fallidos AS "intentosFallidos", u.bloqueado_hasta AS "bloqueadoHasta"
+         FROM usuario u JOIN persona p ON p.id_persona = u.id_persona
+        WHERE u.bloqueado_hasta > now()
+        ORDER BY u.bloqueado_hasta, u.id_usuario
+        LIMIT 200`,
+    );
+    return rows;
+  },
+
+  /** Quita el bloqueo y reinicia los intentos. Devuelve false si la cuenta no existe. */
+  async desbloquearCuenta(cliente: pg.PoolClient, idUsuario: number): Promise<boolean> {
+    const { rowCount } = await cliente.query(
+      'UPDATE usuario SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id_usuario = $1',
+      [idUsuario],
+    );
+    return (rowCount ?? 0) > 0;
   },
 };

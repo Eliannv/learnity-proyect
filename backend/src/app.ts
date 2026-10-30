@@ -27,6 +27,7 @@ import { evaluacionesRoutes } from './modules/evaluaciones/index.js';
 import { categoriasRoutes } from './modules/categorias/index.js';
 import { resenasRoutes } from './modules/resenas/index.js';
 import { analiticasRoutes } from './modules/analiticas/index.js';
+import { supervisionRoutes } from './modules/supervision/index.js';
 
 /**
  * Puertos: contratos que `shared` o un módulo define y otro módulo implementa (ADR-001, ADR-004).
@@ -84,6 +85,7 @@ export function crearApp() {
   api.use(categoriasRoutes);
   api.use(resenasRoutes);
   api.use(analiticasRoutes);
+  api.use(supervisionRoutes);
   app.use('/api', api);
 
   app.use(rutaNoEncontrada);

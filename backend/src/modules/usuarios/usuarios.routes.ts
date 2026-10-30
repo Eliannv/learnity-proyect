@@ -62,6 +62,14 @@ usuariosRoutes.put(
   controller.cambiarEstado,
 );
 
+usuariosRoutes.delete(
+  '/admin/usuarios/:id/bloqueo',
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosUsuario),
+  controller.desbloquear,
+);
+
 usuariosRoutes.put(
   '/admin/usuarios/:id/roles',
   autenticar,

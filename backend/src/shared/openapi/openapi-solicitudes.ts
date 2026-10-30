@@ -254,6 +254,25 @@ export const rutasSolicitudes = {
       },
     },
   },
+  '/admin/usuarios/{id}/bloqueo': {
+    delete: {
+      tags: ['Usuarios'],
+      summary: 'Desbloquear una cuenta bloqueada por intentos fallidos (administrador)',
+      description:
+        'Quita el bloqueo temporal y reinicia el contador de intentos fallidos. Si la cuenta no estaba bloqueada, ' +
+        'responde igual y no cambia nada. Queda en la auditoría con el administrador como autor.',
+      security: seguridad,
+      parameters: [idRuta],
+      responses: {
+        204: { description: 'Cuenta desbloqueada' },
+        400: error(idInvalido),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        404: error('Usuario no encontrado'),
+        500: errorInterno,
+      },
+    },
+  },
   '/admin/usuarios/{id}/roles': {
     put: {
       tags: ['Usuarios'],

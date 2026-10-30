@@ -9,6 +9,7 @@ import { esquemasEvaluaciones, rutasEvaluaciones } from './openapi-evaluaciones.
 import { esquemasCategorias, rutasCategorias } from './openapi-categorias.js';
 import { esquemasResenas, rutasResenas } from './openapi-resenas.js';
 import { esquemasAnaliticas, rutasAnaliticas } from './openapi-analiticas.js';
+import { esquemasSupervision, rutasSupervision } from './openapi-supervision.js';
 
 const usuarioSesion = {
   type: 'object',
@@ -203,6 +204,7 @@ export const openApi = {
       ...esquemasCategorias,
       ...esquemasResenas,
       ...esquemasAnaliticas,
+      ...esquemasSupervision,
     },
     responses: respuestasComunes,
     securitySchemes: {
@@ -220,6 +222,7 @@ export const openApi = {
     ...rutasCategorias,
     ...rutasResenas,
     ...rutasAnaliticas,
+    ...rutasSupervision,
     '/salud': {
       get: {
         tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL',

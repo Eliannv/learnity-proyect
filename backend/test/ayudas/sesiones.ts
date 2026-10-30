@@ -75,6 +75,14 @@ export async function limpiarMarca(f: Fixtures, marca: string): Promise<void> {
   await f.query(`DELETE FROM categoria WHERE nombre LIKE $1 || '%' OR creada_por IN ${sub}`, [marca]);
   await f.query(`DELETE FROM solicitud_docente WHERE id_persona IN ${sub} OR revisada_por IN ${sub}`, [marca]);
   await f.query(`UPDATE usuario_rol SET asignado_por = NULL WHERE asignado_por IN ${sub}`, [marca]);
+  // Registro de accesos (032): los de las cuentas de la suite y los de correos con su marca que no existen.
+  const { rows: [acc] } = await f.query<{ hay: boolean }>("SELECT to_regclass('public.evento_acceso') IS NOT NULL AS hay");
+  if (acc?.hay) {
+    await f.query(
+      `DELETE FROM evento_acceso
+        WHERE id_usuario IN (SELECT id_usuario FROM usuario WHERE id_persona IN ${sub})
+           OR correo LIKE $1 || '%@qa-edge.test'`, [marca]);
+  }
   await f.query(`DELETE FROM usuario WHERE id_persona IN ${sub}`, [marca]);
   await f.query(`DELETE FROM docente WHERE id_persona IN ${sub}`, [marca]);
   await f.query('DELETE FROM persona WHERE nombres = $1', [marca]);

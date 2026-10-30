@@ -17,7 +17,15 @@ import type {
   RegistroDto,
   RestablecerDto,
 } from './identidad.esquemas.js';
-import { type CuentaConRoles, type Perfil, identidadRepository as repo } from './identidad.repository.js';
+import {
+  type CuentaBloqueada,
+  type CuentaConRoles,
+  type EventoAcceso,
+  type FiltroAccesos,
+  type NuevoEventoAcceso,
+  type Perfil,
+  identidadRepository as repo,
+} from './identidad.repository.js';
 import { exigirContrasenaSegura } from './politica-contrasena.js';
 import { almacenFotos } from '../../shared/archivos/fotos.js';
 import type { PoolClient } from 'pg';
@@ -115,6 +123,18 @@ function enSegundoPlano(nombre: string, trabajo: () => Promise<void>): void {
   tareas.add(tarea);
 }
 
+/**
+ * Registro de accesos para el administrador (migración 032). Se espera en todos los caminos del login, así
+ * no cambia la diferencia de tiempos entre ellos. Si la escritura falla, la operación sigue: queda en el log.
+ */
+async function anotarAcceso(evento: NuevoEventoAcceso): Promise<void> {
+  try {
+    await repo.registrarEventoAcceso(evento);
+  } catch (error) {
+    registrarEvento('acceso_no_registrado', { paso: evento.paso, motivo: (error as Error).message }, 'error');
+  }
+}
+
 function avisarCambioContrasena(cuenta: CuentaConRoles): void {
   enSegundoPlano('aviso_contrasena', () =>
     enviarCorreo(
@@ -165,15 +185,19 @@ export const identidadService = {
    */
   async iniciarSesion(datos: LoginDto, ctx: Contexto): Promise<SesionEmitida> {
     const cuenta = await repo.buscarCuentaPorCorreo(datos.correo);
+    const acceso = (motivo: NuevoEventoAcceso['motivo']) =>
+      anotarAcceso({ idUsuario: cuenta?.idUsuario ?? null, correo: datos.correo, paso: 'CLAVE', motivo, agente: ctx.agente });
     if (!cuenta) {
       await compararContrasena(datos.contrasena, await hashSenuelo); // mismo tiempo de respuesta
       registrarEvento('login_fallido', { motivo: 'correo_desconocido', correo: ocultarCorreo(datos.correo), ip: ctx.ip }, 'aviso');
+      await acceso('CORREO_DESCONOCIDO');
       throw AppError.noAutenticado(MENSAJE_CREDENCIALES, 'CREDENCIALES_INVALIDAS');
     }
 
     if (cuenta.bloqueadoHasta && cuenta.bloqueadoHasta > new Date()) {
       await compararContrasena(datos.contrasena, await hashSenuelo);
       registrarEvento('login_fallido', { motivo: 'cuenta_bloqueada', idUsuario: cuenta.idUsuario, ip: ctx.ip }, 'aviso');
+      await acceso('CUENTA_BLOQUEADA');
       throw AppError.noAutenticado(MENSAJE_CREDENCIALES, 'CREDENCIALES_INVALIDAS');
     }
 
@@ -182,16 +206,19 @@ export const identidadService = {
       const bloqueada = await repo.registrarIntentoFallido(cuenta.idUsuario, MAX_INTENTOS, hasta);
       registrarEvento('login_fallido', { motivo: 'contrasena', idUsuario: cuenta.idUsuario, ip: ctx.ip }, 'aviso');
       if (bloqueada) registrarEvento('cuenta_bloqueada', { idUsuario: cuenta.idUsuario, minutos: MINUTOS_BLOQUEO, ip: ctx.ip }, 'aviso');
+      await acceso('CLAVE_INCORRECTA');
       throw AppError.noAutenticado(MENSAJE_CREDENCIALES, 'CREDENCIALES_INVALIDAS');
     }
 
     // Solo quien conoce la contraseña llega a saber que la cuenta está desactivada.
     if (cuenta.estado === 'INACTIVO') {
       registrarEvento('login_fallido', { motivo: 'cuenta_inactiva', idUsuario: cuenta.idUsuario, ip: ctx.ip }, 'aviso');
+      await acceso('CUENTA_INACTIVA');
       throw AppError.sinPermiso('Tu cuenta está desactivada. Comunícate con la administración de Learnity.', 'CUENTA_INACTIVA');
     }
 
     await repo.registrarAccesoCorrecto(cuenta.idUsuario);
+    await acceso('OK');
     if (requiereRecifrar(cuenta.contrasenaHash)) {
       await repo.actualizarContrasena(cuenta.idUsuario, await cifrarContrasena(datos.contrasena));
     }
@@ -206,10 +233,18 @@ export const identidadService = {
    */
   async refrescarSesion(refreshToken: string | undefined, ctx: Contexto): Promise<SesionEmitida> {
     const sinSesion = () => AppError.noAutenticado('No hay una sesión activa.', 'SESION_INVALIDA');
+    // Sin cookie (o con basura) no es un intento de entrar: es cualquier visitante que abre la web.
     if (!esTokenOpaco(refreshToken)) throw sinSesion();
 
+    // De REFRESH solo se registran los fallos (D4): las renovaciones correctas ya quedan en `sesion`.
+    const fallo = (idUsuario: number | null, motivo: NuevoEventoAcceso['motivo']) =>
+      anotarAcceso({ idUsuario, correo: null, paso: 'REFRESH', motivo, agente: ctx.agente });
+
     const fila = await repo.buscarSesionPorHash(hashToken(refreshToken));
-    if (!fila || fila.revocadoEn) throw sinSesion();
+    if (!fila || fila.revocadoEn) {
+      await fallo(fila?.idUsuario ?? null, 'TOKEN_INVALIDO');
+      throw sinSesion();
+    }
 
     if (fila.reemplazadoEn) {
       if (Date.now() - fila.reemplazadoEn.getTime() < GRACIA_ROTACION_MS) {
@@ -217,16 +252,21 @@ export const identidadService = {
       }
       await repo.revocarFamilia(fila.familia, 'REUTILIZACION');
       registrarEvento('refresh_reutilizado', { idUsuario: fila.idUsuario, ip: ctx.ip }, 'aviso');
+      await fallo(fila.idUsuario, 'TOKEN_REUTILIZADO');
       throw sinSesion();
     }
 
     const ahora = Date.now();
     const limite = Math.min(ahora + diasEnMs(env.REFRESH_DIAS), fila.iniciadaEn.getTime() + diasEnMs(env.SESION_MAX_DIAS));
-    if (fila.expiraEn.getTime() <= ahora || limite <= ahora) throw sinSesion();
+    if (fila.expiraEn.getTime() <= ahora || limite <= ahora) {
+      await fallo(fila.idUsuario, 'TOKEN_INVALIDO');
+      throw sinSesion();
+    }
 
     const cuenta = await repo.buscarCuentaPorId(fila.idUsuario);
     if (!cuenta || cuenta.estado !== 'ACTIVO') {
       await repo.revocarFamilia(fila.familia, 'CUENTA_INACTIVA');
+      await fallo(cuenta ? fila.idUsuario : null, 'CUENTA_INACTIVA');
       throw sinSesion();
     }
 
@@ -318,14 +358,23 @@ export const identidadService = {
   /** RF-06 · Nueva contraseña con el enlace: un solo uso, con vencimiento, y cierra todas las sesiones anteriores. */
   async restablecerContrasena(datos: RestablecerDto, ctx: Contexto): Promise<{ mensaje: string }> {
     const invalido = () => AppError.solicitudInvalida(MENSAJE_ENLACE_INVALIDO, [{ campo: 'token', mensaje: MENSAJE_ENLACE_INVALIDO }]);
-    if (!esTokenOpaco(datos.token)) throw invalido();
+    const acceso = (idUsuario: number | null, correo: string | null, motivo: NuevoEventoAcceso['motivo']) =>
+      anotarAcceso({ idUsuario, correo, paso: 'RECUPERACION', motivo, agente: ctx.agente });
+    if (!esTokenOpaco(datos.token)) {
+      await acceso(null, null, 'TOKEN_INVALIDO');
+      throw invalido();
+    }
     const vigente = await repo.buscarTokenRecuperacionVigente(hashToken(datos.token));
     if (!vigente) {
       registrarEvento('restablecer_rechazado', { ip: ctx.ip }, 'aviso');
+      await acceso(null, null, 'TOKEN_INVALIDO');
       throw invalido();
     }
     const cuenta = await repo.buscarCuentaPorId(vigente.idUsuario);
-    if (!cuenta || cuenta.estado !== 'ACTIVO') throw invalido();
+    if (!cuenta || cuenta.estado !== 'ACTIVO') {
+      await acceso(cuenta?.idUsuario ?? null, cuenta?.correo ?? null, 'CUENTA_INACTIVA');
+      throw invalido();
+    }
 
     await exigirContrasenaSegura(datos.contrasena, cuenta);
     const contrasenaHash = await cifrarContrasena(datos.contrasena);
@@ -336,9 +385,13 @@ export const identidadService = {
       await repo.invalidarTokensRecuperacion(cuenta.idUsuario, cliente);
       return repo.revocarSesionesUsuario(cuenta.idUsuario, 'RESTABLECIMIENTO', null, cliente);
    }, { actor: cuenta.idPersona });
-    if (revocadas === null) throw invalido(); // otra petición usó el enlace primero
+    if (revocadas === null) { // otra petición usó el enlace primero
+      await acceso(cuenta.idUsuario, cuenta.correo, 'TOKEN_INVALIDO');
+      throw invalido();
+    }
 
     registrarEvento('contrasena_restablecida', { idUsuario: cuenta.idUsuario, sesionesCerradas: revocadas, ip: ctx.ip });
+    await acceso(cuenta.idUsuario, cuenta.correo, 'OK');
     avisarCambioContrasena(cuenta);
     return { mensaje: 'Tu contraseña se actualizó. Inicia sesión con la nueva contraseña.' };
   },
@@ -430,6 +483,12 @@ export interface ServicioIdentidad {
   esperarTareas(): Promise<void>;
   /** Cierra todas las sesiones de una cuenta desactivada, dentro de la transacción de quien la desactiva. */
   revocarSesionesDeCuentaInactiva(idUsuario: number, cliente: PoolClient): Promise<void>;
+  /** Registro de accesos del panel del administrador (032), más recientes primero. */
+  listarAccesos(filtro: FiltroAccesos): Promise<{ items: EventoAcceso[]; total: number }>;
+  /** Cuentas con un bloqueo temporal vigente por intentos fallidos. */
+  cuentasBloqueadas(): Promise<CuentaBloqueada[]>;
+  /** Quita el bloqueo y reinicia los intentos, dentro de la transacción (auditada) del administrador. false si no existe. */
+  desbloquearCuenta(idUsuario: number, cliente: PoolClient): Promise<boolean>;
 }
 
 export const identidadApi: ServicioIdentidad = {
@@ -438,4 +497,7 @@ export const identidadApi: ServicioIdentidad = {
   async revocarSesionesDeCuentaInactiva(idUsuario, cliente) {
     await repo.revocarSesionesUsuario(idUsuario, 'CUENTA_INACTIVA', null, cliente);
   },
+  listarAccesos: (filtro) => repo.listarAccesos(filtro),
+  cuentasBloqueadas: () => repo.cuentasBloqueadas(),
+  desbloquearCuenta: (idUsuario, cliente) => repo.desbloquearCuenta(cliente, idUsuario),
 };

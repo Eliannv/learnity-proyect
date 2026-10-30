@@ -48,6 +48,12 @@ export const usuariosController = {
     res.json(await service.cambiarEstado(id, req.body as CambioEstadoUsuario, usuario(req)));
   },
 
+  async desbloquear(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    await service.desbloquear(id, usuario(req));
+    res.status(204).end();
+  },
+
   async cambiarRoles(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
     res.json(await service.cambiarRoles(id, req.body as CambioRolesUsuario, usuario(req)));

@@ -3,3 +3,10 @@
 export { identidadRoutes } from './identidad.routes.js';
 export { identidadApi } from './identidad.service.js';
 export type { ServicioIdentidad } from './identidad.service.js';
+export type {
+  CuentaBloqueada,
+  EventoAcceso,
+  FiltroAccesos,
+  MotivoAcceso,
+  PasoAcceso,
+} from './identidad.repository.js';
