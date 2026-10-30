@@ -4101,6 +4101,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
+                /** @description Un administrador ocultó la reseña: no se puede editar ni republicar (RESENA_OCULTADA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
                 413: components["responses"]["CuerpoDemasiadoGrande"];
                 415: components["responses"]["TipoNoAdmitido"];
                 /** @description Límite de peticiones */
@@ -4584,13 +4593,18 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Todas las reseñas (también las borradas) con su historial completo
+         * Todas las reseñas (también las borradas y ocultadas) con su historial completo
          * @description Acceso total del administrador para moderar. De la más reciente a la más antigua.
          */
         get: {
             parameters: {
                 query?: {
-                    estado?: "vigentes" | "borradas" | "todas";
+                    /** @description vigentes: se ven en el curso; borradas: por su autor; ocultadas: por un administrador. */
+                    estado?: "vigentes" | "borradas" | "ocultadas" | "todas";
+                    curso?: number;
+                    estrellas?: number;
+                    /** @description Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas). */
+                    q?: string;
                     pagina?: number;
                     limite?: number;
                 };
@@ -4721,7 +4735,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Resolver un reporte: ocultar la reseña (borrado lógico) o desestimarlo */
+        /** Resolver un reporte: ocultar la reseña o desestimarlo */
         put: {
             parameters: {
                 query?: never;
@@ -4858,6 +4872,254 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/resenas/{id}/ocultacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ocultar una reseña con un motivo, sin necesidad de reporte
+         * @description Deja de verse y de contar en los promedios, y el estudiante no puede republicarla. Sus reportes pendientes quedan resueltos como OCULTADA.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosOcultacionResena"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResenaAdmin"];
+                    };
+                };
+                /** @description Motivo vacío o de más de 300 caracteres, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La reseña no existe */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Ya está oculta (RESENA_YA_OCULTADA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        /** Restaurar una reseña ocultada */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResenaAdmin"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La reseña no existe */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No está oculta (RESENA_NO_OCULTADA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/resenas/{id}/respuesta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirar la respuesta pública del docente (queda en el historial como RESPUESTA_RETIRADA) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResenaAdmin"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La reseña no existe */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No tiene respuesta del docente (SIN_RESPUESTA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -6834,9 +7096,11 @@ export interface components {
             totalPaginas: number;
         };
         MiResena: {
-            /** @description Inscrito en el curso publicado. */
+            /** @description Inscrito en el curso publicado y su reseña no está ocultada. */
             puedeResenar: boolean;
             resena: components["schemas"]["Resena"] | null;
+            /** @description Un administrador ocultó su reseña: no puede editarla ni republicarla. El motivo es interno. */
+            ocultada: boolean;
         };
         DatosResena: {
             estrellas: number;
@@ -6917,7 +7181,7 @@ export interface components {
         };
         EntradaHistorialResena: {
             /** @enum {string} */
-            accion: "CREADA" | "EDITADA" | "ELIMINADA" | "REPUBLICADA" | "RESPONDIDA_POR_DOCENTE";
+            accion: "CREADA" | "EDITADA" | "ELIMINADA" | "REPUBLICADA" | "RESPONDIDA_POR_DOCENTE" | "OCULTADA" | "RESTAURADA" | "RESPUESTA_RETIRADA";
             /** Format: date-time */
             fecha: string;
             actor: {
@@ -6928,6 +7192,8 @@ export interface components {
             estrellasNueva: number | null;
             comentarioAnterior: string | null;
             comentarioNuevo: string | null;
+            /** @description Motivo de la ocultación (solo en OCULTADA). */
+            motivo: string | null;
         };
         ResenaAdmin: {
             id: number;
@@ -6940,8 +7206,22 @@ export interface components {
             comentario: string | null;
             /** Format: date-time */
             creadoEn: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Borrada por su autor.
+             */
             eliminadaEn: string | null;
+            /** @description Ocultación por un administrador; null si la reseña no está oculta. */
+            ocultacion: {
+                /** Format: date-time */
+                fecha: string;
+                motivo: string;
+                /** @description null si se borró la cuenta del administrador. */
+                por: {
+                    id: number;
+                    nombre: string;
+                } | null;
+            } | null;
             /** @description Respuesta pública del docente; null si no respondió. */
             respuesta: {
                 texto: string;
@@ -6952,6 +7232,11 @@ export interface components {
             historial: components["schemas"]["EntradaHistorialResena"][];
         };
         PaginaResenasAdmin: {
+            /** @description Cursos con alguna reseña, para el filtro por curso. */
+            cursos: {
+                id: number;
+                titulo: string;
+            }[];
             items: components["schemas"]["ResenaAdmin"][];
             pagina: number;
             limite: number;
@@ -6981,6 +7266,17 @@ export interface components {
                 comentario: string | null;
                 /** Format: date-time */
                 eliminadaEn: string | null;
+                /** @description Ocultación por un administrador; null si la reseña no está oculta. */
+                ocultacion: {
+                    /** Format: date-time */
+                    fecha: string;
+                    motivo: string;
+                    /** @description null si se borró la cuenta del administrador. */
+                    por: {
+                        id: number;
+                        nombre: string;
+                    } | null;
+                } | null;
                 /** @description Respuesta pública del docente; null si no respondió. */
                 respuesta: {
                     texto: string;
@@ -6989,6 +7285,10 @@ export interface components {
                 } | null;
             };
             historial: components["schemas"]["EntradaHistorialResena"][];
+        };
+        DatosOcultacionResena: {
+            /** @description Motivo interno; el estudiante no lo ve. */
+            motivo: string;
         };
         Analiticas: {
             cursos: {

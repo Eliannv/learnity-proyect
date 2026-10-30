@@ -37,7 +37,14 @@
       }
     </div>
 
-    @if (puedeResenar()) {
+    @if (ocultada()) {
+      <div class="mi-resena ocultada">
+        <p class="aviso-ocultada" role="status">
+          <strong>Tu reseña fue ocultada por moderación.</strong> No se muestra en el curso ni cuenta en su valoración,
+          y no puedes editarla ni volver a publicarla.
+        </p>
+      </div>
+    } @else if (puedeResenar()) {
       <div class="mi-resena">
         @if (editando()) {
           <form (ngSubmit)="guardar()" novalidate>

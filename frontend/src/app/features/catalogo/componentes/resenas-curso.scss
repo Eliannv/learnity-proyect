@@ -159,3 +159,10 @@
   .resumen { grid-template-columns: 1fr; gap: 16px; }
   .propia, .invitacion { flex-direction: column; align-items: flex-start; }
 }
+
+.mi-resena.ocultada { border-color: var(--ambar-500); background: var(--ambar-100); }
+.aviso-ocultada {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--ambar-800);
+}

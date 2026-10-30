@@ -244,3 +244,78 @@ test('el administrador elige el ícono de una categoría y, al desactivarla, mue
   const fila = page.getByRole('row', { name: new RegExp(destino) });
   await expect(fila.getByRole('cell').nth(1)).toHaveText('1');
 });
+
+test('el administrador busca una reseña, la oculta con motivo, retira la respuesta y la restaura; la alumna no puede republicarla', async ({ page, context }) => {
+  const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin-resenas');
+  const docente = await crearCuenta(['ESTUDIANTE', 'DOCENTE'], 'docente-resenas');
+  const alumna = await crearCuenta(['ESTUDIANTE'], 'alumna-resenas');
+  const comentario = `${MARCA} Visiten mi canal para aprender gratis.`;
+  let cursoId = 0;
+  await conFixtures(async (f) => {
+    const { rows: [cat] } = await f.query<{ id: number }>(
+      'INSERT INTO categoria (nombre, creada_por) VALUES ($1, $2) RETURNING id_categoria AS id', [`${MARCA} Moderación`, admin.idPersona]);
+    const { rows: [curso] } = await f.query<{ id: number }>(
+      `INSERT INTO curso (id_docente, id_categoria, titulo, estado, revisado_por, publicado_en)
+       VALUES ($1, $2, $3, 'PUBLICADO', $4, now()) RETURNING id_curso AS id`,
+      [docente.idDocente, cat!.id, `${MARCA} Curso con reseñas`, admin.idPersona]);
+    cursoId = curso!.id;
+    await f.query('INSERT INTO inscripcion (id_persona, id_curso) VALUES ($1, $2)', [alumna.idPersona, cursoId]);
+  });
+  // La reseña y la respuesta se crean por la API, como en la aplicación (las fixtures no escriben en resena).
+  const ctx = await request.newContext({ baseURL: URL_API, extraHTTPHeaders: { Origin: URL_WEB } });
+  const como = async (correo: string, metodo: string, ruta: string, datos: object) => {
+    const login = await ctx.post('/api/auth/login', { data: { correo, contrasena: CONTRASENA_PRUEBA } });
+    const token = (await login.json()).accessToken as string;
+    const r = await ctx.fetch(ruta, { method: metodo, data: datos, headers: { Authorization: `Bearer ${token}` } });
+    expect(r.ok(), await r.text()).toBeTruthy();
+    return r.json();
+  };
+  const resena = await como(alumna.correo, 'PUT', `/api/cursos/${cursoId}/resena`, { estrellas: 2, comentario });
+  await como(docente.correo, 'PUT', `/api/docente/resenas/${resena.id}/respuesta`, { texto: 'Respuesta con datos personales.' });
+  await ctx.dispose();
+
+  await iniciarSesionPorUI(page, admin.correo);
+  await page.goto('/admin/resenas');
+  await page.getByLabel('Buscar en comentarios y respuestas').fill(MARCA);
+  const tarjeta = page.getByRole('article').filter({ hasText: comentario });
+  await expect(page.getByText('1 reseña ·')).toBeVisible();
+  await expect(tarjeta).toContainText('Publicada');
+
+  await tarjeta.getByRole('button', { name: 'Ocultar reseña' }).click();
+  const modal = page.getByRole('dialog', { name: 'Ocultar reseña' });
+  await modal.getByLabel(/Motivo/).fill('Publicidad de un canal externo.');
+  await revisarAccesibilidad(page);
+  await modal.getByRole('button', { name: 'Ocultar reseña' }).click();
+  await expect(page.getByText('Reseña ocultada. Ya no se ve en el curso.')).toBeVisible();
+  await expect(tarjeta).toContainText('Motivo: Publicidad de un canal externo.');
+  await captura(page, 'admin-resena-ocultada');
+
+  // La alumna ve el aviso (sin el motivo interno) y ya no puede editarla ni volver a publicarla.
+  const { contexto, pagina } = await otroContexto(context);
+  await iniciarSesionPorUI(pagina, alumna.correo);
+  await pagina.goto(`/cursos/${cursoId}`);
+  const resenas = pagina.getByRole('region', { name: 'Reseñas de estudiantes' });
+  await expect(resenas).toContainText('Tu reseña fue ocultada por moderación.');
+  await expect(resenas).not.toContainText(comentario);
+  await expect(resenas).not.toContainText('Publicidad de un canal externo.');
+  await expect(resenas.getByRole('button', { name: /Editar|Escribir una reseña/ })).toHaveCount(0);
+
+  await tarjeta.getByRole('button', { name: 'Retirar respuesta del docente' }).click();
+  await page.getByRole('dialog', { name: '¿Retirar la respuesta del docente?' }).getByRole('button', { name: 'Retirar respuesta' }).click();
+  await expect(page.getByText('Respuesta del docente retirada.')).toBeVisible();
+  await expect(tarjeta).not.toContainText('Respuesta con datos personales.');
+
+  await tarjeta.getByRole('button', { name: 'Restaurar reseña' }).click();
+  await page.getByRole('dialog', { name: '¿Restaurar esta reseña?' }).getByRole('button', { name: 'Restaurar reseña' }).click();
+  await expect(page.getByText('Reseña restaurada.')).toBeVisible();
+  await tarjeta.getByText(/Historial completo/).click();
+  await expect(tarjeta).toContainText('Ocultó la reseña');
+  await expect(tarjeta).toContainText('Retiró la respuesta del docente');
+  await expect(tarjeta).toContainText('Restauró la reseña');
+
+  await pagina.reload();
+  await expect(resenas).toContainText(comentario);
+  await expect(resenas).not.toContainText('Respuesta con datos personales.');
+  await expect(resenas.getByRole('button', { name: 'Editar' })).toBeVisible();
+  await contexto.close();
+});

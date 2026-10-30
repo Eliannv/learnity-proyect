@@ -22,6 +22,7 @@
           <time [attr.datetime]="h.fecha">{{ h.fecha | date: 'd MMM y, HH:mm' }}</time>
           <span><strong>{{ textoAccion(h) }}</strong> · {{ h.actor?.nombre ?? 'Sin autor registrado' }}
             @if (cambio(h)) { · {{ cambio(h) }} }</span>
+          @if (h.motivo) { <span class="motivo-historial">Motivo: {{ h.motivo }}</span> }
           @if (h.accion === 'EDITADA' && h.comentarioAnterior !== h.comentarioNuevo) {
             <span class="diff"><del>{{ h.comentarioAnterior ?? '(sin comentario)' }}</del> <ins>{{ h.comentarioNuevo ?? '(sin comentario)' }}</ins></span>
           }
@@ -31,15 +32,55 @@
   </details>
 </ng-template>
 
+<!-- Datos de la ocultación: igual en las dos vistas. -->
+<ng-template #ocultada let-o>
+  <p class="ocultacion">
+    <lucide-icon name="eye-off" [size]="16" aria-hidden="true" />
+    <span>
+      <strong>Ocultada el {{ o.fecha | date: 'd MMM y, HH:mm' }}</strong> por {{ o.por?.nombre ?? 'una cuenta eliminada' }}.
+      Motivo: {{ o.motivo }}
+    </span>
+  </p>
+</ng-template>
+
 @if (vista() === 'TODAS') {
-  <label class="campo filtro">
-    <span>Mostrar</span>
-    <select class="control" [value]="filtroTodas()" (change)="filtrar($any($event.target).value)">
-      <option value="todas">Publicadas y borradas</option>
-      <option value="vigentes">Solo publicadas</option>
-      <option value="borradas">Solo borradas u ocultadas</option>
-    </select>
-  </label>
+  <form class="filtros" role="search" aria-label="Filtrar reseñas" (submit)="$event.preventDefault()">
+    <label class="campo">
+      <span>Estado</span>
+      <select class="control" name="estado" [ngModel]="filtros().estado" (ngModelChange)="filtrar({ estado: $event })">
+        @for (e of estados; track e.valor) { <option [value]="e.valor">{{ e.texto }}</option> }
+      </select>
+    </label>
+    <div class="campo curso">
+      <app-buscador-curso
+        idCampo="curso-resenas-admin"
+        etiqueta="Curso"
+        [mostrarEtiqueta]="true"
+        [cursos]="cursos()"
+        [cursoId]="filtros().curso"
+        [permitirTodos]="true"
+        textoTodos="Todos los cursos"
+        placeholder="Buscar curso…"
+        (seleccion)="filtrar({ curso: $event })"
+      />
+    </div>
+    <label class="campo">
+      <span>Calificación</span>
+      <select class="control" name="estrellas" [ngModel]="filtros().estrellas"
+        (ngModelChange)="filtrar({ estrellas: $event === null ? null : +$event })">
+        <option [ngValue]="null">Todas</option>
+        @for (n of [5, 4, 3, 2, 1]; track n) { <option [ngValue]="n">{{ n }} {{ n === 1 ? 'estrella' : 'estrellas' }}</option> }
+      </select>
+    </label>
+    <label class="campo texto">
+      <span>Buscar en comentarios y respuestas</span>
+      <input class="control" type="search" name="q" maxlength="100" placeholder="Palabra o frase…"
+        [ngModel]="filtros().q" (ngModelChange)="buscar($event)" />
+    </label>
+    @if (hayFiltros()) {
+      <button type="button" class="btn btn-texto btn-sm limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
+    }
+  </form>
 }
 
 @if (carga.ocupada()) {
@@ -52,12 +93,14 @@
 } @else if (vista() === 'TODAS') {
   @if (todas(); as t) {
     <div role="tabpanel" class="lista">
-      <p class="texto-suave total">{{ t.total }} {{ t.total === 1 ? 'reseña' : 'reseñas' }} · de la más reciente a la más antigua</p>
+      <p class="texto-suave total" aria-live="polite">{{ t.total }} {{ t.total === 1 ? 'reseña' : 'reseñas' }} · de la más reciente a la más antigua</p>
       @for (r of t.items; track r.id) {
         <article class="reporte" [attr.aria-label]="'Reseña de ' + r.estudiante">
           <header>
-            @if (r.eliminadaEn) {
-              <span class="chip chip-borrada">Borrada el {{ r.eliminadaEn | date: 'd MMM y' }}</span>
+            @if (r.ocultacion) {
+              <span class="chip chip-ocultada">Ocultada</span>
+            } @else if (r.eliminadaEn) {
+              <span class="chip chip-borrada">Borrada por el estudiante el {{ r.eliminadaEn | date: 'd MMM y' }}</span>
             } @else {
               <span class="chip chip-publicada">Publicada</span>
             }
@@ -77,12 +120,37 @@
               <p class="respuesta"><strong>Respuesta del docente:</strong> {{ respuesta.texto }}</p>
             }
           </div>
+          @if (r.ocultacion; as o) {
+            <ng-container *ngTemplateOutlet="ocultada; context: { $implicit: o }" />
+          }
           <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial }" />
+          <footer class="acciones">
+            @if (r.respuesta) {
+              <button type="button" class="btn btn-texto btn-sm peligro" [disabled]="actuando() === r.id"
+                (click)="retirarRespuesta(r)">
+                <lucide-icon name="message-square-x" [size]="16" aria-hidden="true" /> Retirar respuesta del docente
+              </button>
+            }
+            @if (r.ocultacion) {
+              <button type="button" class="btn btn-contorno btn-sm" [disabled]="actuando() === r.id" (click)="restaurar(r)">
+                <lucide-icon name="eye" [size]="16" aria-hidden="true" /> Restaurar reseña
+              </button>
+            } @else {
+              <button type="button" class="btn btn-peligro btn-sm" [disabled]="actuando() === r.id" (click)="abrirOcultar(r)">
+                <lucide-icon name="eye-off" [size]="16" aria-hidden="true" /> Ocultar reseña
+              </button>
+            }
+          </footer>
         </article>
       } @empty {
         <div class="mensaje">
-          <h2>No hay reseñas {{ filtroTodas() === 'borradas' ? 'borradas' : filtroTodas() === 'vigentes' ? 'publicadas' : '' }}</h2>
-          <p class="texto-suave">Cuando los estudiantes valoren los cursos, aparecerán aquí.</p>
+          @if (hayFiltros()) {
+            <h2>Ninguna reseña coincide con los filtros</h2>
+            <button type="button" class="btn btn-contorno btn-sm" (click)="limpiarFiltros()">Limpiar filtros</button>
+          } @else {
+            <h2>No hay reseñas</h2>
+            <p class="texto-suave">Cuando los estudiantes valoren los cursos, aparecerán aquí.</p>
+          }
         </div>
       }
       @if (t.totalPaginas > 1) {
@@ -115,9 +183,15 @@
             <p class="respuesta"><strong>Respuesta del docente:</strong> {{ respuesta.texto }}</p>
           }
           @if (r.resena.eliminadaEn) {
-            <span class="chip">Oculta desde el {{ r.resena.eliminadaEn | date: 'd MMM y' }}</span>
+            <span class="chip chip-borrada">Borrada por el estudiante el {{ r.resena.eliminadaEn | date: 'd MMM y' }}</span>
+          }
+          @if (r.estado === 'OCULTADA' && !r.resena.ocultacion) {
+            <span class="chip chip-publicada">Restaurada: vuelve a verse en el curso</span>
           }
         </div>
+        @if (r.resena.ocultacion; as o) {
+          <ng-container *ngTemplateOutlet="ocultada; context: { $implicit: o }" />
+        }
 
         <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial }" />
 
@@ -137,4 +211,30 @@
       </div>
     }
   </div>
+}
+
+@if (aOcultar(); as r) {
+  <app-modal titulo="Ocultar reseña" icono="eye-off" [ancho]="520" (cerrar)="cerrarOcultar()">
+    <form class="form-ocultar" (submit)="$event.preventDefault(); ocultar()" novalidate>
+      <p>La reseña de <strong>{{ r.estudiante }}</strong> en «{{ r.curso.titulo }}» dejará de verse y de contar en el
+        promedio, y el estudiante no podrá volver a publicarla. Puedes restaurarla después.</p>
+      <label class="campo">
+        <span>Motivo (obligatorio; el estudiante no lo ve)</span>
+        <textarea class="control" name="motivo" rows="3" [maxlength]="maxMotivo" [(ngModel)]="motivoOcultacion"
+          [disabled]="ocultacion.ocupada()" [attr.aria-invalid]="!!ocultacion.campo('motivo')"
+          aria-describedby="error-motivo-ocultacion contador-motivo-ocultacion"></textarea>
+        <small id="contador-motivo-ocultacion" class="texto-suave contador">{{ motivoOcultacion.length }} / {{ maxMotivo }}</small>
+        <small id="error-motivo-ocultacion" class="error-campo">{{ ocultacion.campo('motivo') }}</small>
+      </label>
+      @if (ocultacion.error() && !ocultacion.campo('motivo')) {
+        <p class="mensaje error" role="alert">{{ ocultacion.error() }}</p>
+      }
+      <div class="acciones">
+        <button type="button" class="btn btn-contorno" [disabled]="ocultacion.ocupada()" (click)="cerrarOcultar()">Cancelar</button>
+        <button type="submit" class="btn btn-peligro" [disabled]="ocultacion.ocupada()">
+          {{ ocultacion.ocupada() ? 'Ocultando…' : 'Ocultar reseña' }}
+        </button>
+      </div>
+    </form>
+  </app-modal>
 }

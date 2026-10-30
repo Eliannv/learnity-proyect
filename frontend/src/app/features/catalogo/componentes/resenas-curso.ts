@@ -38,6 +38,8 @@ export class ResenasCurso {
   protected readonly error = signal('');
 
   protected readonly puedeResenar = signal(false);
+  /** Un administrador ocultó su reseña: no puede editarla ni volver a publicarla. */
+  protected readonly ocultada = signal(false);
   protected readonly mia = signal<Resena | null>(null);
   protected readonly editando = signal(false);
   protected readonly estrellas = signal(0);
@@ -79,6 +81,7 @@ export class ResenasCurso {
       this.pagina.set(pagina);
       this.items.set(pagina.items);
       this.puedeResenar.set(!!mia?.puedeResenar);
+      this.ocultada.set(!!mia?.ocultada);
       this.mia.set(mia?.resena ?? null);
     } catch (error) {
       this.error.set(mensajeDeError(error, 'Cargar las reseñas'));
