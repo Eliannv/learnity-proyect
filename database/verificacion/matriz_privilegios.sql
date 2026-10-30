@@ -17,6 +17,15 @@
 -- (backend/test/seguridad/) puede leer este archivo, ejecutarlo y exigir que
 -- todas las filas den OK.
 --
+-- La matriz describe la base con TODAS las migraciones aplicadas: cada
+-- migración que concede o retira permisos actualiza aquí su fila (el
+-- comentario de la derecha indica cuál). En un estado intermedio, una tabla
+-- que ya existe puede dar DISTINTO por un permiso que concede una migración
+-- posterior (por ejemplo, usuario_rol entre la 019 y la 029).
+-- Las secuencias de learnity_pruebas (019b) se conceden al ejecutar
+-- privilegios_pruebas.sql: tras una migración que crea tablas, se vuelve a
+-- ejecutar ese script o aparecen como FALTA.
+--
 -- Salida: rol | objeto | esperado | concedido | resultado (OK, FALTA, SOBRA o DISTINTO),
 -- más una fila final RESUMEN. Las relaciones que todavía no existen (por
 -- ejemplo, las vistas sin la 026) no se esperan. Requiere PostgreSQL 16 o
@@ -31,8 +40,8 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_app', 'solicitud_docente',         'INSERT,SELECT,UPDATE'),
     ('learnity_app', 'docente',                   'INSERT,SELECT,UPDATE'),
     ('learnity_app', 'curso',                     'INSERT,SELECT,UPDATE'),
-    ('learnity_app', 'usuario_rol',               'INSERT,SELECT'),
-    ('learnity_app', 'categoria',                 'INSERT,SELECT'),
+    ('learnity_app', 'usuario_rol',               'DELETE,INSERT,SELECT,UPDATE'),   -- 029
+    ('learnity_app', 'categoria',                 'INSERT,SELECT,UPDATE'),          -- 029
     ('learnity_app', 'modulo',                    'DELETE,INSERT,SELECT,UPDATE'),
     ('learnity_app', 'leccion',                   'DELETE,INSERT,SELECT,UPDATE'),
     ('learnity_app', 'sesion',                    'DELETE,INSERT,SELECT,UPDATE'),
@@ -40,9 +49,17 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_app', 'archivo_borrado_pendiente', 'DELETE,INSERT,SELECT,UPDATE'),
     ('learnity_app', 'archivo',                   'DELETE,INSERT,SELECT'),
     ('learnity_app', 'rol',                       'SELECT'),
-    ('learnity_app', 'recurso_adjunto',           'SELECT'),
-    ('learnity_app', 'inscripcion',               'INSERT,SELECT,UPDATE'),
-    ('learnity_app', 'progreso_leccion',          'INSERT,SELECT,UPDATE'),
+    ('learnity_app', 'recurso_adjunto',           'DELETE,INSERT,SELECT'),          -- 030
+    ('learnity_app', 'inscripcion',               'INSERT,SELECT,UPDATE'),          -- 027
+    ('learnity_app', 'progreso_leccion',          'INSERT,SELECT,UPDATE'),          -- 027
+    ('learnity_app', 'evaluacion',                'DELETE,INSERT,SELECT,UPDATE'),   -- 028
+    ('learnity_app', 'pregunta',                  'DELETE,INSERT,SELECT,UPDATE'),   -- 028
+    ('learnity_app', 'opcion',                    'DELETE,INSERT,SELECT,UPDATE'),   -- 028
+    ('learnity_app', 'intento_evaluacion',        'INSERT,SELECT'),                 -- 028: historial
+    ('learnity_app', 'respuesta',                 'INSERT,SELECT'),                 -- 028: historial
+    ('learnity_app', 'resena',                    'INSERT,SELECT,UPDATE'),          -- 030; la 031 quita DELETE
+    ('learnity_app', 'reporte_resena',            'INSERT,SELECT,UPDATE'),          -- 031
+    ('learnity_app', 'visita_curso_dia',          'INSERT,SELECT,UPDATE'),          -- 031
     ('learnity_app', 'catalogo_categoria',        'SELECT'),
     ('learnity_app', 'catalogo_curso',            'SELECT'),
     ('learnity_app', 'catalogo_temario',          'SELECT'),
@@ -69,7 +86,10 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_lectura', 'catalogo_categoria',        'SELECT'),
     ('learnity_lectura', 'catalogo_curso',            'SELECT'),
     ('learnity_lectura', 'catalogo_temario',          'SELECT'),
-    ('learnity_lectura', 'curso_publicado_sin_revision', 'SELECT')
+    ('learnity_lectura', 'curso_publicado_sin_revision', 'SELECT'),
+    ('learnity_lectura', 'resena',                    'SELECT'),                    -- 030
+    ('learnity_lectura', 'reporte_resena',            'SELECT'),                    -- 031
+    ('learnity_lectura', 'visita_curso_dia',          'SELECT')                     -- 031
 ),
 esperado_columna (rol, objeto, columna) AS (
   SELECT 'learnity_lectura', 'usuario', unnest(ARRAY['id_usuario', 'id_persona', 'correo', 'estado',
