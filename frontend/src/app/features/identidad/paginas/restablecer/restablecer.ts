@@ -18,13 +18,15 @@ function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
   imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, MarcoAcceso],
   template: `
     <app-marco-acceso
-      tituloAntes="Vuelve a tu espacio para"
+      [tituloAntes]="invitacion ? 'Te damos la bienvenida a tu espacio para' : 'Vuelve a tu espacio para'"
       tituloResaltado="aprender"
-      descripcion="Crea una contraseña nueva. Al guardarla cerraremos las sesiones abiertas en tus otros dispositivos."
+      [descripcion]="invitacion
+        ? 'Tu cuenta de Learnity ya está creada. Elige tu contraseña para entrar por primera vez.'
+        : 'Crea una contraseña nueva. Al guardarla cerraremos las sesiones abiertas en tus otros dispositivos.'"
     >
       <div class="encabezado">
-        <h2>Crea una nueva contraseña</h2>
-        <p>El enlace solo funciona una vez y vence en unos minutos</p>
+        <h2>{{ invitacion ? 'Crea tu contraseña' : 'Crea una nueva contraseña' }}</h2>
+        <p>{{ invitacion ? 'El enlace de invitación funciona una vez y vence en 72 horas' : 'El enlace solo funciona una vez y vence en unos minutos' }}</p>
       </div>
 
       @if (listo()) {
@@ -116,7 +118,10 @@ function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
 export class Restablecer {
   private readonly auth = inject(AuthService);
 
-  protected readonly token = leerToken(inject(ActivatedRoute).snapshot.fragment);
+  private readonly fragmento = inject(ActivatedRoute).snapshot.fragment;
+  protected readonly token = leerToken(this.fragmento);
+  /** Enlace de invitación (cuenta creada por un administrador): mismo flujo, otro texto. */
+  protected readonly invitacion = new URLSearchParams(this.fragmento ?? '').get('invitacion') === '1';
   protected readonly ayuda = AYUDA_CONTRASENA;
   protected readonly mensajeContrasena = mensajeContrasena;
   protected readonly caracteresDe = caracteresDe;

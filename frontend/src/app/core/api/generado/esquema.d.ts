@@ -2188,8 +2188,240 @@ export interface paths {
             };
         };
         put?: never;
+        /**
+         * Crear una cuenta e invitar a la persona por correo (administrador)
+         * @description Crea la cuenta con los roles indicados (siempre con ESTUDIANTE) y una contraseña aleatoria que nadie conoce. Envía un enlace de invitación de un solo uso que vence en 72 horas para que la persona cree su contraseña (`/restablecer-contrasena#token=…&invitacion=1`); si vence, puede pedir uno de recuperación. Con DOCENTE crea también el perfil docente con la especialidad. Queda en la auditoría con el administrador como autor. Límite: 30 altas por IP cada 15 minutos.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NuevoUsuarioAdmin"];
+                };
+            };
+            responses: {
+                /** @description Cuenta creada e invitación enviada */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UsuarioAdmin"];
+                    };
+                };
+                /** @description Datos inválidos, o DOCENTE sin especialidad (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Ya existe una cuenta con ese correo (CORREO_EN_USO) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                /** @description Demasiadas altas desde esta IP (DEMASIADAS_PETICIONES) */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/usuarios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ficha de una cuenta: sesiones abiertas, inscripciones y cursos creados (administrador) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DetalleUsuarioAdmin"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Usuario no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/usuarios/{id}/sesiones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Cerrar todas las sesiones abiertas de una cuenta (administrador)
+         * @description Revoca sus sesiones con el motivo ADMIN: la persona tendrá que volver a iniciar sesión en todos sus dispositivos. No sirve para la propia cuenta (para eso está el cierre de sesión).
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Sesiones cerradas */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            cerradas: number;
+                        };
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`), o es la propia cuenta */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Usuario no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -5895,6 +6127,76 @@ export interface components {
             creadoEn: string;
             /** Format: date-time */
             ultimoAcceso?: string | null;
+            /**
+             * Format: date-time
+             * @description Fin del bloqueo temporal por intentos fallidos si sigue vigente; null si la cuenta no está bloqueada.
+             */
+            bloqueadoHasta: string | null;
+        };
+        /** @description Ficha de una cuenta: los campos de UsuarioAdmin y lo que el administrador necesita para gestionarla. */
+        DetalleUsuarioAdmin: components["schemas"]["UsuarioAdmin"] & {
+            intentosFallidos: number;
+            /** @description Del perfil docente, si lo tiene (aunque esté inactivo). */
+            especialidad: string | null;
+            /**
+             * Format: date-time
+             * @description Vencimiento de la invitación sin usar (cuenta creada por un administrador); null si no hay.
+             */
+            invitacionPendienteHasta: string | null;
+            /** @description Sesiones abiertas, la renovada más recientemente primero. */
+            sesiones: {
+                /**
+                 * Format: uuid
+                 * @description Identifica la sesión a lo largo de sus renovaciones.
+                 */
+                id: string;
+                /** Format: date-time */
+                iniciadaEn: string;
+                /** Format: date-time */
+                renovadaEn: string;
+                /** Format: date-time */
+                expiraEn: string;
+                /** @description User-Agent del navegador. */
+                agente: string | null;
+            }[];
+            /** @description Hasta 100, la actividad más reciente primero. */
+            inscripciones: {
+                curso: {
+                    id: number;
+                    titulo: string;
+                };
+                /** @enum {string} */
+                estado: "ACTIVA" | "COMPLETADA";
+                progresoPct: number;
+                /** Format: date-time */
+                inscritoEn: string;
+                /** Format: date-time */
+                ultimaActividadEn: string;
+            }[];
+            /** @description Cursos que creó como docente, en cualquier estado (hasta 100). */
+            cursosCreados: {
+                id: number;
+                titulo: string;
+                /** @enum {string} */
+                estado: "BORRADOR" | "EN_REVISION" | "PUBLICADO" | "RECHAZADO" | "ARCHIVADO";
+                inscritos: number;
+            }[];
+        };
+        NuevoUsuarioAdmin: {
+            nombres: string;
+            apellidos: string;
+            /**
+             * Format: email
+             * @description Se guarda en minúsculas y sin espacios.
+             */
+            correo: string;
+            /**
+             * @description Roles además de ESTUDIANTE, que toda cuenta tiene.
+             * @default []
+             */
+            roles: ("ESTUDIANTE" | "DOCENTE" | "ADMIN")[];
+            /** @description Obligatoria si roles incluye DOCENTE. */
+            especialidad?: string;
         };
         RespuestaUsuariosAdmin: {
             items: components["schemas"]["UsuarioAdmin"][];

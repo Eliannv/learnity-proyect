@@ -4,6 +4,38 @@
   gap: 24px;
 }
 
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  .btn { display: inline-flex; align-items: center; gap: 6px; }
+}
+
+/* El nombre abre la ficha: se ve como texto en negrita, pero es un botón accesible. */
+.enlace-nombre {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--tinta-900);
+  text-align: left;
+  cursor: pointer;
+  &:hover { color: var(--azul-700); text-decoration: underline; }
+}
+
+.chip-bloqueada {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  background: var(--rojo-050);
+  color: var(--rojo-700);
+  font-weight: 600;
+}
+
 .filtros {
   display: flex;
   flex-wrap: wrap;

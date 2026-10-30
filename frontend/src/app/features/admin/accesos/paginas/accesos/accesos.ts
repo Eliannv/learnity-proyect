@@ -5,7 +5,7 @@ import { mensajeDeError } from '../../../../../core/http/error-api';
 import { EstadoVistaComponent } from '../../../../../shared/ui/retroalimentacion/estado-vista';
 import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
 import { AccesosApi, type AccesoAdmin, type CuentaBloqueada, type PaginaAccesos } from '../../accesos.api';
-import { resumirNavegador } from '../../navegador';
+import { resumirNavegador } from '../../../../../shared/util/navegador';
 
 type Vista = 'todos' | 'fallidos';
 

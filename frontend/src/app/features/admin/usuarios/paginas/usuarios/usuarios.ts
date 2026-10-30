@@ -2,13 +2,17 @@ import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../../../core/auth/auth.service';
-import { mensajeDeError } from '../../../../../core/http/error-api';
+import { erroresPorCampo, mensajeDeError } from '../../../../../core/http/error-api';
 import { Avatar } from '../../../../../shared/ui/marca/avatar';
 import { EstadoVistaComponent } from '../../../../../shared/ui/retroalimentacion/estado-vista';
 import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
+import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
 import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
+import { AltaUsuario } from '../../componentes/alta-usuario';
+import { FichaUsuario, type AccionFicha } from '../../componentes/ficha-usuario';
 import {
-  AdminUsuariosApi, type RespuestaUsuariosAdmin, type RolUsuario, type UsuarioAdmin,
+  AdminUsuariosApi, type DetalleUsuarioAdmin, type NuevoUsuarioAdmin, type RespuestaUsuariosAdmin, type RolUsuario,
+  type UsuarioAdmin,
 } from '../../usuarios.api';
 
 type FiltroRol = RolUsuario | 'TODOS';
@@ -21,10 +25,13 @@ const NOMBRE_ROL: Record<RolUsuario, string> = {
 };
 const LIMITE = 20;
 
-/** Gestión de cuentas (RF-21): buscar, filtrar, activar o desactivar y asignar roles. */
+/**
+ * Gestión de cuentas (RF-21): buscar, filtrar, activar o desactivar, asignar roles, crear cuentas por invitación
+ * y abrir la ficha de cada una (bloqueo, sesiones abiertas, inscripciones y cursos creados).
+ */
 @Component({
   selector: 'app-admin-usuarios',
-  imports: [DatePipe, LucideAngularModule, Avatar, EstadoVistaComponent, Modal],
+  imports: [DatePipe, LucideAngularModule, Avatar, EstadoVistaComponent, Modal, AltaUsuario, FichaUsuario],
   templateUrl: './usuarios.html',
   styleUrl: './usuarios.scss',
 })
@@ -32,6 +39,7 @@ export class AdminUsuarios {
   private readonly api = inject(AdminUsuariosApi);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly confirmacion = inject(ConfirmacionService);
   private solicitud = 0;
   private espera: ReturnType<typeof setTimeout> | undefined;
 
@@ -54,6 +62,18 @@ export class AdminUsuarios {
   protected readonly errorRoles = signal('');
   /** Cuenta que se va a desactivar, a la espera de confirmación. */
   protected readonly desactivando = signal<UsuarioAdmin | null>(null);
+
+  /** Alta de una cuenta: modal abierto, envío en curso y errores de la API. */
+  protected readonly creando = signal(false);
+  protected readonly enviandoAlta = signal(false);
+  protected readonly erroresAlta = signal<Record<string, string>>({});
+  protected readonly errorAlta = signal('');
+
+  /** Ficha abierta: la cuenta de la fila y su detalle cuando llega. */
+  protected readonly fichaDe = signal<UsuarioAdmin | null>(null);
+  protected readonly ficha = signal<DetalleUsuarioAdmin | null>(null);
+  protected readonly errorFicha = signal('');
+  protected readonly accionFicha = signal<AccionFicha>(null);
 
   protected readonly filtrosRol = computed(() => {
     const c = this.datos()?.conteos;
@@ -166,6 +186,90 @@ export class AdminUsuarios {
       this.errorRoles.set(mensajeDeError(error, 'Guardar los roles'));
     } finally {
       this.ocupadoId.set(null);
+    }
+  }
+
+  protected abrirAlta(): void {
+    this.erroresAlta.set({});
+    this.errorAlta.set('');
+    this.creando.set(true);
+  }
+
+  protected async crear(datos: NuevoUsuarioAdmin): Promise<void> {
+    this.enviandoAlta.set(true);
+    this.erroresAlta.set({});
+    this.errorAlta.set('');
+    try {
+      const nueva = await this.api.crear(datos);
+      this.creando.set(false);
+      this.toast.exito(`Cuenta de ${nueva.nombre} creada. Le enviamos la invitación a ${nueva.correo}; vence en 72 horas.`);
+      void this.cargar();
+    } catch (error) {
+      const porCampo = erroresPorCampo(error);
+      this.erroresAlta.set(porCampo);
+      if (!Object.keys(porCampo).length) this.errorAlta.set(mensajeDeError(error, 'Crear la cuenta'));
+    } finally {
+      this.enviandoAlta.set(false);
+    }
+  }
+
+  protected abrirFicha(u: UsuarioAdmin): void {
+    this.fichaDe.set(u);
+    void this.cargarFicha();
+  }
+
+  protected cerrarFicha(): void {
+    this.fichaDe.set(null);
+    this.ficha.set(null);
+  }
+
+  protected async cargarFicha(): Promise<void> {
+    const u = this.fichaDe();
+    if (!u) return;
+    this.errorFicha.set('');
+    try {
+      const detalle = await this.api.detalle(u.id);
+      if (this.fichaDe()?.id === u.id) this.ficha.set(detalle);
+    } catch (error) {
+      if (this.fichaDe()?.id === u.id) this.errorFicha.set(mensajeDeError(error, 'Cargar la ficha'));
+    }
+  }
+
+  /** Desbloqueo desde la fila o desde la ficha. */
+  protected async desbloquear(u: Pick<UsuarioAdmin, 'id' | 'nombre'>): Promise<void> {
+    this.accionFicha.set('desbloquear');
+    this.ocupadoId.set(u.id);
+    try {
+      await this.api.desbloquear(u.id);
+      this.toast.exito(`Cuenta de ${u.nombre} desbloqueada. Ya puede iniciar sesión.`);
+      this.datos.update((d) => d && { ...d, items: d.items.map((x) => x.id === u.id ? { ...x, bloqueadoHasta: null } : x) });
+      if (this.fichaDe()?.id === u.id) await this.cargarFicha();
+    } catch (error) {
+      this.toast.error(mensajeDeError(error, 'Desbloquear la cuenta'));
+    } finally {
+      this.accionFicha.set(null);
+      this.ocupadoId.set(null);
+    }
+  }
+
+  protected async cerrarSesiones(u: Pick<UsuarioAdmin, 'id' | 'nombre'>): Promise<void> {
+    const confirmado = await this.confirmacion.confirmar({
+      titulo: `¿Cerrar las sesiones de ${u.nombre}?`,
+      mensaje: 'Saldrá de Learnity en todos sus dispositivos y tendrá que volver a iniciar sesión. Su cuenta sigue activa.',
+      accion: 'Cerrar sesiones',
+      peligro: true,
+      icono: 'log-out',
+    });
+    if (!confirmado) return;
+    this.accionFicha.set('sesiones');
+    try {
+      const cerradas = await this.api.cerrarSesiones(u.id);
+      this.toast.exito(cerradas === 1 ? `Se cerró 1 sesión de ${u.nombre}.` : `Se cerraron ${cerradas} sesiones de ${u.nombre}.`);
+      if (this.fichaDe()?.id === u.id) await this.cargarFicha();
+    } catch (error) {
+      this.toast.error(mensajeDeError(error, 'Cerrar las sesiones'));
+    } finally {
+      this.accionFicha.set(null);
     }
   }
 

@@ -67,6 +67,8 @@ export type UsuarioAdmin = Esquemas['UsuarioAdmin'];
 export type RespuestaUsuariosAdmin = Esquemas['RespuestaUsuariosAdmin'];
 export type RolUsuario = UsuarioAdmin['roles'][number];
 export type ConsultaUsuariosAdmin = NonNullable<paths['/admin/usuarios']['get']['parameters']['query']>;
+export type DetalleUsuarioAdmin = Esquemas['DetalleUsuarioAdmin'];
+export type NuevoUsuarioAdmin = Esquemas['NuevoUsuarioAdmin'];
 
 export type CategoriaAdmin = Esquemas['CategoriaAdmin'];
 export type DatosCategoriaNueva = Esquemas['DatosCategoriaNueva'];
