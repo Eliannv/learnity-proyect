@@ -31,6 +31,8 @@ export interface CursoPublico {
   minutos: number;
   publicadoEn: string;
   estado: 'PUBLICADO';
+  /** Reseñas vigentes del curso (ni eliminadas ni ocultadas): la tarjeta del catálogo las muestra como en Udemy. */
+  calificacion: CalificacionCurso;
 }
 
 export interface LeccionTemarioPublico {

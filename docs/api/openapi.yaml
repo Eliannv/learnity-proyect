@@ -117,7 +117,8 @@
           "lecciones",
           "minutos",
           "publicadoEn",
-          "estado"
+          "estado",
+          "calificacion"
         ],
         "properties": {
           "id": {
@@ -170,6 +171,14 @@
             "enum": [
               "PUBLICADO"
             ]
+          },
+          "calificacion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CalificacionCurso"
+              }
+            ],
+            "description": "Reseñas vigentes del curso: ni eliminadas ni ocultadas por moderación."
           }
         }
       },

@@ -89,6 +89,10 @@ describe('Sprint 4 · reseñas y valoraciones', () => {
 
     const detalle = await srv.pedir(`/api/cursos/${cursoId}`);
     assert.deepEqual(detalle.json.calificacion, { promedio: 3.5, total: 2 });
+    // La tarjeta del catálogo trae la misma calificación que la ficha.
+    const catalogo = await srv.pedir(`/api/cursos?q=${encodeURIComponent(detalle.json.titulo)}`);
+    const item = catalogo.json.items.find((x: { id: number }) => x.id === cursoId);
+    assert.deepEqual(item.calificacion, { promedio: 3.5, total: 2 });
     assert.equal(detalle.json.instructor.cursosPublicados, 1);
     assert.equal(detalle.json.instructor.estudiantes, 2);
   });

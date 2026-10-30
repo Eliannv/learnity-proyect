@@ -1,6 +1,7 @@
 import { AppError } from '../../shared/http/app-error.js';
 import { registrarEvento } from '../../shared/log/registro.js';
 import type {
+  CalificacionCurso,
   CursoPublico,
   CursoPublicoDetalle,
   FiltrosPublicos,
@@ -9,10 +10,11 @@ import type {
 import {
   catalogoRepository,
   type CursoFila,
+  type CursoFilaCatalogo,
   type LeccionFila,
 } from './catalogo.repository.js';
 
-function cursoPublico(fila: CursoFila): CursoPublico {
+function cursoPublico(fila: CursoFila, calificacion: CalificacionCurso): CursoPublico {
   return {
     id: fila.id,
     titulo: fila.titulo,
@@ -30,6 +32,14 @@ function cursoPublico(fila: CursoFila): CursoPublico {
     minutos: Math.round(fila.segundos / 60),
     publicadoEn: fila.publicadoEn.toISOString(),
     estado: 'PUBLICADO' as const,
+    calificacion,
+  };
+}
+
+function calificacionDeFila(fila: CursoFilaCatalogo): CalificacionCurso {
+  return {
+    promedio: fila.calificacionPromedio === null ? null : Number(fila.calificacionPromedio),
+    total: fila.calificacionTotal,
   };
 }
 
@@ -73,7 +83,7 @@ export const catalogoService = {
   async catalogoPublico(filtros: FiltrosPublicos) {
     const { filas, total } = await catalogoRepository.catalogoPublico(filtros);
     return {
-      items: filas.map(cursoPublico),
+      items: filas.map((fila) => cursoPublico(fila, calificacionDeFila(fila))),
       pagina: filtros.pagina,
       limite: filtros.limite,
       total,
@@ -100,7 +110,7 @@ export const catalogoService = {
     await catalogoRepository.registrarVisita(id).catch((error: unknown) =>
       registrarEvento('visita_curso_fallida', { idCurso: id, error: error instanceof Error ? error.message : String(error) }, 'aviso'));
     return {
-      ...cursoPublico(fila),
+      ...cursoPublico(fila, calificacion),
       descripcion: fila.descripcion,
       docenteBio: fila.docenteBio,
       instructor,

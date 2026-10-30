@@ -7236,6 +7236,8 @@ export interface components {
             publicadoEn: string;
             /** @enum {string} */
             estado: "PUBLICADO";
+            /** @description Reseñas vigentes del curso: ni eliminadas ni ocultadas por moderación. */
+            calificacion: components["schemas"]["CalificacionCurso"];
         };
         CalificacionCurso: {
             /** @description Un decimal; null sin reseñas. */

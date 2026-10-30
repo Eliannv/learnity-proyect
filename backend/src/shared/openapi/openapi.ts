@@ -104,7 +104,7 @@ const esquemasCatalogo = {
   },
   CursoPublico: {
     type: 'object',
-    required: ['id', 'titulo', 'subtitulo', 'categoria', 'docente', 'nivel', 'portadaUrl', 'modulos', 'lecciones', 'minutos', 'publicadoEn', 'estado'],
+    required: ['id', 'titulo', 'subtitulo', 'categoria', 'docente', 'nivel', 'portadaUrl', 'modulos', 'lecciones', 'minutos', 'publicadoEn', 'estado', 'calificacion'],
     properties: {
       id: { type: 'integer' }, titulo: { type: 'string' }, subtitulo: { type: 'string', nullable: true },
       categoria: ref('CategoriaPublica'), docente: { type: 'string' },
@@ -116,6 +116,7 @@ const esquemasCatalogo = {
         description: 'Fecha de publicación; si el curso no la tiene, su fecha de creación.',
       },
       estado: { type: 'string', enum: ['PUBLICADO'] },
+      calificacion: { allOf: [ref('CalificacionCurso')], description: 'Reseñas vigentes del curso: ni eliminadas ni ocultadas por moderación.' },
     },
   },
   CalificacionCurso: {

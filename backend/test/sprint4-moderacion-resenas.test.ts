@@ -116,6 +116,9 @@ describe('Lote 6 · el estudiante no puede deshacer la ocultación', () => {
     assert.deepEqual(seguimiento.json.resumen.valoracion, { promedio: 5, total: 1 });
     const detalle = await srv.pedir(`/api/cursos/${cursoId}`);
     assert.equal(detalle.json.calificacion.total, 1);
+    const lista = await srv.pedir(`/api/cursos?q=${encodeURIComponent(detalle.json.titulo)}`);
+    const item = lista.json.items.find((x: { id: number }) => x.id === cursoId);
+    assert.equal(item.calificacion.total, 1, 'la reseña ocultada tampoco cuenta en el catálogo');
   });
 });
 

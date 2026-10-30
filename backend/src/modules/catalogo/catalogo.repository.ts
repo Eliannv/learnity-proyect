@@ -29,6 +29,12 @@ export interface CursoFila {
   publicadoEn: Date;
 }
 
+/** Fila del listado: el curso y el resumen de sus reseñas vigentes. */
+export interface CursoFilaCatalogo extends CursoFila {
+  calificacionPromedio: string | null;
+  calificacionTotal: number;
+}
+
 export interface LeccionFila {
   moduloId: number;
   moduloOrden: number;
@@ -163,7 +169,7 @@ export const catalogoRepository = {
     return rows;
   },
 
-  async catalogoPublico(f: FiltrosPublicos): Promise<{ filas: CursoFila[]; total: number }> {
+  async catalogoPublico(f: FiltrosPublicos): Promise<{ filas: CursoFilaCatalogo[]; total: number }> {
     const pre = (await tieneVistasCatalogo()) ? '' : CTE_CURSO;
     const { donde, valores } = consultaFiltrada(f);
     const orden = ORDENES[f.orden];
@@ -171,10 +177,18 @@ export const catalogoRepository = {
       `${pre} SELECT COUNT(*)::int AS total FROM catalogo_curso c ${donde}`,
       valores,
     );
-    const { rows } = await consultar<CursoFila>(
+    // Mismo criterio que calificacion(): una reseña por inscripción, sin las eliminadas ni las ocultadas.
+    const { rows } = await consultar<CursoFilaCatalogo>(
       `${pre}
-       SELECT ${CAMPOS_CURSO}
+       SELECT ${CAMPOS_CURSO},
+              cal.promedio AS "calificacionPromedio", cal.total AS "calificacionTotal"
          FROM catalogo_curso c
+         LEFT JOIN LATERAL (
+              SELECT round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS total
+                FROM resena r
+                JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+               WHERE i.id_curso = c.id AND r.eliminado_en IS NULL AND r.ocultada_en IS NULL
+         ) cal ON TRUE
          ${donde}
         ORDER BY ${orden}
         LIMIT $${valores.length + 1} OFFSET $${valores.length + 2}`,

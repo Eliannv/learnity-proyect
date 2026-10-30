@@ -16,6 +16,7 @@ const publicado: CursoPublico = {
   minutos: 4,
   publicadoEn: '2026-10-09T15:00:00.000Z',
   estado: 'PUBLICADO',
+  calificacion: { promedio: 4.5, total: 2 },
 };
 
 describe('CatalogoApi', () => {

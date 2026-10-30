@@ -34,7 +34,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c2>",
@@ -52,7 +56,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c1>",
@@ -70,7 +78,11 @@
           "lecciones": 1,
           "minutos": 3,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c7>",
@@ -88,7 +100,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c8>",
@@ -106,7 +122,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c4>",
@@ -124,7 +144,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         }
       ],
       "pagina": 1,
@@ -153,7 +177,11 @@
           "lecciones": 1,
           "minutos": 3,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c7>",
@@ -171,7 +199,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         }
       ],
       "pagina": 2,
@@ -200,7 +232,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c3>",
@@ -218,7 +254,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c8>",
@@ -236,7 +276,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         }
       ],
       "pagina": 1,
@@ -265,7 +309,11 @@
           "lecciones": 1,
           "minutos": 3,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c2>",
@@ -283,7 +331,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c4>",
@@ -301,7 +353,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c7>",
@@ -319,7 +375,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c3>",
@@ -337,7 +397,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c8>",
@@ -355,7 +419,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         }
       ],
       "pagina": 1,
@@ -384,7 +452,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         },
         {
           "id": "<id:curso#c2>",
@@ -402,7 +474,11 @@
           "lecciones": 0,
           "minutos": 0,
           "publicadoEn": "<fecha>",
-          "estado": "PUBLICADO"
+          "estado": "PUBLICADO",
+          "calificacion": {
+            "promedio": null,
+            "total": 0
+          }
         }
       ],
       "pagina": 1,
@@ -450,6 +526,10 @@
       "minutos": 3,
       "publicadoEn": "<fecha>",
       "estado": "PUBLICADO",
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "descripcion": "Desc Alfa 100%",
       "docenteBio": null,
       "instructor": {
@@ -463,10 +543,6 @@
           "promedio": null,
           "total": 0
         }
-      },
-      "calificacion": {
-        "promedio": null,
-        "total": 0
       },
       "objetivos": [
         "a",
@@ -519,6 +595,10 @@
       "minutos": 0,
       "publicadoEn": "<fecha>",
       "estado": "PUBLICADO",
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "descripcion": "Desc Beta",
       "docenteBio": null,
       "instructor": {
@@ -532,10 +612,6 @@
           "promedio": null,
           "total": 0
         }
-      },
-      "calificacion": {
-        "promedio": null,
-        "total": 0
       },
       "objetivos": [
         "a",
@@ -567,6 +643,10 @@
       "minutos": 0,
       "publicadoEn": "<fecha>",
       "estado": "PUBLICADO",
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "descripcion": "Desc Delta heredado",
       "docenteBio": null,
       "instructor": {
@@ -580,10 +660,6 @@
           "promedio": null,
           "total": 0
         }
-      },
-      "calificacion": {
-        "promedio": null,
-        "total": 0
       },
       "objetivos": [
         "a",
@@ -615,6 +691,10 @@
       "minutos": 0,
       "publicadoEn": "<fecha>",
       "estado": "PUBLICADO",
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "descripcion": "Desc Eta categoria inactiva",
       "docenteBio": null,
       "instructor": {
@@ -628,10 +708,6 @@
           "promedio": null,
           "total": 0
         }
-      },
-      "calificacion": {
-        "promedio": null,
-        "total": 0
       },
       "objetivos": [
         "a",
@@ -663,6 +739,10 @@
       "minutos": 0,
       "publicadoEn": "<fecha>",
       "estado": "PUBLICADO",
+      "calificacion": {
+        "promedio": null,
+        "total": 0
+      },
       "descripcion": "Desc Theta docente inactivo",
       "docenteBio": null,
       "instructor": {
@@ -676,10 +756,6 @@
           "promedio": null,
           "total": 0
         }
-      },
-      "calificacion": {
-        "promedio": null,
-        "total": 0
       },
       "objetivos": [
         "a",
