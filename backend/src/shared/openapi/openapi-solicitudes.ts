@@ -30,7 +30,8 @@ export const esquemasSolicitudes = {
   },
   UsuarioAdmin: {
     type: 'object',
-    required: ['id', 'idPersona', 'nombre', 'nombres', 'apellidos', 'correo', 'roles', 'activo', 'estado', 'creadoEn'],
+    required: ['id', 'idPersona', 'nombre', 'nombres', 'apellidos', 'correo', 'roles', 'activo', 'estado', 'creadoEn',
+      'bloqueadoHasta'],
     properties: {
       id: { type: 'integer', example: 3 },
       idPersona: { type: 'integer', example: 3 },
@@ -49,6 +50,78 @@ export const esquemasSolicitudes = {
       estado: { type: 'string', enum: ['ACTIVO', 'INACTIVO'], example: 'ACTIVO' },
       creadoEn: { type: 'string', format: 'date-time' },
       ultimoAcceso: { type: 'string', format: 'date-time', nullable: true },
+      bloqueadoHasta: {
+        type: 'string', format: 'date-time', nullable: true,
+        description: 'Fin del bloqueo temporal por intentos fallidos si sigue vigente; null si la cuenta no está bloqueada.',
+      },
+    },
+  },
+  DetalleUsuarioAdmin: {
+    description: 'Ficha de una cuenta: los campos de UsuarioAdmin y lo que el administrador necesita para gestionarla.',
+    allOf: [
+      ref('UsuarioAdmin'),
+      {
+        type: 'object',
+        required: ['intentosFallidos', 'especialidad', 'invitacionPendienteHasta', 'sesiones', 'inscripciones', 'cursosCreados'],
+        properties: {
+          intentosFallidos: { type: 'integer', minimum: 0 },
+          especialidad: { type: 'string', nullable: true, description: 'Del perfil docente, si lo tiene (aunque esté inactivo).' },
+          invitacionPendienteHasta: {
+            type: 'string', format: 'date-time', nullable: true,
+            description: 'Vencimiento de la invitación sin usar (cuenta creada por un administrador); null si no hay.',
+          },
+          sesiones: {
+            type: 'array', description: 'Sesiones abiertas, la renovada más recientemente primero.',
+            items: {
+              type: 'object', required: ['id', 'iniciadaEn', 'renovadaEn', 'expiraEn', 'agente'],
+              properties: {
+                id: { type: 'string', format: 'uuid', description: 'Identifica la sesión a lo largo de sus renovaciones.' },
+                iniciadaEn: { type: 'string', format: 'date-time' },
+                renovadaEn: { type: 'string', format: 'date-time' },
+                expiraEn: { type: 'string', format: 'date-time' },
+                agente: { type: 'string', nullable: true, description: 'User-Agent del navegador.' },
+              },
+            },
+          },
+          inscripciones: {
+            type: 'array', description: 'Hasta 100, la actividad más reciente primero.',
+            items: {
+              type: 'object', required: ['curso', 'estado', 'progresoPct', 'inscritoEn', 'ultimaActividadEn'],
+              properties: {
+                curso: { type: 'object', required: ['id', 'titulo'], properties: { id: { type: 'integer' }, titulo: { type: 'string' } } },
+                estado: { type: 'string', enum: ['ACTIVA', 'COMPLETADA'] },
+                progresoPct: { type: 'integer', minimum: 0, maximum: 100 },
+                inscritoEn: { type: 'string', format: 'date-time' },
+                ultimaActividadEn: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+          cursosCreados: {
+            type: 'array', description: 'Cursos que creó como docente, en cualquier estado (hasta 100).',
+            items: {
+              type: 'object', required: ['id', 'titulo', 'estado', 'inscritos'],
+              properties: {
+                id: { type: 'integer' }, titulo: { type: 'string' },
+                estado: { type: 'string', enum: ['BORRADOR', 'EN_REVISION', 'PUBLICADO', 'RECHAZADO', 'ARCHIVADO'] },
+                inscritos: { type: 'integer', minimum: 0 },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  NuevoUsuarioAdmin: {
+    type: 'object', required: ['nombres', 'apellidos', 'correo'], additionalProperties: false,
+    properties: {
+      nombres: { type: 'string', minLength: 1, maxLength: 80 },
+      apellidos: { type: 'string', minLength: 1, maxLength: 80 },
+      correo: { type: 'string', format: 'email', maxLength: 120, description: 'Se guarda en minúsculas y sin espacios.' },
+      roles: {
+        type: 'array', items: { type: 'string', enum: ['ESTUDIANTE', 'DOCENTE', 'ADMIN'] }, default: [],
+        description: 'Roles además de ESTUDIANTE, que toda cuenta tiene.',
+      },
+      especialidad: { type: 'string', minLength: 3, maxLength: 100, description: 'Obligatoria si roles incluye DOCENTE.' },
     },
   },
   RespuestaUsuariosAdmin: {
@@ -219,6 +292,63 @@ export const rutasSolicitudes = {
         400: error('Parámetros de consulta inválidos'),
         401: error('Sin sesión'),
         403: error('No es administrador'),
+        500: errorInterno,
+      },
+    },
+    post: {
+      tags: ['Usuarios'],
+      summary: 'Crear una cuenta e invitar a la persona por correo (administrador)',
+      description:
+        'Crea la cuenta con los roles indicados (siempre con ESTUDIANTE) y una contraseña aleatoria que nadie conoce. ' +
+        'Envía un enlace de invitación de un solo uso que vence en 72 horas para que la persona cree su contraseña ' +
+        '(`/restablecer-contrasena#token=…&invitacion=1`); si vence, puede pedir uno de recuperación. ' +
+        'Con DOCENTE crea también el perfil docente con la especialidad. Queda en la auditoría con el administrador como autor. ' +
+        'Límite: 30 altas por IP cada 15 minutos.',
+      security: seguridad,
+      requestBody: { required: true, content: { 'application/json': { schema: ref('NuevoUsuarioAdmin') } } },
+      responses: {
+        201: json(ref('UsuarioAdmin'), 'Cuenta creada e invitación enviada'),
+        ...erroresCuerpoJson('Datos inválidos, o DOCENTE sin especialidad (SOLICITUD_INVALIDA)'),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        409: error('Ya existe una cuenta con ese correo (CORREO_EN_USO)'),
+        429: error('Demasiadas altas desde esta IP (DEMASIADAS_PETICIONES)'),
+        500: errorInterno,
+      },
+    },
+  },
+  '/admin/usuarios/{id}': {
+    get: {
+      tags: ['Usuarios'],
+      summary: 'Ficha de una cuenta: sesiones abiertas, inscripciones y cursos creados (administrador)',
+      security: seguridad,
+      parameters: [idRuta],
+      responses: {
+        200: json(ref('DetalleUsuarioAdmin')),
+        400: error(idInvalido),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        404: error('Usuario no encontrado'),
+        500: errorInterno,
+      },
+    },
+  },
+  '/admin/usuarios/{id}/sesiones': {
+    delete: {
+      tags: ['Usuarios'],
+      summary: 'Cerrar todas las sesiones abiertas de una cuenta (administrador)',
+      description:
+        'Revoca sus sesiones con el motivo ADMIN: la persona tendrá que volver a iniciar sesión en todos sus dispositivos. ' +
+        'No sirve para la propia cuenta (para eso está el cierre de sesión).',
+      security: seguridad,
+      parameters: [idRuta],
+      responses: {
+        200: json({ type: 'object', required: ['cerradas'], properties: { cerradas: { type: 'integer', minimum: 0 } } },
+          'Sesiones cerradas'),
+        400: error(`${idInvalido}, o es la propia cuenta`),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        404: error('Usuario no encontrado'),
         500: errorInterno,
       },
     },

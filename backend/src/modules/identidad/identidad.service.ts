@@ -24,6 +24,7 @@ import {
   type FiltroAccesos,
   type NuevoEventoAcceso,
   type Perfil,
+  type SesionActiva,
   identidadRepository as repo,
 } from './identidad.repository.js';
 import { exigirContrasenaSegura } from './politica-contrasena.js';
@@ -489,7 +490,25 @@ export interface ServicioIdentidad {
   cuentasBloqueadas(): Promise<CuentaBloqueada[]>;
   /** Quita el bloqueo y reinicia los intentos, dentro de la transacción (auditada) del administrador. false si no existe. */
   desbloquearCuenta(idUsuario: number, cliente: PoolClient): Promise<boolean>;
+  existeCorreo(correo: string): Promise<boolean>;
+  /**
+   * Alta por un administrador (D1): persona, usuario y rol Estudiante con una contraseña aleatoria que nadie conoce,
+   * y un enlace de invitación de HORAS_INVITACION horas para que la persona cree la suya. Dentro de la transacción
+   * del administrador. Devuelve el token en claro solo para enviarlo por correo; en la base queda su hash.
+   */
+  crearCuentaInvitada(
+    cliente: PoolClient,
+    datos: { nombres: string; apellidos: string; correo: string },
+  ): Promise<{ idPersona: number; idUsuario: number; token: string; expiraEn: Date }>;
+  sesionesActivas(idUsuario: number): Promise<SesionActiva[]>;
+  /** Vencimiento de la invitación sin usar, o null. */
+  invitacionPendiente(idUsuario: number): Promise<Date | null>;
+  /** Cierra todas las sesiones abiertas de la cuenta con el motivo ADMIN. Devuelve cuántas cerró. */
+  cerrarSesionesPorAdmin(idUsuario: number): Promise<number>;
 }
+
+/** Validez del enlace de invitación (migración 032: como mucho 72 horas). */
+export const HORAS_INVITACION = 72;
 
 export const identidadApi: ServicioIdentidad = {
   sesionVigente: (usuario) => identidadService.sesionVigente(usuario),
@@ -500,4 +519,15 @@ export const identidadApi: ServicioIdentidad = {
   listarAccesos: (filtro) => repo.listarAccesos(filtro),
   cuentasBloqueadas: () => repo.cuentasBloqueadas(),
   desbloquearCuenta: (idUsuario, cliente) => repo.desbloquearCuenta(cliente, idUsuario),
+  existeCorreo: (correo) => repo.existeCorreo(correo),
+  async crearCuentaInvitada(cliente, datos) {
+    const contrasenaHash = await cifrarContrasena(generarTokenOpaco());
+    const { idPersona, idUsuario } = await repo.crearCuentaEstudiante(cliente, { ...datos, contrasenaHash });
+    const token = generarTokenOpaco();
+    const expiraEn = await repo.crearInvitacion(cliente, idUsuario, hashToken(token), HORAS_INVITACION);
+    return { idPersona, idUsuario, token, expiraEn };
+  },
+  sesionesActivas: (idUsuario) => repo.sesionesActivas(idUsuario),
+  invitacionPendiente: (idUsuario) => repo.invitacionPendiente(idUsuario),
+  cerrarSesionesPorAdmin: (idUsuario) => repo.revocarSesionesUsuario(idUsuario, 'ADMIN'),
 };

@@ -36,6 +36,26 @@ export interface UsuarioAdmin {
   estado: EstadoUsuario;
   creadoEn: string;
   ultimoAcceso: string | null;
+  /** Fin del bloqueo temporal por intentos fallidos si sigue vigente; null si no está bloqueada. */
+  bloqueadoHasta: string | null;
+}
+
+/** Ficha completa de una cuenta para el administrador. */
+export interface DetalleUsuarioAdmin extends UsuarioAdmin {
+  intentosFallidos: number;
+  /** Especialidad del perfil docente, si lo tiene (aunque esté inactivo). */
+  especialidad: string | null;
+  /** Vencimiento de la invitación sin usar (cuenta creada por un administrador), o null. */
+  invitacionPendienteHasta: string | null;
+  sesiones: { id: string; iniciadaEn: string; renovadaEn: string; expiraEn: string; agente: string | null }[];
+  inscripciones: {
+    curso: { id: number; titulo: string };
+    estado: 'ACTIVA' | 'COMPLETADA';
+    progresoPct: number;
+    inscritoEn: string;
+    ultimaActividadEn: string;
+  }[];
+  cursosCreados: { id: number; titulo: string; estado: string; inscritos: number }[];
 }
 
 export interface RespuestaUsuariosAdmin {

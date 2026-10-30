@@ -88,6 +88,15 @@ export interface CuentaBloqueada {
   bloqueadoHasta: Date;
 }
 
+/** Sesión abierta de una cuenta, sin el token. `id` es la familia: identifica la sesión a lo largo de sus renovaciones. */
+export interface SesionActiva {
+  id: string;
+  iniciadaEn: Date;
+  renovadaEn: Date;
+  expiraEn: Date;
+  agente: string | null;
+}
+
 /** `%`, `_` y `\` del texto buscado se toman literalmente (`LIKE … ESCAPE '\'`). */
 const patronLike = (texto: string) => `%${texto.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
@@ -429,6 +438,43 @@ export const identidadRepository = {
         LIMIT 200`,
     );
     return rows;
+  },
+
+  // ───────────────────────────────────────────────────────────── administración de una cuenta
+  /**
+   * Enlace de invitación (032): como uno de recuperación, pero vale hasta 72 horas. El vencimiento se calcula con el
+   * mismo now() que `creado_en`: calcularlo en Node lo dejaría unos milisegundos por encima del CHECK de vigencia.
+   */
+  async crearInvitacion(cliente: pg.PoolClient, idUsuario: number, tokenHash: string, horas: number): Promise<Date> {
+    const { rows } = await cliente.query<{ expiraEn: Date }>(
+      `INSERT INTO token_recuperacion (id_usuario, token_hash, expira_en, proposito)
+       VALUES ($1, $2, now() + make_interval(hours => $3), 'INVITACION')
+       RETURNING expira_en AS "expiraEn"`,
+      [idUsuario, tokenHash, horas],
+    );
+    return rows[0]!.expiraEn;
+  },
+
+  /** Sesiones vigentes de la cuenta: una fila por familia (su token actual). */
+  async sesionesActivas(idUsuario: number): Promise<SesionActiva[]> {
+    const { rows } = await consultar<SesionActiva>(
+      `SELECT familia AS id, iniciada_en AS "iniciadaEn", creado_en AS "renovadaEn", expira_en AS "expiraEn", agente
+         FROM sesion
+        WHERE id_usuario = $1 AND revocado_en IS NULL AND reemplazado_en IS NULL AND expira_en > now()
+        ORDER BY creado_en DESC`,
+      [idUsuario],
+    );
+    return rows;
+  },
+
+  /** Vencimiento de la invitación sin usar más reciente, o null si no hay ninguna vigente. */
+  async invitacionPendiente(idUsuario: number): Promise<Date | null> {
+    const { rows } = await consultar<{ expiraEn: Date }>(
+      `SELECT max(expira_en) AS "expiraEn" FROM token_recuperacion
+        WHERE id_usuario = $1 AND proposito = 'INVITACION' AND usado_en IS NULL AND expira_en > now()`,
+      [idUsuario],
+    );
+    return rows[0]?.expiraEn ?? null;
   },
 
   /** Quita el bloqueo y reinicia los intentos. Devuelve false si la cuenta no existe. */

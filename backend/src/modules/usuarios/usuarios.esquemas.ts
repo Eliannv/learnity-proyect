@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { idRuta } from '../../shared/http/esquemas.js';
+import { idRuta, textoSeguro } from '../../shared/http/esquemas.js';
 
 // Solicitudes para ser docente (RF-05 y RF-22)
 
@@ -65,6 +65,25 @@ export const cambioRolesUsuario = z.strictObject({
   roles: z.array(z.enum(ROLES_VALIDOS)).min(1, 'La cuenta debe tener al menos un rol.'),
 });
 
+/** Alta por un administrador (D1): la persona recibe un enlace de invitación para crear su contraseña. */
+export const nuevoUsuarioAdmin = z.strictObject({
+  nombres: textoSeguro().trim().min(1, 'Escribe los nombres.').max(80, 'Los nombres deben tener como máximo 80 caracteres.'),
+  apellidos: textoSeguro().trim().min(1, 'Escribe los apellidos.').max(80, 'Los apellidos deben tener como máximo 80 caracteres.'),
+  correo: z.string().trim().toLowerCase()
+    .pipe(z.email('Correo no válido.').max(120, 'El correo debe tener como máximo 120 caracteres.')),
+  /** Toda cuenta es Estudiante; aquí se añaden DOCENTE o ADMIN. */
+  roles: z.array(z.enum(ROLES_VALIDOS)).max(3).default([]),
+  especialidad: textoSeguro().trim()
+    .min(3, 'Escribe la especialidad (mínimo 3 caracteres).')
+    .max(100, 'La especialidad debe tener como máximo 100 caracteres.')
+    .optional(),
+}).superRefine((d, ctx) => {
+  if (d.roles.includes('DOCENTE') && !d.especialidad) {
+    ctx.addIssue({ code: 'custom', path: ['especialidad'], message: 'Escribe la especialidad del docente.' });
+  }
+});
+
+export type NuevoUsuarioAdmin = z.infer<typeof nuevoUsuarioAdmin>;
 export type FiltroUsuariosAdmin = z.infer<typeof filtroUsuariosAdmin>;
 export type CambioEstadoUsuario = z.infer<typeof cambioEstadoUsuario>;
 export type CambioRolesUsuario = z.infer<typeof cambioRolesUsuario>;

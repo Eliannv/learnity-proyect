@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { consultar } from '../../shared/database/pool.js';
 import type { FiltroUsuariosAdmin } from './usuarios.esquemas.js';
 import type {
+  DetalleUsuarioAdmin,
   EstadoSolicitud,
   EstadoUsuario,
   RespuestaUsuariosAdmin,
@@ -22,6 +23,7 @@ interface FilaUsuarioAdmin {
   estado: EstadoUsuario;
   creado_en: Date;
   ultimo_acceso: Date | null;
+  bloqueado_hasta: Date | null;
 }
 
 function aUsuarioAdmin(f: FilaUsuarioAdmin): UsuarioAdmin {
@@ -42,6 +44,7 @@ function aUsuarioAdmin(f: FilaUsuarioAdmin): UsuarioAdmin {
     estado: f.estado,
     creadoEn: f.creado_en.toISOString(),
     ultimoAcceso: f.ultimo_acceso ? f.ultimo_acceso.toISOString() : null,
+    bloqueadoHasta: f.bloqueado_hasta?.toISOString() ?? null,
   };
 }
 
@@ -261,6 +264,7 @@ export const usuariosRepository = {
     const itemsResult = await consultar<FilaUsuarioAdmin>(
       `SELECT u.id_usuario AS id, p.id_persona, p.nombres, p.apellidos, u.correo, p.ciudad, p.foto_url,
               u.estado, p.creado_en, u.ultimo_acceso,
+              CASE WHEN u.bloqueado_hasta > now() THEN u.bloqueado_hasta END AS bloqueado_hasta,
               COALESCE(array_agg(r.nombre ORDER BY r.id_rol) FILTER (WHERE r.nombre IS NOT NULL), '{}') AS roles
          FROM usuario u
          JOIN persona p ON p.id_persona = u.id_persona
@@ -291,6 +295,7 @@ export const usuariosRepository = {
     const sql = `
       SELECT u.id_usuario AS id, p.id_persona, p.nombres, p.apellidos, u.correo, p.ciudad, p.foto_url,
              u.estado, p.creado_en, u.ultimo_acceso,
+              CASE WHEN u.bloqueado_hasta > now() THEN u.bloqueado_hasta END AS bloqueado_hasta,
              COALESCE(array_agg(r.nombre ORDER BY r.id_rol) FILTER (WHERE r.nombre IS NOT NULL), '{}') AS roles
         FROM usuario u
         JOIN persona p ON p.id_persona = u.id_persona
@@ -374,5 +379,49 @@ export const usuariosRepository = {
         [idUsuario],
       );
     }
+  },
+
+  // ───────────────────────────────────────────────────────────── ficha de una cuenta (panel del administrador)
+  async datosAcceso(idUsuario: number): Promise<{ intentosFallidos: number; especialidad: string | null } | null> {
+    const { rows } = await consultar<{ intentosFallidos: number; especialidad: string | null }>(
+      `SELECT u.intentos_fallidos AS "intentosFallidos", d.especialidad
+         FROM usuario u LEFT JOIN docente d ON d.id_persona = u.id_persona
+        WHERE u.id_usuario = $1`,
+      [idUsuario],
+    );
+    return rows[0] ?? null;
+  },
+
+  /** Cursos en los que está inscrita la persona, con su avance; la actividad más reciente primero. */
+  async inscripcionesDe(idPersona: number): Promise<DetalleUsuarioAdmin['inscripciones']> {
+    const { rows } = await consultar<{
+      id: number; titulo: string; estado: 'ACTIVA' | 'COMPLETADA'; progreso: number; inscrito: Date; actividad: Date;
+    }>(
+      `SELECT c.id_curso AS id, c.titulo, i.estado, i.progreso_pct AS progreso,
+              i.inscrito_en AS inscrito, i.ultima_actividad_en AS actividad
+         FROM inscripcion i JOIN curso c ON c.id_curso = i.id_curso
+        WHERE i.id_persona = $1
+        ORDER BY i.ultima_actividad_en DESC, i.id_inscripcion DESC
+        LIMIT 100`,
+      [idPersona],
+    );
+    return rows.map((f) => ({
+      curso: { id: f.id, titulo: f.titulo }, estado: f.estado, progresoPct: f.progreso,
+      inscritoEn: f.inscrito.toISOString(), ultimaActividadEn: f.actividad.toISOString(),
+    }));
+  },
+
+  /** Cursos que creó como docente (en cualquier estado), con sus inscritos; los más recientes primero. */
+  async cursosCreadosPor(idPersona: number): Promise<DetalleUsuarioAdmin['cursosCreados']> {
+    const { rows } = await consultar<DetalleUsuarioAdmin['cursosCreados'][number]>(
+      `SELECT c.id_curso AS id, c.titulo, c.estado,
+              (SELECT count(*)::int FROM inscripcion i WHERE i.id_curso = c.id_curso) AS inscritos
+         FROM curso c JOIN docente d ON d.id_docente = c.id_docente
+        WHERE d.id_persona = $1
+        ORDER BY c.creado_en DESC, c.id_curso DESC
+        LIMIT 100`,
+      [idPersona],
+    );
+    return rows;
   },
 };

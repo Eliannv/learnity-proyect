@@ -10,6 +10,7 @@ import {
   filtroSolicitudes,
   filtroUsuariosAdmin,
   nuevaSolicitudDocente,
+  nuevoUsuarioAdmin,
   parametrosSolicitud,
   parametrosUsuario,
 } from './usuarios.esquemas.js';
@@ -60,6 +61,31 @@ usuariosRoutes.put(
   validarParametros(parametrosUsuario),
   validarCuerpo(cambioEstadoUsuario),
   controller.cambiarEstado,
+);
+
+usuariosRoutes.post(
+  '/admin/usuarios',
+  limitarPorIp('alta-usuario', 30, 15),
+  autenticar,
+  autorizar('ADMIN'),
+  validarCuerpo(nuevoUsuarioAdmin),
+  controller.crearUsuario,
+);
+
+usuariosRoutes.get(
+  '/admin/usuarios/:id',
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosUsuario),
+  controller.detalleUsuario,
+);
+
+usuariosRoutes.delete(
+  '/admin/usuarios/:id/sesiones',
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosUsuario),
+  controller.cerrarSesiones,
 );
 
 usuariosRoutes.delete(

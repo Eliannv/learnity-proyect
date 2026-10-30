@@ -9,6 +9,7 @@ import type {
   FiltroSolicitudes,
   FiltroUsuariosAdmin,
   NuevaSolicitudDocente,
+  NuevoUsuarioAdmin,
 } from './usuarios.esquemas.js';
 import { usuariosService as service } from './usuarios.service.js';
 
@@ -46,6 +47,20 @@ export const usuariosController = {
   async cambiarEstado(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
     res.json(await service.cambiarEstado(id, req.body as CambioEstadoUsuario, usuario(req)));
+  },
+
+  async crearUsuario(req: Request, res: Response): Promise<void> {
+    res.status(201).json(await service.crearUsuario(req.body as NuevoUsuarioAdmin, usuario(req)));
+  },
+
+  async detalleUsuario(_req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.json(await service.detalle(id));
+  },
+
+  async cerrarSesiones(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.json(await service.cerrarSesiones(id, usuario(req)));
   },
 
   async desbloquear(req: Request, res: Response): Promise<void> {

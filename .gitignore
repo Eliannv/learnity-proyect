@@ -23,3 +23,6 @@ Thumbs.db
 
 # Worktrees de los teammates del refactor
 .worktrees/
+
+# Resultados de Playwright si se ejecuta fuera de e2e/ (e2e/.gitignore cubre los suyos)
+test-results/

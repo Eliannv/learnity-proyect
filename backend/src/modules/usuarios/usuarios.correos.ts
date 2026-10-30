@@ -52,3 +52,29 @@ export function correoSolicitudRechazada(datos: {
     ),
   };
 }
+
+/** Alta por un administrador (D1): enlace de un solo uso para crear la contraseña. */
+export function correoInvitacion(datos: { para: string; nombres: string; enlace: string; horas: number; roles: string }): Correo {
+  const { para, nombres, enlace, horas, roles } = datos;
+  return {
+    para,
+    asunto: 'Te invitamos a Learnity',
+    texto: [
+      `Hola, ${nombres}:`,
+      '',
+      `El equipo de Learnity creó tu cuenta con este correo (${roles}).`,
+      `Para entrar, crea tu contraseña con este enlace. Funciona una sola vez y vence en ${horas} horas:`,
+      enlace,
+      '',
+      'Si vence, usa "¿Olvidaste tu contraseña?" en la página de inicio de sesión con este mismo correo.',
+    ].join('\n'),
+    html: marco(
+      'Te invitamos a Learnity',
+      parrafo(`Hola, ${escapar(nombres)}:`) +
+        parrafo(`El equipo de Learnity creó tu cuenta con este correo (${escapar(roles)}). Para entrar, crea tu contraseña.`) +
+        boton('Crear mi contraseña', enlace) +
+        `<p style="margin:0;font-size:13px;line-height:1.5;color:#64748b">El enlace funciona una sola vez y vence en ${horas} horas. ` +
+        'Si vence, usa «¿Olvidaste tu contraseña?» en la página de inicio de sesión con este mismo correo.</p>',
+    ),
+  };
+}
