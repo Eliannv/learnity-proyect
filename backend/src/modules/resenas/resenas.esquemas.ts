@@ -62,6 +62,9 @@ export const filtrosResenasAdmin = z.strictObject({
   estado: z.enum(['vigentes', 'borradas', 'ocultadas', 'todas']).default('todas'),
   curso: opcional(z.coerce.number().int().min(1).max(2_147_483_647)),
   estrellas: opcional(z.coerce.number().int().min(1).max(5)),
+  /** Parte del nombre de la categoría del curso, sin distinguir mayúsculas. */
+  categoria: z.preprocess((v) => (typeof v === 'string' ? v.normalize('NFC').trim() || undefined : v),
+    textoSeguro().pipe(z.string().max(80, 'La categoría debe tener como máximo 80 caracteres.')).optional()),
   /** Busca en el comentario y en la respuesta del docente, sin distinguir mayúsculas. */
   q: z.preprocess((v) => (typeof v === 'string' ? v.normalize('NFC').trim() || undefined : v),
     textoSeguro().pipe(z.string().max(100, 'La búsqueda debe tener como máximo 100 caracteres.')).optional()),

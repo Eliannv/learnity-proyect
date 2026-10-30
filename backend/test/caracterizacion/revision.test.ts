@@ -98,7 +98,7 @@ describe('GET /api/admin/cursos (CAR-REV-01, 02)', () => {
     // Sprint 4 (034): cada curso trae inscritos, actualizadoEn y suspension, y la respuesta los conteos por estado.
     assert.deepEqual(forma(r.json), {
       items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number',
-        portadaUrl: 'string', inscritos: 'number', actualizadoEn: 'string', suspension: 'null' }],
+        portadaUrl: 'string', inscritos: 'number', categoria: 'string', actualizadoEn: 'string', suspension: 'null' }],
       conteos: { EN_REVISION: 'number', PUBLICADO: 'number', SUSPENDIDO: 'number', RECHAZADO: 'number', BORRADOR: 'number' },
     });
     const lista: any[] = r.json.items;

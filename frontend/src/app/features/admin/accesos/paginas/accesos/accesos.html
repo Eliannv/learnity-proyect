@@ -1,12 +1,16 @@
 <header class="cabecera">
   <div>
-    <h1 class="titulo-pagina">Accesos</h1>
-    <p class="subtitulo">Quién intentó entrar a una cuenta, con qué resultado y desde qué navegador.</p>
+    <h1 class="titulo-pagina">Accesos y sesiones</h1>
+    <p class="subtitulo">Quién intentó entrar a una cuenta, con qué resultado y desde qué navegador; cuentas bloqueadas.</p>
   </div>
   <button type="button" class="btn btn-contorno btn-sm" [disabled]="cargando()" (click)="actualizar()">
     <lucide-icon name="rotate-ccw" [size]="16" aria-hidden="true" /> Actualizar
   </button>
 </header>
+
+<app-estado-bd #estadoBd />
+<app-conmutador-seccion etiqueta="Accesos y sesiones" [enlaces]="seccion" />
+
 
 <section class="bloqueadas" aria-labelledby="titulo-bloqueadas">
   <h2 id="titulo-bloqueadas" class="titulo-seccion">

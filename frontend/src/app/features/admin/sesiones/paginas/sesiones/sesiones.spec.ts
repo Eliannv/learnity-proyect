@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import type { SesionAdmin } from '../../../../../core/api/contrato';
@@ -34,6 +35,7 @@ function montar(confirmar = true) {
   const confirmacion = { confirmar: vi.fn().mockResolvedValue(confirmar) };
   TestBed.configureTestingModule({
     providers: [
+      provideRouter([]),
       { provide: SesionesApi, useValue: api }, { provide: AuthService, useValue: auth },
       { provide: ConfirmacionService, useValue: confirmacion },
       { provide: ToastService, useValue: { exito: vi.fn(), error: vi.fn() } },

@@ -15,13 +15,16 @@ const PESTANAS: { estado: EstadoRevision; texto: string }[] = [
  * Revisión y gobernanza de cursos: una pestaña por estado. La pestaña va en la URL (`?estado=PUBLICADO`) para que
  * «volver» desde el detalle regrese a la misma lista; sin parámetro, los pendientes de revisión.
  */
+import { ConmutadorSeccion, SECCION_CURSOS } from '../../../../../shared/ui/navegacion/conmutador-seccion';
+
 @Component({
   selector: 'app-revision-cursos',
-  imports: [ListadoCursos],
+  imports: [ListadoCursos, ConmutadorSeccion],
   templateUrl: './revision-cursos.html',
   styleUrl: './revision-cursos.scss',
 })
 export class RevisionCursos {
+  protected readonly seccion = SECCION_CURSOS;
   private readonly api = inject(RevisionApi);
   private readonly router = inject(Router);
 

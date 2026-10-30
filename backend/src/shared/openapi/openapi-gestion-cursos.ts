@@ -351,9 +351,10 @@ export const esquemasGestionCursos = {
       ref('CursoResumen'),
       {
         type: 'object',
-        required: ['inscritos', 'actualizadoEn', 'suspension'],
+        required: ['inscritos', 'categoria', 'actualizadoEn', 'suspension'],
         properties: {
           inscritos: { type: 'integer', minimum: 0, description: 'Inscripciones en el curso (pierden el acceso si se suspende).' },
+          categoria: { type: 'string', description: 'Nombre de la categoría del curso.' },
           actualizadoEn: { type: 'string', format: 'date-time' },
           suspension,
         },

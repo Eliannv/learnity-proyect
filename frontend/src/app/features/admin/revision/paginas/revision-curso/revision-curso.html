@@ -1,4 +1,4 @@
-<div class="pagina">
+<div class="pagina pagina-revision">
   <a routerLink="/admin/revision" [queryParams]="{ estado: curso()?.estado === 'EN_REVISION' ? null : curso()?.estado }">
     ← Revisión de cursos
   </a>
@@ -15,6 +15,9 @@
       </button>
     </div>
   } @else if (curso(); as c) {
+   <!-- Dos columnas en escritorio: el curso a la izquierda y la decisión fija a la derecha, sin bajar hasta el final. -->
+   <div class="revision-rejilla">
+    <div class="columna-curso">
     <section class="tarjeta bloque">
       <div class="cabecera">
         <h2>{{ c.titulo }}</h2>
@@ -68,9 +71,12 @@
         [cargarCuestionarioFn]="cargarCuestionarioFn"
         (ocupado)="descargando.set($event)"
         (recargar)="cargar()"
+        [mostrarVolver]="false"
       />
     </section>
+    </div>
 
+    <aside class="columna-decision" aria-label="Verificación y decisión">
     <section class="tarjeta bloque">
       <h2>Verificación del servidor</h2>
 
@@ -166,5 +172,7 @@
         </div>
       }
     </section>
+    </aside>
+   </div>
   }
 </div>

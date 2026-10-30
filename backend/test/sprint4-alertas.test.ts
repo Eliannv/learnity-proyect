@@ -199,6 +199,21 @@ describe('Lote 8 · listado y atención', () => {
 
     const pendientes = await como(admin, 'GET', '/api/admin/alertas?tipo=INTENTOS_FALLIDOS&severidad=MEDIA&limite=50');
     assert.ok(!pendientes.json.items.some((a: { id: number }) => a.id === Number(alerta!.id)));
+    // La pestaña «Atendidas» la lista, con su contador; las tres cifras cuadran.
+    const atendidas = await como(admin, 'GET', '/api/admin/alertas?estado=atendidas&tipo=INTENTOS_FALLIDOS&severidad=MEDIA&limite=50');
+    assert.equal(atendidas.status, 200, atendidas.texto);
+    assert.ok(atendidas.json.items.some((a: { id: number }) => a.id === Number(alerta!.id)));
+    assert.ok(atendidas.json.items.every((a: { atencion: unknown }) => a.atencion !== null));
+    const c = atendidas.json.contadores;
+    assert.equal(c.pendientes + c.atendidas, c.todas);
+    assert.equal(atendidas.json.paginacion.total, c.atendidas);
+    // Orden: «antiguas» invierte el de «recientes».
+    const recientes = await como(admin, 'GET', '/api/admin/alertas?estado=todas&limite=50');
+    const antiguas = await como(admin, 'GET', '/api/admin/alertas?estado=todas&orden=antiguas&limite=50');
+    const fechas = (r: typeof recientes) => r.json.items.map((a: { detectadaEn: string }) => a.detectadaEn);
+    assert.deepEqual([...fechas(recientes)].sort(), [...fechas(antiguas)].sort());
+    assert.ok(fechas(antiguas)[0] <= fechas(antiguas).at(-1));
+    assert.equal((await como(admin, 'GET', '/api/admin/alertas?orden=raro')).status, 400);
 
     const auditoria = await f.query<{ actor: number; columnas: string[] }>(
       `SELECT id_persona_actor AS actor, columnas_cambiadas AS columnas FROM auditoria_cambio

@@ -46,6 +46,8 @@ export class ArbolTemario {
   readonly curso = input.required<CursoDetalle>();
   readonly editable = input(false);
   readonly bloqueado = input(false);
+  /** El botón para volver al paso de la ficha solo tiene sentido en el editor del docente. */
+  readonly mostrarVolver = input(true);
   readonly guardarModuloFn =
     input<
       (

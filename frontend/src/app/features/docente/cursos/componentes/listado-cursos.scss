@@ -5,6 +5,7 @@
    Por debajo de 700px la fila se apila sin pasar del ancho de la pantalla. */
 .listado-cursos-pagina {
   width: 100%;
+  max-width: none;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -26,6 +27,29 @@
     flex-wrap: wrap;
     gap: 8px;
     min-width: 0;
+  }
+}
+
+.filtros-admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.campo-filtro {
+  display: grid;
+  gap: 4px;
+  flex: 0 1 240px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-2);
+
+  &.buscar {
+    flex: 1 1 320px;
+    max-width: 440px;
   }
 }
 

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { mensajeDeError } from '../../../../../core/http/error-api';
@@ -29,13 +29,18 @@ const MOTIVO: Record<AccesoAdmin['motivo'], string> = {
 const LIMITE = 20;
 
 /** Registro de inicios de sesión y desbloqueo de cuentas bloqueadas por intentos fallidos. */
+import { ConmutadorSeccion, SECCION_SEGURIDAD } from '../../../../../shared/ui/navegacion/conmutador-seccion';
+import { EstadoBd } from '../../../sesiones/componentes/estado-bd';
+
 @Component({
   selector: 'app-admin-accesos',
-  imports: [DatePipe, LucideAngularModule, EstadoVistaComponent],
+  imports: [DatePipe, LucideAngularModule, EstadoVistaComponent, EstadoBd, ConmutadorSeccion],
   templateUrl: './accesos.html',
   styleUrl: './accesos.scss',
 })
 export class AdminAccesos {
+  protected readonly seccion = SECCION_SEGURIDAD;
+  private readonly estadoBd = viewChild(EstadoBd);
   private readonly api = inject(AccesosApi);
   private readonly toast = inject(ToastService);
   private solicitud = 0;
@@ -85,6 +90,7 @@ export class AdminAccesos {
   }
 
   protected actualizar(): void {
+    void this.estadoBd()?.cargar();
     void this.cargarBloqueadas();
     void this.cargar();
   }

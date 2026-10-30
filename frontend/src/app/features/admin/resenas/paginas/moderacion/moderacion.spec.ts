@@ -83,7 +83,7 @@ async function irAPendientes(fixture: Montaje) {
 const boton = (el: HTMLElement, texto: string) =>
   [...el.querySelectorAll('button')].find((b) => b.textContent?.includes(texto)) as HTMLButtonElement;
 
-const FILTROS = { estado: 'todas', curso: null, estrellas: null, q: '' };
+const FILTROS = { estado: 'todas', curso: null, estrellas: null, categoria: '', q: '' };
 
 describe('reseñas del administrador', () => {
   it('abre en «Todas las reseñas» con su estado e historial y filtra por estado y estrellas', async () => {

@@ -13,10 +13,19 @@
   <div class="pestanas" role="tablist" aria-label="Qué alertas ver">
     <button type="button" role="tab" [attr.aria-selected]="vista() === 'pendientes'" [class.activa]="vista() === 'pendientes'"
       (click)="elegir('pendientes')">Pendientes <span class="contador">{{ datos()?.contadores?.pendientes ?? '…' }}</span></button>
+    <button type="button" role="tab" [attr.aria-selected]="vista() === 'atendidas'" [class.activa]="vista() === 'atendidas'"
+      (click)="elegir('atendidas')">Atendidas <span class="contador">{{ datos()?.contadores?.atendidas ?? '…' }}</span></button>
     <button type="button" role="tab" [attr.aria-selected]="vista() === 'todas'" [class.activa]="vista() === 'todas'"
       (click)="elegir('todas')">Todas <span class="contador">{{ datos()?.contadores?.todas ?? '…' }}</span></button>
   </div>
   <div class="filtros">
+    <label class="campo">
+      <span>Orden</span>
+      <select class="control" name="orden" [ngModel]="orden()" (ngModelChange)="ordenar($event)">
+        <option value="recientes">Más recientes primero</option>
+        <option value="antiguas">Más antiguas primero</option>
+      </select>
+    </label>
     <label class="campo">
       <span>Severidad</span>
       <select class="control" name="severidad" [ngModel]="severidad()" (ngModelChange)="filtrar({ severidad: $event })">
@@ -90,7 +99,7 @@
         }
       </article>
     } @empty {
-      <app-estado-vista estado="vacio" [titulo]="vista() === 'pendientes' ? 'No hay alertas pendientes' : 'No hay alertas'"
+      <app-estado-vista estado="vacio" [titulo]="vista() === 'pendientes' ? 'No hay alertas pendientes' : vista() === 'atendidas' ? 'No hay alertas atendidas' : 'No hay alertas'"
         mensaje="Pulsa «Ejecutar análisis ahora» para revisar las últimas 24 horas." />
     }
   </div>

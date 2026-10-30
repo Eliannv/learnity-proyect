@@ -64,6 +64,13 @@ const COLUMNAS = `
   id_auditoria AS id, tabla, operacion, registro, id_persona_actor AS "idActor", actor, actor_correo AS "actorCorreo",
   usuario_bd AS "usuarioBd", cambiado_en AS fecha, columnas_cambiadas AS "columnasCambiadas"`;
 
+/** Condición de cada pestaña de Alertas (texto fijo, sin datos del usuario). */
+const ESTADO_ALERTA: Record<FiltroAlertasAdmin['estado'], string> = {
+  pendientes: 'AND a.atendida_en IS NULL',
+  atendidas: 'AND a.atendida_en IS NOT NULL',
+  todas: '',
+};
+
 export const supervisionRepository = {
   /** Página filtrada (la función limita a 100 filas). `hasta` es exclusivo. */
   async listarCambios(filtro: FiltroAuditoriaAdmin): Promise<{ items: FilaCambio[]; total: number }> {
@@ -142,28 +149,30 @@ export const supervisionRepository = {
 
   // ------------------------------------------------------------ alertas (038)
 
-  /** Página de alertas (la más reciente primero) y los contadores de las pestañas con los mismos filtros. */
+  /** Página de alertas en el orden pedido y los contadores de las pestañas con los mismos filtros. */
   async listarAlertas(filtro: FiltroAlertasAdmin): Promise<{
-    items: FilaAlerta[]; total: number; pendientes: number; todas: number;
+    items: FilaAlerta[]; total: number; pendientes: number; atendidas: number; todas: number;
   }> {
     const condiciones = ['($1::varchar IS NULL OR a.severidad = $1)', '($2::varchar IS NULL OR a.tipo = $2)'];
     const params: unknown[] = [filtro.severidad ?? null, filtro.tipo ?? null];
     const where = `WHERE ${condiciones.join(' AND ')}`;
     const [conteo, filas] = await Promise.all([
-      consultar<{ pendientes: number; todas: number }>(
-        `SELECT count(*) FILTER (WHERE a.atendida_en IS NULL)::int AS pendientes, count(*)::int AS todas
+      consultar<{ pendientes: number; atendidas: number; todas: number }>(
+        `SELECT count(*) FILTER (WHERE a.atendida_en IS NULL)::int AS pendientes,
+                count(*) FILTER (WHERE a.atendida_en IS NOT NULL)::int AS atendidas, count(*)::int AS todas
            FROM alerta_seguridad a ${where}`,
         params,
       ),
       consultar<FilaAlerta>(
-        `${SELECT_ALERTA} ${where} ${filtro.estado === 'pendientes' ? 'AND a.atendida_en IS NULL' : ''}
-          ORDER BY a.detectada_en DESC, a.id_alerta DESC
+        `${SELECT_ALERTA} ${where} ${ESTADO_ALERTA[filtro.estado]}
+          ORDER BY ${filtro.orden === 'antiguas' ? 'a.detectada_en ASC, a.id_alerta ASC' : 'a.detectada_en DESC, a.id_alerta DESC'}
           LIMIT $3 OFFSET $4`,
         [...params, filtro.limite, (filtro.pagina - 1) * filtro.limite],
       ),
     ]);
-    const { pendientes, todas } = conteo.rows[0]!;
-    return { items: filas.rows, total: filtro.estado === 'pendientes' ? pendientes : todas, pendientes, todas };
+    const { pendientes, atendidas, todas } = conteo.rows[0]!;
+    const total = { pendientes, atendidas, todas }[filtro.estado];
+    return { items: filas.rows, total, pendientes, atendidas, todas };
   },
 
   async alertaPorId(id: number): Promise<FilaAlerta | null> {

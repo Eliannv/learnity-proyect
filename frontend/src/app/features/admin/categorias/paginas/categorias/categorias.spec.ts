@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import { ICONOS } from '../../../../../shared/ui/marca/iconos';
@@ -20,6 +21,7 @@ function montar() {
   const toasts = { exito: vi.fn(), error: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
+      provideRouter([]),
       { provide: AdminCategoriasApi, useValue: api }, { provide: ToastService, useValue: toasts },
       { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) },
     ],

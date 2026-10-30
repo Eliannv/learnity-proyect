@@ -12,7 +12,8 @@
       <span class="grupo-nombre" aria-hidden="true">{{ grupo.nombre }}</span>
       @for (item of grupo.items; track item.ruta) {
       <a class="item" [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page"
-        [routerLinkActiveOptions]="{ exact: item.exacto ?? false }" [attr.data-etiqueta]="item.etiqueta">
+        [routerLinkActiveOptions]="{ exact: item.exacto ?? false }" [attr.data-etiqueta]="item.etiqueta"
+        [class.activo-alias]="activaPorAlias(item)" [attr.aria-current]="activaPorAlias(item) ? 'page' : null">
         <span class="item-icono">
           <lucide-icon [name]="item.icono" [size]="18" aria-hidden="true" />
           @if (item.destacado) {

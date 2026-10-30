@@ -57,7 +57,7 @@ describe('alertas de seguridad', () => {
   it('muestra pestañas con contadores, severidad, tipo, usuario y la evidencia enlazada', async () => {
     const { fixture, api } = montar();
     await cargada(fixture);
-    expect(api.listar).toHaveBeenCalledWith({ estado: 'pendientes', severidad: undefined, tipo: undefined, pagina: 1, limite: 20 });
+    expect(api.listar).toHaveBeenCalledWith({ estado: 'pendientes', orden: 'recientes', severidad: undefined, tipo: undefined, pagina: 1, limite: 20 });
     const pestanas = fixture.nativeElement.querySelector('.pestanas').textContent.replace(/\s+/g, ' ');
     expect(pestanas).toContain('Pendientes 2');
     expect(pestanas).toContain('Todas 5');
@@ -87,7 +87,7 @@ describe('alertas de seguridad', () => {
     tipo.dispatchEvent(new Event('change'));
     boton(fixture.nativeElement, 'Todas').click();
     await vi.waitFor(() => expect(api.listar).toHaveBeenLastCalledWith({
-      estado: 'todas', severidad: 'ALTA', tipo: 'CAMBIO_PRIVILEGIOS', pagina: 1, limite: 20,
+      estado: 'todas', orden: 'recientes', severidad: 'ALTA', tipo: 'CAMBIO_PRIVILEGIOS', pagina: 1, limite: 20,
     }));
   });
 

@@ -48,7 +48,9 @@ export const revocacionSesion = z.strictObject({
 });
 
 export const filtroAlertas = z.strictObject({
-  estado: z.enum(['pendientes', 'todas']).default('pendientes'),
+  estado: z.enum(['pendientes', 'atendidas', 'todas']).default('pendientes'),
+  /** recientes: la detectada más recientemente primero; antiguas: al revés. */
+  orden: z.enum(['recientes', 'antiguas']).default('recientes'),
   severidad: opcional(z.enum(['ALTA', 'MEDIA', 'BAJA'])),
   tipo: opcional(z.enum(['INTENTOS_FALLIDOS', 'CAMBIO_PRIVILEGIOS', 'RAFAGA_RESENAS', 'MODIFICACION_MASIVA'])),
   pagina: z.coerce.number().int().min(1).max(10_000).default(1),

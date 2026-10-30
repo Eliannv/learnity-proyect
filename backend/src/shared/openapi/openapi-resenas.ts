@@ -322,6 +322,10 @@ export const rutasResenas = {
         { in: 'query', name: 'curso', schema: { type: 'integer', minimum: 1 } },
         { in: 'query', name: 'estrellas', schema: { type: 'integer', minimum: 1, maximum: 5 } },
         {
+          in: 'query', name: 'categoria', description: 'Parte del nombre de la categoría del curso (sin distinguir mayúsculas).',
+          schema: { type: 'string', maxLength: 80 },
+        },
+        {
           in: 'query', name: 'q', description: 'Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas).',
           schema: { type: 'string', maxLength: 100 },
         },

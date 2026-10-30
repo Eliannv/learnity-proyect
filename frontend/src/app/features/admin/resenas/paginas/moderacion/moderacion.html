@@ -43,14 +43,16 @@
   </p>
 </ng-template>
 
-@if (vista() === 'TODAS') {
+@if (vistaResenas()) {
   <form class="filtros" role="search" aria-label="Filtrar reseñas" (submit)="$event.preventDefault()">
+    @if (vista() === 'TODAS') {
     <label class="campo">
       <span>Estado</span>
       <select class="control" name="estado" [ngModel]="filtros().estado" (ngModelChange)="filtrar({ estado: $event })">
         @for (e of estados; track e.valor) { <option [value]="e.valor">{{ e.texto }}</option> }
       </select>
     </label>
+    }
     <div class="campo curso">
       <app-buscador-curso
         idCampo="curso-resenas-admin"
@@ -64,6 +66,14 @@
         (seleccion)="filtrar({ curso: $event })"
       />
     </div>
+    <label class="campo">
+      <span>Categoría del curso</span>
+      <input class="control" type="search" name="categoria" list="categorias-resenas" maxlength="80"
+        placeholder="Todas las categorías" [ngModel]="filtros().categoria" (change)="filtrar({ categoria: $any($event.target).value })" />
+      <datalist id="categorias-resenas">
+        @for (c of categorias(); track c) { <option [value]="c"></option> }
+      </datalist>
+    </label>
     <label class="campo">
       <span>Calificación</span>
       <select class="control" name="estrellas" [ngModel]="filtros().estrellas"
@@ -90,7 +100,7 @@
     <p>{{ carga.error() }}</p>
     <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
   </div>
-} @else if (vista() === 'TODAS') {
+} @else if (vistaResenas()) {
   @if (todas(); as t) {
     <div role="tabpanel" class="lista">
       <p class="texto-suave total" aria-live="polite">{{ t.total }} {{ t.total === 1 ? 'reseña' : 'reseñas' }} · de la más reciente a la más antigua</p>

@@ -217,8 +217,8 @@ export const esquemasSupervision = {
     properties: {
       items: { type: 'array', items: ref('AlertaSeguridad') }, paginacion,
       contadores: {
-        type: 'object', required: ['pendientes', 'todas'], description: 'Con los mismos filtros de severidad y tipo.',
-        properties: { pendientes: entero, todas: entero },
+        type: 'object', required: ['pendientes', 'atendidas', 'todas'], description: 'Con los mismos filtros de severidad y tipo.',
+        properties: { pendientes: entero, atendidas: entero, todas: entero },
       },
     },
   },
@@ -333,7 +333,11 @@ export const rutasSupervision = {
       tags: ['Supervisión'], summary: 'Alertas de seguridad, la más reciente primero, con los contadores de cada pestaña',
       security: seguridad,
       parameters: [
-        { in: 'query', name: 'estado', schema: { type: 'string', enum: ['pendientes', 'todas'], default: 'pendientes' } },
+        { in: 'query', name: 'estado', schema: { type: 'string', enum: ['pendientes', 'atendidas', 'todas'], default: 'pendientes' } },
+        {
+          in: 'query', name: 'orden', description: 'recientes: la detectada más recientemente primero; antiguas: al revés.',
+          schema: { type: 'string', enum: ['recientes', 'antiguas'], default: 'recientes' },
+        },
         { in: 'query', name: 'severidad', schema: severidadAlerta },
         { in: 'query', name: 'tipo', schema: tipoAlerta },
         { in: 'query', name: 'pagina', schema: { type: 'integer', minimum: 1, maximum: 10_000, default: 1 } },

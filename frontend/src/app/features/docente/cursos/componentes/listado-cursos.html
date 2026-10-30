@@ -29,6 +29,27 @@
   <!-- Revisión de cursos proyecta aquí sus pestañas por estado. -->
   <ng-content select="[pestanas-admin]" />
 
+  @if (admin()) {
+    <div class="filtros-admin" role="search" aria-label="Filtrar cursos">
+      <label class="campo-filtro buscar">
+        <span>Buscar</span>
+        <input class="control" type="search" placeholder="Título del curso o nombre del docente"
+          [value]="busquedaAdmin()" (input)="busquedaAdmin.set($any($event.target).value)" />
+      </label>
+      <label class="campo-filtro">
+        <span>Categoría</span>
+        <input class="control" type="search" list="categorias-revision" placeholder="Todas las categorías"
+          [value]="categoriaAdmin()" (input)="categoriaAdmin.set($any($event.target).value)" />
+        <datalist id="categorias-revision">
+          @for (c of categoriasAdmin(); track c) { <option [value]="c"></option> }
+        </datalist>
+      </label>
+      @if (busquedaAdmin() || categoriaAdmin()) {
+        <button type="button" class="btn btn-texto btn-sm" (click)="busquedaAdmin.set(''); categoriaAdmin.set('')">Limpiar filtros</button>
+      }
+    </div>
+  }
+
   @if (!admin()) {
     <div class="barra-filtros-cursos">
       <div class="buscador-mis-cursos">

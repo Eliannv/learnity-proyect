@@ -197,7 +197,9 @@
     </form>
   </ng-template>
 
-  <div class="navegacion-pasos">
-    <button type="button" class="btn btn-contorno" (click)="volver.emit()">← Información del curso</button>
-  </div>
+  @if (mostrarVolver()) {
+    <div class="navegacion-pasos">
+      <button type="button" class="btn btn-contorno" (click)="volver.emit()">← Información del curso</button>
+    </div>
+  }
 </section>

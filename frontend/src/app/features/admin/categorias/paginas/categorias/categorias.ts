@@ -26,13 +26,16 @@ interface Desactivacion {
  * Categorías del catálogo (ADR-012): crear, editar (con su ícono) y activar o desactivar. No se borran.
  * Al desactivar una con cursos se puede moverlos a otra categoría activa en la misma operación.
  */
+import { ConmutadorSeccion, SECCION_CURSOS } from '../../../../../shared/ui/navegacion/conmutador-seccion';
+
 @Component({
   selector: 'app-categorias',
-  imports: [FormsModule, LucideAngularModule, EstadoVistaComponent, Modal],
+  imports: [FormsModule, LucideAngularModule, EstadoVistaComponent, Modal, ConmutadorSeccion],
   templateUrl: './categorias.html',
   styleUrl: './categorias.scss',
 })
 export class Categorias {
+  protected readonly seccion = SECCION_CURSOS;
   private readonly api = inject(AdminCategoriasApi);
   private readonly toast = inject(ToastService);
 

@@ -1,3 +1,4 @@
+<app-conmutador-seccion etiqueta="Cursos y categorías" [enlaces]="seccion" />
 <app-listado-cursos [admin]="true" [estadoAdmin]="pestana()" [cargarCursos]="cargarCursos()">
   <div pestanas-admin class="pestanas" role="tablist" aria-label="Estado de los cursos">
     @for (p of pestanas; track p.estado) {

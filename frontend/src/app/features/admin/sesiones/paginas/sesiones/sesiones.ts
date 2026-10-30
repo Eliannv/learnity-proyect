@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import type { RolUsuario } from '../../../../../core/api/contrato';
 import { AuthService } from '../../../../../core/auth/auth.service';
@@ -8,8 +8,9 @@ import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/
 import { EstadoVistaComponent } from '../../../../../shared/ui/retroalimentacion/estado-vista';
 import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
 import { resumirNavegador } from '../../../../../shared/util/navegador';
-import { SesionesApi, type EstadoBaseDatos, type PaginaSesiones, type SesionAdmin } from '../../sesiones.api';
-import { formatearBytes, tiempoEnLinea } from './formato';
+import { ConmutadorSeccion, SECCION_SEGURIDAD } from '../../../../../shared/ui/navegacion/conmutador-seccion';
+import { EstadoBd } from '../../componentes/estado-bd';
+import { SesionesApi, type PaginaSesiones, type SesionAdmin } from '../../sesiones.api';
 
 const NOMBRE_ROL: Record<RolUsuario, string> = { ESTUDIANTE: 'Estudiante', DOCENTE: 'Docente', ADMIN: 'Administrador' };
 const LIMITE = 20;
@@ -17,7 +18,7 @@ const LIMITE = 20;
 /** Estado de la base de datos y sesiones abiertas de la plataforma, con cierre de sesiones (motivo ADMIN). */
 @Component({
   selector: 'app-admin-sesiones',
-  imports: [DatePipe, LucideAngularModule, EstadoVistaComponent],
+  imports: [DatePipe, LucideAngularModule, EstadoVistaComponent, EstadoBd, ConmutadorSeccion],
   templateUrl: './sesiones.html',
   styleUrl: './sesiones.scss',
 })
@@ -31,11 +32,8 @@ export class AdminSesiones {
 
   protected readonly nombreRol = NOMBRE_ROL;
   protected readonly navegador = resumirNavegador;
-  protected readonly bytes = formatearBytes;
-  protected readonly enLinea = tiempoEnLinea;
-
-  protected readonly estado = signal<EstadoBaseDatos | null>(null);
-  protected readonly errorEstado = signal('');
+  protected readonly seccion = SECCION_SEGURIDAD;
+  private readonly estadoBd = viewChild(EstadoBd);
 
   protected readonly busqueda = signal('');
   protected readonly pagina = signal(1);
@@ -50,7 +48,7 @@ export class AdminSesiones {
   }
 
   protected actualizar(): void {
-    void this.cargarEstado();
+    void this.estadoBd()?.cargar();
     void this.cargar();
   }
 
@@ -63,15 +61,6 @@ export class AdminSesiones {
   protected irA(pagina: number): void {
     this.pagina.set(pagina);
     void this.cargar();
-  }
-
-  protected async cargarEstado(): Promise<void> {
-    this.errorEstado.set('');
-    try {
-      this.estado.set(await this.api.estadoBaseDatos());
-    } catch (error) {
-      this.errorEstado.set(mensajeDeError(error, 'Consultar el estado de la base de datos'));
-    }
   }
 
   protected async cargar(): Promise<void> {

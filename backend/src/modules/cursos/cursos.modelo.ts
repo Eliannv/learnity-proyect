@@ -92,6 +92,8 @@ export interface CursoResumen {
 /** Curso en Revisión de cursos (administrador): además, sus inscritos, la última modificación y la suspensión. */
 export interface CursoRevision extends CursoResumen {
   inscritos: number;
+  /** Nombre de la categoría: el administrador filtra la lista por ella. */
+  categoria: string;
   actualizadoEn: string;
   suspension: SuspensionCurso | null;
 }

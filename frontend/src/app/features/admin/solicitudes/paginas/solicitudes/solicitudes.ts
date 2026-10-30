@@ -48,21 +48,23 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
       </div>
     }
 
+    <!-- Pestañas por estado a todo el ancho, como en Revisión de cursos. -->
+    <div class="pestanas-linea" role="tablist" aria-label="Estado de las solicitudes">
+      @for (p of pestanas; track p.estado) {
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="estado() === p.estado"
+          [class.activa]="estado() === p.estado"
+          (click)="cambiarEstado(p.estado)"
+        >
+          {{ p.texto }}@if (estado() === p.estado && !cargando()) { <span class="num">({{ solicitudes().length }})</span> }
+        </button>
+      }
+    </div>
+
     <div class="distribucion">
       <section class="tarjeta lista" aria-label="Solicitudes">
-        <div class="pestanas" role="tablist">
-          @for (p of pestanas; track p.estado) {
-            <button
-              type="button"
-              role="tab"
-              [attr.aria-selected]="estado() === p.estado"
-              [class.activa]="estado() === p.estado"
-              (click)="cambiarEstado(p.estado)"
-            >
-              {{ p.texto }}@if (estado() === p.estado && !cargando()) { ({{ solicitudes().length }}) }
-            </button>
-          }
-        </div>
 
         @if (cargando()) {
           <app-esqueleto forma="filas" [cantidad]="3" etiqueta="Cargando solicitudes…" />
@@ -245,12 +247,22 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
         max-width: 720px;
       }
     }
+    /* Maestro-detalle a lo alto de la pantalla: la lista se estira junto al detalle y desplaza sus filas por dentro. */
     .distribucion {
       display: grid;
       grid-template-columns: 360px minmax(0, 1fr);
       gap: 16px;
-      align-items: start;
+      align-items: stretch;
+      min-height: calc(90dvh - 240px);
     }
+    .lista {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .detalle { align-self: start; }
     .lista ul {
       margin: 0;
       padding: 0;
@@ -430,6 +442,7 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
     @media (max-width: 1100px) {
       .distribucion {
         grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
       }
     }
     @media (max-width: 600px) {

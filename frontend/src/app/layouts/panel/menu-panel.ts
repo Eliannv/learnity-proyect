@@ -8,6 +8,8 @@ export interface ItemMenu {
   /** Grupo del menú lateral (uno de `grupos`). El orden de `items` no cambia: lo usa la pestaña «Más». */
   grupo: string;
   exacto?: boolean;
+  /** Otras rutas en las que la entrada cuenta como activa (secciones unidas con pestañas arriba). */
+  tambien?: string[];
   contador?: string;
   destacado?: boolean;
 }
@@ -66,13 +68,13 @@ export const MENU: Record<
       { icono: 'user', etiqueta: 'Mi perfil', ruta: '/admin/perfil', grupo: GRUPO_CUENTA },
       { icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios', grupo: 'Comunidad' },
       { icono: 'user-check', etiqueta: 'Solicitudes de docente', ruta: '/admin/solicitudes', grupo: 'Comunidad' },
-      { icono: 'shield-check', etiqueta: 'Revisión de cursos', ruta: '/admin/revision', grupo: 'Contenido' },
-      { icono: 'tags', etiqueta: 'Categorías', ruta: '/admin/categorias', grupo: 'Contenido' },
+      { icono: 'shield-check', etiqueta: 'Cursos y categorías', ruta: '/admin/revision', grupo: 'Contenido',
+        tambien: ['/admin/categorias'] },
       { icono: 'message-square-text', etiqueta: 'Reseñas', ruta: '/admin/resenas', grupo: 'Contenido' },
-      { icono: 'key-round', etiqueta: 'Accesos', ruta: '/admin/accesos', grupo: 'Seguridad' },
+      { icono: 'key-round', etiqueta: 'Accesos y sesiones', ruta: '/admin/accesos', grupo: 'Seguridad',
+        tambien: ['/admin/sesiones'] },
       { icono: 'history', etiqueta: 'Auditoría', ruta: '/admin/auditoria', grupo: 'Seguridad' },
       { icono: 'shield-alert', etiqueta: 'Alertas de seguridad', ruta: '/admin/alertas', grupo: 'Seguridad' },
-      { icono: 'database', etiqueta: 'Sesiones y base de datos', ruta: '/admin/sesiones', grupo: 'Seguridad' },
     ],
 
     // Cinco pestañas en móvil: las cuatro más usadas y «Más», que abre el resto de secciones del menú lateral

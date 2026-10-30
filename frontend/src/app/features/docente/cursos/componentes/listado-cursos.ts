@@ -23,7 +23,10 @@ import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 /** En «Mis cursos» llegan también inscritos y valoración; en Revisión, inscritos y suspensión. */
 type CursoListado = CursoResumen
   & Partial<Pick<CursoDelDocente, 'estudiantes' | 'calificacion'>>
-  & Partial<Pick<CursoRevision, 'inscritos' | 'suspension'>>;
+  & Partial<Pick<CursoRevision, 'inscritos' | 'suspension' | 'categoria'>>;
+
+/** Minúsculas y sin tildes: «diseño» encuentra «Diseño» y «matematicas», «Matemáticas». */
+const normalizar = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
 /** Texto de la lista vacía en cada pestaña de Revisión de cursos. */
 const VACIO_ADMIN: Partial<Record<EstadoCurso, string>> = {
@@ -51,6 +54,11 @@ export class ListadoCursos {
   protected readonly filtro = signal<EstadoCurso | 'TODOS'>('TODOS');
   protected readonly filtroCursoId = signal<number | null>(null);
   protected readonly textoBusqueda = signal('');
+  /** Revisión de cursos: buscador por título o docente y filtro por categoría, dentro de la pestaña activa. */
+  protected readonly busquedaAdmin = signal('');
+  protected readonly categoriaAdmin = signal('');
+  protected readonly categoriasAdmin = computed(() =>
+    [...new Set(this.cursos().map((c) => c.categoria).filter((c): c is string => !!c))].sort((a, b) => a.localeCompare(b, 'es')));
 
   readonly cursos = signal<CursoListado[]>([]);
   private readonly portadasFallidas = signal<ReadonlySet<number>>(new Set());
@@ -70,7 +78,12 @@ export class ListadoCursos {
 
   protected readonly visibles = computed(() => {
     let lista = this.cursos();
-    if (!this.admin()) {
+    if (this.admin()) {
+      const q = normalizar(this.busquedaAdmin());
+      const cat = normalizar(this.categoriaAdmin());
+      if (q) lista = lista.filter((c) => normalizar(c.titulo).includes(q) || normalizar(c.docente).includes(q));
+      if (cat) lista = lista.filter((c) => normalizar(c.categoria ?? '').includes(cat));
+    } else {
       if (this.filtro() !== 'TODOS') {
         lista = lista.filter((curso) => curso.estado === this.filtro());
       }
@@ -86,7 +99,9 @@ export class ListadoCursos {
 
   protected readonly textoVacio = computed(() =>
     this.admin()
-      ? VACIO_ADMIN[this.estadoAdmin()] ?? 'No hay cursos en este estado.'
+      ? (this.busquedaAdmin().trim() || this.categoriaAdmin().trim()) && this.cursos().length
+        ? 'Ningún curso de esta pestaña coincide con los filtros.'
+        : VACIO_ADMIN[this.estadoAdmin()] ?? 'No hay cursos en este estado.'
       : 'No tienes cursos en este estado. Puedes crear un curso nuevo.',
   );
 

@@ -148,7 +148,7 @@ export interface AlertaSeguridad {
 export interface PaginaAlertas {
   items: AlertaSeguridad[];
   paginacion: Paginacion;
-  contadores: { pendientes: number; todas: number };
+  contadores: { pendientes: number; atendidas: number; todas: number };
 }
 
 export interface ResultadoAnalisis {

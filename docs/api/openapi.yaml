@@ -908,6 +908,7 @@
             "type": "object",
             "required": [
               "inscritos",
+              "categoria",
               "actualizadoEn",
               "suspension"
             ],
@@ -916,6 +917,10 @@
                 "type": "integer",
                 "minimum": 0,
                 "description": "Inscripciones en el curso (pierden el acceso si se suspende)."
+              },
+              "categoria": {
+                "type": "string",
+                "description": "Nombre de la categoría del curso."
               },
               "actualizadoEn": {
                 "type": "string",
@@ -4335,11 +4340,16 @@
             "type": "object",
             "required": [
               "pendientes",
+              "atendidas",
               "todas"
             ],
             "description": "Con los mismos filtros de severidad y tipo.",
             "properties": {
               "pendientes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "atendidas": {
                 "type": "integer",
                 "minimum": 0
               },
@@ -10077,6 +10087,15 @@
           },
           {
             "in": "query",
+            "name": "categoria",
+            "description": "Parte del nombre de la categoría del curso (sin distinguir mayúsculas).",
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          {
+            "in": "query",
             "name": "q",
             "description": "Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas).",
             "schema": {
@@ -11348,9 +11367,23 @@
               "type": "string",
               "enum": [
                 "pendientes",
+                "atendidas",
                 "todas"
               ],
               "default": "pendientes"
+            }
+          },
+          {
+            "in": "query",
+            "name": "orden",
+            "description": "recientes: la detectada más recientemente primero; antiguas: al revés.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "recientes",
+                "antiguas"
+              ],
+              "default": "recientes"
             }
           },
           {

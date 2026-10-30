@@ -1,119 +1,15 @@
 <header class="cabecera">
   <div>
-    <h1 class="titulo-pagina">Sesiones y base de datos</h1>
-    <p class="subtitulo">Estado de la base de datos y sesiones abiertas en la plataforma; puedes cerrar cualquiera.</p>
+    <h1 class="titulo-pagina">Accesos y sesiones</h1>
+    <p class="subtitulo">Estado de la base de datos, sesiones abiertas e historial de accesos de la plataforma.</p>
   </div>
   <button type="button" class="btn btn-contorno btn-sm" [disabled]="cargando()" (click)="actualizar()">
     <lucide-icon name="rotate-ccw" [size]="16" aria-hidden="true" /> Actualizar
   </button>
 </header>
 
-<section class="panel-base-datos" aria-labelledby="titulo-estado">
-  <div class="cabecera-bd">
-    <div class="titulo-con-badge">
-      <div class="icono-bd-circulo" aria-hidden="true">
-        <lucide-icon name="database" [size]="20" />
-      </div>
-      <div>
-        <h2 id="titulo-estado" class="titulo-seccion-bd">Estado de la base de datos</h2>
-        <p class="subtitulo-bd">Métricas operativas y de conexión del servidor PostgreSQL</p>
-      </div>
-      @if (estado()) {
-        <span class="badge-salud">
-          <span class="punto-pulso" aria-hidden="true"></span>
-          En línea
-        </span>
-      }
-    </div>
-  </div>
-
-  @if (errorEstado()) {
-    <div class="alerta-error" role="alert">
-      <lucide-icon name="circle-alert" [size]="18" aria-hidden="true" />
-      <div class="contenido-error">
-        <p>{{ errorEstado() }}</p>
-        <button type="button" class="btn btn-texto btn-sm" (click)="cargarEstado()">Reintentar</button>
-      </div>
-    </div>
-  } @else if (estado(); as e) {
-    <dl class="indicadores">
-      <div class="indicador indicador-version">
-        <div class="encabezado-tarjeta">
-          <span class="icono-indicador icono-azul" aria-hidden="true">
-            <lucide-icon name="database" [size]="18" />
-          </span>
-          <dt>PostgreSQL</dt>
-        </div>
-        <dd>
-          <span class="valor">{{ e.version }}</span>
-          <span class="detalle texto-suave">Motor relacional activo</span>
-        </dd>
-      </div>
-
-      <div class="indicador indicador-tamano">
-        <div class="encabezado-tarjeta">
-          <span class="icono-indicador icono-morado" aria-hidden="true">
-            <lucide-icon name="cpu" [size]="18" />
-          </span>
-          <dt>Tamaño</dt>
-        </div>
-        <dd>
-          <span class="valor">{{ bytes(e.tamanoBytes) }}</span>
-          <span class="detalle texto-suave">Almacenamiento en disco</span>
-        </dd>
-      </div>
-
-      <div class="indicador indicador-conexiones">
-        <div class="encabezado-tarjeta">
-          <span class="icono-indicador icono-verde" aria-hidden="true">
-            <lucide-icon name="users" [size]="18" />
-          </span>
-          <dt>Conexiones abiertas</dt>
-        </div>
-        <dd>
-          <span class="valor">{{ e.conexiones }}</span>
-          <span class="detalle texto-suave">Pool y clientes activos</span>
-        </dd>
-      </div>
-
-      <div class="indicador indicador-uptime">
-        <div class="encabezado-tarjeta">
-          <span class="icono-indicador icono-ambar" aria-hidden="true">
-            <lucide-icon name="clock" [size]="18" />
-          </span>
-          <dt>En línea</dt>
-        </div>
-        <dd>
-          <span class="valor">{{ enLinea(e.iniciadaEn) }}</span>
-          <span class="detalle texto-suave">desde el {{ e.iniciadaEn | date: 'd MMM y, HH:mm' }}</span>
-        </dd>
-      </div>
-
-      <div class="indicador indicador-migracion">
-        <div class="encabezado-tarjeta">
-          <span class="icono-indicador icono-indigo" aria-hidden="true">
-            <lucide-icon name="history" [size]="18" />
-          </span>
-          <dt>Última migración</dt>
-        </div>
-        <dd>
-          <code class="codigo-migracion" [title]="e.ultimaMigracion?.version ?? 'Sin migraciones'">{{ e.ultimaMigracion?.version ?? '—' }}</code>
-          @if (e.ultimaMigracion?.aplicadaEn; as fecha) {
-            <span class="detalle texto-suave">aplicada el {{ fecha | date: 'd MMM y, HH:mm' }}</span>
-          } @else {
-            <span class="detalle texto-suave">Esquema inicial</span>
-          }
-        </dd>
-      </div>
-    </dl>
-  } @else {
-    <div class="indicadores-esqueleto" role="status" aria-busy="true" aria-label="Cargando el estado de la base de datos">
-      @for (i of [1, 2, 3, 4, 5]; track i) {
-        <div class="esqueleto tarjeta-esqueleto"></div>
-      }
-    </div>
-  }
-</section>
+<app-estado-bd #estadoBd />
+<app-conmutador-seccion etiqueta="Accesos y sesiones" [enlaces]="seccion" />
 
 <section class="sesiones" aria-labelledby="titulo-sesiones">
   <div class="barra">

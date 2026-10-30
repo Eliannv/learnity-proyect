@@ -158,6 +158,10 @@ function condicionesAdmin(filtros: FiltrosResenasAdmin): { sql: string; valores:
   if (filtros.estado === 'ocultadas') partes.push('r.ocultada_en IS NOT NULL');
   if (filtros.curso !== undefined) agregar((n) => `i.id_curso = $${n}`, filtros.curso);
   if (filtros.estrellas !== undefined) agregar((n) => `r.estrellas = $${n}`, filtros.estrellas);
+  if (filtros.categoria !== undefined) {
+    agregar((n) => `EXISTS (SELECT 1 FROM curso cc JOIN categoria cat ON cat.id_categoria = cc.id_categoria
+                             WHERE cc.id_curso = i.id_curso AND cat.nombre ILIKE $${n})`, literalLike(filtros.categoria));
+  }
   if (filtros.q !== undefined) {
     agregar((n) => `(r.comentario ILIKE $${n} OR r.respuesta_docente ILIKE $${n})`, literalLike(filtros.q));
   }

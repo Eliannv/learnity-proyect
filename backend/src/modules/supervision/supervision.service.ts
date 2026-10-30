@@ -120,8 +120,11 @@ export const supervisionService = {
   // -------------------------------------------------------------- alertas
 
   async alertas(filtro: FiltroAlertasAdmin): Promise<PaginaAlertas> {
-    const { items, total, pendientes, todas } = await repo.listarAlertas(filtro);
-    return { items: items.map(alerta), paginacion: paginacion(total, filtro.pagina, filtro.limite), contadores: { pendientes, todas } };
+    const { items, total, pendientes, atendidas, todas } = await repo.listarAlertas(filtro);
+    return {
+      items: items.map(alerta), paginacion: paginacion(total, filtro.pagina, filtro.limite),
+      contadores: { pendientes, atendidas, todas },
+    };
   },
 
   /** Busca hallazgos en las últimas 24 horas. Lo que ya se había detectado no se duplica. */

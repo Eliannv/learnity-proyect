@@ -220,6 +220,10 @@ describe('Lote 6 · filtros de «Todas las reseñas»', () => {
     assert.deepEqual(await ids(`q=${q}&estrellas=1`), [resenaBeto]);
     assert.deepEqual(await ids(`q=${q}&estado=ocultadas`), [resenaBeto]);
     assert.deepEqual(await ids(`q=${q}&estado=vigentes`), [resenaAna, resenaCaro].sort((a, b) => a - b));
+    // Por categoría del curso: parte del nombre, sin distinguir mayúsculas.
+    assert.deepEqual(await ids(`categoria=${encodeURIComponent(marca.toLowerCase())}`),
+      [resenaAna, resenaBeto, resenaCaro].sort((a, b) => a - b));
+    assert.deepEqual(await ids(`q=${q}&categoria=${encodeURIComponent('categoría-inexistente-xyz')}`), []);
     assert.deepEqual(await ids(`curso=${cursoId}&q=${encodeURIComponent('GRACIAS POR LOS EJEMPLOS')}`), [resenaAna],
       'busca también en la respuesta del docente');
   });

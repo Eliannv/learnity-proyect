@@ -469,7 +469,7 @@ test('el panel abre en el Resumen con la atención rápida enlazada, y en el mó
   await expect(mas).toHaveAttribute('aria-expanded', 'true');
   const panel = page.getByRole('navigation', { name: 'Más secciones' });
   await expect(panel.getByRole('link')).toHaveText(
-    ['Mi perfil', 'Solicitudes de docente', 'Categorías', 'Reseñas', 'Accesos', 'Auditoría', 'Sesiones y base de datos']);
+    ['Mi perfil', 'Solicitudes de docente', 'Reseñas', 'Accesos y sesiones', 'Auditoría']);
   await revisarAccesibilidad(page);
   await captura(page, 'admin-movil-mas');
   await panel.getByRole('link', { name: 'Auditoría' }).click();

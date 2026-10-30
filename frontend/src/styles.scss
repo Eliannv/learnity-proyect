@@ -438,7 +438,10 @@ lucide-icon {
   overscroll-behavior-x: contain;
   scrollbar-width: none;
 
-  > button {
+  > button,
+  > a {
+    display: inline-flex;
+    align-items: center;
     flex: none;
     min-height: 48px;
     padding: 0 2px;
@@ -457,6 +460,7 @@ lucide-icon {
       color: var(--tinta);
     }
     &[aria-selected='true'],
+    &[aria-current='page'],
     &.activa {
       color: var(--tinta);
       border-bottom-color: var(--tinta);

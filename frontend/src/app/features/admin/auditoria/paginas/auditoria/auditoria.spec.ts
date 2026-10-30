@@ -1,3 +1,4 @@
+import { AdminUsuariosApi } from '../../../usuarios/usuarios.api';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
@@ -30,6 +31,9 @@ function montar(consulta: Record<string, string> = {}) {
     providers: [
       provideRouter([]), { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(consulta) } } },
       { provide: AuditoriaApi, useValue: api },
+      { provide: AdminUsuariosApi, useValue: {
+        listar: vi.fn().mockResolvedValue({ items: [{ idPersona: 2, nombre: 'Ada Admin', correo: 'ada@learnity.test' }] }),
+      } },
       { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) },
     ],
   });
@@ -64,11 +68,21 @@ describe('visor de auditoría', () => {
       fixture.detectChanges();
       expect(select(fixture.nativeElement, 'tabla').options.length).toBe(3);
     });
-    for (const [nombre, valor] of [['tabla', 'curso'], ['operacion', 'DELETE'], ['usuarioBd', 'postgres'], ['actor', '2']]) {
+    for (const [nombre, valor] of [['tabla', 'curso'], ['operacion', 'DELETE'], ['usuarioBd', 'postgres']]) {
       const s = select(fixture.nativeElement, nombre!);
       s.value = valor!;
       s.dispatchEvent(new Event('change'));
     }
+    // El actor se busca por texto en Usuarios (backend) y se elige de las sugerencias.
+    const actor = fixture.nativeElement.querySelector('input[name="actorTexto"]') as HTMLInputElement;
+    actor.value = 'Ada';
+    actor.dispatchEvent(new Event('input'));
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('#actores-auditoria option').length).toBe(1);
+    });
+    actor.value = 'Ada Admin · ada@learnity.test';
+    actor.dispatchEvent(new Event('change'));
     await vi.waitFor(() => expect(api.listar).toHaveBeenLastCalledWith({
       ...BASE, tabla: 'curso', operacion: 'DELETE', usuarioBd: 'postgres', actor: 2,
     }));

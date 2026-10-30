@@ -11,6 +11,8 @@ export interface FiltrosResenasAdmin {
   estado: EstadoResenasAdmin;
   curso: number | null;
   estrellas: number | null;
+  /** Parte del nombre de la categoría del curso. */
+  categoria: string;
   /** Texto en el comentario o en la respuesta del docente. */
   q: string;
 }
@@ -26,6 +28,7 @@ export class AdminResenasApi {
     let params = new HttpParams().set('estado', filtros.estado).set('pagina', pagina).set('limite', 20);
     if (filtros.curso !== null) params = params.set('curso', filtros.curso);
     if (filtros.estrellas !== null) params = params.set('estrellas', filtros.estrellas);
+    if (filtros.categoria.trim()) params = params.set('categoria', filtros.categoria.trim());
     if (filtros.q.trim()) params = params.set('q', filtros.q.trim());
     return firstValueFrom(this.http.get<PaginaResenasAdmin>(this.base, { params }));
   }

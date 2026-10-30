@@ -4603,6 +4603,8 @@ export interface paths {
                     estado?: "vigentes" | "borradas" | "ocultadas" | "todas";
                     curso?: number;
                     estrellas?: number;
+                    /** @description Parte del nombre de la categoría del curso (sin distinguir mayúsculas). */
+                    categoria?: string;
                     /** @description Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas). */
                     q?: string;
                     pagina?: number;
@@ -5700,7 +5702,9 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    estado?: "pendientes" | "todas";
+                    estado?: "pendientes" | "atendidas" | "todas";
+                    /** @description recientes: la detectada más recientemente primero; antiguas: al revés. */
+                    orden?: "recientes" | "antiguas";
                     severidad?: "ALTA" | "MEDIA" | "BAJA";
                     tipo?: "INTENTOS_FALLIDOS" | "CAMBIO_PRIVILEGIOS" | "RAFAGA_RESENAS" | "MODIFICACION_MASIVA";
                     pagina?: number;
@@ -7408,6 +7412,8 @@ export interface components {
         CursoRevision: components["schemas"]["CursoResumen"] & {
             /** @description Inscripciones en el curso (pierden el acceso si se suspende). */
             inscritos: number;
+            /** @description Nombre de la categoría del curso. */
+            categoria: string;
             /** Format: date-time */
             actualizadoEn: string;
             /** @description Solo SUSPENDIDO: cuándo y por qué lo suspendió un administrador. */
@@ -8328,6 +8334,7 @@ export interface components {
             /** @description Con los mismos filtros de severidad y tipo. */
             contadores: {
                 pendientes: number;
+                atendidas: number;
                 todas: number;
             };
         };

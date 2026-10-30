@@ -110,7 +110,8 @@ nav {
     outline-offset: -2px;
   }
 
-  &.activo {
+  &.activo,
+  &.activo-alias {
     background: var(--acento-suave);
     color: var(--acento-tinta);
     font-weight: 600;

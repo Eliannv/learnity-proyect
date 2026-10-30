@@ -10,7 +10,8 @@ import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
 import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
 import { AlertasApi, type AlertaSeguridad, type PaginaAlertas } from '../../alertas.api';
 
-type Vista = 'pendientes' | 'todas';
+type Vista = 'pendientes' | 'atendidas' | 'todas';
+type Orden = 'recientes' | 'antiguas';
 type Tipo = AlertaSeguridad['tipo'];
 type Severidad = AlertaSeguridad['severidad'];
 
@@ -48,6 +49,7 @@ export class AdminAlertas {
   protected readonly maxNota = MAX_NOTA;
 
   protected readonly vista = signal<Vista>('pendientes');
+  protected readonly orden = signal<Orden>('recientes');
   protected readonly severidad = signal<'' | Severidad>('');
   protected readonly tipo = signal<'' | Tipo>('');
   protected readonly pagina = signal(1);
@@ -62,6 +64,12 @@ export class AdminAlertas {
   protected readonly atencion = new Peticion();
 
   constructor() {
+    void this.cargar();
+  }
+
+  protected ordenar(orden: Orden): void {
+    this.orden.set(orden);
+    this.pagina.set(1);
     void this.cargar();
   }
 
@@ -87,7 +95,7 @@ export class AdminAlertas {
     this.error.set('');
     try {
       const datos = await this.api.listar({
-        estado: this.vista(), severidad: this.severidad() || undefined, tipo: this.tipo() || undefined,
+        estado: this.vista(), orden: this.orden(), severidad: this.severidad() || undefined, tipo: this.tipo() || undefined,
         pagina: this.pagina(), limite: LIMITE,
       });
       if (actual === this.solicitud) this.datos.set(datos);
@@ -137,7 +145,11 @@ export class AdminAlertas {
             : d.items.map((x) => (x.id === atendida.id ? atendida : x)),
           paginacion: this.vista() === 'pendientes'
             ? { ...d.paginacion, total: Math.max(0, d.paginacion.total - 1) } : d.paginacion,
-          contadores: { ...d.contadores, pendientes: Math.max(0, d.contadores.pendientes - 1) },
+          contadores: {
+            ...d.contadores,
+            pendientes: Math.max(0, d.contadores.pendientes - 1),
+            atendidas: d.contadores.atendidas + 1,
+          },
         });
       },
       'Alerta marcada como atendida.',

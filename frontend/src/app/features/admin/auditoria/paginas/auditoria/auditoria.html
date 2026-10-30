@@ -32,12 +32,15 @@
       @for (r of opciones().usuariosBd; track r) { <option [value]="r">{{ r }}</option> }
     </select>
   </label>
+  <!-- Buscador de actor: consulta las cuentas en el backend por nombre o correo y filtra por la elegida. -->
   <label class="campo">
     <span>Usuario (actor)</span>
-    <select class="control" name="actor" [ngModel]="filtros().actor" (ngModelChange)="filtrar({ actor: $event })">
-      <option value="">Todos</option>
-      @for (a of opciones().actores; track a.id) { <option [value]="a.id">{{ a.nombre }}</option> }
-    </select>
+    <input class="control" type="search" name="actorTexto" list="actores-auditoria" placeholder="Nombre o correo"
+      autocomplete="off" [value]="textoActor()" (input)="buscarActor($any($event.target).value)"
+      (change)="elegirActor($any($event.target).value)" />
+    <datalist id="actores-auditoria">
+      @for (s of sugerenciasActor(); track s.id) { <option [value]="s.etiqueta"></option> }
+    </datalist>
   </label>
   <label class="campo">
     <span>Desde</span>

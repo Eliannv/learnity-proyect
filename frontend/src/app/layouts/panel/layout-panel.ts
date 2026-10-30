@@ -77,6 +77,17 @@ export class LayoutPanel {
   protected readonly cuenta = computed<ItemMenu[]>(() =>
     this.config().items.filter((item) => item.grupo === GRUPO_CUENTA));
 
+  private readonly url = toSignal(
+    this.router.events.pipe(filter((evento) => evento instanceof NavigationEnd), map(() => this.router.url)),
+    { initialValue: this.router.url },
+  );
+
+  /** Una sección unida (p. ej. Categorías dentro de «Cursos y categorías») marca su entrada del menú. */
+  protected activaPorAlias(item: ItemMenu): boolean {
+    const ruta = this.url().split(/[?#]/)[0]!;
+    return (item.tambien ?? []).some((alias) => ruta === alias || ruta.startsWith(alias + '/'));
+  }
+
   protected readonly seccion = toSignal(
     this.router.events.pipe(
       filter(

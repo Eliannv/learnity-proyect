@@ -38,6 +38,8 @@ function medianoche(dia: string, mas = 0): string {
  * Visor de auditoría: cada INSERT, UPDATE y DELETE de las tablas auditadas, con su actor y el rol de la base que lo
  * ejecutó. El detalle muestra los datos antes y después.
  */
+import { AdminUsuariosApi } from '../../../usuarios/usuarios.api';
+
 @Component({
   selector: 'app-admin-auditoria',
   imports: [DatePipe, FormsModule, LucideAngularModule, EstadoVistaComponent, Modal, DiffCambio],
@@ -61,6 +63,11 @@ export class AdminAuditoria {
   protected readonly cargando = signal(true);
   protected readonly error = signal('');
   protected readonly opciones = signal<OpcionesAuditoria>({ tablas: [], usuariosBd: [], actores: [] });
+  /** Texto del buscador de actor y las cuentas que coinciden (de la búsqueda de Usuarios en el backend). */
+  protected readonly textoActor = signal('');
+  protected readonly sugerenciasActor = signal<{ id: number; etiqueta: string }[]>([]);
+  private esperaActor: ReturnType<typeof setTimeout> | undefined;
+  private readonly usuarios = inject(AdminUsuariosApi);
 
   /** Registro abierto en el modal de detalle. */
   protected readonly abierto = signal<CambioAuditoria | null>(null);
@@ -81,7 +88,34 @@ export class AdminAuditoria {
     this.irA(1);
   }
 
+  protected buscarActor(texto: string): void {
+    this.textoActor.set(texto);
+    clearTimeout(this.esperaActor);
+    if (!texto.trim()) {
+      this.sugerenciasActor.set([]);
+      if (this.filtros().actor) this.filtrar({ actor: '' });
+      return;
+    }
+    if (this.sugerenciasActor().some((s) => s.etiqueta === texto)) return;
+    this.esperaActor = setTimeout(async () => {
+      try {
+        const r = await this.usuarios.listar({ q: texto.trim(), pagina: 1, limite: 8 });
+        this.sugerenciasActor.set(r.items.map((u) => ({ id: u.idPersona, etiqueta: `${u.nombre} · ${u.correo}` })));
+      } catch {
+        this.sugerenciasActor.set([]);
+      }
+    }, 250);
+  }
+
+  /** Al elegir una sugerencia filtra por esa persona; un texto que no es una sugerencia no filtra. */
+  protected elegirActor(texto: string): void {
+    const elegida = this.sugerenciasActor().find((s) => s.etiqueta === texto);
+    if (elegida) this.filtrar({ actor: String(elegida.id) });
+  }
+
   protected limpiar(): void {
+    this.textoActor.set('');
+    this.sugerenciasActor.set([]);
     this.filtros.set(FILTROS_INICIALES);
     this.irA(1);
   }
