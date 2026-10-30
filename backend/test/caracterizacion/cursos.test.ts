@@ -11,6 +11,10 @@ import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
 import { fabricaCuentas, limpiarMarca, type Cuenta } from '../ayudas/sesiones.js';
 
+// Claves de CursoDetalle en orden. Sprint 4 (034): `suspension` (null salvo SUSPENDIDO) se añadió a propósito.
+const CLAVES_DETALLE = ['id', 'titulo', 'subtitulo', 'descripcion', 'categoriaId', 'categoriaNombre', 'nivel', 'portadaUrl',
+  'objetivos', 'requisitos', 'estado', 'motivoRechazo', 'suspension', 'docente', 'modulos', 'validacion'];
+
 const marca = crearMarca('car_cur');
 const pdfDir = carpetaPdfPropia();
 
@@ -213,7 +217,7 @@ describe('GET /api/docente/cursos/:id (CAR-CUR-03..05)', () => {
     const { idCurso } = await cursoCompleto();
     const r = await como(docA, 'GET', `/api/docente/cursos/${idCurso}`);
     assert.equal(r.status, 200);
-    assert.deepEqual(Object.keys(r.json), ['id', 'titulo', 'subtitulo', 'descripcion', 'categoriaId', 'categoriaNombre', 'nivel', 'portadaUrl', 'objetivos', 'requisitos', 'estado', 'motivoRechazo', 'docente', 'modulos', 'validacion']);
+    assert.deepEqual(Object.keys(r.json), CLAVES_DETALLE);
     assert.deepEqual(Object.keys(r.json.modulos[0].lecciones[0].archivo), ['id', 'tipo', 'nombreOriginal', 'tamanoBytes']);
     assert.deepEqual(sinRutasPrivadas(r.json), []);
     assert.ok(!r.texto.includes(pdfDir.dir));
@@ -241,7 +245,7 @@ describe('POST /api/cursos (CAR-CUR-06..10)', () => {
     const r = await como(docA, 'POST', '/api/cursos', datosCurso('valido'));
     assert.equal(r.status, 201);
     assert.equal(r.json.estado, 'BORRADOR');
-    assert.deepEqual(Object.keys(r.json), ['id', 'titulo', 'subtitulo', 'descripcion', 'categoriaId', 'categoriaNombre', 'nivel', 'portadaUrl', 'objetivos', 'requisitos', 'estado', 'motivoRechazo', 'docente', 'modulos', 'validacion']);
+    assert.deepEqual(Object.keys(r.json), CLAVES_DETALLE);
     assert.deepEqual(r.json.modulos, []);
     assert.deepEqual(sinRutasPrivadas(r.json), []);
   });
@@ -352,7 +356,7 @@ describe('Módulos (CAR-CUR-14..19, 31, 32)', () => {
     const id = await crearCurso();
     const r = await como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: 'M1', orden: 1 });
     assert.equal(r.status, 201);
-    assert.deepEqual(Object.keys(r.json), ['id', 'titulo', 'subtitulo', 'descripcion', 'categoriaId', 'categoriaNombre', 'nivel', 'portadaUrl', 'objetivos', 'requisitos', 'estado', 'motivoRechazo', 'docente', 'modulos', 'validacion']);
+    assert.deepEqual(Object.keys(r.json), CLAVES_DETALLE);
     const m10 = await como(docA, 'POST', `/api/cursos/${id}/modulos`, { titulo: 'M10', orden: 10 });
     assert.equal(m10.status, 201);
     for (const orden of [0, 11]) {

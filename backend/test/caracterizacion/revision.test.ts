@@ -95,7 +95,12 @@ describe('GET /api/admin/cursos (CAR-REV-01, 02)', () => {
     const { idCurso: borrador } = await c.cursoCompleto(docA);
     const r = await admin$('GET', '/api/admin/cursos');
     assert.equal(r.status, 200);
-    assert.deepEqual(forma(r.json), { items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number', portadaUrl: 'string' }] });
+    // Sprint 4 (034): cada curso trae inscritos, actualizadoEn y suspension, y la respuesta los conteos por estado.
+    assert.deepEqual(forma(r.json), {
+      items: [{ id: 'number', titulo: 'string', estado: 'string', motivoRechazo: 'null', docente: 'string', modulos: 'number',
+        portadaUrl: 'string', inscritos: 'number', actualizadoEn: 'string', suspension: 'null' }],
+      conteos: { EN_REVISION: 'number', PUBLICADO: 'number', SUSPENDIDO: 'number', RECHAZADO: 'number', BORRADOR: 'number' },
+    });
     const lista: any[] = r.json.items;
     const ids = lista.map((x) => x.id);
     assert.ok(ids.includes(a) && ids.includes(b));
@@ -106,7 +111,9 @@ describe('GET /api/admin/cursos (CAR-REV-01, 02)', () => {
   });
   it('CAR-REV-02: filtro estado', async () => {
     assert.equal((await admin$('GET', '/api/admin/cursos?estado=EN_REVISION')).status, 200);
-    assert.equal((await admin$('GET', '/api/admin/cursos?estado=PUBLICADO')).status, 400);
+    // Sprint 4 (034): las pestañas de Revisión admiten PUBLICADO, SUSPENDIDO, RECHAZADO y BORRADOR; ARCHIVADO no.
+    assert.equal((await admin$('GET', '/api/admin/cursos?estado=PUBLICADO')).status, 200);
+    assert.equal((await admin$('GET', '/api/admin/cursos?estado=ARCHIVADO')).status, 400);
     assert.equal((await admin$('GET', '/api/admin/cursos?extra=1')).status, 400);
   });
 });

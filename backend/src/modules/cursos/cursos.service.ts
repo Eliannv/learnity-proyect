@@ -7,8 +7,9 @@ import type {
   ContextoLeccion,
   CursoDetalle,
   CursoDelDocente,
-  CursoResumen,
+  CursoRevision,
   DecisionRevision,
+  EstadoRevision,
 } from './cursos.modelo.js';
 import {
   detallePrivado,
@@ -44,7 +45,14 @@ export interface ServicioCursos {
   autorizarLectura(idLeccion: number, idCursoArchivo: number, idArchivo: number, usuario: UsuarioSesion): Promise<void>;
 
   // Para modules/revision (CONTRATOS_SERVICIO §2.1)
-  listarParaRevision(usuario: UsuarioSesion): Promise<{ items: CursoResumen[] }>;
+  listarParaRevision(
+    usuario: UsuarioSesion,
+    estado?: EstadoRevision,
+  ): Promise<{ items: CursoRevision[]; conteos: Record<EstadoRevision, number> }>;
+  /** PUBLICADO → SUSPENDIDO con motivo (solo ADMIN, auditado). 409 CURSO_NO_PUBLICADO si no está publicado. */
+  suspender(idCurso: number, motivo: string, usuario: UsuarioSesion): Promise<CursoDetalle>;
+  /** SUSPENDIDO → PUBLICADO (solo ADMIN, auditado). 409 CURSO_NO_SUSPENDIDO si no está suspendido. */
+  reactivar(idCurso: number, usuario: UsuarioSesion): Promise<CursoDetalle>;
   detalleParaRevision(idCurso: number, usuario: UsuarioSesion): Promise<CursoDetalle>;
   decidirRevision(idCurso: number, decision: DecisionRevision, usuario: UsuarioSesion): Promise<CursoDetalle>;
   /** Para avisar al docente por correo; null si el curso no existe. */

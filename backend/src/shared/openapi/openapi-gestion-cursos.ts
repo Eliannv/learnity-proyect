@@ -24,7 +24,19 @@ const estado = {
     'PUBLICADO',
     'RECHAZADO',
     'ARCHIVADO',
+    'SUSPENDIDO',
   ],
+};
+
+const suspension = {
+  type: 'object',
+  nullable: true,
+  required: ['suspendidoEn', 'motivo'],
+  description: 'Solo SUSPENDIDO: cuándo y por qué lo suspendió un administrador.',
+  properties: {
+    suspendidoEn: { type: 'string', format: 'date-time' },
+    motivo: { type: 'string' },
+  },
 };
 
 const titulo = {
@@ -333,6 +345,22 @@ export const esquemasGestionCursos = {
     },
   },
 
+  CursoRevision: {
+    description: 'Curso en Revisión de cursos (administrador).',
+    allOf: [
+      ref('CursoResumen'),
+      {
+        type: 'object',
+        required: ['inscritos', 'actualizadoEn', 'suspension'],
+        properties: {
+          inscritos: { type: 'integer', minimum: 0, description: 'Inscripciones en el curso (pierden el acceso si se suspende).' },
+          actualizadoEn: { type: 'string', format: 'date-time' },
+          suspension,
+        },
+      },
+    ],
+  },
+
   CursoDelDocente: {
     allOf: [
       ref('CursoResumen'),
@@ -362,6 +390,7 @@ export const esquemasGestionCursos = {
       'requisitos',
       'estado',
       'motivoRechazo',
+      'suspension',
       'docente',
       'modulos',
       'validacion',
@@ -388,6 +417,7 @@ export const esquemasGestionCursos = {
         type: 'string',
         nullable: true,
       },
+      suspension,
       docente: texto,
       modulos: {
         type: 'array',

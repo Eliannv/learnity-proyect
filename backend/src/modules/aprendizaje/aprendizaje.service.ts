@@ -32,6 +32,7 @@ function cursoInscrito(fila: FilaCursoInscrito): CursoInscrito {
     },
     inscripcion: inscripcionPublica(fila),
     totalLecciones: fila.totalLecciones, leccionesCompletadas: fila.leccionesCompletadas,
+    suspendido: fila.suspendido,
   };
 }
 

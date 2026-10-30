@@ -29,10 +29,15 @@ export const esquemasAprendizaje = {
     },
   },
   CursoInscrito: {
-    type: 'object', required: ['curso', 'inscripcion', 'totalLecciones', 'leccionesCompletadas'],
+    type: 'object', required: ['curso', 'inscripcion', 'totalLecciones', 'leccionesCompletadas', 'suspendido'],
     properties: {
       curso: ref('FichaCursoAprendizaje'), inscripcion: ref('InscripcionAprendizaje'),
       totalLecciones: entero, leccionesCompletadas: entero,
+      suspendido: {
+        type: 'boolean',
+        description: 'Un administrador suspendió el curso: se conserva el progreso, pero el curso no se puede abrir ' +
+          '(`GET /mi-aprendizaje/cursos/{id}` responde 404) hasta que lo reactive. Siempre false en el detalle.',
+      },
     },
   },
   LeccionAprendizaje: {

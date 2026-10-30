@@ -7,6 +7,8 @@ import type {
   CursoDetalle,
   CursoDelDocente,
   CursoResumen,
+  CursoRevision,
+  EstadoRevision,
 } from './cursos.modelo.js';
 
 export interface BasePrivada extends ContextoCurso {
@@ -25,6 +27,8 @@ export interface BasePrivada extends ContextoCurso {
   requisitos: string[];
 
   motivoRechazo: string | null;
+  suspendidoEn: Date | null;
+  motivoSuspension: string | null;
   docente: string;
 }
 
@@ -228,8 +232,15 @@ export const fichaRepository = {
     return resultado.rowCount === 1;
   },
 
-  async pendientes(): Promise<CursoResumen[]> {
-    const { rows } = await consultar<CursoResumen>(
+  /**
+   * Cursos de un estado para Revisión de cursos. Los pendientes, el más antiguo primero (se revisan por orden de
+   * llegada); los demás, el modificado más recientemente primero. Como mucho 200.
+   */
+  async listarParaRevision(estado: EstadoRevision): Promise<CursoRevision[]> {
+    const orden = estado === 'EN_REVISION' ? 'c.creado_en, c.id_curso' : 'c.actualizado_en DESC, c.id_curso DESC';
+    const { rows } = await consultar<CursoResumen & {
+      inscritos: number; actualizadoEn: Date; suspendidoEn: Date | null; motivoSuspension: string | null;
+    }>(
       `
         SELECT
           c.id_curso AS id,
@@ -246,18 +257,63 @@ export const fichaRepository = {
             FROM modulo m
             WHERE m.id_curso = c.id_curso
           ) AS modulos,
-          NULLIF(c.portada_url, '') AS "portadaUrl"
+          NULLIF(c.portada_url, '') AS "portadaUrl",
+          (SELECT count(*)::int FROM inscripcion i WHERE i.id_curso = c.id_curso) AS inscritos,
+          c.actualizado_en AS "actualizadoEn",
+          c.suspendido_en AS "suspendidoEn",
+          c.motivo_suspension AS "motivoSuspension"
         FROM curso c
         JOIN docente d
           ON d.id_docente = c.id_docente
         JOIN persona p
           ON p.id_persona = d.id_persona
-        WHERE c.estado = 'EN_REVISION'
-        ORDER BY c.creado_en, c.id_curso
+        WHERE c.estado = $1
+        ORDER BY ${orden}
+        LIMIT 200
       `,
+      [estado],
     );
 
-    return rows;
+    return rows.map(({ actualizadoEn, suspendidoEn, motivoSuspension, ...curso }) => ({
+      ...curso,
+      actualizadoEn: actualizadoEn.toISOString(),
+      suspension: suspendidoEn && motivoSuspension ? { suspendidoEn: suspendidoEn.toISOString(), motivo: motivoSuspension } : null,
+    }));
+  },
+
+  /** Cuántos cursos hay en cada pestaña de Revisión de cursos. */
+  async conteosRevision(): Promise<Record<EstadoRevision, number>> {
+    const { rows: [f] } = await consultar<Record<EstadoRevision, number>>(
+      `SELECT count(*) FILTER (WHERE estado = 'EN_REVISION')::int AS "EN_REVISION",
+              count(*) FILTER (WHERE estado = 'PUBLICADO')::int   AS "PUBLICADO",
+              count(*) FILTER (WHERE estado = 'SUSPENDIDO')::int  AS "SUSPENDIDO",
+              count(*) FILTER (WHERE estado = 'RECHAZADO')::int   AS "RECHAZADO",
+              count(*) FILTER (WHERE estado = 'BORRADOR')::int    AS "BORRADOR"
+         FROM curso`,
+    );
+    return f!;
+  },
+
+  /** PUBLICADO → SUSPENDIDO con quién, cuándo y por qué. false si otro administrador cambió el estado antes. */
+  async suspender(cliente: PoolClient, id: number, motivo: string, admin: number): Promise<boolean> {
+    const r = await cliente.query(
+      `UPDATE curso
+          SET estado = 'SUSPENDIDO', suspendido_en = now(), suspendido_por = $3, motivo_suspension = $2
+        WHERE id_curso = $1 AND estado = 'PUBLICADO'`,
+      [id, motivo, admin],
+    );
+    return r.rowCount === 1;
+  },
+
+  /** SUSPENDIDO → PUBLICADO. Conserva revisado_por y publicado_en; el historial de la suspensión queda en la auditoría. */
+  async reactivar(cliente: PoolClient, id: number): Promise<boolean> {
+    const r = await cliente.query(
+      `UPDATE curso
+          SET estado = 'PUBLICADO', suspendido_en = NULL, suspendido_por = NULL, motivo_suspension = NULL
+        WHERE id_curso = $1 AND estado = 'SUSPENDIDO'`,
+      [id],
+    );
+    return r.rowCount === 1;
   },
 
   async base(
@@ -287,6 +343,8 @@ export const fichaRepository = {
           c.objetivos,
           c.requisitos,
           c.motivo_rechazo AS "motivoRechazo",
+          c.suspendido_en AS "suspendidoEn",
+          c.motivo_suspension AS "motivoSuspension",
 
           concat_ws(
             ' ',

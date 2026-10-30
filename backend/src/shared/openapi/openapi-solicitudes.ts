@@ -112,7 +112,7 @@ export const esquemasSolicitudes = {
               type: 'object', required: ['id', 'titulo', 'estado', 'inscritos'],
               properties: {
                 id: { type: 'integer' }, titulo: { type: 'string' },
-                estado: { type: 'string', enum: ['BORRADOR', 'EN_REVISION', 'PUBLICADO', 'RECHAZADO', 'ARCHIVADO'] },
+                estado: { type: 'string', enum: ['BORRADOR', 'EN_REVISION', 'PUBLICADO', 'RECHAZADO', 'ARCHIVADO', 'SUSPENDIDO'] },
                 inscritos: { type: 'integer', minimum: 0 },
               },
             },

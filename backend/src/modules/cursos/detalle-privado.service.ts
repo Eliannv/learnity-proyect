@@ -10,6 +10,7 @@ import {
   type ContextoLeccion,
   type CursoDetalle,
   type DecisionRevision,
+  type EstadoRevision,
   type ModuloPrivado,
   type ProblemaCurso,
 } from './cursos.modelo.js';
@@ -246,6 +247,9 @@ export async function detallePrivado(
     requisitos: base.requisitos ?? [],
     estado: base.estado,
     motivoRechazo: base.motivoRechazo,
+    suspension: base.suspendidoEn && base.motivoSuspension
+      ? { suspendidoEn: base.suspendidoEn.toISOString(), motivo: base.motivoSuspension }
+      : null,
     docente: base.docente,
     modulos,
     validacion: {
@@ -269,11 +273,45 @@ export async function detallePrivado(
 export const detallePrivadoService = {
   detallePrivado,
 
-  async listarParaRevision(usuario: UsuarioSesion) {
+  async listarParaRevision(usuario: UsuarioSesion, estado: EstadoRevision = 'EN_REVISION') {
     politicaCurso.exigirRol(usuario, 'ADMIN');
-    return {
-      items: await fichaRepository.pendientes(),
-    };
+    const [items, conteos] = await Promise.all([fichaRepository.listarParaRevision(estado), fichaRepository.conteosRevision()]);
+    return { items, conteos };
+  },
+
+  /**
+   * PUBLICADO → SUSPENDIDO (solo administradores). Sale del catálogo y sus inscritos no pueden abrirlo, pero conservan
+   * su progreso (D2). El docente no puede editarlo mientras dure (SUSPENDIDO no es editable).
+   */
+  async suspender(id: number, motivo: string, usuario: UsuarioSesion): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'ADMIN');
+    return enTransaccion(async (cliente) => {
+      const base = await fichaRepository.base(cliente, id, true);
+      if (!base) throw AppError.noEncontrado('Curso no disponible.');
+      if (!politicaCurso.puedePasar(base.estado, 'SUSPENDIDO')) {
+        throw AppError.conflicto('Solo se puede suspender un curso publicado. Actualiza la lista.', 'CURSO_NO_PUBLICADO');
+      }
+      if (!(await fichaRepository.suspender(cliente, id, motivo, usuario.idPersona))) {
+        throw AppError.conflicto('Otro administrador cambió el estado de este curso. Actualiza la lista.');
+      }
+      return detallePrivado(cliente, id);
+    }, { actor: usuario.idPersona });
+  },
+
+  /** SUSPENDIDO → PUBLICADO (solo administradores): vuelve al catálogo y sus inscritos recuperan el acceso. */
+  async reactivar(id: number, usuario: UsuarioSesion): Promise<CursoDetalle> {
+    politicaCurso.exigirRol(usuario, 'ADMIN');
+    return enTransaccion(async (cliente) => {
+      const base = await fichaRepository.base(cliente, id, true);
+      if (!base) throw AppError.noEncontrado('Curso no disponible.');
+      if (!politicaCurso.puedePasar(base.estado, 'PUBLICADO') || base.estado !== 'SUSPENDIDO') {
+        throw AppError.conflicto('Este curso no está suspendido. Actualiza la lista.', 'CURSO_NO_SUSPENDIDO');
+      }
+      if (!(await fichaRepository.reactivar(cliente, id))) {
+        throw AppError.conflicto('Otro administrador cambió el estado de este curso. Actualiza la lista.');
+      }
+      return detallePrivado(cliente, id);
+    }, { actor: usuario.idPersona });
   },
 
   async detalleParaRevision(id: number, usuario: UsuarioSesion): Promise<CursoDetalle> {

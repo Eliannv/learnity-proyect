@@ -22,6 +22,7 @@ export interface FilaCursoInscrito extends FilaInscripcion {
   docente: string;
   totalLecciones: number;
   leccionesCompletadas: number;
+  suspendido: boolean;
 }
 
 export interface FilaLeccion {
@@ -70,7 +71,7 @@ const LECCION_DISPONIBLE = `((l.tipo = 'VIDEO' AND l.youtube_video_id IS NOT NUL
        WHERE ev.id_leccion = l.id_leccion) >= 5))`;
 
 const CAMPOS_CURSO = `
-  c.titulo, c.subtitulo, c.portada_url AS "portadaUrl", c.nivel,
+  c.titulo, c.subtitulo, c.portada_url AS "portadaUrl", c.nivel, (c.estado = 'SUSPENDIDO') AS suspendido,
   cat.id_categoria AS "categoriaId", cat.nombre AS "categoriaNombre",
   concat_ws(' ', p.nombres, p.apellidos) AS docente,
   (SELECT count(*)::int FROM modulo m JOIN leccion l ON l.id_modulo = m.id_modulo
@@ -119,11 +120,12 @@ export const aprendizajeRepository = {
     return r.rows.length === 1;
   },
 
+  /** D2 · Incluye los cursos suspendidos (marcados): el estudiante conserva su progreso, pero no puede abrirlos. */
   async cursosDelEstudiante(idPersona: number): Promise<FilaCursoInscrito[]> {
     const { rows } = await consultar<FilaCursoInscrito>(
       `SELECT ${CAMPOS_INSCRIPCION}, ${CAMPOS_CURSO}
          FROM inscripcion i
-         JOIN curso c ON c.id_curso = i.id_curso AND c.estado = 'PUBLICADO'
+         JOIN curso c ON c.id_curso = i.id_curso AND c.estado IN ('PUBLICADO', 'SUSPENDIDO')
          JOIN categoria cat ON cat.id_categoria = c.id_categoria
          JOIN docente d ON d.id_docente = c.id_docente
          JOIN persona p ON p.id_persona = d.id_persona

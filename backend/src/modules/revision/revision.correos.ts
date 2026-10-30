@@ -51,3 +51,55 @@ export function correoCursoRechazado(datos: {
     ),
   };
 }
+
+/** Un administrador suspendió el curso publicado: sale del catálogo y sus estudiantes no pueden abrirlo. */
+export function correoCursoSuspendido(datos: {
+  para: string; nombres: string; titulo: string; motivo: string; enlace: string;
+}): Correo {
+  const { para, nombres, titulo, motivo, enlace } = datos;
+  return {
+    para,
+    asunto: `Suspendimos tu curso «${titulo}»`,
+    texto: [
+      `Hola, ${nombres}:`,
+      '',
+      `Suspendimos tu curso «${titulo}». Este es el motivo:`,
+      '',
+      motivo,
+      '',
+      'Mientras esté suspendido no aparece en el catálogo y tus estudiantes no pueden abrirlo, aunque conservan su progreso.',
+      'Tampoco puedes editarlo. Si quieres aclarar algo, responde a este correo.',
+      `Tus cursos: ${enlace}`,
+    ].join('\n'),
+    html: marco(
+      'Suspendimos tu curso',
+      parrafo(`Hola, ${escapar(nombres)}:`) +
+        parrafo(`Suspendimos <strong>${escapar(titulo)}</strong>. Este es el motivo:`) +
+        cita(motivo) +
+        parrafo('Mientras esté suspendido no aparece en el catálogo y tus estudiantes no pueden abrirlo, aunque conservan su progreso. ' +
+          'Tampoco puedes editarlo. Si quieres aclarar algo, responde a este correo.') +
+        boton('Ver mis cursos', enlace),
+    ),
+  };
+}
+
+/** El curso suspendido vuelve a estar publicado. */
+export function correoCursoReactivado(datos: { para: string; nombres: string; titulo: string; enlace: string }): Correo {
+  const { para, nombres, titulo, enlace } = datos;
+  return {
+    para,
+    asunto: `Tu curso «${titulo}» vuelve a estar publicado`,
+    texto: [
+      `Hola, ${nombres}:`,
+      '',
+      `Reactivamos tu curso «${titulo}». Vuelve a aparecer en el catálogo y tus estudiantes pueden continuar donde lo dejaron.`,
+      `Míralo aquí: ${enlace}`,
+    ].join('\n'),
+    html: marco(
+      'Tu curso vuelve a estar publicado',
+      parrafo(`Hola, ${escapar(nombres)}:`) +
+        parrafo(`Reactivamos <strong>${escapar(titulo)}</strong>. Vuelve al catálogo y tus estudiantes pueden continuar donde lo dejaron.`) +
+        boton('Ver el curso', enlace),
+    ),
+  };
+}

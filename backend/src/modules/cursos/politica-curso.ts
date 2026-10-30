@@ -12,7 +12,10 @@ export const TRANSICIONES: Readonly<Record<EstadoCurso, readonly EstadoCurso[]>>
   BORRADOR: ['EN_REVISION'],
   RECHAZADO: ['EN_REVISION'],
   EN_REVISION: ['PUBLICADO', 'RECHAZADO'],
-  PUBLICADO: [], // archivar no existe hoy: no se añade (sería funcionalidad nueva)
+  // Suspender y reactivar: solo un administrador (revision → cursosApi.suspender/reactivar exigen ADMIN). El docente
+  // solo usa `exigirTransicion` para enviar a revisión, así que estas transiciones no le sirven. Archivar no existe hoy.
+  PUBLICADO: ['SUSPENDIDO'],
+  SUSPENDIDO: ['PUBLICADO'],
   ARCHIVADO: [],
 };
 

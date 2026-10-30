@@ -26,6 +26,11 @@ export interface CursoInscrito {
   inscripcion: InscripcionResumen;
   totalLecciones: number;
   leccionesCompletadas: number;
+  /**
+   * D2 · Un administrador suspendió el curso: sigue en «Mi aprendizaje» con su progreso, pero no se puede abrir
+   * hasta que lo reactive. El motivo no se muestra al estudiante.
+   */
+  suspendido: boolean;
 }
 
 export interface LeccionAprendizaje {

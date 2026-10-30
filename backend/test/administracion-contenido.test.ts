@@ -587,7 +587,7 @@ describe(
         );
 
         for (const ruta of [
-          '/api/admin/cursos?estado=PUBLICADO',
+          '/api/admin/cursos?estado=ARCHIVADO', // Sprint 4: PUBLICADO ya es una pestaña válida
           '/api/admin/cursos?extra=1',
           '/api/admin/cursos/no-es-id',
         ]) {

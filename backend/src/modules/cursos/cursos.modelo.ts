@@ -3,7 +3,17 @@ export type EstadoCurso =
   | 'EN_REVISION'
   | 'PUBLICADO'
   | 'RECHAZADO'
-  | 'ARCHIVADO';
+  | 'ARCHIVADO'
+  | 'SUSPENDIDO';
+
+/** Estados que el administrador consulta en Revisión de cursos (pestañas). */
+export type EstadoRevision = 'EN_REVISION' | 'PUBLICADO' | 'SUSPENDIDO' | 'RECHAZADO' | 'BORRADOR';
+
+/** Mientras el curso está SUSPENDIDO: cuándo y por qué lo suspendió un administrador. */
+export interface SuspensionCurso {
+  suspendidoEn: string;
+  motivo: string;
+}
 
 export type TipoLeccion =
   | 'DOCUMENTO'
@@ -79,6 +89,13 @@ export interface CursoResumen {
   portadaUrl: string | null;
 }
 
+/** Curso en Revisión de cursos (administrador): además, sus inscritos, la última modificación y la suspensión. */
+export interface CursoRevision extends CursoResumen {
+  inscritos: number;
+  actualizadoEn: string;
+  suspension: SuspensionCurso | null;
+}
+
 /** Curso en «Mis cursos»: además, cuántos se inscribieron y cómo lo valoran. */
 export interface CursoDelDocente extends CursoResumen {
   estudiantes: number;
@@ -106,6 +123,8 @@ export interface CursoDetalle {
 
   estado: EstadoCurso;
   motivoRechazo: string | null;
+  /** Solo SUSPENDIDO: lo ven el administrador y el docente dueño. */
+  suspension: SuspensionCurso | null;
   docente: string;
 
   modulos: ModuloPrivado[];

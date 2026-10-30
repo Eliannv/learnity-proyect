@@ -3,8 +3,20 @@ import { idRuta } from '../../shared/http/esquemas.js';
 
 export const idRevisionRuta = z.object({ id: idRuta }).transform(({ id }) => id);
 
+export const ESTADOS_REVISION = ['EN_REVISION', 'PUBLICADO', 'SUSPENDIDO', 'RECHAZADO', 'BORRADOR'] as const;
+
 export const filtroRevision = z.strictObject({
-  estado: z.literal('EN_REVISION').default('EN_REVISION'),
+  estado: z.enum(ESTADOS_REVISION).default('EN_REVISION'),
+});
+
+/** Suspender un curso publicado: motivo obligatorio y confirmación explícita («Confirmo»). */
+export const suspensionCurso = z.strictObject({
+  motivo: z
+    .string()
+    .trim()
+    .min(1, 'Escribe el motivo de la suspensión.')
+    .max(300, 'El motivo debe tener como máximo 300 caracteres.'),
+  confirmo: z.literal(true, { error: 'Marca «Confirmo» para suspender el curso.' }),
 });
 
 export const decisionRevision = z.discriminatedUnion('decision', [
@@ -22,4 +34,5 @@ export const decisionRevision = z.discriminatedUnion('decision', [
 ]);
 
 export type FiltroRevision = z.infer<typeof filtroRevision>;
+export type SuspensionCursoDto = z.infer<typeof suspensionCurso>;
 export type DecisionRevisionDto = z.infer<typeof decisionRevision>;

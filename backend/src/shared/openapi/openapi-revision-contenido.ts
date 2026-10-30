@@ -17,9 +17,11 @@ export const rutasRevisionContenido = {
     get: {
       tags: ['Administración'],
       summary:
-        'Cursos pendientes de revisión (ADMIN)',
+        'Cursos de un estado para Revisión de cursos (ADMIN)',
       description:
-        'Ordenados del más antiguo al más reciente. Un parámetro de consulta desconocido o un `estado` distinto de EN_REVISION dan 400.',
+        'EN_REVISION, del más antiguo al más reciente; los demás estados, el modificado más recientemente primero. ' +
+        'Como mucho 200. `conteos` trae cuántos cursos hay en cada estado (para las pestañas). Un parámetro de consulta ' +
+        'desconocido o un `estado` fuera de la lista dan 400.',
       security: seguridad,
       parameters: [
         {
@@ -27,7 +29,7 @@ export const rutasRevisionContenido = {
           name: 'estado',
           schema: {
             type: 'string',
-            enum: ['EN_REVISION'],
+            enum: ['EN_REVISION', 'PUBLICADO', 'SUSPENDIDO', 'RECHAZADO', 'BORRADOR'],
             default: 'EN_REVISION',
           },
         },
@@ -36,11 +38,17 @@ export const rutasRevisionContenido = {
         ...comunes,
         200: json({
           type: 'object',
-          required: ['items'],
+          required: ['items', 'conteos'],
           properties: {
             items: {
               type: 'array',
-              items: ref('CursoResumen'),
+              items: ref('CursoRevision'),
+            },
+            conteos: {
+              type: 'object',
+              required: ['EN_REVISION', 'PUBLICADO', 'SUSPENDIDO', 'RECHAZADO', 'BORRADOR'],
+              properties: Object.fromEntries(['EN_REVISION', 'PUBLICADO', 'SUSPENDIDO', 'RECHAZADO', 'BORRADOR']
+                .map((e) => [e, { type: 'integer', minimum: 0 }])),
             },
           },
         }),
@@ -63,6 +71,58 @@ export const rutasRevisionContenido = {
         400: error(idInvalido),
         403: error('No es administrador (SIN_PERMISO)'),
         404: error('El curso no existe (NO_ENCONTRADO)'),
+      },
+    },
+  },
+
+  '/admin/cursos/{id}/suspension': {
+    post: {
+      tags: ['Administración'],
+      summary: 'Suspender un curso publicado (ADMIN)',
+      description:
+        'PUBLICADO → SUSPENDIDO con el motivo y la confirmación explícita `confirmo: true`. Sale del catálogo, sus ' +
+        'inscritos no pueden abrirlo (lo ven marcado como suspendido en Mi aprendizaje y conservan su progreso) y el ' +
+        'docente no puede editarlo. Avisa al docente por correo. Queda en la auditoría con el administrador como autor.',
+      security: seguridad,
+      parameters: [idRuta],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object', additionalProperties: false, required: ['motivo', 'confirmo'],
+              properties: {
+                motivo: { type: 'string', minLength: 1, maxLength: 300, description: 'Se recortan los espacios de los extremos.' },
+                confirmo: { type: 'boolean', enum: [true] },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        ...comunes,
+        200: curso,
+        ...erroresCuerpoJson(`Motivo vacío o largo, sin confirmar, o ${idInvalido}`),
+        403: error('No es administrador (SIN_PERMISO)'),
+        404: error('El curso no existe (NO_ENCONTRADO)'),
+        409: error('El curso no está publicado (CURSO_NO_PUBLICADO) u otro administrador cambió su estado (CONFLICTO)'),
+      },
+    },
+    delete: {
+      tags: ['Administración'],
+      summary: 'Reactivar un curso suspendido (ADMIN)',
+      description:
+        'SUSPENDIDO → PUBLICADO: vuelve al catálogo, conserva su revisor y su fecha de publicación, y sus inscritos ' +
+        'recuperan el acceso. Avisa al docente por correo. Queda en la auditoría con el administrador como autor.',
+      security: seguridad,
+      parameters: [idRuta],
+      responses: {
+        ...comunes,
+        200: curso,
+        400: error(idInvalido),
+        403: error('No es administrador (SIN_PERMISO)'),
+        404: error('El curso no existe (NO_ENCONTRADO)'),
+        409: error('El curso no está suspendido (CURSO_NO_SUSPENDIDO) u otro administrador cambió su estado (CONFLICTO)'),
       },
     },
   },
