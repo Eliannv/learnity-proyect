@@ -13,129 +13,182 @@
     <a class="btn btn-contorno" routerLink="/cursos">Volver al catálogo</a>
   </div>
 } @else if (curso(); as c) {
-  <div class="contenedor detalle">
-    <article class="principal">
-      <nav class="migas" aria-label="Ruta">
-        <a routerLink="/">Inicio</a>
-        <lucide-icon name="chevron-right" [size]="16" />
-        <a routerLink="/cursos" [queryParams]="{ categoria: c.categoria.nombre }">{{ c.categoria.nombre }}</a>
-        <lucide-icon name="chevron-right" [size]="16" />
-        <span>{{ c.titulo }}</span>
-      </nav>
-
-      <span class="chip">{{ c.categoria.nombre }}</span>
-      <h1 class="titulo-curso">{{ c.titulo }}</h1>
-      @if (c.subtitulo) { <p class="descripcion">{{ c.subtitulo }}</p> }
-      @if (c.calificacion.promedio !== null) {
-        <a class="calificacion" href="#resenas" (click)="irAResenas($event)">
-          <strong>{{ c.calificacion.promedio | number: '1.1-1' }}</strong>
-          <app-estrellas [valor]="c.calificacion.promedio" />
-          <span>({{ c.calificacion.total }} {{ c.calificacion.total === 1 ? 'reseña' : 'reseñas' }})</span>
-        </a>
-      }
-      <p class="meta">
-        {{ c.docente }} · {{ c.minutos }} min · {{ c.modulos | i18nPlural: modulos }} · {{ c.lecciones | i18nPlural: lecciones }} · nivel
-        {{ nombreNivel(c.nivel).toLowerCase() }}
-      </p>
-      <p class="descripcion">{{ c.descripcion }}</p>
-
-      <ng-container *ngTemplateOutlet="tarjetaInscripcion; context: { movil: true }" />
-
-      <div class="cabecera-temario">
-        <h2>Contenido del curso</h2>
-        <span class="texto-suave">{{ c.modulos | i18nPlural: modulos }} · {{ c.lecciones | i18nPlural: lecciones }} · {{ c.minutos }} min</span>
-      </div>
-
-      <div class="temario">
-        @for (m of c.temario; track m.id) {
-          <section class="modulo" [class.abierto]="abiertos().includes(m.id)">
-            <button type="button" class="cabecera-modulo" (click)="alternar(m.id)" [attr.aria-expanded]="abiertos().includes(m.id)">
-              <lucide-icon [name]="abiertos().includes(m.id) ? 'chevron-down' : 'chevron-right'" [size]="20" />
-              <strong>{{ m.orden }}. {{ m.titulo }}</strong>
-              <span class="texto-suave">{{ m.lecciones.length | i18nPlural: lecciones }}</span>
-            </button>
-            @if (abiertos().includes(m.id)) {
-              <ul>
-                @for (l of m.lecciones; track l.id) {
-                  <li>
-                    <lucide-icon [name]="icono(l.tipo)" [size]="20" />
-                    <span>{{ l.titulo }}</span>
-                    <span class="texto-suave">{{ l.tipo === 'DOCUMENTO' ? 'PDF' : l.tipo === 'EVALUACION' ? 'Evaluación' : l.minutos + ' min' }}</span>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-        } @empty {
-          <p class="temario-vacio">El temario todavía no está disponible.</p>
+  <!-- Una sola rejilla: la banda oscura (fila 1, pintada a todo el ancho) y el cuerpo (fila 2) en la columna
+       izquierda; la tarjeta de inscripción ocupa las dos filas de la derecha y así se superpone a la banda. -->
+  <div class="contenedor ficha">
+    <div class="fondo-banda" aria-hidden="true"></div>
+    <header class="banda-texto">
+        <div class="portada-movil solo-movil">
+          <app-portada-curso [iconoCategoria]="c.categoria.icono" [tono]="tono()" [imagen]="c.portadaUrl" />
+        </div>
+        <nav class="migas" aria-label="Ruta">
+          <a routerLink="/">Inicio</a>
+          <lucide-icon name="chevron-right" [size]="14" aria-hidden="true" />
+          <a routerLink="/cursos" [queryParams]="{ categoria: c.categoria.nombre }">{{ c.categoria.nombre }}</a>
+        </nav>
+        <h1 class="titulo-curso">{{ c.titulo }}</h1>
+        @if (c.subtitulo) { <p class="subtitulo-curso">{{ c.subtitulo }}</p> }
+        @if (c.calificacion.promedio !== null) {
+          <a class="calificacion" href="#resenas" (click)="irAResenas($event)">
+            <strong class="num">{{ c.calificacion.promedio | number: '1.1-1' }}</strong>
+            <app-estrellas [valor]="c.calificacion.promedio" />
+            <span class="num">({{ c.calificacion.total }} {{ c.calificacion.total === 1 ? 'reseña' : 'reseñas' }})</span>
+          </a>
         }
-      </div>
+        <p class="creado">Creado por <strong>{{ c.docente }}</strong></p>
+        <p class="meta num">{{ metaCabecera(c) }}</p>
+    </header>
+
+    <article class="principal">
+      <!-- En el teléfono, lo que en escritorio va en la tarjeta lateral (sin el botón: va en la barra fija). -->
+      <section class="incluye-movil solo-movil" aria-label="Este curso incluye">
+        <ng-container *ngTemplateOutlet="bloqueIncluye" />
+      </section>
 
       @if (c.objetivos.length) {
-        <section class="lista-informacion">
-          <h2>Lo que aprenderás</h2>
-          <ul>@for (objetivo of c.objetivos; track $index) { <li>{{ objetivo }}</li> }</ul>
+        <section class="aprenderas" aria-labelledby="t-aprenderas">
+          <h2 id="t-aprenderas">Lo que aprenderás</h2>
+          <ul>
+            @for (objetivo of c.objetivos; track $index) {
+              <li><lucide-icon name="check" [size]="18" aria-hidden="true" /><span>{{ objetivo }}</span></li>
+            }
+          </ul>
         </section>
       }
 
-      <hr class="separador" />
+      <section class="temario-seccion" aria-labelledby="t-contenido">
+        <div class="cabecera-temario">
+          <h2 id="t-contenido">Contenido del curso</h2>
+          <div class="temario-resumen">
+            <span class="num">{{ resumenTemario(c) }}</span>
+            @if (c.temario.length > 1) {
+              <button type="button" class="btn btn-texto btn-sm" (click)="alternarTodos()">
+                {{ todosAbiertos() ? 'Contraer todas las secciones' : 'Expandir todas las secciones' }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="temario">
+          @for (m of c.temario; track m.id) {
+            <section class="modulo" [class.abierto]="abiertos().includes(m.id)">
+              <button type="button" class="cabecera-modulo" (click)="alternar(m.id)" [attr.aria-expanded]="abiertos().includes(m.id)">
+                <lucide-icon class="chevron" name="chevron-down" [size]="18" aria-hidden="true" />
+                <strong>{{ m.orden }}. {{ m.titulo }}</strong>
+                <span class="num conteo">{{ conteoModulo(m) }}</span>
+              </button>
+              @if (abiertos().includes(m.id)) {
+                <ul>
+                  @for (l of m.lecciones; track l.id) {
+                    <li>
+                      <lucide-icon [name]="icono(l.tipo)" [size]="18" aria-hidden="true" />
+                      <span class="leccion-titulo">{{ l.titulo }}</span>
+                      <span class="num leccion-tipo">{{ tipoLeccion(l) }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+          } @empty {
+            <p class="temario-vacio">El temario todavía no está disponible.</p>
+          }
+        </div>
+      </section>
+
+      @if (c.requisitos.length) {
+        <section class="requisitos solo-movil" aria-labelledby="t-requisitos-movil">
+          <h2 id="t-requisitos-movil">Requisitos</h2>
+          <ul>@for (requisito of c.requisitos; track $index) { <li>{{ requisito }}</li> }</ul>
+        </section>
+      }
+
+      @if (c.descripcion) {
+        <section class="descripcion" aria-labelledby="t-descripcion">
+          <h2 id="t-descripcion">Descripción</h2>
+          <p>{{ c.descripcion }}</p>
+        </section>
+      }
 
       <section class="instructor" aria-labelledby="titulo-instructor">
         <h2 id="titulo-instructor">Tu docente</h2>
         <div class="instructor-cabecera">
-          <app-avatar [texto]="c.instructor.nombre.charAt(0)" [imagen]="c.instructor.fotoUrl" [tamano]="88" [solido]="true" />
-          <div>
+          <app-avatar [texto]="c.instructor.nombre.charAt(0)" [imagen]="c.instructor.fotoUrl" [tamano]="64" [solido]="true" />
+          <div class="instructor-texto">
             <strong class="instructor-nombre">{{ c.instructor.nombre }}</strong>
             <span class="instructor-especialidad">{{ c.instructor.especialidad }}</span>
-            <ul class="instructor-datos">
-              <li><lucide-icon name="book-open" [size]="16" aria-hidden="true" />
-                {{ c.instructor.cursosPublicados }} {{ c.instructor.cursosPublicados === 1 ? 'curso publicado' : 'cursos publicados' }}</li>
-              <li><lucide-icon name="users" [size]="16" aria-hidden="true" />
-                {{ c.instructor.estudiantes }} {{ c.instructor.estudiantes === 1 ? 'estudiante' : 'estudiantes' }}</li>
-              @if (c.instructor.calificacion.promedio !== null) {
-                <li class="instructor-valoracion">
-                  <app-estrellas [valor]="c.instructor.calificacion.promedio" />
-                  <strong>{{ c.instructor.calificacion.promedio | number: '1.1-1' }}</strong>
-                  valoración como docente ({{ c.instructor.calificacion.total }}
-                  {{ c.instructor.calificacion.total === 1 ? 'reseña' : 'reseñas' }})
-                </li>
-              }
-            </ul>
           </div>
         </div>
+        <ul class="instructor-datos">
+          @if (c.instructor.calificacion.promedio !== null) {
+            <li>
+              <lucide-icon name="star" [size]="16" aria-hidden="true" />
+              <span><strong class="num">{{ c.instructor.calificacion.promedio | number: '1.1-1' }}</strong> valoración como docente
+                <span class="num">({{ c.instructor.calificacion.total }} {{ c.instructor.calificacion.total === 1 ? 'reseña' : 'reseñas' }})</span></span>
+            </li>
+          }
+          <li>
+            <lucide-icon name="users" [size]="16" aria-hidden="true" />
+            <span><span class="num">{{ c.instructor.estudiantes }}</span> {{ c.instructor.estudiantes === 1 ? 'estudiante' : 'estudiantes' }}</span>
+          </li>
+          <li>
+            <lucide-icon name="book-open" [size]="16" aria-hidden="true" />
+            <span><span class="num">{{ c.instructor.cursosPublicados }}</span> {{ c.instructor.cursosPublicados === 1 ? 'curso publicado' : 'cursos publicados' }}</span>
+          </li>
+        </ul>
         @if (c.instructor.biografia) { <p class="instructor-bio">{{ c.instructor.biografia }}</p> }
       </section>
-
-      <hr class="separador" />
 
       <app-resenas-curso [cursoId]="c.id" [estudiante]="puedeInscribirse()" (cambio)="actualizarCalificacion($event)" />
     </article>
 
-    <aside class="oculto-movil">
-      <ng-container *ngTemplateOutlet="tarjetaInscripcion; context: { movil: false }" />
+    <!-- Escritorio: tarjeta fija al desplazar que se superpone a la banda. Es la única con el botón por encima de 900px. -->
+    <aside class="lateral oculto-movil" aria-label="Inscripción">
+      <div class="tarjeta-inscripcion">
+        <div class="portada"><app-portada-curso [iconoCategoria]="c.categoria.icono" [tono]="tono()" [imagen]="c.portadaUrl" /></div>
+        <div class="tarjeta-cuerpo">
+          <p class="precio">Curso gratuito</p>
+          <ng-container *ngTemplateOutlet="botonInscripcion" />
+          <ng-container *ngTemplateOutlet="bloqueIncluye" />
+          @if (c.requisitos.length) {
+            <div class="requisitos-tarjeta">
+              <strong>Requisitos</strong>
+              <ul>@for (requisito of c.requisitos; track $index) { <li>{{ requisito }}</li> }</ul>
+            </div>
+          }
+        </div>
+      </div>
     </aside>
   </div>
 
-  <ng-template #tarjetaInscripcion let-movil="movil">
-    <div class="tarjeta-inscripcion" [class.solo-movil]="movil">
-      <div class="portada"><app-portada-curso [iconoCategoria]="c.categoria.icono" [tono]="tono()" [imagen]="c.portadaUrl" /></div>
-      <p>Curso gratuito.</p>
-      <button type="button" class="btn btn-acento btn-lg btn-bloque"
-        [disabled]="procesando() || consultandoInscripcion()"
-        (click)="accionInscripcion()">
-        @if (procesando()) { Preparando tu curso… }
-        @else if (consultandoInscripcion()) { Comprobando inscripción… }
-        @else if (inscripcion()) { Continuar aprendiendo }
-        @else { Inscribirme gratis }
-      </button>
-      @if (errorInscripcion()) {
-        <p class="mensaje-error" role="alert">{{ errorInscripcion() }}</p>
-      }
-      @if (c.requisitos.length) {
-        <hr class="separador" />
-        <strong>Requisitos</strong>
-        <ul>@for (requisito of c.requisitos; track $index) { <li><lucide-icon name="check" [size]="20" /> {{ requisito }}</li> }</ul>
-      }
+  <!-- Teléfono: barra fija encima de la barra inferior. Es la única con el botón por debajo de 900px. -->
+  <div class="barra-inscripcion solo-movil">
+    <p class="precio">Curso gratuito</p>
+    <div class="barra-accion"><ng-container *ngTemplateOutlet="botonInscripcion" /></div>
+  </div>
+
+  <ng-template #botonInscripcion>
+    <button type="button" class="btn btn-primario btn-lg btn-bloque"
+      [disabled]="procesando() || consultandoInscripcion()"
+      (click)="accionInscripcion()">
+      @if (procesando()) { Preparando tu curso… }
+      @else if (consultandoInscripcion()) { Comprobando inscripción… }
+      @else if (inscripcion()) { Continuar aprendiendo }
+      @else { Inscribirme gratis }
+    </button>
+    @if (errorInscripcion()) {
+      <p class="mensaje-error" role="alert">{{ errorInscripcion() }}</p>
+    }
+  </ng-template>
+
+  <!-- Solo datos reales del curso: módulos, lecciones, duración y los tipos de material que tiene su temario. -->
+  <ng-template #bloqueIncluye>
+    <div class="incluye">
+      <strong>Este curso incluye:</strong>
+      <ul>
+        @for (item of incluye(); track item.texto) {
+          <li><lucide-icon [name]="item.icono" [size]="16" aria-hidden="true" /><span class="num">{{ item.texto }}</span></li>
+        }
+      </ul>
     </div>
   </ng-template>
 }

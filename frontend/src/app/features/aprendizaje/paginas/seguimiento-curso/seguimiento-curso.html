@@ -111,39 +111,61 @@
       <div class="titulo-leccion">
         <div>
           <h1>{{ l.titulo }}</h1>
-          <span class="texto-suave">
+          <span class="texto-suave num">
             Módulo {{ modulo()?.orden }} · {{ l.tipo === 'VIDEO' ? 'vídeo' : l.tipo === 'EVALUACION' ? 'evaluación' : 'documento PDF' }} {{ posicionEnModulo() }}
           </span>
         </div>
       </div>
 
-      @if (l.recursos.length) { <app-recursos-estudiante [recursos]="l.recursos" /> }
+      <!-- Pestañas bajo el visor, como en Udemy. «Descripción general» es la de por defecto y guarda los recursos de la
+           lección; «Reseñas» monta las reseñas solo al abrirla. -->
+      <div class="pestanas-linea" role="tablist" aria-label="Información del curso">
+        <button #tabDescripcion type="button" role="tab" id="tab-descripcion" aria-controls="panel-aula"
+          [attr.aria-selected]="pestana() === 'descripcion'" [tabindex]="pestana() === 'descripcion' ? 0 : -1"
+          (click)="elegirPestana('descripcion')"
+          (keydown.arrowright)="elegirPestana('resenas', tabResenas)" (keydown.arrowleft)="elegirPestana('resenas', tabResenas)">
+          Descripción general
+        </button>
+        <button #tabResenas type="button" role="tab" id="tab-resenas" aria-controls="panel-aula"
+          [attr.aria-selected]="pestana() === 'resenas'" [tabindex]="pestana() === 'resenas' ? 0 : -1"
+          (click)="elegirPestana('resenas')"
+          (keydown.arrowright)="elegirPestana('descripcion', tabDescripcion)" (keydown.arrowleft)="elegirPestana('descripcion', tabDescripcion)">
+          Reseñas
+        </button>
+      </div>
 
-      <section class="descripcion-general" aria-label="Descripción general de la lección">
-        <h2 class="seccion-titulo">Descripción general</h2>
-        @if (d.curso.subtitulo) { <p class="subtitulo-curso">{{ d.curso.subtitulo }}</p> }
-        <dl class="datos-curso">
-          <div>
-            <dt>Docente</dt>
-            <dd>{{ d.curso.docente }}</dd>
-          </div>
-          <div>
-            <dt>Nivel</dt>
-            <dd>{{ nivelTexto(d.curso.nivel) }}</dd>
-          </div>
-          <div>
-            <dt>Categoría</dt>
-            <dd>{{ d.curso.categoria.nombre }}</dd>
-          </div>
-          <div>
-            <dt>Contenido</dt>
-            <dd>{{ d.totalLecciones }} lecciones · {{ d.modulos.length }} módulos</dd>
-          </div>
-        </dl>
-      </section>
+      <div class="panel-aula" role="tabpanel" id="panel-aula"
+        [attr.aria-labelledby]="pestana() === 'descripcion' ? 'tab-descripcion' : 'tab-resenas'">
+        @if (pestana() === 'descripcion') {
+          @if (l.recursos.length) { <app-recursos-estudiante [recursos]="l.recursos" /> }
 
-      <!-- El estudiante inscrito valora el curso sin salir del aula -->
-      <app-resenas-curso class="resenas-aula" [cursoId]="d.curso.id" [estudiante]="true" />
+          <section class="descripcion-general" aria-label="Descripción general de la lección">
+            <h2 class="seccion-titulo">Sobre este curso</h2>
+            @if (d.curso.subtitulo) { <p class="subtitulo-curso">{{ d.curso.subtitulo }}</p> }
+            <dl class="datos-curso">
+              <div>
+                <dt>Docente</dt>
+                <dd [title]="d.curso.docente">{{ d.curso.docente }}</dd>
+              </div>
+              <div>
+                <dt>Nivel</dt>
+                <dd>{{ nivelTexto(d.curso.nivel) }}</dd>
+              </div>
+              <div>
+                <dt>Categoría</dt>
+                <dd [title]="d.curso.categoria.nombre">{{ d.curso.categoria.nombre }}</dd>
+              </div>
+              <div>
+                <dt>Contenido</dt>
+                <dd class="num">{{ d.totalLecciones }} lecciones · {{ d.modulos.length }} módulos</dd>
+              </div>
+            </dl>
+          </section>
+        } @else {
+          <!-- El estudiante inscrito valora el curso sin salir del aula -->
+          <app-resenas-curso [cursoId]="d.curso.id" [estudiante]="true" />
+        }
+      </div>
     </div>
   </div>
 
@@ -158,7 +180,7 @@
         </button>
       </div>
       <app-barra-progreso [valor]="d.inscripcion.progresoPct" />
-      <span class="progreso-texto">{{ d.inscripcion.progresoPct }}% completado ·
+      <span class="progreso-texto num">{{ d.inscripcion.progresoPct }}% completado ·
         {{ d.leccionesCompletadas }} de {{ d.totalLecciones }} lecciones</span>
     </div>
     <div class="modulos">
@@ -168,7 +190,7 @@
           [attr.aria-expanded]="abiertos().includes(m.id)">
           <span class="nombre-modulo">
             <span>Sección {{ m.orden }}: {{ m.titulo }}</span>
-            <small>{{ completadasDe(m.id) }} / {{ m.lecciones.length }}</small>
+            <small class="num">{{ completadasDe(m.id) }} / {{ m.lecciones.length }}</small>
           </span>
           <lucide-icon [name]="abiertos().includes(m.id) ? 'chevron-up' : 'chevron-down'" [size]="20"
             aria-hidden="true" />

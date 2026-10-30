@@ -413,6 +413,57 @@ lucide-icon {
   }
 }
 
+/* ---------------------------------------------------------------- migas de pan
+   Ruta de navegación en una línea que parte si no cabe; cada vista ajusta sus colores (la ficha, sobre la banda). */
+.migas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--tinta-3);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- pestañas subrayadas
+   Fila de pestañas sobre una línea: la activa en tinta con su línea inferior de 2px. Se desliza en horizontal si
+   no cabe. Úsese con role="tablist" y botones role="tab" con aria-selected (o la clase .activa). */
+.pestanas-linea {
+  display: flex;
+  gap: 24px;
+  min-width: 0;
+  border-bottom: 1px solid var(--borde);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  > button {
+    flex: none;
+    min-height: 48px;
+    padding: 0 2px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--tinta-3);
+    font: inherit;
+    font-weight: 700;
+    white-space: nowrap;
+    transition:
+      color var(--t-micro) var(--curva-salida),
+      border-color var(--t-micro) var(--curva-salida);
+
+    &:hover {
+      color: var(--tinta);
+    }
+    &[aria-selected='true'],
+    &.activa {
+      color: var(--tinta);
+      border-bottom-color: var(--tinta);
+    }
+  }
+}
+
 /* ---------------------------------------------------------------- chips y estados */
 .chip {
   display: inline-flex;

@@ -12,6 +12,7 @@ import { Avatar } from '../../../../shared/ui/marca/avatar';
 import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
 import { Carrusel } from '../../../../shared/ui/navegacion/carrusel';
 import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
+import { metaCurso } from '../../../../shared/ui/cursos/formato-curso';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
 import type { Tono } from '../../../../shared/ui/tipos-ui';
 
@@ -125,10 +126,8 @@ export class InicioEstudiante {
     }
   }
 
-  protected duracion(c: { lecciones: number; minutos?: number }): string {
-    const mins = c.minutos ? ` · ${c.minutos} min` : '';
-    return `${c.lecciones} lecciones${mins}`;
-  }
+  /** Nivel, lecciones y duración (sin «0 min»). */
+  protected readonly meta = (c: CursoPublico) => metaCurso(c, true);
 
   protected tonoDe(id: number): Tono {
     return (id % 3 === 0 ? 3 : id % 3 === 1 ? 1 : 2) as Tono;

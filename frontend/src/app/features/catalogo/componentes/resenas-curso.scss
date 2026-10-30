@@ -5,12 +5,12 @@
   gap: 20px;
   scroll-margin-top: 90px;
   &:focus { outline: none; }
-  h2 { margin: 0; font-size: 22px; }
+  h2 { margin: 0; font-size: var(--fs-titulo-seccion); font-weight: 700; letter-spacing: -0.01em; }
 }
 
 .esqueletos { display: grid; gap: 12px; }
-.bloque-resumen { height: 120px; border-radius: var(--radio-md); }
-.bloque-item { height: 72px; border-radius: var(--radio-md); }
+.bloque-resumen { height: 120px; border-radius: var(--radio); }
+.bloque-item { height: 72px; border-radius: var(--radio); }
 
 .aviso-error {
   display: flex;
@@ -18,10 +18,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid var(--rojo-200);
-  border-radius: var(--radio-md);
-  background: var(--rojo-050);
-  color: var(--rojo-700);
+  border-radius: var(--radio);
+  background: var(--pill-neg-fondo);
+  color: var(--pill-neg-tinta);
   p { margin: 0; }
 }
 
@@ -31,8 +30,8 @@
   gap: 28px;
   align-items: center;
   padding: 20px;
-  border: 1px solid var(--gris-200);
-  border-radius: var(--radio-md);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
 }
 .nota {
   display: grid;
@@ -40,7 +39,7 @@
   gap: 6px;
   app-estrellas { font-size: 20px; }
 }
-.numero { font-size: 44px; line-height: 1; font-weight: 800; color: var(--tinta-900); }
+.numero { font-size: 40px; line-height: 1; font-weight: 700; color: var(--estrella-tinta); }
 .sin-nota { font-size: 18px; }
 
 .distribucion {
@@ -51,27 +50,27 @@
   list-style: none;
   li {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) 44px;
+    grid-template-columns: 76px minmax(0, 1fr) 44px;
     align-items: center;
     gap: 10px;
     font-size: 14px;
   }
-  .etiqueta { font-weight: 600; color: var(--tinta-800); }
+  .etiqueta { font-weight: 500; color: var(--tinta-2); white-space: nowrap; }
   .barra {
     height: 8px;
     border-radius: 999px;
-    background: var(--gris-100);
+    background: var(--elevado);
     overflow: hidden;
-    span { display: block; height: 100%; background: #b4690e; border-radius: 999px; }
+    span { display: block; height: 100%; background: var(--estrella); border-radius: 999px; }
   }
   .cantidad { text-align: right; }
 }
 
 .mi-resena {
   padding: 18px 20px;
-  border: 1px solid var(--azul-200);
-  border-radius: var(--radio-md);
-  background: var(--azul-050);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--suelo);
   form { display: grid; gap: 14px; }
 }
 .selector {
@@ -90,13 +89,14 @@
     place-items: center;
     width: 40px;
     height: 40px;
-    border-radius: var(--radio);
-    font-size: 30px;
-    line-height: 1;
-    color: var(--gris-300, #cbd5e1);
+    border-radius: var(--radio-sm);
+    color: var(--borde-control);
     cursor: pointer;
-    &.activa { color: #b4690e; }
-    &:has(input:focus-visible) { outline: 3px solid var(--azul-600); outline-offset: 1px; }
+    transition: color var(--t-micro) var(--curva-salida), transform var(--t-pulsar) var(--curva-salida);
+    svg { width: 30px; height: 30px; fill: currentColor; }
+    &.activa { color: var(--estrella); }
+    &:active { transform: scale(0.9); }
+    &:has(input:focus-visible) { outline: 2px solid var(--foco); outline-offset: 1px; }
   }
   input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
   .nombre-nota { margin-left: 10px; font-size: 14px; }
@@ -105,9 +105,9 @@
   display: grid;
   gap: 6px;
   > span { font-weight: 600; }
-  textarea { resize: vertical; background: var(--blanco); }
+  textarea { resize: vertical; background: var(--superficie); }
 }
-.error { margin: 0; color: var(--rojo-700); }
+.error { margin: 0; color: var(--negativo); }
 .acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 
 .propia, .invitacion {
@@ -118,11 +118,13 @@
   > div:first-child { display: grid; gap: 4px; }
   p { margin: 0; line-height: 1.5; }
 }
-.peligro { color: var(--rojo-700); }
+.peligro { color: var(--negativo); }
 
+/* Dos columnas en escritorio, como en Udemy; cada reseña separada por una línea encima. */
 .lista {
   display: grid;
-  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 32px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -130,8 +132,9 @@
     display: grid;
     grid-template-columns: 40px minmax(0, 1fr);
     gap: 14px;
-    padding: 16px 0;
-    border-bottom: 1px solid var(--gris-200);
+    min-width: 0;
+    padding: 20px 0;
+    border-top: 1px solid var(--borde);
   }
 }
 .cabecera-item {
@@ -141,28 +144,32 @@
   gap: 4px 12px;
   time { font-size: 13px; }
 }
-.comentario { margin: 6px 0 0; line-height: 1.55; color: var(--tinta-800); overflow-wrap: anywhere; white-space: pre-line; }
-.editada { font-size: 12px; color: var(--gris-500); font-style: italic; }
+.cabecera-item strong { overflow-wrap: anywhere; }
+.comentario { margin: 6px 0 0; line-height: 1.55; color: var(--tinta); overflow-wrap: anywhere; white-space: pre-line; }
+.editada { font-size: 12px; color: var(--tinta-3); }
 .respuesta-docente {
   margin: 12px 0 0;
   padding: 12px 14px;
-  border-left: 3px solid var(--azul-300);
-  border-radius: 0 var(--radio) var(--radio) 0;
-  background: var(--gris-100);
+  border-radius: var(--radio);
+  background: var(--elevado);
   strong { margin-right: 8px; font-size: 14px; }
   time { font-size: 13px; }
 }
-.respuesta-propia { font-size: 14px; color: var(--tinta-700); }
+.respuesta-propia { font-size: 14px; color: var(--tinta-2); }
 .texto-modal { margin: 0 0 20px; line-height: 1.55; }
 
+@media (max-width: 900px) {
+  .lista { grid-template-columns: minmax(0, 1fr); }
+}
+
 @media (max-width: 650px) {
-  .resumen { grid-template-columns: 1fr; gap: 16px; }
+  .resumen { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .propia, .invitacion { flex-direction: column; align-items: flex-start; }
 }
 
-.mi-resena.ocultada { border-color: var(--ambar-500); background: var(--ambar-100); }
+.mi-resena.ocultada { border-color: transparent; background: var(--pill-aviso-fondo); }
 .aviso-ocultada {
   margin: 0;
   line-height: 1.5;
-  color: var(--ambar-800);
+  color: var(--pill-aviso-tinta);
 }

@@ -1,7 +1,7 @@
 <div class="contenedor pagina">
   <header class="saludo">
     <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="64" [solido]="true" />
-    <div>
+    <div class="saludo-texto">
       <h1>Hola de nuevo, {{ auth.usuario()?.nombres }}</h1>
       <div class="enlaces-saludo">
         <a class="enlace" [routerLink]="auth.rutaPerfil()">Completa tu perfil</a>
@@ -25,7 +25,8 @@
       </div>
       <app-carrusel [columnas]="3" [columnasTableta]="2" etiqueta="Lecciones para retomar">
         @for (i of continuar(); track i.curso.id) {
-          <div class="continuar" role="listitem" (click)="abrir(i)" (keydown.enter)="abrir(i)" tabindex="0" style="cursor: pointer;">
+          <div role="listitem">
+          <button type="button" class="continuar" (click)="abrir(i)" [attr.aria-busy]="navegando() === i.curso.id">
             <span class="continuar-portada">
               <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [tono]="tonoDe(i.curso.categoria.id)" [compacta]="true" />
             </span>
@@ -33,18 +34,19 @@
               <small>{{ i.curso.categoria.nombre }}</small>
               <strong>{{ i.curso.titulo }}</strong>
               <span class="continuar-pie">
-                <span>{{ i.leccionesCompletadas }} de {{ i.totalLecciones }} lecciones</span>
-                <span class="texto-suave">{{ i.inscripcion.progresoPct === 0 ? 'Sin empezar' : i.inscripcion.progresoPct + ' %' }}</span>
+                <span class="num">{{ i.leccionesCompletadas }} de {{ i.totalLecciones }} lecciones</span>
+                <span class="num texto-suave">{{ i.inscripcion.progresoPct === 0 ? 'Sin empezar' : i.inscripcion.progresoPct + ' %' }}</span>
               </span>
               <app-barra-progreso [valor]="i.inscripcion.progresoPct" />
             </span>
+          </button>
           </div>
         }
       </app-carrusel>
     </section>
   } @else {
     <section class="seccion vacio tarjeta-suave">
-      <lucide-icon name="graduation-cap" [size]="28" />
+      <lucide-icon name="graduation-cap" [size]="28" aria-hidden="true" />
       <div>
         <h2>Empieza tu primer curso</h2>
         <p class="texto-suave">Cuando te inscribas, aquí aparecerá la lección donde te quedaste.</p>
@@ -74,9 +76,8 @@
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
             [imagen]="c.portadaUrl"
-          >
-            <p class="detalles"><span>{{ c.nivel }}</span><span>{{ duracion(c) }}</span></p>
-          </app-tarjeta-curso>
+            [meta]="meta(c)"
+          />
         }
       </app-carrusel>
     } @else {
@@ -102,9 +103,8 @@
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
             [imagen]="c.portadaUrl"
-          >
-            <p class="detalles"><span>{{ c.nivel }}</span><span>{{ duracion(c) }}</span></p>
-          </app-tarjeta-curso>
+            [meta]="meta(c)"
+          />
         }
       </app-carrusel>
     }
@@ -112,7 +112,7 @@
 
   <section class="seccion" aria-labelledby="t-destacados">
     <h2 class="titulo-seccion" id="t-destacados">Cursos destacados</h2>
-    <div class="pestanas" role="tablist" aria-label="Tipo de curso destacado">
+    <div class="pestanas-linea" role="tablist" aria-label="Tipo de curso destacado">
       @for (p of pestanas; track p.id) {
         <button type="button" role="tab" [attr.aria-selected]="pestana() === p.id" [class.activa]="pestana() === p.id" (click)="pestana.set(p.id)">
           {{ p.texto }}
@@ -134,9 +134,8 @@
             [nuevo]="p === 'nuevos'"
             [enlace]="'/cursos/' + c.id"
             [imagen]="c.portadaUrl"
-          >
-            <p class="detalles"><span>{{ c.nivel }}</span><span>{{ duracion(c) }}</span></p>
-          </app-tarjeta-curso>
+            [meta]="meta(c)"
+          />
         }
       </app-carrusel>
     }
@@ -147,12 +146,9 @@
     <div class="temas">
       @for (cat of categorias(); track cat.id) {
         <a class="tema" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
-          <span class="tema-icono"><lucide-icon [name]="cat.icono" [size]="22" /></span>
-          <span>
-            <strong>{{ cat.nombre }}</strong>
-            <small>Ver cursos</small>
-          </span>
-          <lucide-icon class="tema-flecha" name="chevron-right" [size]="18" />
+          <lucide-icon class="tema-icono" [name]="cat.icono" [size]="20" aria-hidden="true" />
+          <span class="tema-nombre">{{ cat.nombre }}</span>
+          <lucide-icon class="tema-flecha" name="chevron-right" [size]="18" aria-hidden="true" />
         </a>
       }
     </div>

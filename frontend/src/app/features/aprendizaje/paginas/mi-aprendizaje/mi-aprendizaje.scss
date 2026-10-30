@@ -1,25 +1,26 @@
-/* ---------------------------------------------------------------- banda oscura */
+/* ---------------------------------------------------------------- banda oscura (H18)
+   Neutra (#16181d), con aire debajo del subtítulo. */
 .banda {
-  background: var(--tinta-900);
-  color: var(--blanco);
-  padding-top: 44px;
+  padding: 40px 0 36px;
+  background: var(--cabecera-oscura);
+  color: #fff;
 
   h1 {
-    font-size: 44px;
-    font-weight: 800;
+    font-size: 32px;
+    font-weight: 700;
     letter-spacing: -0.02em;
-    line-height: 1.1;
+    line-height: 1.15;
   }
   p {
-    margin: 12px 0 0;
-    color: var(--gris-200);
+    margin: 10px 0 0;
+    color: #d1d5db;
   }
 }
 
 .estado-carga { padding: 32px; }
 .estado-carga p { margin: 12px 0; }
 .boton-enlace { border: 0; background: transparent; padding: 4px 0; cursor: pointer; }
-.error-navegacion { color: var(--rojo-700); margin: 0; }
+.error-navegacion { color: var(--negativo); margin: 0; }
 .tarjeta-curso { min-width: 0; }
 .abrir-curso { margin-top: 10px; min-height: 44px; }
 
@@ -78,7 +79,7 @@
     font-weight: 700;
   }
   p {
-    color: var(--tinta-700);
+    color: var(--tinta-2);
   }
   .enlace {
     align-self: flex-start;
@@ -124,13 +125,16 @@
   }
 }
 
-/* ---------------------------------------------------------------- filtros */
+/* ---------------------------------------------------------------- filtros
+   Cada filtro puede encogerse: un <select> mide lo que su opción más larga (un nombre de docente) y antes
+   ensanchaba la página a 414px en el teléfono. */
 .herramientas {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+  min-width: 0;
 }
 
 .filtros {
@@ -138,6 +142,19 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
+}
+
+.filtro {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.filtro select {
+  width: 100%;
+  max-width: 240px;
+  text-overflow: ellipsis;
 }
 
 .filtro select,
@@ -145,27 +162,24 @@
   appearance: none;
   min-height: 44px;
   padding: 0 38px 0 18px;
-  border: 1px solid var(--gris-200);
+  border: 1px solid var(--borde-control);
   border-radius: 999px;
-  background: var(--gris-100)
+  background: var(--superficie)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%230F172A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
     no-repeat right 14px center;
   font-size: 14px;
   font-weight: 600;
-  color: var(--tinta-900);
+  color: var(--tinta);
   cursor: pointer;
+  transition: background-color var(--t-micro) var(--curva-salida);
 
   &:hover {
-    border-color: var(--azul-200);
-  }
-  &.activo {
-    border-color: var(--azul-700);
-    background-color: var(--azul-050);
-    color: var(--azul-700);
+    background-color: var(--activo);
   }
 }
 
 .buscar {
+  position: relative;
   display: flex;
   width: 340px;
   max-width: 100%;
@@ -174,35 +188,23 @@
     flex: 1;
     min-width: 0;
     min-height: 44px;
-    padding: 0 14px;
-    border: 1px solid var(--azul-200);
-    border-right: 0;
-    border-radius: var(--radio) 0 0 var(--radio);
-    outline: none;
+    padding: 0 40px 0 14px;
+    border: 1px solid var(--borde-control);
+    border-radius: var(--radio-sm);
+    background: var(--superficie);
     font-size: 14px;
     &:focus {
-      border-color: var(--azul-700);
+      border-color: var(--acento);
     }
   }
+  /* La lupa va dentro del campo, sin el bloque azul. */
   > lucide-icon {
-    display: grid;
-    place-items: center;
-    width: 48px;
-    border-radius: 0 var(--radio) var(--radio) 0;
-    background: var(--azul-700);
-    color: var(--blanco);
-  }
-  button {
-    display: grid;
-    place-items: center;
-    width: 48px;
-    border: 0;
-    border-radius: 0 var(--radio) var(--radio) 0;
-    background: var(--azul-700);
-    color: var(--blanco);
-    &:hover {
-      background: var(--azul-800);
-    }
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    color: var(--tinta-3);
+    pointer-events: none;
   }
 }
 
@@ -219,7 +221,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--gris-500);
+  color: var(--tinta-3);
 
   select {
     border-color: transparent;
@@ -239,11 +241,13 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: var(--tinta-900);
+  min-width: 0;
+  color: var(--tinta);
 
   &:hover {
     .curso-titulo {
-      color: var(--azul-700);
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
     .reproducir {
       opacity: 1;
@@ -263,18 +267,18 @@
   position: relative;
   cursor: pointer;
   display: block;
-  height: 160px;
+  aspect-ratio: 16 / 9;
   margin-bottom: 6px;
-  border-radius: var(--radio-md);
+  border-radius: var(--radio);
   overflow: hidden;
 
   &::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgb(15 23 42 / 30%);
+    background: rgb(17 24 39 / 30%);
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity var(--t-micro) var(--curva-salida);
   }
 }
 
@@ -310,8 +314,11 @@
 }
 
 .curso-docente {
+  overflow: hidden;
   font-size: 13px;
-  color: var(--gris-500);
+  color: var(--tinta-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .curso-avance {
@@ -330,7 +337,7 @@
   font-weight: 500;
 
   &.empezar {
-    color: var(--azul-700);
+    color: var(--acento);
     font-weight: 600;
   }
 }
@@ -342,11 +349,11 @@
   gap: 10px;
   padding: 48px 16px;
   text-align: center;
-  border: 1px dashed var(--azul-200);
-  border-radius: var(--radio-md);
+  border: 1px dashed var(--borde-control);
+  border-radius: var(--radio);
 
   lucide-icon {
-    color: var(--azul-700);
+    color: var(--tinta-3);
   }
   .btn {
     margin-top: 6px;
@@ -363,8 +370,8 @@
 }
 
 .punto-estado.reprobado {
-  background: var(--rojo-050);
-  color: var(--rojo-700);
+  background: var(--pill-neg-fondo);
+  color: var(--pill-neg-tinta);
 }
 
 .accion {
@@ -386,10 +393,19 @@
 
 @media (max-width: 900px) {
   .banda {
-    padding-top: 28px;
+    padding: 28px 0;
     h1 {
-      font-size: 32px;
+      font-size: 26px;
     }
+  }
+  .herramientas {
+    align-items: stretch;
+  }
+  .filtro {
+    flex: 1 1 calc(50% - 8px);
+  }
+  .filtro select {
+    max-width: none;
   }
   .pestanas {
     margin-top: 18px;
@@ -411,9 +427,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px 12px;
   }
-  .curso-portada {
-    height: 112px;
-  }
   .curso-titulo {
     font-size: 15px;
   }
@@ -421,7 +434,7 @@
 
 @media (max-width: 640px) {
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -436,10 +449,9 @@
   align-items: flex-start;
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--ambar-600);
   border-radius: var(--radio);
-  background: var(--ambar-100);
-  color: var(--ambar-800);
+  background: var(--pill-aviso-fondo);
+  color: var(--pill-aviso-tinta);
   font-size: 13px;
   line-height: 1.45;
 

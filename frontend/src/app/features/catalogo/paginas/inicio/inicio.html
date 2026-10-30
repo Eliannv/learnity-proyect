@@ -1,13 +1,12 @@
 <!-- Buscador (solo teléfono; en escritorio está en el header) -->
 <app-buscador-movil />
 
-<!-- Hero -->
+<!-- Hero: el texto a la izquierda y la fotografía ocupando la mitad derecha -->
 <section class="hero">
   <div class="contenedor hero-interior">
     <div class="hero-texto">
       @if (auth.usuario(); as u) {
-        <span class="eyebrow marca">Hola, {{ u.nombres }}</span>
-        <h1>Qué bueno verte de nuevo. Elige un curso del catálogo para seguir aprendiendo</h1>
+        <h1>Qué bueno verte de nuevo, {{ u.nombres }}</h1>
         <p class="subtitulo">
           Explora los cursos publicados por nuestros docentes, revisa sus módulos y lecciones, o solicita enseñar tu propio curso.
         </p>
@@ -22,18 +21,17 @@
           }
         </div>
       } @else {
-        <span class="eyebrow marca">Aprendizaje en línea</span>
         <h1>Aprende habilidades prácticas con cursos cortos y claros</h1>
         <p class="subtitulo">
           Cursos organizados en módulos con videos breves, documentos descargables y evaluaciones por módulo. Avanza a tu ritmo y ve tu progreso en todo momento.
         </p>
         <div class="hero-acciones">
-          <a class="btn btn-acento btn-lg" routerLink="/cursos">Explorar cursos</a>
+          <a class="btn btn-primario btn-lg" routerLink="/cursos">Explorar cursos</a>
           <a class="btn btn-contorno btn-lg" routerLink="/registro">Crear cuenta</a>
         </div>
       }
     </div>
-    <img class="hero-imagen" src="/img/hero-estudiante.jpg" alt="Estudiante aprendiendo en línea" width="520" height="300" />
+    <img class="hero-imagen" src="/img/hero-estudiante.jpg" alt="Estudiante aprendiendo en línea" width="656" height="444" />
   </div>
 </section>
 
@@ -78,7 +76,7 @@
             [iconoCategoria]="c.categoria.icono"
             [docente]="c.docente"
             [calificacion]="c.calificacion"
-            [meta]="c.minutos + ' min · ' + c.lecciones + ' lecciones'"
+            [meta]="meta(c)"
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
             [imagen]="c.portadaUrl"
@@ -93,10 +91,7 @@
   <!-- Recién publicados -->
   <section class="contenedor seccion">
     <div class="cabecera-seccion">
-      <div>
-        <span class="eyebrow">Novedades</span>
-        <h2 class="titulo-seccion">Recién publicados</h2>
-      </div>
+      <h2 class="titulo-seccion">Recién publicados</h2>
       <a class="enlace" routerLink="/cursos" [queryParams]="{ orden: 'recientes' }">Ver más recientes →</a>
     </div>
     @if (recientes().length) {
@@ -108,7 +103,7 @@
             [iconoCategoria]="c.categoria.icono"
             [docente]="c.docente"
             [calificacion]="c.calificacion"
-            [meta]="c.minutos + ' min · ' + c.lecciones + ' lecciones'"
+            [meta]="meta(c)"
             [tono]="tonoDe(c.categoria.id)"
             [nuevo]="true"
             [enlace]="'/cursos/' + c.id"
@@ -122,38 +117,12 @@
   </section>
 }
 
-<!-- Indicadores -->
-<section class="numeros">
-  <div class="contenedor numeros-interior">
-    @for (ind of indicadores(); track ind.etiqueta) {
-      <div class="numero">
-        <strong>{{ ind.valor }}</strong>
-        <span>{{ ind.etiqueta }}</span>
-      </div>
-    }
-  </div>
+<!-- Cómo funciona: tres frases, el verbo en negrita (destino del enlace «Cómo funciona» del pie) -->
+<section id="como-funciona" class="contenedor como-funciona" aria-labelledby="t-como-funciona">
+  <h2 class="titulo-seccion" id="t-como-funciona">Cómo funciona Learnity</h2>
+  <ol class="pasos">
+    <li><strong>Elige</strong> un curso del catálogo por categoría o tema y revisa su contenido antes de inscribirte.</li>
+    <li><strong>Avanza</strong> por módulos con videos cortos de hasta 3 minutos y material descargable.</li>
+    <li><strong>Comprueba</strong> lo aprendido con la evaluación de cada módulo y sigue tu avance en tiempo real.</li>
+  </ol>
 </section>
-
-<!-- Cómo funciona -->
-<section class="contenedor como-funciona">
-  <h2 class="titulo-seccion">Cómo funciona Learnity</h2>
-  <div class="pasos">
-    <article class="paso">
-      <lucide-icon name="compass" [size]="24" />
-      <h3>1. Elige un curso</h3>
-      <p>Explora el catálogo por categoría o busca un tema. Revisa el contenido antes de inscribirte.</p>
-    </article>
-    <article class="paso">
-      <lucide-icon name="circle-play" [size]="24" />
-      <h3>2. Avanza por módulos</h3>
-      <p>Videos cortos de hasta 3 minutos y material descargable en PDF o presentaciones.</p>
-    </article>
-    <article class="paso">
-      <lucide-icon name="circle-check" [size]="24" />
-      <h3>3. Comprueba lo aprendido</h3>
-      <p>Resuelve la evaluación de cada módulo y sigue tu porcentaje de avance en tiempo real.</p>
-    </article>
-  </div>
-</section>
-
-<br>

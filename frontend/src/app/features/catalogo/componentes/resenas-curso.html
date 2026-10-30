@@ -15,9 +15,9 @@
     <div class="resumen">
       <div class="nota">
         @if (p.resumen.promedio !== null) {
-          <strong class="numero">{{ p.resumen.promedio | number: '1.1-1' }}</strong>
+          <strong class="numero num">{{ p.resumen.promedio | number: '1.1-1' }}</strong>
           <app-estrellas [valor]="p.resumen.promedio" />
-          <span class="texto-suave">{{ p.resumen.total }} {{ p.resumen.total === 1 ? 'reseña' : 'reseñas' }}</span>
+          <span class="texto-suave num">{{ p.resumen.total }} {{ p.resumen.total === 1 ? 'reseña' : 'reseñas' }}</span>
         } @else {
           <strong class="sin-nota">Sin reseñas todavía</strong>
           <span class="texto-suave">Las opiniones de quienes tomen el curso aparecerán aquí.</span>
@@ -27,9 +27,9 @@
         <ul class="distribucion" aria-label="Reseñas por número de estrellas">
           @for (n of [5, 4, 3, 2, 1]; track n) {
             <li>
-              <span class="etiqueta">{{ n }} ★</span>
+              <span class="etiqueta num">{{ n }} {{ n === 1 ? 'estrella' : 'estrellas' }}</span>
               <span class="barra" aria-hidden="true"><span [style.width.%]="porcentaje(p.resumen.distribucion[n - 1]!)"></span></span>
-              <span class="texto-suave cantidad">{{ porcentaje(p.resumen.distribucion[n - 1]!) }} %</span>
+              <span class="texto-suave cantidad num">{{ porcentaje(p.resumen.distribucion[n - 1]!) }} %</span>
               <span class="visualmente-oculto">{{ p.resumen.distribucion[n - 1] }} con {{ n }} estrellas</span>
             </li>
           }
@@ -55,7 +55,7 @@
                   <label [class.activa]="estrellas() >= n">
                     <input type="radio" name="estrellas" [value]="n" [checked]="estrellas() === n"
                       (change)="estrellas.set(n)" [attr.aria-label]="n + (n === 1 ? ' estrella' : ' estrellas') + ': ' + nombreNota[n]" />
-                    <span aria-hidden="true">★</span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path [attr.d]="trazoEstrella" /></svg>
                   </label>
                 }
                 <span class="texto-suave nombre-nota" aria-live="polite">{{ nombreNota[estrellas()] }}</span>

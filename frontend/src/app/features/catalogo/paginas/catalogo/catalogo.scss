@@ -1,33 +1,50 @@
+/* Búsqueda al estilo de Udemy: filtros a la izquierda y resultados en filas. Las columnas usan minmax(0, 1fr)
+   para que un nombre de categoría o un título largo nunca ensanchen la página (H1). */
 .catalogo {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 32px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 40px;
   padding-top: 32px;
-  padding-bottom: 48px;
+  padding-bottom: 56px;
 }
 
 .lateral {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .filtro-titulo {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 10px 0 4px;
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .opciones {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin: 8px 0 14px;
+  gap: 14px;
+  margin: 8px 0 12px;
 }
 
-.total {
-  color: var(--gris-500);
+.casilla {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
   font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+
+  input {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    accent-color: var(--acento);
+  }
 }
 
 .resultados {
@@ -44,10 +61,21 @@
   gap: 16px;
 }
 
+.resumen {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tinta);
+  overflow-wrap: anywhere;
+}
+
 .ordenar {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 10px;
+  font-size: 14px;
+  color: var(--tinta-2);
   select {
     width: 190px;
     min-height: 40px;
@@ -60,10 +88,23 @@
   gap: 8px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+/* Una fila por curso, separadas por una línea; el primer resultado no lleva línea encima. */
+.lista-cursos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    min-width: 0;
+    padding: 24px 0;
+    border-top: 1px solid var(--borde);
+    &:first-child {
+      padding-top: 4px;
+      border-top: 0;
+    }
+  }
 }
 
 .mas {
@@ -80,16 +121,22 @@
   align-items: center;
   gap: 10px;
   padding: 48px 16px;
-  border: 1px dashed var(--azul-200);
-  border-radius: var(--radio-md);
-  color: var(--gris-500);
+  border: 1px dashed var(--borde-control);
+  border-radius: var(--radio);
+  color: var(--tinta-2);
+  text-align: center;
+  lucide-icon {
+    color: var(--tinta-3);
+  }
 }
 
 .barra-movil {
   display: flex;
   gap: 10px;
+  min-width: 0;
   select {
     flex: 1;
+    min-width: 0;
     min-height: 36px;
     padding-top: 4px;
     padding-bottom: 4px;
@@ -98,23 +145,17 @@
 
 .acciones-modal {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 8px;
 }
 
-@media (max-width: 1100px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 900px) {
   .catalogo {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     padding-top: 16px;
   }
-  .grid {
-    grid-template-columns: 1fr;
+  .lista-cursos li {
+    padding: 20px 0;
   }
 }

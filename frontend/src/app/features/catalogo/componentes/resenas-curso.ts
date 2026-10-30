@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, input, output, signal, untracked }
 import { FormsModule } from '@angular/forms';
 import { mensajeDeError } from '../../../core/http/error-api';
 import { Avatar } from '../../../shared/ui/marca/avatar';
-import { Estrellas } from '../../../shared/ui/datos/estrellas';
+import { Estrellas, TRAZO_ESTRELLA } from '../../../shared/ui/datos/estrellas';
 import { Modal } from '../../../shared/ui/retroalimentacion/modal';
 import { ToastService } from '../../../shared/ui/retroalimentacion/toast.service';
 import { ResenasApi, type PaginaResenas, type Resena } from '../resenas.api';
@@ -31,6 +31,7 @@ export class ResenasCurso {
   readonly cambio = output<PaginaResenas['resumen']>();
 
   protected readonly nombreNota = NOMBRE_NOTA;
+  protected readonly trazoEstrella = TRAZO_ESTRELLA;
   protected readonly pagina = signal<PaginaResenas | null>(null);
   protected readonly items = signal<Resena[]>([]);
   protected readonly cargando = signal(true);

@@ -13,11 +13,14 @@ export interface CalificacionTarjeta {
 /**
  * Tarjeta de curso (CourseCard), con la jerarquía de Udemy: portada 16:9, título, docente, valoración y meta.
  * Sin borde ni sombra en reposo: la portada recortada es la que da forma a la tarjeta.
+ * `horizontal` la convierte en la fila de resultados de búsqueda (portada a la izquierda, subtítulo a dos líneas);
+ * por debajo de 700px vuelve a apilarse como tarjeta.
  * Lo que va debajo (progreso, botones) se pasa como contenido.
  */
 @Component({
   selector: 'app-tarjeta-curso',
   imports: [RouterLink, PortadaCurso, Estrellas],
+  host: { '[class.horizontal]': 'horizontal()' },
   template: `
     <article class="tarjeta-curso">
       @if (enlace()) {
@@ -32,6 +35,9 @@ export interface CalificacionTarjeta {
           <a class="titulo" [routerLink]="enlace()">{{ titulo() }}</a>
         } @else {
           <h3 class="titulo">{{ titulo() }}</h3>
+        }
+        @if (horizontal() && subtitulo()) {
+          <p class="subtitulo-curso">{{ subtitulo() }}</p>
         }
         @if (docente()) {
           <p class="docente">{{ docente() }}</p>
@@ -148,6 +154,36 @@ export interface CalificacionTarjeta {
       font-size: 12px;
       font-weight: 600;
     }
+    .subtitulo-curso {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow: hidden;
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--tinta-2);
+    }
+    /* Fila de resultados: portada de 260px a la izquierda y el texto a su lado. */
+    @media (min-width: 701px) {
+      :host(.horizontal) {
+        .tarjeta-curso {
+          display: grid;
+          grid-template-columns: 260px minmax(0, 1fr);
+          align-items: start;
+          gap: 20px;
+        }
+        .cuerpo {
+          padding-top: 0;
+        }
+        .titulo {
+          font-size: 17px;
+        }
+        .valoracion:empty {
+          display: none;
+        }
+      }
+    }
     /* La portada se acerca dentro de su máscara y el título se subraya: solo con un puntero que pueda pasar por encima. */
     @media (hover: hover) {
       .tarjeta-curso:hover {
@@ -168,6 +204,9 @@ export class TarjetaCurso {
   /** Ícono de la categoría que devuelve la API (`categoria.icono`). */
   readonly iconoCategoria = input<string | null | undefined>(null);
   readonly docente = input<string>();
+  /** Solo en la fila horizontal: el subtítulo del curso a dos líneas. */
+  readonly subtitulo = input<string | null>(null);
+  readonly horizontal = input(false);
   /** Reseñas vigentes; sin reseñas la fila queda vacía con su alto. Sin el dato (null), la fila no existe. */
   readonly calificacion = input<CalificacionTarjeta | null>(null);
   /** Duración y lecciones, separadas por « · ». Las partes «0 min» se omiten. */

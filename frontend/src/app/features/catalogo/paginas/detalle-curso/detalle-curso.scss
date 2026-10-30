@@ -1,12 +1,420 @@
-.detalle {
+/* Ficha del curso al estilo de Udemy (DIAGNOSTICO_REDISENO_UI.md, H11 y H12):
+   banda oscura a todo el ancho con el título, tarjeta de inscripción fija a la derecha que se le superpone y,
+   en el teléfono, una barra fija con el botón encima de la barra inferior. */
+
+.ficha {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 32px;
-  align-items: start;
-  padding-top: 32px;
-  padding-bottom: 48px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-rows: auto 1fr;
+  column-gap: 48px;
+  padding-bottom: 64px;
 }
 
+/* La banda ocupa la fila 1 y se extiende a todo el ancho de la ventana con una sombra recortada: no crea scroll
+   horizontal (al contrario que un margen de 100vw). */
+.fondo-banda {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  background: var(--cabecera-oscura);
+  box-shadow: 0 0 0 100vmax var(--cabecera-oscura);
+  clip-path: inset(0 -100vmax);
+}
+
+.banda-texto {
+  position: relative;
+  grid-row: 1;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 32px 0 40px;
+  color: #fff;
+  /* Sobre la banda: pista de las estrellas más oscura y el ámbar más claro (6,9:1 sobre #16181d). */
+  --borde: #4b5563;
+  --estrella: #f0a93b;
+}
+
+.portada-movil {
+  align-self: stretch;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+
+.migas {
+  font-weight: 600;
+
+  a {
+    color: #c7d2fe;
+    text-underline-offset: 3px;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  lucide-icon {
+    color: #9ca3af;
+  }
+}
+
+.titulo-curso {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.subtitulo-curso {
+  max-width: 62ch;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #e5e7eb;
+}
+
+.calificacion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #c7d2fe;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  strong {
+    color: #f6c56f;
+    font-size: 15px;
+    font-weight: 700;
+  }
+}
+
+.creado {
+  font-size: 14px;
+  color: #e5e7eb;
+  overflow-wrap: anywhere;
+
+  strong {
+    color: #c7d2fe;
+    font-weight: 600;
+  }
+}
+
+.meta {
+  font-size: 14px;
+  color: #d1d5db;
+}
+
+/* ---------------------------------------------------------------- tarjeta lateral */
+.lateral {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  padding-top: 32px;
+}
+
+.tarjeta-inscripcion {
+  position: sticky;
+  top: calc(var(--alto-header) + 24px);
+  overflow: hidden;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flotante);
+
+  .portada {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+.tarjeta-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+
+.precio {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--tinta);
+}
+
+.mensaje-error {
+  margin: 0;
+  color: var(--negativo);
+  font-size: 14px;
+}
+
+.incluye {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  strong {
+    font-size: 15px;
+  }
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--tinta-2);
+  }
+  lucide-icon {
+    flex: none;
+    margin-top: 2px;
+    color: var(--tinta-3);
+  }
+}
+
+.requisitos-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+  font-size: 14px;
+
+  ul {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--tinta-2);
+  }
+}
+
+/* ---------------------------------------------------------------- cuerpo */
+.principal {
+  grid-row: 2;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-width: 0;
+  padding-top: 32px;
+
+  h2 {
+    margin-bottom: 16px;
+    font-size: var(--fs-titulo-seccion);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* «Lo que aprenderás»: caja con marcas de verificación, a dos columnas en escritorio. */
+.aprenderas {
+  padding: 24px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+
+  ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 15px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  lucide-icon {
+    flex: none;
+    margin-top: 2px;
+    color: var(--tinta-2);
+  }
+}
+
+/* «Contenido del curso»: acordeón con filas de sección en --elevado y lecciones con su tipo a la derecha. */
+.cabecera-temario {
+  h2 {
+    margin-bottom: 8px;
+  }
+}
+
+.temario-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--tinta-2);
+
+  .btn-texto {
+    padding: 0;
+    min-height: 32px;
+    color: var(--acento);
+    font-weight: 600;
+  }
+}
+
+.temario {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+
+.modulo + .modulo {
+  border-top: 1px solid var(--borde);
+}
+
+.cabecera-modulo {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 20px;
+  border: 0;
+  background: var(--elevado);
+  color: var(--tinta);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--t-micro) var(--curva-salida);
+
+  &:hover {
+    background: var(--activo);
+  }
+  strong {
+    font-size: 15px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  .conteo {
+    font-size: 13px;
+    color: var(--tinta-3);
+    white-space: nowrap;
+  }
+  .chevron {
+    color: var(--tinta-2);
+    transform: rotate(-90deg);
+    transition: transform var(--t-micro) var(--curva-entrada-salida);
+  }
+}
+
+.modulo.abierto .chevron {
+  transform: none;
+}
+
+.modulo ul {
+  margin: 0;
+  padding: 8px 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px;
+    font-size: 14px;
+  }
+  lucide-icon {
+    color: var(--tinta-3);
+  }
+  .leccion-titulo {
+    overflow-wrap: anywhere;
+  }
+  .leccion-tipo {
+    color: var(--tinta-3);
+    white-space: nowrap;
+  }
+}
+
+.temario-vacio {
+  padding: 20px;
+  color: var(--tinta-3);
+}
+
+.requisitos ul,
+.descripcion p {
+  color: var(--tinta-2);
+  line-height: 1.6;
+}
+
+.requisitos ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.descripcion p {
+  max-width: 72ch;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- docente */
+.instructor-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.instructor-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.instructor-nombre {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--acento);
+  overflow-wrap: anywhere;
+}
+
+.instructor-especialidad {
+  color: var(--tinta-2);
+  font-size: 14px;
+}
+
+.instructor-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  lucide-icon {
+    flex: none;
+    margin-top: 2px;
+    color: var(--tinta-3);
+  }
+}
+
+.instructor-bio {
+  margin: 16px 0 0;
+  max-width: 72ch;
+  line-height: 1.6;
+  white-space: pre-line;
+  color: var(--tinta-2);
+}
+
+/* ---------------------------------------------------------------- estados */
 .estado-detalle {
   display: flex;
   flex-direction: column;
@@ -16,237 +424,72 @@
   padding-bottom: 64px;
 }
 
-.temario-vacio {
-  padding: 20px;
+.carga-detalle {
+  padding: 32px 0 56px;
 }
 
-.lista-informacion {
-  h2 { font-size: 24px; margin-bottom: 12px; }
-  li { margin-bottom: 8px; }
-}
-
-.principal {
+/* ---------------------------------------------------------------- teléfono */
+.barra-inscripcion {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--alto-tabbar) + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
-  min-width: 0;
-  // Bloques que ocupan todo el ancho de la columna (si no, se encogen a su contenido).
-  > .separador,
-  > .instructor,
-  > .temario,
-  > app-resenas-curso {
-    align-self: stretch;
+  padding: 10px 16px;
+  border-top: 1px solid var(--borde);
+  background: var(--superficie);
+
+  .precio {
+    flex: none;
+    font-size: 16px;
   }
-  > .separador { margin: 8px 0; }
-}
-
-.titulo-curso {
-  font-size: 40px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-
-.meta {
-  color: var(--gris-500);
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.descripcion {
-  font-size: 16px;
-}
-
-.cabecera-temario {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
-  h2 {
-    font-size: 24px;
-    font-weight: 600;
-  }
-  span {
-    font-size: 14px;
-    font-weight: 600;
-  }
-}
-
-.temario {
-  width: 100%;
-  border: 1px solid var(--azul-200);
-  border-radius: var(--radio-md);
-  overflow: hidden;
-}
-
-.modulo + .modulo {
-  border-top: 1px solid var(--azul-200);
-}
-
-.cabecera-modulo {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 16px 20px;
-  border: 0;
-  background: var(--azul-050);
-  text-align: left;
-
-  strong {
+  .barra-accion {
     flex: 1;
-    font-size: 17px;
-    font-weight: 600;
-  }
-  span {
-    font-size: 14px;
-  }
-}
-
-.modulo ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  background: var(--blanco);
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 20px 12px 52px;
-    border-top: 1px solid var(--gris-200);
-    lucide-icon {
-      color: var(--gris-500);
-    }
-    span:first-of-type {
-      flex: 1;
-    }
-    .texto-suave {
-      font-size: 14px;
-    }
-  }
-}
-
-
-.calificacion {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  color: var(--tinta-800);
-  font-size: 15px;
-  strong { color: #8a4f06; font-size: 16px; }
-  &:hover span { text-decoration: underline; }
-}
-
-.instructor {
-  display: grid;
-  gap: 14px;
-  h2 { margin: 0; font-size: 22px; }
-}
-.instructor-cabecera {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  > div { display: grid; gap: 4px; }
-}
-.instructor-nombre { font-size: 19px; font-weight: 700; color: var(--azul-700); }
-.instructor-especialidad { color: var(--tinta-800); }
-.instructor-datos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 18px;
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 14px;
-  color: var(--gris-600, #475569);
-  li { display: inline-flex; align-items: center; gap: 6px; }
-}
-.instructor-valoracion strong { color: #8a4f06; }
-.instructor-bio { margin: 0; line-height: 1.6; white-space: pre-line; color: var(--tinta-800); }
-
-aside {
-  position: sticky;
-  top: calc(var(--alto-header) + 24px);
-}
-
-.tarjeta-inscripcion {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
-  padding: 24px;
-  border: 1px solid var(--azul-200);
-  border-radius: var(--radio-md);
-  background: var(--azul-050);
-
-  ul {
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+    gap: 4px;
   }
-  li {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    lucide-icon {
-      color: var(--azul-700);
-    }
+  .btn {
+    min-height: 44px;
   }
-}
-
-.mensaje-error {
-  margin: 0;
-  color: var(--rojo-700);
-  font-size: 14px;
-}
-
-.portada {
-  display: block;
-  aspect-ratio: 16 / 10;
-  border-radius: var(--radio-sm);
-}
-.tono-1 {
-  background: var(--azul-300);
-}
-.tono-2 {
-  background: var(--azul-200);
-}
-.tono-3 {
-  background: var(--blanco);
-}
-
-.resumen-modal {
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-
-.acciones-modal {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 20px;
 }
 
 @media (max-width: 900px) {
-  .detalle {
-    grid-template-columns: 1fr;
-    padding-top: 16px;
+  .ficha {
+    grid-template-columns: minmax(0, 1fr);
+    /* Hueco para la barra fija de inscripción. */
+    padding-bottom: 96px;
+  }
+  .banda-texto {
+    padding: 16px 0 28px;
   }
   .titulo-curso {
-    font-size: 28px;
+    font-size: 24px;
+  }
+  .subtitulo-curso {
+    font-size: 16px;
+  }
+  .principal {
+    gap: 32px;
+    padding-top: 24px;
+  }
+  .incluye-movil {
+    padding-bottom: 8px;
+  }
+  .aprenderas {
+    padding: 20px 16px;
+    ul {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .cabecera-modulo {
+    padding: 12px 16px;
   }
   .modulo ul li {
-    padding-left: 20px;
-  }
-  .docente {
-    align-items: flex-start;
+    padding: 8px 16px;
   }
 }
-.carga-detalle { padding: 32px 0 56px; }

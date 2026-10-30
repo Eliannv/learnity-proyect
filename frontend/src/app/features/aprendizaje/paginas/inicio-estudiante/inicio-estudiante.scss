@@ -16,6 +16,7 @@
     font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.01em;
+    text-wrap: balance;
   }
   .enlace {
     font-size: 14px;
@@ -24,13 +25,20 @@
   }
   .enlaces-saludo {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 4px 8px;
     .sep {
-      color: var(--gris-400);
+      color: var(--tinta-3);
       font-size: 14px;
     }
   }
+}
+
+/* Sin min-width: 0 el texto no puede encogerse junto al avatar y un nombre largo ensancha la página (403px a 390). */
+.saludo-texto {
+  flex: 1;
+  min-width: 0;
 }
 
 .seccion {
@@ -46,6 +54,9 @@
   justify-content: space-between;
   gap: 16px;
 
+  > * {
+    min-width: 0;
+  }
   .enlace {
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -63,42 +74,37 @@
   }
 }
 
-.detalles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 6px;
-  margin-top: auto;
-  padding-top: 4px;
-  font-size: 13px;
-  color: var(--tinta-700);
-
-  span {
-    white-space: nowrap;
-  }
-  span + span::before {
-    content: '· ';
-  }
-}
-
-/* ---------------------------------------------------------------- continuar */
+/* ---------------------------------------------------------------- continuar
+   Un botón por curso: borde en reposo (sin sombra), el borde se oscurece al pasar y la tarjeta cede al pulsar. */
 .continuar {
   display: flex;
+  width: 100%;
   min-height: 144px;
-  border: 1px solid var(--gris-200);
-  border-radius: var(--radio-md);
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
   overflow: hidden;
-  background: var(--blanco);
-  color: var(--tinta-900);
+  background: var(--superficie);
+  color: var(--tinta);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   transition:
-    box-shadow 0.15s,
-    border-color 0.15s;
+    border-color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
 
   &:hover {
-    border-color: var(--azul-200);
-    box-shadow: 0 8px 24px rgb(15 23 42 / 8%);
+    border-color: var(--borde-control);
     strong {
-      color: var(--azul-700);
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
+  }
+  &:active {
+    transform: scale(0.99);
+  }
+  &[aria-busy='true'] {
+    cursor: progress;
   }
 }
 
@@ -117,8 +123,8 @@
 
   small {
     font-size: 12px;
-    font-weight: 600;
-    color: var(--gris-500);
+    font-weight: 500;
+    color: var(--tinta-3);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -150,97 +156,67 @@
   align-items: center;
   gap: 16px;
   padding: 24px;
-  border: 1px solid var(--azul-200);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
 
   lucide-icon {
-    color: var(--azul-700);
+    color: var(--tinta-3);
   }
   h2 {
     font-size: 18px;
   }
   div {
     flex: 1;
+    min-width: 0;
   }
 }
 
-/* ---------------------------------------------------------------- pestañas */
-.pestanas {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--gris-200);
-  overflow-x: auto;
-  scrollbar-width: none;
-
-  button {
-    flex-shrink: 0;
-    min-height: 44px;
-    padding: 0 6px;
-    margin-right: 14px;
-    border: 0;
-    border-bottom: 2px solid transparent;
-    background: none;
-    color: var(--gris-500);
-    font-weight: 600;
-    white-space: nowrap;
-
-    &:hover {
-      color: var(--tinta-900);
-    }
-    &.activa {
-      color: var(--tinta-900);
-      border-bottom-color: var(--tinta-900);
-    }
-  }
-}
-
-/* ---------------------------------------------------------------- categorías */
+/* ---------------------------------------------------------------- categorías
+   Enlaces limpios: ícono neutro, nombre y flecha; sin el cuadrado de color. */
 .temas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
   gap: 12px;
 }
 
 .tema {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--gris-200);
-  border-radius: var(--radio-md);
-  color: var(--tinta-900);
+  gap: 12px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  color: var(--tinta);
   transition:
-    border-color 0.15s,
-    background-color 0.15s;
+    border-color var(--t-micro) var(--curva-salida),
+    background-color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
 
-  span:not(.tema-icono) {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+  .tema-icono {
+    flex: none;
+    color: var(--tinta-3);
   }
-  small {
-    font-size: 13px;
-    color: var(--gris-500);
+  .tema-nombre {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .tema-flecha {
-    color: var(--gris-400);
+    flex: none;
+    color: var(--tinta-3);
   }
   &:hover {
-    border-color: var(--azul-200);
-    background: var(--azul-050);
-    .tema-flecha {
-      color: var(--azul-700);
-    }
+    border-color: var(--borde-control);
+    background: var(--activo);
   }
-}
-
-.tema-icono {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radio);
-  background: var(--azul-050);
-  color: var(--azul-700);
+  &:active {
+    transform: scale(0.99);
+  }
 }
 
 @media (max-width: 900px) {
@@ -289,19 +265,16 @@
     align-items: flex-start;
   }
   .temas {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .tema {
-    padding: 12px;
+    padding: 0 12px;
     gap: 10px;
-    .tema-flecha {
-      display: none;
-    }
   }
 }
 
 @media (max-width: 540px) {
   .temas {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }

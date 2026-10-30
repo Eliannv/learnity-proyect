@@ -39,7 +39,7 @@
       <div class="resumen-datos">
         <app-anillo-progreso [valor]="completadas()" [total]="totalLecciones()" [tamano]="92"
           [etiqueta]="completadas() + ' de ' + totalLecciones() + ' lecciones completadas'" />
-        <strong>{{ completadas() }} de {{ totalLecciones() }} lecciones completadas</strong>
+        <strong class="num">{{ completadas() }} de {{ totalLecciones() }} lecciones completadas</strong>
       </div>
     </section>
 
@@ -79,7 +79,7 @@
     </div>
 
     <div class="resultados">
-      <strong>{{ lista().length }} {{ lista().length === 1 ? 'curso' : 'cursos' }}</strong>
+      <strong class="num">{{ lista().length }} {{ lista().length === 1 ? 'curso' : 'cursos' }}</strong>
       <label class="orden">
         <span>Ordenar por</span>
         <select [value]="orden()" (change)="orden.set($any(valor($event)))">
@@ -112,7 +112,7 @@
             <span class="curso-docente">{{ i.curso.docente }}</span>
             <div class="curso-avance">
               <app-barra-progreso [valor]="i.inscripcion.progresoPct" [verde]="i.inscripcion.estado === 'COMPLETADA'" />
-              <span class="estado-texto">{{ i.leccionesCompletadas }}/{{ i.totalLecciones }} lecciones ·
+              <span class="estado-texto num">{{ i.leccionesCompletadas }}/{{ i.totalLecciones }} lecciones ·
                 {{ i.inscripcion.estado === 'COMPLETADA' ? 'Completado' : i.inscripcion.progresoPct + '% completado' }}</span>
             </div>
             @if (i.suspendido) {

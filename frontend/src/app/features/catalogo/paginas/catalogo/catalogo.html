@@ -28,8 +28,7 @@
 <app-buscador-movil [valor]="q() ?? ''" />
 
 <div class="contenedor catalogo">
-  <aside class="lateral oculto-movil">
-    <span class="eyebrow">Filtrar</span>
+  <aside class="lateral oculto-movil" aria-label="Filtros del catálogo">
     <ng-container [ngTemplateOutlet]="filtros" />
     <button type="button" class="btn btn-contorno btn-bloque" (click)="limpiar()">Limpiar filtros</button>
   </aside>
@@ -38,7 +37,7 @@
     <h1 class="titulo-pagina">Catálogo de cursos</h1>
 
     <div class="barra-resultados oculto-movil">
-      <span class="texto-suave">{{ resumen() }}</span>
+      <span class="resumen num">{{ resumen() }}</span>
       <label class="ordenar">
         <span class="texto-suave">Ordenar por</span>
         <select class="control" [value]="orden()" (change)="cambiarOrden($any($event.target).value)">
@@ -51,7 +50,7 @@
 
     <div class="barra-movil solo-movil">
       <button type="button" class="btn btn-suave btn-sm" (click)="filtrosMovil.set(true)">
-        <lucide-icon name="sliders-horizontal" [size]="16" /> Filtrar
+        <lucide-icon name="sliders-horizontal" [size]="16" aria-hidden="true" /> Filtrar
       </button>
       <select class="control control-sm" [value]="orden()" (change)="cambiarOrden($any($event.target).value)" aria-label="Ordenar">
         <option value="recientes">Más recientes</option>
@@ -64,7 +63,7 @@
       <div class="chips-activos">
         @for (c of seleccion(); track c) {
           <button type="button" class="chip-filtro activo" (click)="alternar('categoria', c)">
-            {{ c }} <lucide-icon name="x" [size]="14" />
+            {{ c }} <lucide-icon name="x" [size]="14" aria-hidden="true" />
           </button>
         }
       </div>
@@ -78,31 +77,36 @@
         <button type="button" class="btn btn-contorno" (click)="reintentar()">Reintentar</button>
       </div>
     } @else if (cursos().length) {
-      <div class="grid">
+      <!-- Filas al estilo de los resultados de búsqueda de Udemy; en el teléfono, tarjetas apiladas. -->
+      <ul class="lista-cursos">
         @for (c of cursos(); track c.id) {
-          <app-tarjeta-curso
-            [titulo]="c.titulo"
-            [categoria]="c.categoria.nombre"
-            [iconoCategoria]="c.categoria.icono"
-            [docente]="c.docente"
-            [calificacion]="c.calificacion"
-            [meta]="c.minutos + ' min · ' + c.lecciones + ' lecciones'"
-            [tono]="c.categoria.id % 3 === 0 ? 3 : c.categoria.id % 3 === 1 ? 1 : 2"
-            [enlace]="'/cursos/' + c.id"
-            [imagen]="c.portadaUrl"
-          />
+          <li>
+            <app-tarjeta-curso
+              [horizontal]="true"
+              [titulo]="c.titulo"
+              [subtitulo]="c.subtitulo"
+              [categoria]="c.categoria.nombre"
+              [iconoCategoria]="c.categoria.icono"
+              [docente]="c.docente"
+              [calificacion]="c.calificacion"
+              [meta]="meta(c)"
+              [tono]="c.categoria.id % 3 === 0 ? 3 : c.categoria.id % 3 === 1 ? 1 : 2"
+              [enlace]="'/cursos/' + c.id"
+              [imagen]="c.portadaUrl"
+            />
+          </li>
         }
-      </div>
+      </ul>
       @if (totalPaginas() > 1) {
         <nav class="mas" aria-label="Páginas del catálogo">
           <button type="button" class="btn btn-contorno" [disabled]="pagina() <= 1" (click)="cambiarPagina(pagina() - 1)">Anterior</button>
-          <span>Página {{ pagina() }} de {{ totalPaginas() }}</span>
+          <span class="num">Página {{ pagina() }} de {{ totalPaginas() }}</span>
           <button type="button" class="btn btn-contorno" [disabled]="pagina() >= totalPaginas()" (click)="cambiarPagina(pagina() + 1)">Siguiente</button>
         </nav>
       }
     } @else {
       <div class="vacio">
-        <lucide-icon name="search" [size]="28" />
+        <lucide-icon name="search" [size]="28" aria-hidden="true" />
         <p>No hay cursos con esos filtros.</p>
         <button type="button" class="btn btn-contorno" (click)="limpiar()">Limpiar filtros</button>
       </div>

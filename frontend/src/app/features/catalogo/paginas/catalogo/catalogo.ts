@@ -6,12 +6,14 @@ import { LucideAngularModule } from 'lucide-angular';
 import {
   CatalogoApi,
   type CategoriaPublica,
+  type CursoPublico,
   type NivelCurso,
   type OrdenCatalogo,
   type PaginaCursos,
 } from '../../catalogo.api';
 import { BuscadorMovil } from '../../../../shared/ui/navegacion/buscador-movil';
 import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
+import { metaCurso } from '../../../../shared/ui/cursos/formato-curso';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
 
 const LIMITE = 9;
@@ -42,6 +44,8 @@ export class Catalogo {
   );
   protected readonly nivelesSel = signal<NivelCurso[]>([]);
   protected readonly niveles = NIVELES;
+  /** Nivel, lecciones y duración (sin «0 min»), como la línea de metadatos de Udemy. */
+  protected readonly meta = (c: CursoPublico) => metaCurso(c, true);
   protected readonly orden = signal<OrdenCatalogo>('recientes');
   protected readonly pagina = linkedSignal<number>(() => {
     this.q();

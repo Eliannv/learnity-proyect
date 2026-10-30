@@ -2,7 +2,7 @@ import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { mensajeDeError } from '../../../../core/http/error-api';
 import { ContenidoApi } from '../../../contenido/contenido.api';
@@ -16,6 +16,8 @@ import { EvaluacionEstudiante } from '../../componentes/evaluacion-estudiante';
 import { RecursosEstudiante } from '../../componentes/recursos-estudiante';
 import { ResenasCurso } from '../../../catalogo/componentes/resenas-curso';
 import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
+
+type PestanaAula = 'descripcion' | 'resenas';
 
 const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
   VIDEO: 'Vídeo',
@@ -36,6 +38,10 @@ const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
 export class SeguimientoCurso {
   readonly cursoId = input.required<string>();
   readonly leccionId = input.required<string>();
+  /** `?pestana=resenas` abre «Reseñas» bajo el visor; sin el parámetro, «Descripción general». */
+  readonly pestanaUrl = input<string | undefined>(undefined, { alias: 'pestana' });
+  private readonly router = inject(Router);
+  private readonly rutaActiva = inject(ActivatedRoute);
 
   private readonly api = inject(AprendizajeApi);
   private readonly contenido = inject(ContenidoApi);
@@ -59,7 +65,7 @@ export class SeguimientoCurso {
   protected readonly guardando = signal(false);
   protected readonly errorProgreso = signal('');
   protected readonly confirmacion = signal('');
-  protected readonly pestana = signal<'descripcion' | 'recursos'>('descripcion');
+  protected readonly pestana = computed<PestanaAula>(() => (this.pestanaUrl() === 'resenas' ? 'resenas' : 'descripcion'));
   protected readonly sidebarAbierto = signal(true);
   protected readonly descargandoId = signal<number | null>(null);
   protected readonly avisoDescarga = signal('');
@@ -70,6 +76,20 @@ export class SeguimientoCurso {
   protected readonly anterior = computed(() => this.todas()[this.indice() - 1] ?? null);
   protected readonly siguiente = computed(() => this.todas()[this.indice() + 1] ?? null);
   protected readonly videoDisponible = computed(() => esIdYoutube(this.leccion()?.youtubeVideoId));
+
+  /**
+   * Cambia de pestaña sin recargar: solo la URL (reemplazando la entrada del historial). La pestaña por defecto no
+   * lleva parámetro, así la URL de la lección sigue siendo /aprender/:curso/:leccion.
+   */
+  protected elegirPestana(pestana: PestanaAula, enfocar?: HTMLElement): void {
+    void this.router.navigate([], {
+      relativeTo: this.rutaActiva,
+      queryParams: { pestana: pestana === 'descripcion' ? null : pestana },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    enfocar?.focus();
+  }
 
   protected contenidosDelModulo(moduloId: number) {
     return this.detalle()?.modulos.find((m) => m.id === moduloId)?.lecciones
@@ -116,7 +136,6 @@ export class SeguimientoCurso {
       const leccion = modulo.lecciones.find((l) => l.id === leccionId)!;
       // El PDF es el contenido de un documento o el material de apoyo de un vídeo.
       if (leccion.archivoId) void this.cargarPdf(leccion.archivoId, actual);
-      this.pestana.set(leccion.tipo === 'VIDEO' && leccion.archivoId ? 'recursos' : 'descripcion');
     } catch (error) {
       if (actual !== this.solicitud) return;
       if (error instanceof HttpErrorResponse && error.status === 404) this.noDisponible.set(true);
