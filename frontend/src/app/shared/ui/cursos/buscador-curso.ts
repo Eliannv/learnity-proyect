@@ -113,7 +113,7 @@ function normalizar(texto: string): string {
                 >
                   <div class="miniatura" aria-hidden="true">
                     @if (opcion.portadaUrl && !portadasFallidas()[opcion.id]) {
-                      <img [src]="opcion.portadaUrl" alt="" loading="lazy" (error)="marcarPortadaFallida(opcion.id)" />
+                      <img [src]="opcion.portadaUrl" alt="" width="48" height="32" loading="lazy" (error)="marcarPortadaFallida(opcion.id)" />
                     } @else if (opcion.iconoCategoria) {
                       <app-portada-curso [iconoCategoria]="opcion.iconoCategoria" [compacta]="true" />
                     } @else {

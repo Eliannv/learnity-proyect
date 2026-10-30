@@ -1,62 +1,51 @@
 import { Component, input } from '@angular/core';
-import { LucideAngularModule } from 'lucide-angular';
 
 /** Tarjeta de indicador (StatTile): etiqueta, valor grande y nota. */
 @Component({
   selector: 'app-indicador',
-  imports: [LucideAngularModule],
   template: `
     <div class="indicador">
-      <div class="cabecera">
-        <span class="etiqueta">{{ etiqueta() }}</span>
-        @if (icono()) {
-          <lucide-icon [name]="icono()!" [size]="20" />
-        }
-      </div>
-      <strong class="valor">{{ valor() }}</strong>
+      <span class="etiqueta">{{ etiqueta() }}</span>
+      <strong class="valor num">{{ valor() }}</strong>
       @if (nota()) {
         <span class="nota">{{ nota() }}</span>
       }
     </div>
   `,
   styles: `
+    /* KPI como tipografía: superficie blanca con borde, etiqueta pequeña en minúscula de frase y la cifra grande. */
     .indicador {
       display: flex;
       flex-direction: column;
       gap: 4px;
       height: 100%;
-      padding: 22px 24px;
-      border-radius: var(--radio-md);
-      background: var(--azul-050);
-    }
-    .cabecera {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--azul-700);
+      padding: 16px 20px;
+      border: 1px solid var(--borde);
+      border-radius: var(--radio);
+      background: var(--superficie);
     }
     .etiqueta {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      color: var(--gris-500);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--tinta-3);
     }
     .valor {
-      font-size: 34px;
-      font-weight: 700;
+      font-size: 28px;
+      font-weight: 600;
       line-height: 1.2;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
+      color: var(--tinta);
     }
     .nota {
-      font-size: 14px;
-      color: var(--gris-500);
+      font-size: 13px;
+      color: var(--tinta-2);
     }
     @media (max-width: 900px) {
       .indicador {
-        padding: 18px 20px;
+        padding: 14px 16px;
       }
       .valor {
-        font-size: 28px;
+        font-size: 24px;
       }
     }
   `,
@@ -65,5 +54,6 @@ export class Indicador {
   readonly etiqueta = input.required<string>();
   readonly valor = input.required<string>();
   readonly nota = input<string>();
+  /** Ya no se dibuja (el KPI es solo tipografía); se conserva mientras se migran las vistas que lo pasan. */
   readonly icono = input<string>();
 }

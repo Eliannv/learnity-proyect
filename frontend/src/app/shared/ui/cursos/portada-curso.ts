@@ -13,7 +13,8 @@ import type { Tono } from '../tipos-ui';
   template: `
     <div class="portada" [class]="'portada tono-' + tono()" aria-hidden="true">
       @if (imagen()) {
-        <img [src]="imagen()" alt="" loading="lazy" />
+        <!-- 16:9 intrínseco: el navegador reserva el hueco antes de cargar la imagen (sin saltos de diseño). -->
+        <img [src]="imagen()" alt="" loading="lazy" decoding="async" width="480" height="270" />
       } @else if (!icono()) {
         <lucide-icon class="marca" [name]="marcaCategoria()" [size]="tamanoMarca()" [strokeWidth]="1.5" />
       }
@@ -34,22 +35,19 @@ import type { Tono } from '../tipos-ui';
       width: 100%;
       height: 100%;
       overflow: hidden;
-      /* Trama de puntos: da textura sin competir con el título */
-      background-image: radial-gradient(rgb(255 255 255 / 16%) 1px, transparent 1px);
-      background-size: 14px 14px;
     }
+    /* Tonos planos de la marca, sin tramas ni degradados: el ícono de la categoría es el único dibujo. */
     .tono-1 {
-      background-color: var(--azul-700);
-      color: var(--azul-100);
+      background-color: var(--acento);
+      color: var(--acento-pista);
     }
     .tono-2 {
-      background-color: var(--tinta-800);
-      color: var(--azul-300);
+      background-color: var(--cabecera-oscura);
+      color: var(--acento-pista);
     }
     .tono-3 {
-      background-color: var(--azul-100);
-      background-image: radial-gradient(rgb(37 99 235 / 14%) 1px, transparent 1px);
-      color: var(--azul-700);
+      background-color: var(--acento-suave);
+      color: var(--acento);
     }
     img {
       position: absolute;
@@ -76,9 +74,8 @@ import type { Tono } from '../tipos-ui';
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      background: var(--blanco);
-      color: var(--tinta-900);
-      box-shadow: 0 4px 14px rgb(15 23 42 / 25%);
+      background: var(--superficie);
+      color: var(--tinta);
     }
   `,
   host: { '[class.compacta]': 'compacta()' },

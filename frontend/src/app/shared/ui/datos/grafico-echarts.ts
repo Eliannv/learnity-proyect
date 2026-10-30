@@ -138,7 +138,10 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
       border: 0;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition:
+        background-color var(--t-micro) var(--curva-salida),
+        color var(--t-micro) var(--curva-salida),
+        box-shadow var(--t-micro) var(--curva-salida);
 
       &:hover {
         color: var(--tinta-900, #0f172a);

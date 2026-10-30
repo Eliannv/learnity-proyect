@@ -1,9 +1,25 @@
-import { Component, DOCUMENT, ElementRef, OnDestroy, afterNextRender, inject, input, output } from '@angular/core';
+import {
+  type AnimationCallbackEvent,
+  Component,
+  DOCUMENT,
+  ElementRef,
+  OnDestroy,
+  afterNextRender,
+  inject,
+  input,
+  output,
+} from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
+
+/** Duración de la salida más larga (la hoja del móvil, --t-hoja), con margen por si no llega `animationend`. */
+const SALIDA_MS = 380;
 
 /**
  * Ventana modal con fondo oscuro. Se cierra con la X, con Escape o al hacer clic fuera.
  * Al abrirse lleva el foco al diálogo, lo mantiene dentro con Tab y lo devuelve al elemento que la abrió.
+ * Movimiento (apple-design): en escritorio crece de 0,96 a 1 y vuelve por el mismo camino; en el móvil es una hoja
+ * que sube y baja. El panel nunca se funde al entrar (axe mide su contraste en cuanto se abre); al salir sí, porque
+ * mientras sale es `inert` y axe lo omite.
  */
 @Component({
   selector: 'app-modal',
@@ -12,13 +28,14 @@ import { LucideAngularModule } from 'lucide-angular';
     '(document:keydown.escape)': 'cerrar.emit()',
     '(keydown.tab)': 'atrapar($event)',
     '(keydown.shift.tab)': 'atrapar($event)',
+    '(animate.leave)': 'alSalir($event)',
   },
   template: `
     <div class="fondo" (click)="cerrar.emit()"></div>
     <section #panel class="panel" tabindex="-1" role="dialog" aria-modal="true" [attr.aria-label]="titulo()" [style.max-width.px]="ancho()">
       <header>
         @if (icono()) {
-          <span class="icono"><lucide-icon [name]="icono()!" [size]="22" /></span>
+          <lucide-icon class="icono" [name]="icono()!" [size]="22" aria-hidden="true" />
         }
         <h2>{{ titulo() }}</h2>
         <button type="button" class="cerrar" (click)="cerrar.emit()" aria-label="Cerrar">
@@ -40,7 +57,8 @@ import { LucideAngularModule } from 'lucide-angular';
     .fondo {
       position: absolute;
       inset: 0;
-      background: rgb(15 23 42 / 45%);
+      background: rgb(17 24 39 / 45%);
+      animation: fondo-entrar var(--t-panel) var(--curva-salida);
     }
     .panel {
       outline: none;
@@ -48,11 +66,29 @@ import { LucideAngularModule } from 'lucide-angular';
       width: 100%;
       max-height: calc(100dvh - 32px);
       overflow-y: auto;
+      overscroll-behavior: contain;
       padding: 28px;
       border-radius: var(--radio-lg);
-      background: var(--blanco);
-      box-shadow: var(--sombra-lg);
+      background: var(--superficie);
+      box-shadow: var(--sombra-flotante);
+      animation: panel-entrar var(--t-panel) var(--curva-salida);
     }
+    /* Saliendo: no recibe clics (el fondo deja pasar al de debajo) y recorre el camino de entrada al revés. */
+    :host(.saliendo) {
+      pointer-events: none;
+      .fondo {
+        animation: fondo-salir var(--t-micro) var(--curva-salida) forwards;
+      }
+      .panel {
+        animation: panel-salir var(--t-micro) var(--curva-salida) forwards;
+      }
+    }
+    @keyframes fondo-entrar { from { opacity: 0; } }
+    @keyframes fondo-salir { to { opacity: 0; } }
+    @keyframes panel-entrar { from { transform: scale(0.96); } }
+    @keyframes panel-salir { to { transform: scale(0.96); opacity: 0; } }
+    @keyframes hoja-subir { from { transform: translateY(100%); } }
+    @keyframes hoja-bajar { to { transform: translateY(100%); } }
     header {
       display: flex;
       align-items: center;
@@ -61,17 +97,12 @@ import { LucideAngularModule } from 'lucide-angular';
     }
     h2 {
       flex: 1;
-      font-size: 22px;
-      font-weight: 700;
+      font-size: 20px;
+      font-weight: 600;
     }
     .icono {
-      display: grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radio);
-      background: var(--azul-700);
-      color: var(--blanco);
+      flex: none;
+      color: var(--tinta-2);
     }
     .cerrar {
       display: grid;
@@ -79,11 +110,16 @@ import { LucideAngularModule } from 'lucide-angular';
       width: 36px;
       height: 36px;
       border: 0;
-      border-radius: var(--radio);
+      border-radius: var(--radio-sm);
       background: transparent;
-      color: var(--gris-500);
+      color: var(--tinta-3);
+      transition: background-color var(--t-micro) var(--curva-salida), transform var(--t-pulsar) var(--curva-salida);
       &:hover {
-        background: var(--gris-100);
+        background: var(--activo);
+        color: var(--tinta);
+      }
+      &:active {
+        transform: scale(0.94);
       }
     }
     @media (max-width: 600px) {
@@ -94,6 +130,13 @@ import { LucideAngularModule } from 'lucide-angular';
       .panel {
         border-radius: var(--radio-lg) var(--radio-lg) 0 0;
         padding: 22px 20px;
+        animation: hoja-subir var(--t-hoja) var(--curva-hoja);
+      }
+      :host(.saliendo) .panel {
+        animation: hoja-bajar var(--t-hoja) var(--curva-hoja) forwards;
+      }
+      :host(.saliendo) .fondo {
+        animation-duration: var(--t-hoja);
       }
     }
   `,
@@ -117,6 +160,24 @@ export class Modal implements OnDestroy {
 
   ngOnDestroy(): void {
     this.origen?.focus?.();
+  }
+
+  /**
+   * Angular retiene el nodo hasta llamar a `animationComplete`. Mientras sale es inerte: no atrapa el foco ni los
+   * clics y axe no lo mide. Termina con la animación del panel o, si no la hay (movimiento reducido), con el tope.
+   */
+  protected alSalir(evento: AnimationCallbackEvent): void {
+    const host = evento.target as HTMLElement;
+    host.inert = true;
+    host.classList.add('saliendo');
+    let hecho = false;
+    const terminar = () => {
+      if (hecho) return;
+      hecho = true;
+      evento.animationComplete();
+    };
+    host.querySelector('.panel')?.addEventListener('animationend', terminar, { once: true });
+    setTimeout(terminar, SALIDA_MS);
   }
 
   protected atrapar(evento: Event): void {
