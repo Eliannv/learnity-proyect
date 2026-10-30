@@ -222,7 +222,7 @@ export const catalogoRepository = {
              FROM resena r
              JOIN inscripcion i4 ON i4.id_inscripcion = r.id_inscripcion
              JOIN curso c4 ON c4.id_curso = i4.id_curso
-            WHERE c4.id_docente = c.id_docente AND c4.estado = 'PUBLICADO' AND r.eliminado_en IS NULL
+            WHERE c4.id_docente = c.id_docente AND c4.estado = 'PUBLICADO' AND r.eliminado_en IS NULL AND r.ocultada_en IS NULL
          ) v
          JOIN docente d ON d.id_docente = c.id_docente
          JOIN persona p ON p.id_persona = d.id_persona
@@ -249,7 +249,7 @@ export const catalogoRepository = {
     const { rows } = await consultar<{ promedio: string | null; total: number }>(
       `SELECT round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS total
          FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
-        WHERE i.id_curso = $1 AND r.eliminado_en IS NULL`,
+        WHERE i.id_curso = $1 AND r.eliminado_en IS NULL AND r.ocultada_en IS NULL`,
       [id],
     );
     const fila = rows[0]!;

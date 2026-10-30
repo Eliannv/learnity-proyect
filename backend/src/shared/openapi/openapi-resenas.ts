@@ -32,6 +32,17 @@ const resumen = {
     },
   },
 };
+const ocultacion = {
+  type: 'object', nullable: true, required: ['fecha', 'motivo', 'por'],
+  description: 'Ocultación por un administrador; null si la reseña no está oculta.',
+  properties: {
+    fecha, motivo: { type: 'string', maxLength: 300 },
+    por: {
+      type: 'object', nullable: true, required: ['id', 'nombre'], description: 'null si se borró la cuenta del administrador.',
+      properties: { id: { type: 'integer' }, nombre: { type: 'string' } },
+    },
+  },
+};
 const idResena = { in: 'path', name: 'id', required: true, description: 'ID de la reseña', schema: { type: 'integer', minimum: 1 } };
 const resenaAjena = error('La reseña no existe, está borrada o no es de un curso propio');
 const sinInscripcion = error('Sin rol ESTUDIANTE, o no está inscrito en el curso publicado (NO_INSCRITO)');
@@ -61,10 +72,14 @@ export const esquemasResenas = {
     },
   },
   MiResena: {
-    type: 'object', required: ['puedeResenar', 'resena'],
+    type: 'object', required: ['puedeResenar', 'resena', 'ocultada'],
     properties: {
-      puedeResenar: { type: 'boolean', description: 'Inscrito en el curso publicado.' },
+      puedeResenar: { type: 'boolean', description: 'Inscrito en el curso publicado y su reseña no está ocultada.' },
       resena: { nullable: true, allOf: [ref('Resena')] },
+      ocultada: {
+        type: 'boolean',
+        description: 'Un administrador ocultó su reseña: no puede editarla ni republicarla. El motivo es interno.',
+      },
     },
   },
   DatosResena: {
@@ -125,9 +140,11 @@ export const esquemasResenas = {
   },
   EntradaHistorialResena: {
     type: 'object',
-    required: ['accion', 'fecha', 'actor', 'estrellasAnterior', 'estrellasNueva', 'comentarioAnterior', 'comentarioNuevo'],
+    required: ['accion', 'fecha', 'actor', 'estrellasAnterior', 'estrellasNueva', 'comentarioAnterior', 'comentarioNuevo',
+      'motivo'],
     properties: {
-      accion: { type: 'string', enum: ['CREADA', 'EDITADA', 'ELIMINADA', 'REPUBLICADA', 'RESPONDIDA_POR_DOCENTE'] },
+      accion: { type: 'string', enum: ['CREADA', 'EDITADA', 'ELIMINADA', 'REPUBLICADA', 'RESPONDIDA_POR_DOCENTE',
+        'OCULTADA', 'RESTAURADA', 'RESPUESTA_RETIRADA'] },
       fecha,
       actor: {
         type: 'object', nullable: true, required: ['id', 'nombre'],
@@ -135,23 +152,25 @@ export const esquemasResenas = {
       },
       estrellasAnterior: { type: 'integer', nullable: true }, estrellasNueva: { type: 'integer', nullable: true },
       comentarioAnterior: { type: 'string', nullable: true }, comentarioNuevo: { type: 'string', nullable: true },
+      motivo: { type: 'string', nullable: true, description: 'Motivo de la ocultación (solo en OCULTADA).' },
     },
   },
   ResenaAdmin: {
     type: 'object',
-    required: ['id', 'curso', 'estudiante', 'estrellas', 'comentario', 'creadoEn', 'eliminadaEn', 'respuesta',
-      'reportesPendientes', 'historial'],
+    required: ['id', 'curso', 'estudiante', 'estrellas', 'comentario', 'creadoEn', 'eliminadaEn', 'ocultacion',
+      'respuesta', 'reportesPendientes', 'historial'],
     properties: {
       id: { type: 'integer' }, curso: cursoRef, estudiante: { type: 'string' },
       estrellas: { type: 'integer', minimum: 1, maximum: 5 }, comentario: { type: 'string', nullable: true },
-      creadoEn: fecha, eliminadaEn: fechaNula, respuesta,
+      creadoEn: fecha, eliminadaEn: { ...fechaNula, description: 'Borrada por su autor.' }, ocultacion, respuesta,
       reportesPendientes: { type: 'integer', minimum: 0 },
       historial: { type: 'array', items: ref('EntradaHistorialResena') },
     },
   },
   PaginaResenasAdmin: {
-    type: 'object', required: ['items', 'pagina', 'limite', 'total', 'totalPaginas'],
+    type: 'object', required: ['cursos', 'items', 'pagina', 'limite', 'total', 'totalPaginas'],
     properties: {
+      cursos: { type: 'array', items: cursoRef, description: 'Cursos con alguna reseña, para el filtro por curso.' },
       items: { type: 'array', items: ref('ResenaAdmin') },
       pagina: { type: 'integer' }, limite: { type: 'integer' },
       total: { type: 'integer', minimum: 0 }, totalPaginas: { type: 'integer', minimum: 0 },
@@ -164,14 +183,21 @@ export const esquemasResenas = {
       id: { type: 'integer' }, motivo, detalle: { type: 'string', nullable: true }, estado: estadoReporte,
       creadoEn: fecha, resueltoEn: fechaNula, reportadoPor: { type: 'string' },
       resena: {
-        type: 'object', required: ['id', 'curso', 'estudiante', 'estrellas', 'comentario', 'eliminadaEn', 'respuesta'],
+        type: 'object',
+        required: ['id', 'curso', 'estudiante', 'estrellas', 'comentario', 'eliminadaEn', 'ocultacion', 'respuesta'],
         properties: {
           id: { type: 'integer' }, curso: cursoRef, estudiante: { type: 'string' },
           estrellas: { type: 'integer', minimum: 1, maximum: 5 }, comentario: { type: 'string', nullable: true },
-          eliminadaEn: fechaNula, respuesta,
+          eliminadaEn: fechaNula, ocultacion, respuesta,
         },
       },
       historial: { type: 'array', items: ref('EntradaHistorialResena') },
+    },
+  },
+  DatosOcultacionResena: {
+    type: 'object', additionalProperties: false, required: ['motivo'],
+    properties: {
+      motivo: { type: 'string', minLength: 1, maxLength: 300, description: 'Motivo interno; el estudiante no lo ve.' },
     },
   },
 };
@@ -206,7 +232,9 @@ export const rutasResenas = {
       responses: {
         200: json(ref('Resena')),
         ...erroresCuerpoJson(`Estrellas fuera de 1 a 5, comentario de más de 1000 caracteres o ${idInvalido}`),
-        401: error('Sin sesión'), 403: sinInscripcion, 429: error('Límite de peticiones'), 500: errorInterno,
+        401: error('Sin sesión'), 403: sinInscripcion,
+        409: error('Un administrador ocultó la reseña: no se puede editar ni republicar (RESENA_OCULTADA)'),
+        429: error('Límite de peticiones'), 500: errorInterno,
       },
     },
     delete: {
@@ -282,11 +310,21 @@ export const rutasResenas = {
   },
   '/admin/resenas': {
     get: {
-      tags: ['Reseñas'], summary: 'Todas las reseñas (también las borradas) con su historial completo',
+      tags: ['Reseñas'], summary: 'Todas las reseñas (también las borradas y ocultadas) con su historial completo',
       description: 'Acceso total del administrador para moderar. De la más reciente a la más antigua.',
       security: seguridad,
       parameters: [
-        { in: 'query', name: 'estado', schema: { type: 'string', enum: ['vigentes', 'borradas', 'todas'], default: 'todas' } },
+        {
+          in: 'query', name: 'estado',
+          description: 'vigentes: se ven en el curso; borradas: por su autor; ocultadas: por un administrador.',
+          schema: { type: 'string', enum: ['vigentes', 'borradas', 'ocultadas', 'todas'], default: 'todas' },
+        },
+        { in: 'query', name: 'curso', schema: { type: 'integer', minimum: 1 } },
+        { in: 'query', name: 'estrellas', schema: { type: 'integer', minimum: 1, maximum: 5 } },
+        {
+          in: 'query', name: 'q', description: 'Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas).',
+          schema: { type: 'string', maxLength: 100 },
+        },
         { in: 'query', name: 'pagina', schema: { type: 'integer', minimum: 1, maximum: 10_000, default: 1 } },
         { in: 'query', name: 'limite', schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 } },
       ],
@@ -309,7 +347,7 @@ export const rutasResenas = {
   },
   '/admin/resenas/reportes/{id}': {
     put: {
-      tags: ['Reseñas'], summary: 'Resolver un reporte: ocultar la reseña (borrado lógico) o desestimarlo',
+      tags: ['Reseñas'], summary: 'Resolver un reporte: ocultar la reseña o desestimarlo',
       security: seguridad,
       parameters: [{ in: 'path', name: 'id', required: true, description: 'ID del reporte', schema: { type: 'integer', minimum: 1 } }],
       requestBody: { required: true, content: { 'application/json': { schema: {
@@ -330,6 +368,37 @@ export const rutasResenas = {
       responses: {
         200: json({ type: 'array', items: ref('EntradaHistorialResena') }), 400: error(idInvalido),
         401: error('Sin sesión'), 403: error('Sin rol ADMIN'), 500: errorInterno,
+      },
+    },
+  },
+  '/admin/resenas/{id}/ocultacion': {
+    post: {
+      tags: ['Reseñas'], summary: 'Ocultar una reseña con un motivo, sin necesidad de reporte',
+      description: 'Deja de verse y de contar en los promedios, y el estudiante no puede republicarla. '
+        + 'Sus reportes pendientes quedan resueltos como OCULTADA.',
+      security: seguridad, parameters: [idResena],
+      requestBody: { required: true, content: { 'application/json': { schema: ref('DatosOcultacionResena') } } },
+      responses: {
+        200: json(ref('ResenaAdmin')), ...erroresCuerpoJson(`Motivo vacío o de más de 300 caracteres, o ${idInvalido}`),
+        401: error('Sin sesión'), 403: error('Sin rol ADMIN'), 404: error('La reseña no existe'),
+        409: error('Ya está oculta (RESENA_YA_OCULTADA)'), 500: errorInterno,
+      },
+    },
+    delete: {
+      tags: ['Reseñas'], summary: 'Restaurar una reseña ocultada', security: seguridad, parameters: [idResena],
+      responses: {
+        200: json(ref('ResenaAdmin')), 400: error(idInvalido), 401: error('Sin sesión'), 403: error('Sin rol ADMIN'),
+        404: error('La reseña no existe'), 409: error('No está oculta (RESENA_NO_OCULTADA)'), 500: errorInterno,
+      },
+    },
+  },
+  '/admin/resenas/{id}/respuesta': {
+    delete: {
+      tags: ['Reseñas'], summary: 'Retirar la respuesta pública del docente (queda en el historial como RESPUESTA_RETIRADA)',
+      security: seguridad, parameters: [idResena],
+      responses: {
+        200: json(ref('ResenaAdmin')), 400: error(idInvalido), 401: error('Sin sesión'), 403: error('Sin rol ADMIN'),
+        404: error('La reseña no existe'), 409: error('No tiene respuesta del docente (SIN_RESPUESTA)'), 500: errorInterno,
       },
     },
   },

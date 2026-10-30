@@ -4,12 +4,12 @@ import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { validarConsulta, validarCuerpo, validarParametros } from '../../shared/http/validar.js';
 import { resenasController as controller } from './resenas.controller.js';
 import {
-  datosReporte, datosResena, datosRespuesta, decisionReporte, filtrosBandeja, filtrosReportes, filtrosResenasAdmin,
+  datosOcultacion, datosReporte, datosResena, datosRespuesta, decisionReporte, filtrosBandeja, filtrosReportes, filtrosResenasAdmin,
   idCursoResenas, idResena, paginacionResenas,
 } from './resenas.esquemas.js';
 
 // Reseñas de cursos: la lectura es pública; escribir exige estar inscrito en el curso publicado.
-// El docente gestiona las de sus cursos y el administrador modera los reportes.
+// El docente gestiona las de sus cursos y el administrador modera: reportes, ocultación y respuestas.
 export const resenasRoutes = Router();
 
 resenasRoutes.get('/cursos/:id/resenas', validarParametros(idCursoResenas),
@@ -41,3 +41,9 @@ resenasRoutes.put('/admin/resenas/reportes/:id', autenticar, autorizar('ADMIN'),
   validarParametros(idResena), validarCuerpo(decisionReporte), controller.resolverReporte);
 resenasRoutes.get('/admin/resenas/:id/historial', autenticar, autorizar('ADMIN'),
   validarParametros(idResena), controller.historial);
+resenasRoutes.post('/admin/resenas/:id/ocultacion', autenticar, autorizar('ADMIN'), validarParametros(idResena),
+  validarCuerpo(datosOcultacion, 'Revisa el motivo de la ocultación.'), controller.ocultar);
+resenasRoutes.delete('/admin/resenas/:id/ocultacion', autenticar, autorizar('ADMIN'),
+  validarParametros(idResena), controller.restaurar);
+resenasRoutes.delete('/admin/resenas/:id/respuesta', autenticar, autorizar('ADMIN'),
+  validarParametros(idResena), controller.retirarRespuestaAdmin);

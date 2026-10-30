@@ -57,8 +57,14 @@ export const filtrosReportes = z.strictObject({
   estado: z.enum(['PENDIENTE', 'OCULTADA', 'DESESTIMADA']).default('PENDIENTE'),
 });
 
+/** vigentes: se ven en el curso; borradas: por su autor; ocultadas: por un administrador. */
 export const filtrosResenasAdmin = z.strictObject({
-  estado: z.enum(['vigentes', 'borradas', 'todas']).default('todas'),
+  estado: z.enum(['vigentes', 'borradas', 'ocultadas', 'todas']).default('todas'),
+  curso: opcional(z.coerce.number().int().min(1).max(2_147_483_647)),
+  estrellas: opcional(z.coerce.number().int().min(1).max(5)),
+  /** Busca en el comentario y en la respuesta del docente, sin distinguir mayúsculas. */
+  q: z.preprocess((v) => (typeof v === 'string' ? v.normalize('NFC').trim() || undefined : v),
+    textoSeguro().pipe(z.string().max(100, 'La búsqueda debe tener como máximo 100 caracteres.')).optional()),
   pagina: z.coerce.number().int().min(1).max(10_000).default(1),
   limite: z.coerce.number().int().min(1).max(50).default(20),
 });
@@ -67,9 +73,16 @@ export const decisionReporte = z.strictObject({
   decision: z.enum(['OCULTAR', 'DESESTIMAR'], { message: 'Elige ocultar la reseña o desestimar el reporte.' }),
 });
 
+export const datosOcultacion = z.strictObject({
+  motivo: textoSeguro()
+    .transform((valor) => valor.normalize('NFC').trim())
+    .pipe(z.string().min(1, 'Escribe el motivo de la ocultación.').max(300, 'El motivo debe tener como máximo 300 caracteres.')),
+});
+
 export type FiltrosBandeja = z.infer<typeof filtrosBandeja>;
 export type DatosRespuesta = z.infer<typeof datosRespuesta>;
 export type DatosReporte = z.infer<typeof datosReporte>;
 export type FiltrosReportes = z.infer<typeof filtrosReportes>;
 export type FiltrosResenasAdmin = z.infer<typeof filtrosResenasAdmin>;
 export type DecisionReporte = z.infer<typeof decisionReporte>;
+export type DatosOcultacion = z.infer<typeof datosOcultacion>;

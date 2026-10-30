@@ -37,6 +37,8 @@ export interface MiResena {
   /** Inscrito en el curso publicado: puede escribir, editar o borrar su reseña. */
   puedeResenar: boolean;
   resena: Resena | null;
+  /** Un administrador la ocultó: no se muestra ni se puede volver a publicar. El motivo es interno. */
+  ocultada: boolean;
 }
 
 // ------------------------------------------------------------------ docente
@@ -100,7 +102,9 @@ export interface ValoracionDocente {
 
 // ------------------------------------------------------------ administrador
 
-export type AccionHistorial = 'CREADA' | 'EDITADA' | 'ELIMINADA' | 'REPUBLICADA' | 'RESPONDIDA_POR_DOCENTE';
+export type AccionHistorial =
+  | 'CREADA' | 'EDITADA' | 'ELIMINADA' | 'REPUBLICADA' | 'RESPONDIDA_POR_DOCENTE'
+  | 'OCULTADA' | 'RESTAURADA' | 'RESPUESTA_RETIRADA';
 
 export interface EntradaHistorial {
   accion: AccionHistorial;
@@ -111,6 +115,16 @@ export interface EntradaHistorial {
   estrellasNueva: number | null;
   comentarioAnterior: string | null;
   comentarioNuevo: string | null;
+  /** Motivo de la ocultación (solo en OCULTADA). */
+  motivo: string | null;
+}
+
+/** Ocultación por moderación: quién, cuándo y por qué (null si la reseña no está oculta). */
+export interface Ocultacion {
+  fecha: string;
+  motivo: string;
+  /** null si se borró la cuenta del administrador. */
+  por: { id: number; nombre: string } | null;
 }
 
 /** Cualquier reseña, también las borradas, con su historial completo (vista del administrador). */
@@ -121,7 +135,9 @@ export interface ResenaAdmin {
   estrellas: number;
   comentario: string | null;
   creadoEn: string;
+  /** Borrada por su autor. */
   eliminadaEn: string | null;
+  ocultacion: Ocultacion | null;
   respuesta: RespuestaDocente | null;
   /** Reportes pendientes de esta reseña. */
   reportesPendientes: number;
@@ -129,6 +145,8 @@ export interface ResenaAdmin {
 }
 
 export interface PaginaResenasAdmin {
+  /** Cursos con alguna reseña, para el filtro por curso. */
+  cursos: { id: number; titulo: string }[];
   items: ResenaAdmin[];
   pagina: number;
   limite: number;
@@ -151,6 +169,7 @@ export interface ReporteAdmin {
     estrellas: number;
     comentario: string | null;
     eliminadaEn: string | null;
+    ocultacion: Ocultacion | null;
     respuesta: RespuestaDocente | null;
   };
   historial: EntradaHistorial[];

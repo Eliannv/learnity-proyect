@@ -62,7 +62,7 @@ describe('Sprint 4 · reseñas y valoraciones', () => {
     const sinInscripcion = await c.como(curioso, 'PUT', ruta, { estrellas: 5 });
     assert.equal(sinInscripcion.status, 403);
     assert.equal(sinInscripcion.json.error.codigo, 'NO_INSCRITO');
-    assert.deepEqual((await c.como(curioso, 'GET', ruta)).json, { puedeResenar: false, resena: null });
+    assert.deepEqual((await c.como(curioso, 'GET', ruta)).json, { puedeResenar: false, resena: null, ocultada: false });
 
     for (const quien of [ana, beto]) {
       assert.equal((await c.como(quien, 'POST', `/api/cursos/${cursoId}/inscripcion`)).status, 201);
@@ -98,7 +98,7 @@ describe('Sprint 4 · reseñas y valoraciones', () => {
     assert.equal((await c.como(beto, 'DELETE', ruta)).status, 204);
     assert.equal((await c.como(beto, 'DELETE', ruta)).status, 404);
     const mia = await c.como(beto, 'GET', ruta);
-    assert.deepEqual(mia.json, { puedeResenar: true, resena: null });
+    assert.deepEqual(mia.json, { puedeResenar: true, resena: null, ocultada: false });
     const lista = await srv.pedir(`/api/cursos/${cursoId}/resenas`);
     assert.deepEqual(lista.json.resumen, { promedio: 5, total: 1, distribucion: [0, 0, 0, 0, 1] });
   });

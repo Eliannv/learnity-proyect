@@ -61,12 +61,12 @@ export const fichaRepository = {
         JOIN persona p
           ON p.id_persona = d.id_persona
         CROSS JOIN LATERAL (
-          -- Solo reseñas vigentes: las borradas no cuentan en el promedio.
+          -- Solo reseñas visibles: las borradas y las ocultadas no cuentan en el promedio.
           SELECT round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS resenas
           FROM resena r
           JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
           WHERE i.id_curso = c.id_curso
-            AND r.eliminado_en IS NULL
+            AND r.eliminado_en IS NULL AND r.ocultada_en IS NULL
         ) v
         WHERE d.id_persona = $1
           AND d.estado = 'ACTIVO'

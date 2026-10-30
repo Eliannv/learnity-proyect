@@ -198,7 +198,7 @@ describe('Sprint 4 · moderación del administrador (nivel B)', () => {
     assert.equal(historial.json[2].actor.id, docente.idPersona);
   });
 
-  it('ocultar la reseña la borra lógicamente; un reporte resuelto no se resuelve dos veces', async () => {
+  it('ocultar la reseña usa la ocultación propia (no el borrado); un reporte resuelto no se resuelve dos veces', async () => {
     const reporte = (await c.como(admin, 'GET', '/api/admin/resenas/reportes')).json
       .find((x: { resena: { id: number } }) => x.resena.id === resenaBeto);
     const ruta = `/api/admin/resenas/reportes/${reporte.id}`;
@@ -209,9 +209,12 @@ describe('Sprint 4 · moderación del administrador (nivel B)', () => {
     assert.equal((await srv.pedir(`/api/cursos/${cursoId}/resenas`)).json.resumen.total, 1);
     const ocultados = await c.como(admin, 'GET', '/api/admin/resenas/reportes?estado=OCULTADA');
     const resuelto = ocultados.json.find((x: { id: number }) => x.id === reporte.id);
-    assert.ok(resuelto.resena.eliminadaEn);
-    assert.equal(resuelto.historial.at(-1).accion, 'ELIMINADA');
+    assert.equal(resuelto.resena.eliminadaEn, null, 'ocultar ya no marca el borrado del autor (migración 036)');
+    assert.equal(resuelto.resena.ocultacion.motivo, 'Reporte del docente: lenguaje ofensivo');
+    assert.equal(resuelto.resena.ocultacion.por.id, admin.idPersona);
+    assert.equal(resuelto.historial.at(-1).accion, 'OCULTADA');
     assert.equal(resuelto.historial.at(-1).actor.id, admin.idPersona);
+    assert.equal(resuelto.historial.at(-1).motivo, 'Reporte del docente: lenguaje ofensivo');
   });
 });
 
@@ -221,15 +224,19 @@ describe('Sprint 4 · acceso total del administrador', () => {
     const todas = await c.como(admin, 'GET', '/api/admin/resenas?limite=50');
     assert.equal(todas.status, 200, todas.texto);
     const deBeto = todas.json.items.find((r: { id: number }) => r.id === resenaBeto);
-    assert.ok(deBeto.eliminadaEn, 'la ocultada aparece con su fecha de borrado');
-    assert.equal(deBeto.historial.at(-1).accion, 'ELIMINADA');
+    assert.equal(deBeto.eliminadaEn, null);
+    assert.ok(deBeto.ocultacion, 'la ocultada aparece con los datos de la ocultación');
+    assert.equal(deBeto.historial.at(-1).accion, 'OCULTADA');
     const deAna = todas.json.items.find((r: { id: number }) => r.id === resenaAna);
     assert.equal(deAna.eliminadaEn, null);
+    assert.equal(deAna.ocultacion, null);
     assert.equal(deAna.respuesta.texto, '¡Gracias por la sugerencia!');
 
     const borradas = await c.como(admin, 'GET', '/api/admin/resenas?estado=borradas&limite=50');
     assert.ok(borradas.json.items.every((r: { eliminadaEn: string | null }) => r.eliminadaEn !== null));
-    assert.ok(borradas.json.items.some((r: { id: number }) => r.id === resenaBeto));
+    assert.ok(!borradas.json.items.some((r: { id: number }) => r.id === resenaBeto), 'ocultada no es borrada');
+    const ocultadas = await c.como(admin, 'GET', '/api/admin/resenas?estado=ocultadas&limite=50');
+    assert.ok(ocultadas.json.items.some((r: { id: number }) => r.id === resenaBeto));
     assert.equal((await c.como(admin, 'GET', '/api/admin/resenas?estado=otra')).status, 400);
   });
 });

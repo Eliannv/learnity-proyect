@@ -3,7 +3,7 @@ import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { datosValidados } from '../../shared/http/validar.js';
 import type {
-  DatosReporte, DatosResena, DatosRespuesta, DecisionReporte, FiltrosBandeja, FiltrosReportes, FiltrosResenasAdmin,
+  DatosOcultacion, DatosReporte, DatosResena, DatosRespuesta, DecisionReporte, FiltrosBandeja, FiltrosReportes, FiltrosResenasAdmin,
   PaginacionResenas,
 } from './resenas.esquemas.js';
 import { resenasService as service } from './resenas.service.js';
@@ -67,5 +67,17 @@ export const resenasController = {
   async historial(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
     res.json(await service.historial(id, usuario(req)));
+  },
+  async ocultar(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.json(await service.ocultar(id, req.body as DatosOcultacion, usuario(req)));
+  },
+  async restaurar(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.json(await service.restaurar(id, usuario(req)));
+  },
+  async retirarRespuestaAdmin(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.json(await service.retirarRespuesta(id, usuario(req)));
   },
 };

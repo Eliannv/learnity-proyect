@@ -277,7 +277,7 @@ export const aprendizajeRepository = {
               round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS resenas
          FROM inscripcion i
          JOIN curso c ON c.id_curso = i.id_curso
-         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL
+         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL AND r.ocultada_en IS NULL
         WHERE ($2::int IS NOT NULL AND i.id_curso = $2)
            OR ($2::int IS NULL AND ($1::int IS NULL OR c.id_docente IN (
                 SELECT d.id_docente FROM docente d WHERE d.id_persona = $1 AND d.estado = 'ACTIVO'
@@ -300,7 +300,7 @@ export const aprendizajeRepository = {
          FROM inscripcion i
          JOIN persona p ON p.id_persona = i.id_persona
          JOIN curso c ON c.id_curso = i.id_curso
-         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL
+         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL AND r.ocultada_en IS NULL
         WHERE ($2::int IS NOT NULL AND i.id_curso = $2)
            OR ($2::int IS NULL AND ($1::int IS NULL OR c.id_docente IN (
                 SELECT d.id_docente FROM docente d WHERE d.id_persona = $1 AND d.estado = 'ACTIVO'
@@ -324,7 +324,7 @@ export const aprendizajeRepository = {
               i.inscrito_en AS "inscritoEn", i.ultima_actividad_en AS "ultimaActividadEn",
               i.completado_en AS "completadoEn", r.estrellas, r.comentario
          FROM inscripcion i JOIN persona p ON p.id_persona = i.id_persona
-         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL
+         LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL AND r.ocultada_en IS NULL
         WHERE i.id_curso = $1
         ORDER BY i.inscrito_en DESC, i.id_inscripcion DESC
         LIMIT 20000`,

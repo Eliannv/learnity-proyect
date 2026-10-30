@@ -2,12 +2,24 @@ import type { PoolClient } from 'pg';
 import { consultar } from '../../shared/database/pool.js';
 import type { DatosReporte, FiltrosBandeja, FiltrosResenasAdmin } from './resenas.esquemas.js';
 import type {
-  AccionHistorial, EntradaHistorial, EstadoReporte, EvolucionMes, MotivoReporte, ReporteAdmin, Resena, ResenaAdmin,
-  ResenaDocente, ResumenResenas, ValoracionDocente,
+  AccionHistorial, EntradaHistorial, EstadoReporte, EvolucionMes, MotivoReporte, Ocultacion, ReporteAdmin, Resena,
+  ResenaAdmin, ResenaDocente, ResumenResenas, ValoracionDocente,
 } from './resenas.modelo.js';
 
-// Una reseña pertenece a una inscripción (UNIQUE). Solo cuentan las de cursos publicados y las no borradas:
-// borrar es lógico (eliminado_en), para conservar la información de reportes y moderación.
+// Una reseña pertenece a una inscripción (UNIQUE). Solo cuentan las de cursos publicados y las visibles:
+// borrar es lógico (eliminado_en, lo hace su autor) y ocultar también (ocultada_en, lo hace un administrador),
+// para conservar la información de reportes y moderación. El estudiante nunca toca ocultada_*.
+
+/** Reseña que se ve en el curso: ni borrada por su autor ni ocultada por la moderación. */
+const VISIBLE = 'r.eliminado_en IS NULL AND r.ocultada_en IS NULL';
+
+/**
+ * Motivo que se guarda al ocultar por un reporte. Es el mismo texto que genera la migración 036 y que su down
+ * comprueba para revertir sin perder datos: si se cambia aquí, hay que cambiarlo allí.
+ */
+const MOTIVO_POR_REPORTE = `'Reporte del docente: ' || CASE x.motivo WHEN 'SPAM' THEN 'spam o publicidad'
+                                                                     WHEN 'OFENSIVO' THEN 'lenguaje ofensivo'
+                                                                     ELSE 'otro motivo' END`;
 
 const CAMPOS = `
   r.id_resena AS id,
@@ -77,7 +89,7 @@ const SELECT_DOCENTE = `
     LEFT JOIN LATERAL (SELECT x.estado, x.motivo FROM reporte_resena x
                         WHERE x.id_resena = r.id_resena AND x.id_persona_reporta = $1
                         ORDER BY x.creado_en DESC, x.id_reporte DESC LIMIT 1) rep ON TRUE
-   WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND r.eliminado_en IS NULL`;
+   WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND ${VISIBLE}`;
 
 const deDocente = (f: FilaDocente, originales: Map<number, number>): ResenaDocente => ({
   id: f.id, curso: { id: f.cursoId, titulo: f.cursoTitulo }, estudiante: f.estudiante, fotoUrl: f.fotoUrl,
@@ -87,6 +99,70 @@ const deDocente = (f: FilaDocente, originales: Map<number, number>): ResenaDocen
   respuesta: respuesta(f.respuestaTexto, f.respondidaEn),
   reporte: f.reporteEstado && f.reporteMotivo ? { estado: f.reporteEstado, motivo: f.reporteMotivo } : null,
 });
+
+// ------------------------------------------------------------ administrador
+
+interface FilaOcultacion {
+  ocultadaEn: Date | null; motivoOcultacion: string | null; ocultadaPorId: number | null; ocultadaPorNombre: string | null;
+}
+
+/** Requiere `LEFT JOIN persona po ON po.id_persona = r.ocultada_por`. */
+const CAMPOS_OCULTACION = `
+  r.ocultada_en AS "ocultadaEn", r.motivo_ocultacion AS "motivoOcultacion",
+  po.id_persona AS "ocultadaPorId", concat_ws(' ', po.nombres, po.apellidos) AS "ocultadaPorNombre"`;
+
+const ocultacion = (f: FilaOcultacion): Ocultacion | null => (f.ocultadaEn === null ? null : {
+  fecha: f.ocultadaEn.toISOString(), motivo: f.motivoOcultacion ?? '',
+  por: f.ocultadaPorId === null ? null : { id: f.ocultadaPorId, nombre: f.ocultadaPorNombre || 'Cuenta eliminada' },
+});
+
+interface FilaAdmin extends FilaOcultacion {
+  id: number; cursoId: number; cursoTitulo: string; estudiante: string; estrellas: number;
+  comentario: string | null; creadoEn: Date; eliminadaEn: Date | null; respuestaTexto: string | null;
+  respondidaEn: Date | null; reportesPendientes: number;
+}
+
+const SELECT_ADMIN = `
+  SELECT r.id_resena AS id, c.id_curso AS "cursoId", c.titulo AS "cursoTitulo",
+         concat_ws(' ', p.nombres, p.apellidos) AS estudiante, r.estrellas, r.comentario,
+         r.creado_en AS "creadoEn", r.eliminado_en AS "eliminadaEn",
+         r.respuesta_docente AS "respuestaTexto", r.respondida_en AS "respondidaEn", ${CAMPOS_OCULTACION},
+         (SELECT count(*)::int FROM reporte_resena x
+           WHERE x.id_resena = r.id_resena AND x.estado = 'PENDIENTE') AS "reportesPendientes"
+    FROM resena r
+    JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+    JOIN curso c ON c.id_curso = i.id_curso
+    JOIN persona p ON p.id_persona = i.id_persona
+    LEFT JOIN persona po ON po.id_persona = r.ocultada_por`;
+
+const deAdmin = (f: FilaAdmin): Omit<ResenaAdmin, 'historial'> => ({
+  id: f.id, curso: { id: f.cursoId, titulo: f.cursoTitulo }, estudiante: f.estudiante, estrellas: f.estrellas,
+  comentario: f.comentario, creadoEn: f.creadoEn.toISOString(), eliminadaEn: f.eliminadaEn?.toISOString() ?? null,
+  ocultacion: ocultacion(f), respuesta: respuesta(f.respuestaTexto, f.respondidaEn),
+  reportesPendientes: f.reportesPendientes,
+});
+
+/** Escapa los comodines de LIKE para buscar el texto tal cual (la barra invertida es el escape por defecto). */
+const literalLike = (texto: string) => `%${texto.replace(/[\\%_]/g, '\\$&')}%`;
+
+/** Filtros del administrador como condiciones parametrizadas a partir de $1 (usan los alias r e i). */
+function condicionesAdmin(filtros: FiltrosResenasAdmin): { sql: string; valores: unknown[] } {
+  const partes: string[] = [];
+  const valores: unknown[] = [];
+  const agregar = (sql: (n: number) => string, valor: unknown) => {
+    valores.push(valor);
+    partes.push(sql(valores.length));
+  };
+  if (filtros.estado === 'vigentes') partes.push(VISIBLE);
+  if (filtros.estado === 'borradas') partes.push('r.eliminado_en IS NOT NULL');
+  if (filtros.estado === 'ocultadas') partes.push('r.ocultada_en IS NOT NULL');
+  if (filtros.curso !== undefined) agregar((n) => `i.id_curso = $${n}`, filtros.curso);
+  if (filtros.estrellas !== undefined) agregar((n) => `r.estrellas = $${n}`, filtros.estrellas);
+  if (filtros.q !== undefined) {
+    agregar((n) => `(r.comentario ILIKE $${n} OR r.respuesta_docente ILIKE $${n})`, literalLike(filtros.q));
+  }
+  return { sql: partes.length ? partes.join(' AND ') : 'TRUE', valores };
+}
 
 export const resenasRepository = {
   async cursoPublicado(idCurso: number): Promise<boolean> {
@@ -101,7 +177,7 @@ export const resenasRepository = {
                     count(*) FILTER (WHERE r.estrellas = 3), count(*) FILTER (WHERE r.estrellas = 4),
                     count(*) FILTER (WHERE r.estrellas = 5)]::int[] AS distribucion
          FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
-        WHERE i.id_curso = $1 AND r.eliminado_en IS NULL`,
+        WHERE i.id_curso = $1 AND ${VISIBLE}`,
       [idCurso],
     );
     const fila = rows[0]!;
@@ -115,7 +191,7 @@ export const resenasRepository = {
          FROM resena r
          JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
          JOIN persona p ON p.id_persona = i.id_persona
-        WHERE i.id_curso = $1 AND r.eliminado_en IS NULL
+        WHERE i.id_curso = $1 AND ${VISIBLE}
         ORDER BY (r.comentario IS NULL), r.actualizado_en DESC, r.id_resena DESC
         LIMIT $2 OFFSET $3`,
       [idCurso, limite, offset],
@@ -140,19 +216,28 @@ export const resenasRepository = {
          FROM resena r
          JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
          JOIN persona p ON p.id_persona = i.id_persona
-        WHERE r.id_inscripcion = $1 AND r.eliminado_en IS NULL`,
+        WHERE r.id_inscripcion = $1 AND ${VISIBLE}`,
       [idInscripcion],
     );
     return rows[0] ? publica(rows[0]) : null;
+  },
+
+  /** true si un administrador ocultó la reseña de esta inscripción. */
+  async ocultadaDeInscripcion(idInscripcion: number): Promise<boolean> {
+    const { rows } = await consultar(
+      'SELECT 1 FROM resena WHERE id_inscripcion = $1 AND ocultada_en IS NOT NULL', [idInscripcion],
+    );
+    return rows.length === 1;
   },
 
   /**
    * Crea, edita o republica la reseña de la inscripción (UNIQUE id_inscripcion).
    * - Nueva o republicada: guarda el avance actual del estudiante y empieza sin marca de edición ni respuesta.
    * - Edición de una vigente: conserva fecha y avance originales; el trigger marca editado_en.
+   * - Ocultada por un administrador: no cambia nada y devuelve false (ni editarla ni republicarla la vuelve visible).
    */
-  async guardar(cliente: PoolClient, idInscripcion: number, estrellas: number, comentario: string | null): Promise<void> {
-    await cliente.query(
+  async guardar(cliente: PoolClient, idInscripcion: number, estrellas: number, comentario: string | null): Promise<boolean> {
+    const r = await cliente.query(
       `INSERT INTO resena (id_inscripcion, estrellas, comentario, progreso_al_resenar)
        VALUES ($1, $2, $3, (SELECT progreso_pct FROM inscripcion WHERE id_inscripcion = $1))
        ON CONFLICT (id_inscripcion) DO UPDATE SET
@@ -164,9 +249,11 @@ export const resenasRepository = {
          editado_en = CASE WHEN resena.eliminado_en IS NULL THEN resena.editado_en END,
          respuesta_docente = CASE WHEN resena.eliminado_en IS NULL THEN resena.respuesta_docente END,
          respondida_en = CASE WHEN resena.eliminado_en IS NULL THEN resena.respondida_en END,
-         eliminado_en = NULL`,
+         eliminado_en = NULL
+       WHERE resena.ocultada_en IS NULL`,
       [idInscripcion, estrellas, comentario],
     );
+    return r.rowCount === 1;
   },
 
   /** Borrado lógico: deja de contar en promedios públicos, pero se conserva para reportes. */
@@ -203,7 +290,7 @@ export const resenasRepository = {
       consultar<{ total: number }>(
         `SELECT count(*)::int AS total
            FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
-          WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND r.eliminado_en IS NULL${sql}`,
+          WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND ${VISIBLE}${sql}`,
         [idPersona, ...valores],
       ),
     ]);
@@ -225,7 +312,7 @@ export const resenasRepository = {
                     count(*) FILTER (WHERE r.estrellas = 5)]::int[] AS distribucion,
               count(*) FILTER (WHERE r.respuesta_docente IS NULL)::int AS "sinResponder"
          FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
-        WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND r.eliminado_en IS NULL
+        WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND ${VISIBLE}
           AND ($2::int IS NULL OR i.id_curso = $2)`,
       [idPersona, idCurso ?? null],
     );
@@ -239,7 +326,7 @@ export const resenasRepository = {
       `WITH mensual AS (
          SELECT date_trunc('month', r.creado_en) AS mes, count(*)::int AS total, sum(r.estrellas)::int AS suma
            FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
-          WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND r.eliminado_en IS NULL
+          WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND ${VISIBLE}
             AND ($2::int IS NULL OR i.id_curso = $2)
           GROUP BY 1
        ), acumulado AS (
@@ -265,7 +352,7 @@ export const resenasRepository = {
          JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
          JOIN curso c ON c.id_curso = i.id_curso AND c.estado = 'PUBLICADO'
          JOIN docente d ON d.id_docente = c.id_docente
-        WHERE d.id_persona = $1 AND r.eliminado_en IS NULL`,
+        WHERE d.id_persona = $1 AND ${VISIBLE}`,
       [idPersona],
     );
     return { promedio: numeroONull(rows[0]!.promedio), total: rows[0]!.total };
@@ -275,7 +362,7 @@ export const resenasRepository = {
   async resenaDelDocente(cliente: PoolClient, idResena: number, idPersona: number): Promise<{ id: number } | null> {
     const { rows } = await cliente.query<{ id: number }>(
       `SELECT r.id_resena AS id FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
-        WHERE r.id_resena = $2 AND r.eliminado_en IS NULL AND i.id_curso IN (${CURSOS_DEL_DOCENTE})
+        WHERE r.id_resena = $2 AND ${VISIBLE} AND i.id_curso IN (${CURSOS_DEL_DOCENTE})
         FOR UPDATE OF r`,
       [idPersona, idResena],
     );
@@ -309,12 +396,12 @@ export const resenasRepository = {
     const { rows } = await consultar<{
       idResena: number; accion: AccionHistorial; actorId: number | null; actorNombre: string | null; fecha: Date;
       estrellasAnterior: number | null; estrellasNueva: number | null;
-      comentarioAnterior: string | null; comentarioNuevo: string | null;
+      comentarioAnterior: string | null; comentarioNuevo: string | null; motivo: string | null;
     }>(
       `SELECT h.id_resena AS "idResena", h.accion, h.id_persona_actor AS "actorId",
               concat_ws(' ', p.nombres, p.apellidos) AS "actorNombre", h.fecha,
               h.estrellas_anterior AS "estrellasAnterior", h.estrellas_nueva AS "estrellasNueva",
-              h.comentario_anterior AS "comentarioAnterior", h.comentario_nuevo AS "comentarioNuevo"
+              h.comentario_anterior AS "comentarioAnterior", h.comentario_nuevo AS "comentarioNuevo", h.motivo
          FROM historial_resena($1::int[]) h
          LEFT JOIN persona p ON p.id_persona = h.id_persona_actor`,
       [ids],
@@ -325,7 +412,7 @@ export const resenasRepository = {
         accion: f.accion, fecha: f.fecha.toISOString(),
         actor: f.actorId === null ? null : { id: f.actorId, nombre: f.actorNombre || 'Cuenta eliminada' },
         estrellasAnterior: f.estrellasAnterior, estrellasNueva: f.estrellasNueva,
-        comentarioAnterior: f.comentarioAnterior, comentarioNuevo: f.comentarioNuevo,
+        comentarioAnterior: f.comentarioAnterior, comentarioNuevo: f.comentarioNuevo, motivo: f.motivo,
       });
       mapa.set(f.idResena, lista);
     }
@@ -344,41 +431,38 @@ export const resenasRepository = {
 
   // ------------------------------------------------------------ administrador
 
-  /** Todas las reseñas de la plataforma (vigentes, borradas o ambas), de la más reciente a la más antigua. */
-  async todas({ estado, pagina, limite }: FiltrosResenasAdmin): Promise<{ items: Omit<ResenaAdmin, 'historial'>[]; total: number }> {
-    const condicion = estado === 'vigentes' ? 'r.eliminado_en IS NULL'
-      : estado === 'borradas' ? 'r.eliminado_en IS NOT NULL' : 'TRUE';
+  /** Reseñas de la plataforma con los filtros del administrador, de la más reciente a la más antigua. */
+  async todas(filtros: FiltrosResenasAdmin): Promise<{ items: Omit<ResenaAdmin, 'historial'>[]; total: number }> {
+    const { sql, valores } = condicionesAdmin(filtros);
+    const n = valores.length + 1;
     const [{ rows }, conteo] = await Promise.all([
-      consultar<{
-        id: number; cursoId: number; cursoTitulo: string; estudiante: string; estrellas: number;
-        comentario: string | null; creadoEn: Date; eliminadaEn: Date | null; respuestaTexto: string | null;
-        respondidaEn: Date | null; reportesPendientes: number;
-      }>(
-        `SELECT r.id_resena AS id, c.id_curso AS "cursoId", c.titulo AS "cursoTitulo",
-                concat_ws(' ', p.nombres, p.apellidos) AS estudiante, r.estrellas, r.comentario,
-                r.creado_en AS "creadoEn", r.eliminado_en AS "eliminadaEn",
-                r.respuesta_docente AS "respuestaTexto", r.respondida_en AS "respondidaEn",
-                (SELECT count(*)::int FROM reporte_resena x
-                  WHERE x.id_resena = r.id_resena AND x.estado = 'PENDIENTE') AS "reportesPendientes"
-           FROM resena r
-           JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
-           JOIN curso c ON c.id_curso = i.id_curso
-           JOIN persona p ON p.id_persona = i.id_persona
-          WHERE ${condicion}
-          ORDER BY r.actualizado_en DESC, r.id_resena DESC
-          LIMIT $1 OFFSET $2`,
-        [limite, (pagina - 1) * limite],
+      consultar<FilaAdmin>(
+        `${SELECT_ADMIN} WHERE ${sql} ORDER BY r.actualizado_en DESC, r.id_resena DESC LIMIT $${n} OFFSET $${n + 1}`,
+        [...valores, filtros.limite, (filtros.pagina - 1) * filtros.limite],
       ),
-      consultar<{ total: number }>(`SELECT count(*)::int AS total FROM resena r WHERE ${condicion}`),
+      consultar<{ total: number }>(
+        `SELECT count(*)::int AS total FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+          WHERE ${sql}`,
+        valores,
+      ),
     ]);
-    return {
-      total: conteo.rows[0]!.total,
-      items: rows.map((f) => ({
-        id: f.id, curso: { id: f.cursoId, titulo: f.cursoTitulo }, estudiante: f.estudiante, estrellas: f.estrellas,
-        comentario: f.comentario, creadoEn: f.creadoEn.toISOString(), eliminadaEn: f.eliminadaEn?.toISOString() ?? null,
-        respuesta: respuesta(f.respuestaTexto, f.respondidaEn), reportesPendientes: f.reportesPendientes,
-      })),
-    };
+    return { total: conteo.rows[0]!.total, items: rows.map(deAdmin) };
+  },
+
+  async resenaAdminPorId(idResena: number): Promise<Omit<ResenaAdmin, 'historial'> | null> {
+    const { rows } = await consultar<FilaAdmin>(`${SELECT_ADMIN} WHERE r.id_resena = $1`, [idResena]);
+    return rows[0] ? deAdmin(rows[0]) : null;
+  },
+
+  /** Cursos con alguna reseña (para el filtro por curso del administrador). */
+  async cursosConResenas(): Promise<{ id: number; titulo: string }[]> {
+    const { rows } = await consultar<{ id: number; titulo: string }>(
+      `SELECT c.id_curso AS id, c.titulo FROM curso c
+        WHERE EXISTS (SELECT 1 FROM inscripcion i JOIN resena r ON r.id_inscripcion = i.id_inscripcion
+                       WHERE i.id_curso = c.id_curso)
+        ORDER BY c.titulo, c.id_curso`,
+    );
+    return rows;
   },
 
   async reportes(estado: EstadoReporte): Promise<Omit<ReporteAdmin, 'historial'>[]> {
@@ -387,18 +471,20 @@ export const resenasRepository = {
       resueltoEn: Date | null; reportadoPor: string; resenaId: number; cursoId: number; cursoTitulo: string;
       estudiante: string; estrellas: number; comentario: string | null; eliminadaEn: Date | null;
       respuestaTexto: string | null; respondidaEn: Date | null;
-    }>(
+    } & FilaOcultacion>(
       `SELECT x.id_reporte AS id, x.motivo, x.detalle, x.estado, x.creado_en AS "creadoEn",
               x.resuelto_en AS "resueltoEn", concat_ws(' ', pr.nombres, pr.apellidos) AS "reportadoPor",
               r.id_resena AS "resenaId", c.id_curso AS "cursoId", c.titulo AS "cursoTitulo",
               concat_ws(' ', pe.nombres, pe.apellidos) AS estudiante, r.estrellas, r.comentario,
-              r.eliminado_en AS "eliminadaEn", r.respuesta_docente AS "respuestaTexto", r.respondida_en AS "respondidaEn"
+              r.eliminado_en AS "eliminadaEn", r.respuesta_docente AS "respuestaTexto", r.respondida_en AS "respondidaEn",
+              ${CAMPOS_OCULTACION}
          FROM reporte_resena x
          JOIN persona pr ON pr.id_persona = x.id_persona_reporta
          JOIN resena r ON r.id_resena = x.id_resena
          JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
          JOIN curso c ON c.id_curso = i.id_curso
          JOIN persona pe ON pe.id_persona = i.id_persona
+         LEFT JOIN persona po ON po.id_persona = r.ocultada_por
         WHERE x.estado = $1
         ORDER BY x.creado_en DESC, x.id_reporte DESC
         LIMIT 100`,
@@ -410,12 +496,12 @@ export const resenasRepository = {
       resena: {
         id: f.resenaId, curso: { id: f.cursoId, titulo: f.cursoTitulo }, estudiante: f.estudiante,
         estrellas: f.estrellas, comentario: f.comentario, eliminadaEn: f.eliminadaEn?.toISOString() ?? null,
-        respuesta: respuesta(f.respuestaTexto, f.respondidaEn),
+        ocultacion: ocultacion(f), respuesta: respuesta(f.respuestaTexto, f.respondidaEn),
       },
     }));
   },
 
-  /** Resuelve un reporte pendiente; al ocultar, borra lógicamente la reseña. Devuelve la reseña o null. */
+  /** Resuelve un reporte pendiente; al ocultar, oculta la reseña (si no lo estaba). Devuelve la reseña o null. */
   async resolverReporte(cliente: PoolClient, idReporte: number, idAdmin: number, ocultar: boolean): Promise<number | null> {
     const { rows } = await cliente.query<{ resena: number }>(
       `UPDATE reporte_resena SET estado = $3, resuelto_en = now(), id_persona_resuelve = $2
@@ -425,8 +511,56 @@ export const resenasRepository = {
     );
     const idResena = rows[0]?.resena ?? null;
     if (idResena !== null && ocultar) {
-      await cliente.query('UPDATE resena SET eliminado_en = now() WHERE id_resena = $1 AND eliminado_en IS NULL', [idResena]);
+      await cliente.query(
+        `UPDATE resena r SET ocultada_en = x.resuelto_en, ocultada_por = x.id_persona_resuelve,
+                motivo_ocultacion = ${MOTIVO_POR_REPORTE}
+           FROM reporte_resena x
+          WHERE x.id_reporte = $1 AND r.id_resena = x.id_resena AND r.ocultada_en IS NULL`,
+        [idReporte],
+      );
     }
     return idResena;
+  },
+
+  /** Bloquea la reseña para moderarla: si está oculta y si tiene respuesta del docente (null si no existe). */
+  async bloquearParaModerar(cliente: PoolClient, idResena: number): Promise<{ ocultada: boolean; respondida: boolean } | null> {
+    const { rows } = await cliente.query<{ ocultada: boolean; respondida: boolean }>(
+      `SELECT ocultada_en IS NOT NULL AS ocultada, respuesta_docente IS NOT NULL AS respondida
+         FROM resena WHERE id_resena = $1 FOR UPDATE`,
+      [idResena],
+    );
+    return rows[0] ?? null;
+  },
+
+  /** Oculta la reseña con el motivo del administrador y resuelve como OCULTADA sus reportes pendientes. */
+  async ocultar(cliente: PoolClient, idResena: number, idAdmin: number, motivo: string): Promise<void> {
+    await cliente.query(
+      `UPDATE resena SET ocultada_en = now(), ocultada_por = $2, motivo_ocultacion = $3
+        WHERE id_resena = $1 AND ocultada_en IS NULL`,
+      [idResena, idAdmin, motivo],
+    );
+    await cliente.query(
+      `UPDATE reporte_resena SET estado = 'OCULTADA', resuelto_en = now(), id_persona_resuelve = $2
+        WHERE id_resena = $1 AND estado = 'PENDIENTE'`,
+      [idResena, idAdmin],
+    );
+  },
+
+  /** Vuelve a mostrar la reseña. Los reportes resueltos conservan su estado como registro. */
+  async restaurar(cliente: PoolClient, idResena: number): Promise<void> {
+    await cliente.query(
+      `UPDATE resena SET ocultada_en = NULL, ocultada_por = NULL, motivo_ocultacion = NULL
+        WHERE id_resena = $1 AND ocultada_en IS NOT NULL`,
+      [idResena],
+    );
+  },
+
+  /** Retira la respuesta del docente; la auditoría guarda el texto y quién la retiró. */
+  async retirarRespuesta(cliente: PoolClient, idResena: number): Promise<void> {
+    await cliente.query(
+      `UPDATE resena SET respuesta_docente = NULL, respondida_en = NULL
+        WHERE id_resena = $1 AND respuesta_docente IS NOT NULL`,
+      [idResena],
+    );
   },
 };

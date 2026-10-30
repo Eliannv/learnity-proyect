@@ -2448,12 +2448,13 @@
         "type": "object",
         "required": [
           "puedeResenar",
-          "resena"
+          "resena",
+          "ocultada"
         ],
         "properties": {
           "puedeResenar": {
             "type": "boolean",
-            "description": "Inscrito en el curso publicado."
+            "description": "Inscrito en el curso publicado y su reseña no está ocultada."
           },
           "resena": {
             "nullable": true,
@@ -2462,6 +2463,10 @@
                 "$ref": "#/components/schemas/Resena"
               }
             ]
+          },
+          "ocultada": {
+            "type": "boolean",
+            "description": "Un administrador ocultó su reseña: no puede editarla ni republicarla. El motivo es interno."
           }
         }
       },
@@ -2796,7 +2801,8 @@
           "estrellasAnterior",
           "estrellasNueva",
           "comentarioAnterior",
-          "comentarioNuevo"
+          "comentarioNuevo",
+          "motivo"
         ],
         "properties": {
           "accion": {
@@ -2806,7 +2812,10 @@
               "EDITADA",
               "ELIMINADA",
               "REPUBLICADA",
-              "RESPONDIDA_POR_DOCENTE"
+              "RESPONDIDA_POR_DOCENTE",
+              "OCULTADA",
+              "RESTAURADA",
+              "RESPUESTA_RETIRADA"
             ]
           },
           "fecha": {
@@ -2844,6 +2853,11 @@
           "comentarioNuevo": {
             "type": "string",
             "nullable": true
+          },
+          "motivo": {
+            "type": "string",
+            "nullable": true,
+            "description": "Motivo de la ocultación (solo en OCULTADA)."
           }
         }
       },
@@ -2857,6 +2871,7 @@
           "comentario",
           "creadoEn",
           "eliminadaEn",
+          "ocultacion",
           "respuesta",
           "reportesPendientes",
           "historial"
@@ -2899,7 +2914,45 @@
           "eliminadaEn": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "Borrada por su autor."
+          },
+          "ocultacion": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "fecha",
+              "motivo",
+              "por"
+            ],
+            "description": "Ocultación por un administrador; null si la reseña no está oculta.",
+            "properties": {
+              "fecha": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "motivo": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "por": {
+                "type": "object",
+                "nullable": true,
+                "required": [
+                  "id",
+                  "nombre"
+                ],
+                "description": "null si se borró la cuenta del administrador.",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "nombre": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
           },
           "respuesta": {
             "type": "object",
@@ -2935,6 +2988,7 @@
       "PaginaResenasAdmin": {
         "type": "object",
         "required": [
+          "cursos",
           "items",
           "pagina",
           "limite",
@@ -2942,6 +2996,25 @@
           "totalPaginas"
         ],
         "properties": {
+          "cursos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "titulo"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "titulo": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Cursos con alguna reseña, para el filtro por curso."
+          },
           "items": {
             "type": "array",
             "items": {
@@ -3022,6 +3095,7 @@
               "estrellas",
               "comentario",
               "eliminadaEn",
+              "ocultacion",
               "respuesta"
             ],
             "properties": {
@@ -3060,6 +3134,43 @@
                 "format": "date-time",
                 "nullable": true
               },
+              "ocultacion": {
+                "type": "object",
+                "nullable": true,
+                "required": [
+                  "fecha",
+                  "motivo",
+                  "por"
+                ],
+                "description": "Ocultación por un administrador; null si la reseña no está oculta.",
+                "properties": {
+                  "fecha": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "motivo": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "por": {
+                    "type": "object",
+                    "nullable": true,
+                    "required": [
+                      "id",
+                      "nombre"
+                    ],
+                    "description": "null si se borró la cuenta del administrador.",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "nombre": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
               "respuesta": {
                 "type": "object",
                 "nullable": true,
@@ -3086,6 +3197,21 @@
             "items": {
               "$ref": "#/components/schemas/EntradaHistorialResena"
             }
+          }
+        }
+      },
+      "DatosOcultacionResena": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "motivo"
+        ],
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Motivo interno; el estudiante no lo ve."
           }
         }
       },
@@ -8495,6 +8621,16 @@
               }
             }
           },
+          "409": {
+            "description": "Un administrador ocultó la reseña: no se puede editar ni republicar (RESENA_OCULTADA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
           "413": {
             "$ref": "#/components/responses/CuerpoDemasiadoGrande"
           },
@@ -9076,7 +9212,7 @@
         "tags": [
           "Reseñas"
         ],
-        "summary": "Todas las reseñas (también las borradas) con su historial completo",
+        "summary": "Todas las reseñas (también las borradas y ocultadas) con su historial completo",
         "description": "Acceso total del administrador para moderar. De la más reciente a la más antigua.",
         "security": [
           {
@@ -9087,14 +9223,42 @@
           {
             "in": "query",
             "name": "estado",
+            "description": "vigentes: se ven en el curso; borradas: por su autor; ocultadas: por un administrador.",
             "schema": {
               "type": "string",
               "enum": [
                 "vigentes",
                 "borradas",
+                "ocultadas",
                 "todas"
               ],
               "default": "todas"
+            }
+          },
+          {
+            "in": "query",
+            "name": "curso",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "estrellas",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "description": "Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas).",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
             }
           },
           {
@@ -9246,7 +9410,7 @@
         "tags": [
           "Reseñas"
         ],
-        "summary": "Resolver un reporte: ocultar la reseña (borrado lógico) o desestimarlo",
+        "summary": "Resolver un reporte: ocultar la reseña o desestimarlo",
         "security": [
           {
             "bearer": []
@@ -9402,6 +9566,291 @@
           },
           "403": {
             "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/resenas/{id}/ocultacion": {
+      "post": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Ocultar una reseña con un motivo, sin necesidad de reporte",
+        "description": "Deja de verse y de contar en los promedios, y el estudiante no puede republicarla. Sus reportes pendientes quedan resueltos como OCULTADA.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosOcultacionResena"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResenaAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Motivo vacío o de más de 300 caracteres, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La reseña no existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ya está oculta (RESENA_YA_OCULTADA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "$ref": "#/components/responses/CuerpoDemasiadoGrande"
+          },
+          "415": {
+            "$ref": "#/components/responses/TipoNoAdmitido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Restaurar una reseña ocultada",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResenaAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La reseña no existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No está oculta (RESENA_NO_OCULTADA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/resenas/{id}/respuesta": {
+      "delete": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Retirar la respuesta pública del docente (queda en el historial como RESPUESTA_RETIRADA)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResenaAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La reseña no existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No tiene respuesta del docente (SIN_RESPUESTA)",
             "content": {
               "application/json": {
                 "schema": {
