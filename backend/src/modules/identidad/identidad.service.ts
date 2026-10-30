@@ -333,7 +333,7 @@ export const identidadService = {
         await repo.reemplazarTokenRecuperacion(cliente, {
           idUsuario: cuenta.idUsuario,
           tokenHash: hashToken(token),
-          expiraEn: new Date(Date.now() + env.RECUPERACION_MINUTOS * 60_000),
+          minutos: env.RECUPERACION_MINUTOS,
           ip: ctx.ip,
         });
         return true;

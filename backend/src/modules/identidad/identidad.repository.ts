@@ -340,18 +340,22 @@ export const identidadRepository = {
     return rows[0]?.total ?? 0;
   },
 
-  /** Invalida los enlaces anteriores sin usar y guarda el nuevo (solo su hash). */
+  /**
+   * Invalida los enlaces anteriores sin usar y guarda el nuevo (solo su hash). El vencimiento se calcula con el mismo
+   * now() que `creado_en`: calculado en Node, con 30 minutos quedaría unos milisegundos por encima del CHECK de vigencia.
+   */
   async reemplazarTokenRecuperacion(
     cliente: pg.PoolClient,
-    datos: { idUsuario: number; tokenHash: string; expiraEn: Date; ip?: string },
+    datos: { idUsuario: number; tokenHash: string; minutos: number; ip?: string },
   ): Promise<void> {
     await cliente.query(
       'UPDATE token_recuperacion SET usado_en = now() WHERE id_usuario = $1 AND usado_en IS NULL',
       [datos.idUsuario],
     );
     await cliente.query(
-      'INSERT INTO token_recuperacion (id_usuario, token_hash, expira_en, ip) VALUES ($1, $2, $3, $4)',
-      [datos.idUsuario, datos.tokenHash, datos.expiraEn, datos.ip ?? null],
+      `INSERT INTO token_recuperacion (id_usuario, token_hash, expira_en, ip)
+       VALUES ($1, $2, now() + make_interval(mins => $3), $4)`,
+      [datos.idUsuario, datos.tokenHash, datos.minutos, datos.ip ?? null],
     );
   },
 
