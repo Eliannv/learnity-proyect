@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import { ICONOS } from '../../../../../shared/ui/marca/iconos';
 import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
@@ -19,7 +19,7 @@ const accesos: AccesoAdmin[] = [
     paso: 'CLAVE', exito: false, motivo: 'CORREO_DESCONOCIDO', agente: null },
 ];
 
-function montar() {
+function montar(consulta: Record<string, string> = {}) {
   const api = {
     listar: vi.fn().mockResolvedValue({ items: accesos, paginacion: { total: 2, pagina: 1, limite: 20, totalPaginas: 1 } }),
     bloqueadas: vi.fn().mockResolvedValue([bloqueada]),
@@ -29,6 +29,7 @@ function montar() {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]), { provide: AccesosApi, useValue: api }, { provide: ToastService, useValue: toasts },
+      { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(consulta) } } },
       { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) },
     ],
   });
@@ -79,5 +80,12 @@ describe('accesos del administrador', () => {
     });
     expect(api.desbloquear).toHaveBeenCalledWith(5);
     expect(toasts.exito).toHaveBeenCalledWith('Cuenta de Ana Pérez desbloqueada. Ya puede iniciar sesión.');
+  });
+
+  it('un enlace con ?q= (desde una alerta) abre el registro ya filtrado por ese correo', async () => {
+    const { fixture, api } = montar({ q: 'ana@learnity.test' });
+    await vi.waitFor(() => expect(api.listar).toHaveBeenCalledWith(expect.objectContaining({ q: 'ana@learnity.test' })));
+    fixture.detectChanges();
+    expect((fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement).value).toBe('ana@learnity.test');
   });
 });

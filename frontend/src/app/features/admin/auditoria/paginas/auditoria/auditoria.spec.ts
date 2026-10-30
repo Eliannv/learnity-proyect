@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import type { CambioAuditoria, DetalleCambioAuditoria } from '../../../../../core/api/contrato';
 import { ICONOS } from '../../../../../shared/ui/marca/iconos';
@@ -17,7 +18,7 @@ const detalle: DetalleCambioAuditoria = {
   despues: { id_categoria: 4, nombre: 'Diseño gráfico', actualizado_en: '2026-10-29T15:00:00Z' },
 };
 
-function montar() {
+function montar(consulta: Record<string, string> = {}) {
   const api = {
     listar: vi.fn().mockResolvedValue({ items: [cambio], paginacion: { total: 1, pagina: 1, limite: 25, totalPaginas: 1 } }),
     detalle: vi.fn().mockResolvedValue(detalle),
@@ -27,6 +28,7 @@ function montar() {
   };
   TestBed.configureTestingModule({
     providers: [
+      provideRouter([]), { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(consulta) } } },
       { provide: AuditoriaApi, useValue: api },
       { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) },
     ],
@@ -91,6 +93,13 @@ describe('visor de auditoría', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('«Desde» debe ser anterior o igual a «Hasta».');
     expect(api.listar.mock.calls.length).toBe(llamadas);
+  });
+
+  it('un enlace con ?ver= (desde una alerta) abre directamente ese registro', async () => {
+    const { fixture, api } = montar({ ver: '77' });
+    await vi.waitFor(() => expect(api.detalle).toHaveBeenCalledWith(77));
+    await esperar(fixture, '9911');
+    expect(fixture.nativeElement.querySelector('app-modal').textContent).toContain('Cambio 77 · categoria');
   });
 
   it('el detalle muestra los metadatos y el antes y después, con texto además del color', async () => {

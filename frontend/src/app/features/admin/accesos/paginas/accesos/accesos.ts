@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { mensajeDeError } from '../../../../../core/http/error-api';
 import { EstadoVistaComponent } from '../../../../../shared/ui/retroalimentacion/estado-vista';
@@ -61,6 +62,8 @@ export class AdminAccesos {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.espera));
+    // Las alertas de seguridad enlazan aquí con el correo de la cuenta ya buscado (?q=).
+    this.busqueda.set(inject(ActivatedRoute).snapshot.queryParamMap.get('q') ?? '');
     void this.cargarBloqueadas();
     void this.cargar();
   }

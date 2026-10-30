@@ -110,3 +110,7 @@ export type ConsultaAuditoria = NonNullable<paths['/admin/auditoria']['get']['pa
 export type EstadoBaseDatos = Esquemas['EstadoBaseDatos'];
 export type SesionAdmin = Esquemas['SesionAdmin'];
 export type PaginaSesiones = Esquemas['PaginaSesiones'];
+export type AlertaSeguridad = Esquemas['AlertaSeguridad'];
+export type PaginaAlertas = Esquemas['PaginaAlertas'];
+export type ResultadoAnalisisAlertas = Esquemas['ResultadoAnalisisAlertas'];
+export type ConsultaAlertas = NonNullable<paths['/admin/alertas']['get']['parameters']['query']>;

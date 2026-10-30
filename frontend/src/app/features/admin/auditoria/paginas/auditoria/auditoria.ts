@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { mensajeDeError } from '../../../../../core/http/error-api';
 import { EstadoVistaComponent } from '../../../../../shared/ui/retroalimentacion/estado-vista';
@@ -45,6 +46,7 @@ function medianoche(dia: string, mas = 0): string {
 })
 export class AdminAuditoria {
   private readonly api = inject(AuditoriaApi);
+  private readonly router = inject(Router);
   private solicitud = 0;
 
   protected readonly operaciones = OPERACION;
@@ -68,6 +70,9 @@ export class AdminAuditoria {
   constructor() {
     void this.cargarOpciones();
     void this.cargar();
+    // Las alertas de seguridad enlazan con ?ver=<id> para abrir directamente ese registro.
+    const ver = Number(inject(ActivatedRoute).snapshot.queryParamMap.get('ver'));
+    if (Number.isSafeInteger(ver) && ver > 0) void this.abrirPorId(ver);
   }
 
   protected filtrar(cambio: Partial<Filtros>): void {
@@ -132,6 +137,21 @@ export class AdminAuditoria {
 
   protected cerrar(): void {
     this.abierto.set(null);
+    if (this.router.url.includes('ver=')) {
+      void this.router.navigate([], { queryParams: { ver: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    }
+  }
+
+  /** Abre el detalle de un registro que quizá no está en la página actual (enlace desde una alerta). */
+  private async abrirPorId(id: number): Promise<void> {
+    this.errorDetalle.set('');
+    try {
+      const d = await this.api.detalle(id);
+      this.abierto.set(d);
+      this.detalle.set(d);
+    } catch (error) {
+      this.error.set(mensajeDeError(error, `Abrir el registro de auditoría ${id}`));
+    }
   }
 
   /** Columnas cambiadas para la tabla: las tres primeras y cuántas más. */

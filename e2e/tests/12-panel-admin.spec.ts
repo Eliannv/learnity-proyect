@@ -381,3 +381,60 @@ test('el administrador revisa la auditoría con su diff y el estado de la base, 
   await page.goto('/admin/sesiones');
   await expect(page).toHaveURL(/\/login/);
 });
+
+test('el administrador ejecuta el análisis de alertas, sigue la evidencia y marca una alerta como atendida', async ({ page }) => {
+  const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin-alertas');
+  const alumna = await crearCuenta(['ESTUDIANTE'], 'alumna-alertas');
+  const inicio = await conFixtures(async (f) => {
+    const { rows: [ahora] } = await f.query<{ t: Date }>('SELECT now() AS t');
+    for (let m = 10; m >= 1; m--) {
+      await f.query(
+        `INSERT INTO evento_acceso (id_usuario, correo, paso, exito, motivo, agente, ocurrido_en)
+         VALUES ($1, $2, 'CLAVE', false, 'CLAVE_INCORRECTA', 'E2E/1.0', now() - make_interval(mins => $3))`,
+        [alumna.idUsuario, alumna.correo, m]);
+    }
+    return ahora!.t;
+  });
+
+  try {
+    await iniciarSesionPorUI(page, admin.correo);
+    await page.goto('/admin/alertas');
+    await page.getByRole('button', { name: 'Ejecutar análisis ahora' }).click();
+    await expect(page.getByText(/Análisis completado/)).toBeVisible();
+    // learnity_test acumula avisos de las demás suites: se filtra como lo haría el administrador.
+    await page.getByLabel('Tipo').selectOption('INTENTOS_FALLIDOS');
+    const alerta = page.getByRole('article').filter({ hasText: alumna.correo });
+    await expect(alerta).toContainText('Alta');
+    await expect(alerta).toContainText('Intentos fallidos de inicio de sesión');
+    await revisarAccesibilidad(page);
+    await captura(page, 'admin-alertas');
+
+    // La evidencia lleva al registro de accesos ya filtrado por la cuenta.
+    await alerta.getByRole('link', { name: /10 accesos fallidos en el registro/ }).click();
+    await expect(page).toHaveURL(/\/admin\/accesos\?q=/);
+    await expect(page.getByLabel('Buscar por correo o nombre')).toHaveValue(alumna.correo);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/admin\/alertas/);
+
+    // Un cambio de privilegios enlaza a su registro en el visor de auditoría.
+    await page.getByLabel('Tipo').selectOption('CAMBIO_PRIVILEGIOS');
+    const rol = page.getByRole('article').filter({ hasText: 'Cambio de privilegios' }).first();
+    await rol.getByRole('link', { name: /Ver el cambio \d+ en la auditoría/ }).first().click();
+    await expect(page.getByRole('dialog', { name: /^Cambio \d+ · usuario_rol$/ })).toBeVisible();
+    await page.goBack();
+
+    await page.getByLabel('Tipo').selectOption('INTENTOS_FALLIDOS');
+    await page.getByRole('article').filter({ hasText: alumna.correo }).getByRole('button', { name: 'Marcar atendida' }).click();
+    const modal = page.getByRole('dialog', { name: 'Marcar alerta como atendida' });
+    await modal.getByLabel(/Nota/).fill('Hablé con la alumna: olvidó su contraseña.');
+    await revisarAccesibilidad(page);
+    await modal.getByRole('button', { name: 'Marcar atendida' }).click();
+    await expect(page.getByText('Alerta marcada como atendida.')).toBeVisible();
+    await expect(page.getByRole('article').filter({ hasText: alumna.correo })).toHaveCount(0);
+    await page.getByRole('tab', { name: /Todas/ }).click();
+    await expect(page.getByRole('article').filter({ hasText: alumna.correo }))
+      .toContainText('Nota: Hablé con la alumna: olvidó su contraseña.');
+  } finally {
+    await conFixtures((f) => f.query('DELETE FROM alerta_seguridad WHERE detectada_en >= $1', [inicio]));
+  }
+});

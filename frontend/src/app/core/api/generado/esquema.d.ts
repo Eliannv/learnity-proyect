@@ -5625,6 +5625,244 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/alertas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Alertas de seguridad, la más reciente primero, con los contadores de cada pestaña */
+        get: {
+            parameters: {
+                query?: {
+                    estado?: "pendientes" | "todas";
+                    severidad?: "ALTA" | "MEDIA" | "BAJA";
+                    tipo?: "INTENTOS_FALLIDOS" | "CAMBIO_PRIVILEGIOS" | "RAFAGA_RESENAS" | "MODIFICACION_MASIVA";
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaAlertas"];
+                    };
+                };
+                /** @description Filtros inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/alertas/analisis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ejecutar el análisis ahora sobre las últimas 24 horas
+         * @description Llama a analizar_alertas_seguridad (038) en una transacción con el administrador como actor. Las reglas y sus umbrales están en la migración. Hasta 30 peticiones por IP y 15 minutos.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResultadoAnalisisAlertas"];
+                    };
+                };
+                /** @description Parámetros no admitidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Límite de peticiones */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/alertas/{id}/atencion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Marcar una alerta como atendida (con nota opcional)
+         * @description Queda auditado con el administrador como actor.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la alerta */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosAtencionAlerta"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AlertaSeguridad"];
+                    };
+                };
+                /** @description ID o nota inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La alerta no existe */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Ya estaba atendida (ALERTA_ATENDIDA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/sesiones": {
         parameters: {
             query?: never;
@@ -7934,6 +8172,66 @@ export interface components {
                 limite: number;
                 totalPaginas: number;
             };
+        };
+        AlertaSeguridad: {
+            id: number;
+            /** @enum {string} */
+            tipo: "INTENTOS_FALLIDOS" | "CAMBIO_PRIVILEGIOS" | "RAFAGA_RESENAS" | "MODIFICACION_MASIVA";
+            /** @enum {string} */
+            severidad: "ALTA" | "MEDIA" | "BAJA";
+            descripcion: string;
+            /** Format: date-time */
+            detectadaEn: string;
+            /** @description Cuenta implicada: la atacada, la que recibió o perdió el rol, o la del actor. null si no hay o se borró. */
+            usuario: {
+                id: number;
+                nombre: string;
+                correo: string;
+            } | null;
+            /** @description Registros que la provocaron (como mucho 50 de cada uno). */
+            evidencia: {
+                /** @description IDs del visor de auditoría (GET /admin/auditoria/{id}). */
+                auditoria: number[];
+                /** @description IDs del registro de accesos. */
+                accesos: number[];
+            };
+            /** @description null mientras esté pendiente. */
+            atencion: {
+                /** Format: date-time */
+                fecha: string;
+                por: {
+                    id: number;
+                    nombre: string;
+                } | null;
+                nota: string | null;
+            } | null;
+        };
+        PaginaAlertas: {
+            items: components["schemas"]["AlertaSeguridad"][];
+            paginacion: {
+                total: number;
+                pagina: number;
+                limite: number;
+                totalPaginas: number;
+            };
+            /** @description Con los mismos filtros de severidad y tipo. */
+            contadores: {
+                pendientes: number;
+                todas: number;
+            };
+        };
+        ResultadoAnalisisAlertas: {
+            /** @description Alertas nuevas. Un hallazgo ya registrado no se duplica. */
+            nuevas: number;
+            /**
+             * Format: date-time
+             * @description Inicio del periodo revisado (las últimas 24 horas).
+             */
+            desde: string;
+        };
+        DatosAtencionAlerta: {
+            /** @description Vacía o solo espacios se guarda como null. */
+            nota?: string | null;
         };
     };
     responses: {

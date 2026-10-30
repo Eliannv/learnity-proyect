@@ -132,6 +132,11 @@ export const routes: Routes = [
           import('./features/admin/auditoria/auditoria.routes').then((m) => m.rutasAdminAuditoria),
       },
       {
+        path: 'alertas',
+        loadChildren: () =>
+          import('./features/admin/alertas/alertas.routes').then((m) => m.rutasAdminAlertas),
+      },
+      {
         path: 'sesiones',
         loadChildren: () =>
           import('./features/admin/sesiones/sesiones.routes').then((m) => m.rutasAdminSesiones),

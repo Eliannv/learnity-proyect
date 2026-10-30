@@ -1,0 +1,130 @@
+<header class="cabecera">
+  <div>
+    <h1 class="titulo-pagina">Alertas de seguridad</h1>
+    <p class="subtitulo">Hallazgos de las reglas de seguridad sobre los accesos y la auditoría, con su evidencia.</p>
+  </div>
+  <button type="button" class="btn btn-primario" [disabled]="analizando()" (click)="analizar()">
+    <lucide-icon name="shield-alert" [size]="18" aria-hidden="true" />
+    {{ analizando() ? 'Analizando…' : 'Ejecutar análisis ahora' }}
+  </button>
+</header>
+
+<div class="barra">
+  <div class="pestanas" role="tablist" aria-label="Qué alertas ver">
+    <button type="button" role="tab" [attr.aria-selected]="vista() === 'pendientes'" [class.activa]="vista() === 'pendientes'"
+      (click)="elegir('pendientes')">Pendientes <span class="contador">{{ datos()?.contadores?.pendientes ?? '…' }}</span></button>
+    <button type="button" role="tab" [attr.aria-selected]="vista() === 'todas'" [class.activa]="vista() === 'todas'"
+      (click)="elegir('todas')">Todas <span class="contador">{{ datos()?.contadores?.todas ?? '…' }}</span></button>
+  </div>
+  <div class="filtros">
+    <label class="campo">
+      <span>Severidad</span>
+      <select class="control" name="severidad" [ngModel]="severidad()" (ngModelChange)="filtrar({ severidad: $event })">
+        <option value="">Todas</option>
+        <option value="ALTA">Alta</option>
+        <option value="MEDIA">Media</option>
+        <option value="BAJA">Baja</option>
+      </select>
+    </label>
+    <label class="campo">
+      <span>Tipo</span>
+      <select class="control" name="tipo" [ngModel]="tipo()" (ngModelChange)="filtrar({ tipo: $event })">
+        <option value="">Todos</option>
+        @for (t of listaTipos; track t) { <option [value]="t">{{ tipos[t] }}</option> }
+      </select>
+    </label>
+  </div>
+</div>
+
+@if (error()) {
+  <app-estado-vista estado="error" titulo="No se pudieron cargar las alertas" [mensaje]="error()" (reintentar)="cargar()" />
+} @else if (!datos() && cargando()) {
+  <div class="lista" aria-busy="true" aria-label="Cargando alertas">
+    @for (i of [1, 2, 3]; track i) { <div class="tarjeta-esqueleto esqueleto"></div> }
+  </div>
+} @else if (datos(); as d) {
+  <div role="tabpanel" class="lista" [attr.aria-busy]="cargando()">
+    @for (a of d.items; track a.id) {
+      <article class="alerta" [attr.data-severidad]="a.severidad" [attr.aria-label]="'Alerta ' + severidades[a.severidad] + ': ' + tipos[a.tipo]">
+        <header>
+          <span class="severidad" [attr.data-severidad]="a.severidad">
+            <span class="visualmente-oculto">Severidad </span>{{ severidades[a.severidad] }}
+          </span>
+          <strong class="tipo">{{ tipos[a.tipo] }}</strong>
+          <time class="texto-suave" [attr.datetime]="a.detectadaEn">Detectada el {{ a.detectadaEn | date: 'd MMM y, HH:mm' }}</time>
+        </header>
+        <p class="descripcion">{{ a.descripcion }}</p>
+        @if (a.usuario; as u) {
+          <p class="usuario"><lucide-icon name="user" [size]="15" aria-hidden="true" /> <strong>{{ u.nombre }}</strong>
+            <span class="texto-suave">{{ u.correo }}</span></p>
+        }
+
+        <div class="evidencia">
+          <span class="etiqueta-evidencia">Evidencia:</span>
+          @for (id of a.evidencia.auditoria.slice(0, maxEnlaces); track id) {
+            <a [routerLink]="['/admin/auditoria']" [queryParams]="{ ver: id }"
+              [attr.aria-label]="'Ver el cambio ' + id + ' en la auditoría'">Cambio #{{ id }}</a>
+          }
+          @if (a.evidencia.auditoria.length > maxEnlaces) {
+            <span class="texto-suave">y {{ a.evidencia.auditoria.length - maxEnlaces }} más</span>
+          }
+          @if (a.evidencia.accesos.length) {
+            <a [routerLink]="['/admin/accesos']" [queryParams]="{ q: a.usuario?.correo ?? '' }">
+              {{ a.evidencia.accesos.length }} {{ a.evidencia.accesos.length === 1 ? 'acceso fallido' : 'accesos fallidos' }} en el registro
+            </a>
+          }
+        </div>
+
+        @if (a.atencion; as at) {
+          <p class="atendida">
+            <lucide-icon name="circle-check" [size]="16" aria-hidden="true" />
+            <span>Atendida el {{ at.fecha | date: 'd MMM y, HH:mm' }} por {{ at.por?.nombre ?? 'una cuenta eliminada' }}.
+              @if (at.nota) { Nota: {{ at.nota }} }</span>
+          </p>
+        } @else {
+          <footer class="acciones">
+            <button type="button" class="btn btn-contorno btn-sm" (click)="abrirAtender(a)">
+              <lucide-icon name="check" [size]="16" aria-hidden="true" /> Marcar atendida
+            </button>
+          </footer>
+        }
+      </article>
+    } @empty {
+      <app-estado-vista estado="vacio" [titulo]="vista() === 'pendientes' ? 'No hay alertas pendientes' : 'No hay alertas'"
+        mensaje="Pulsa «Ejecutar análisis ahora» para revisar las últimas 24 horas." />
+    }
+  </div>
+
+  @if (d.paginacion.totalPaginas > 1) {
+    <nav class="paginacion" aria-label="Páginas de alertas">
+      <span class="texto-suave" aria-live="polite">Página {{ d.paginacion.pagina }} de {{ d.paginacion.totalPaginas }}</span>
+      <div class="botones">
+        <button type="button" class="btn btn-contorno btn-sm" [disabled]="d.paginacion.pagina <= 1 || cargando()"
+          (click)="irA(d.paginacion.pagina - 1)">Anterior</button>
+        <button type="button" class="btn btn-contorno btn-sm" [disabled]="d.paginacion.pagina >= d.paginacion.totalPaginas || cargando()"
+          (click)="irA(d.paginacion.pagina + 1)">Siguiente</button>
+      </div>
+    </nav>
+  }
+}
+
+@if (aAtender(); as a) {
+  <app-modal titulo="Marcar alerta como atendida" icono="circle-check" [ancho]="520" (cerrar)="cerrarAtender()">
+    <form class="form-atender" (submit)="$event.preventDefault(); atender()" novalidate>
+      <p><strong>{{ tipos[a.tipo] }}</strong> · {{ a.descripcion }}</p>
+      <label class="campo">
+        <span>Nota (opcional): qué revisaste o qué decidiste</span>
+        <textarea class="control" name="nota" rows="3" [maxlength]="maxNota" [(ngModel)]="nota" [disabled]="atencion.ocupada()"
+          aria-describedby="contador-nota"></textarea>
+        <small id="contador-nota" class="texto-suave contador">{{ nota.length }} / {{ maxNota }}</small>
+      </label>
+      @if (atencion.error()) { <p class="error" role="alert">{{ atencion.error() }}</p> }
+      <div class="acciones">
+        <button type="button" class="btn btn-contorno" [disabled]="atencion.ocupada()" (click)="cerrarAtender()">Cancelar</button>
+        <button type="submit" class="btn btn-primario" [disabled]="atencion.ocupada()">
+          {{ atencion.ocupada() ? 'Guardando…' : 'Marcar atendida' }}
+        </button>
+      </div>
+    </form>
+  </app-modal>
+}

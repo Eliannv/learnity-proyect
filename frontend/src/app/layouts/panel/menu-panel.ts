@@ -85,6 +85,7 @@ export const MENU: Record<
       { icono: 'message-square-text', etiqueta: 'Reseñas', ruta: '/admin/resenas' },
       { icono: 'key-round', etiqueta: 'Accesos', ruta: '/admin/accesos' },
       { icono: 'history', etiqueta: 'Auditoría', ruta: '/admin/auditoria' },
+      { icono: 'shield-alert', etiqueta: 'Alertas de seguridad', ruta: '/admin/alertas' },
       { icono: 'database', etiqueta: 'Sesiones y base de datos', ruta: '/admin/sesiones' },
     ],
 
