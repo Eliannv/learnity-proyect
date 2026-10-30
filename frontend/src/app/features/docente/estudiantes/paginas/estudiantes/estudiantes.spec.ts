@@ -7,17 +7,17 @@ import { EstudiantesCurso } from './estudiantes';
 
 const curso = { id: 7, titulo: 'Álgebra inicial', estado: 'PUBLICADO' } as CursoResumen;
 const paginaUno: SeguimientoDocente = {
-  curso: { id: 7, titulo: curso.titulo }, pagina: 1, limite: 20, total: 21, totalPaginas: 2,
+  curso: null, pagina: 1, limite: 20, total: 21, totalPaginas: 2,
   resumen: { inscritos: 21, completados: 3, progresoPromedio: 35, valoracion: { promedio: 4.5, total: 2 } },
   items: [{
-    idPersona: 8, nombre: 'Ana Pérez', estado: 'ACTIVA', progresoPct: 35,
+    idPersona: 8, nombre: 'Ana Pérez', cursoId: 7, cursoTitulo: 'Álgebra inicial', estado: 'ACTIVA', progresoPct: 35,
     ultimaLeccionId: 11, inscritoEn: '2026-10-21T10:00:00.000Z',
     ultimaActividadEn: '2026-10-22T10:00:00.000Z', estrellas: 4,
   }],
 };
 
 describe('seguimiento docente', () => {
-  it('carga cursos y estudiantes desde API, navega páginas y conserva la selección', async () => {
+  it('carga cursos y todos los estudiantes por defecto, navega páginas y conserva la selección', async () => {
     const cursosApi = { misCursos: vi.fn().mockResolvedValue({ items: [curso] }) };
     const seguimientoApi = { listar: vi.fn().mockResolvedValueOnce(paginaUno).mockResolvedValueOnce({
       ...paginaUno, pagina: 2, items: [],
@@ -30,12 +30,11 @@ describe('seguimiento docente', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Cargando tus cursos');
     await vi.waitFor(() => {
-      fixture.detectChanges();
-      expect(seguimientoApi.listar).toHaveBeenCalledWith(7, 1);
+      expect(seguimientoApi.listar).toHaveBeenCalledWith(null, 1);
       expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
     });
     expect(fixture.nativeElement.textContent).toContain('21');
-    expect(fixture.nativeElement.textContent).toContain('Valoración del curso');
+    expect(fixture.nativeElement.textContent).toContain('Valoración');
     expect(fixture.nativeElement.textContent).toMatch(/4[.,]5 ★/);
     expect(fixture.nativeElement.textContent).toContain('2 reseñas');
     expect(fixture.nativeElement.querySelector('td app-estrellas')?.getAttribute('aria-label')).toBe('4 de 5 estrellas');
@@ -45,8 +44,7 @@ describe('seguimiento docente', () => {
     siguiente.click();
     fixture.detectChanges();
     await vi.waitFor(() => {
-      fixture.detectChanges();
-      expect(seguimientoApi.listar).toHaveBeenLastCalledWith(7, 2);
+      expect(seguimientoApi.listar).toHaveBeenLastCalledWith(null, 2);
       expect(fixture.nativeElement.textContent).toContain('No hay estudiantes en esta página');
     });
   });
@@ -59,27 +57,23 @@ describe('seguimiento docente', () => {
     });
     const fixture = TestBed.createComponent(EstudiantesCurso);
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
+    });
     const reintentar = [...fixture.nativeElement.querySelectorAll('button')].find(
       (boton: HTMLButtonElement) => boton.textContent?.trim() === 'Reintentar',
     ) as HTMLButtonElement;
     reintentar.click();
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Aún no tienes cursos');
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.textContent).toContain('Aún no tienes cursos');
+    });
   });
 
-  it('exporta todos los inscritos a CSV con el nombre que da el servidor', async () => {
-    const blob = new Blob(['Estudiante;Estado'], { type: 'text/csv' });
+  it('permite filtrar por un curso específico desde el selector', async () => {
     const seguimientoApi = {
       listar: vi.fn().mockResolvedValue(paginaUno),
-      exportar: vi.fn().mockResolvedValue({ blob, nombre: 'estudiantes-algebra-inicial.csv' }),
     };
-    URL.createObjectURL = vi.fn(() => 'blob:prueba');
-    URL.revokeObjectURL = vi.fn();
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: DocenteCursosApi, useValue: { misCursos: vi.fn().mockResolvedValue({ items: [curso] }) } },
         { provide: SeguimientoDocenteApi, useValue: seguimientoApi }],
@@ -87,14 +81,15 @@ describe('seguimiento docente', () => {
     const fixture = TestBed.createComponent(EstudiantesCurso);
     fixture.detectChanges();
     await vi.waitFor(() => {
-      fixture.detectChanges();
+      expect(seguimientoApi.listar).toHaveBeenCalledWith(null, 1);
       expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
     });
-    const exportar = [...fixture.nativeElement.querySelectorAll('button')].find(
-      (boton: HTMLButtonElement) => boton.textContent?.includes('Exportar a CSV'),
-    ) as HTMLButtonElement;
-    exportar.click();
-    await vi.waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledWith(blob));
-    expect(seguimientoApi.exportar).toHaveBeenCalledWith(7);
+    const selector = fixture.nativeElement.querySelector('select#curso-seguimiento') as HTMLSelectElement;
+    selector.value = '7';
+    selector.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await vi.waitFor(() => {
+      expect(seguimientoApi.listar).toHaveBeenLastCalledWith(7, 1);
+    });
   });
 });

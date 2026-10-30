@@ -44,6 +44,8 @@ export interface FilaLeccion {
 export interface FilaEstudiante {
   idPersona: number;
   nombre: string;
+  cursoId?: number;
+  cursoTitulo?: string;
   estado: EstadoInscripcion;
   progresoPct: number;
   ultimaLeccionId: number | null;
@@ -262,7 +264,7 @@ export const aprendizajeRepository = {
     return rows[0] ?? null;
   },
 
-  async resumenSeguimiento(idCurso: number): Promise<{
+  async resumenSeguimiento(idDocentePersona: number | null, idCurso: number | null): Promise<{
     inscritos: number; completados: number; progresoPromedio: number;
     valoracion: { promedio: number | null; total: number };
   }> {
@@ -274,28 +276,44 @@ export const aprendizajeRepository = {
               COALESCE(round(avg(i.progreso_pct)), 0)::int AS "progresoPromedio",
               round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS resenas
          FROM inscripcion i
+         JOIN curso c ON c.id_curso = i.id_curso
          LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL
-        WHERE i.id_curso = $1`,
-      [idCurso],
+        WHERE ($2::int IS NOT NULL AND i.id_curso = $2)
+           OR ($2::int IS NULL AND ($1::int IS NULL OR c.id_docente IN (
+                SELECT d.id_docente FROM docente d WHERE d.id_persona = $1 AND d.estado = 'ACTIVO'
+              )))`,
+      [idDocentePersona, idCurso],
     );
     const { promedio, resenas, ...resumen } = rows[0]!;
     return { ...resumen, valoracion: { promedio: promedio === null ? null : Number(promedio), total: resenas } };
   },
 
-  async estudiantesDelCurso(idCurso: number, limite: number, offset: number): Promise<FilaEstudiante[]> {
+  async estudiantesDelDocente(
+    idDocentePersona: number | null, idCurso: number | null, limite: number, offset: number,
+  ): Promise<FilaEstudiante[]> {
     const { rows } = await consultar<FilaEstudiante>(
       `SELECT p.id_persona AS "idPersona", concat_ws(' ', p.nombres, p.apellidos) AS nombre,
+              c.id_curso AS "cursoId", c.titulo AS "cursoTitulo",
               i.estado, i.progreso_pct AS "progresoPct",
               i.id_ultima_leccion AS "ultimaLeccionId", i.inscrito_en AS "inscritoEn",
               i.ultima_actividad_en AS "ultimaActividadEn", r.estrellas
-         FROM inscripcion i JOIN persona p ON p.id_persona = i.id_persona
+         FROM inscripcion i
+         JOIN persona p ON p.id_persona = i.id_persona
+         JOIN curso c ON c.id_curso = i.id_curso
          LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL
-        WHERE i.id_curso = $1
+        WHERE ($2::int IS NOT NULL AND i.id_curso = $2)
+           OR ($2::int IS NULL AND ($1::int IS NULL OR c.id_docente IN (
+                SELECT d.id_docente FROM docente d WHERE d.id_persona = $1 AND d.estado = 'ACTIVO'
+              )))
         ORDER BY i.inscrito_en DESC, i.id_inscripcion DESC
-        LIMIT $2 OFFSET $3`,
-      [idCurso, limite, offset],
+        LIMIT $3 OFFSET $4`,
+      [idDocentePersona, idCurso, limite, offset],
     );
     return rows;
+  },
+
+  async estudiantesDelCurso(idCurso: number, limite: number, offset: number): Promise<FilaEstudiante[]> {
+    return repo.estudiantesDelDocente(null, idCurso, limite, offset);
   },
 
   /** Todos los inscritos para exportar (con un tope que ningún curso real alcanza). */

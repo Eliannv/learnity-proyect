@@ -10,11 +10,8 @@ import { Avatar } from '../../../../../shared/ui/marca/avatar';
 import { BarraProgreso } from '../../../../../shared/ui/datos/barra-progreso';
 import { Indicador } from '../../../../../shared/ui/datos/indicador';
 import { Estrellas } from '../../../../../shared/ui/datos/estrellas';
-import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
-import { guardarBlob } from '../../../../../shared/util/descargar';
-import { mensajeDeError } from '../../../../../core/http/error-api';
 
-/** Seguimiento paginado: el servidor comprueba que el curso pertenezca al docente. */
+/** Seguimiento paginado: permite filtrar por un curso específico o ver todos los estudiantes. */
 @Component({
   selector: 'app-estudiantes-curso',
   imports: [Esqueleto, DatePipe, DecimalPipe, RouterLink, Avatar, BarraProgreso, Indicador, Estrellas],
@@ -26,10 +23,7 @@ export class EstudiantesCurso {
   private readonly seguimientoApi = inject(SeguimientoDocenteApi);
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly toasts = inject(ToastService);
   private version = 0;
-
-  protected readonly exportando = signal(false);
 
   protected readonly cargaCursos = new Peticion();
   protected readonly cargaEstudiantes = new Peticion();
@@ -56,10 +50,10 @@ export class EstudiantesCurso {
       const respuesta = await this.cursosApi.misCursos();
       if (version !== this.version) return;
       this.cursos.set(respuesta.items);
-      const solicitado = Number(this.ruta.snapshot.queryParamMap.get('curso'));
-      const id = respuesta.items.find((c) => c.id === solicitado)?.id ?? respuesta.items[0]?.id ?? null;
-      this.cursoId.set(id);
-      if (id !== null) await this.cargarEstudiantes(id, 1, version);
+      const solicitado = this.ruta.snapshot.queryParamMap.get('curso');
+      const id = solicitado ? Number(solicitado) : null;
+      this.cursoId.set(id !== null && respuesta.items.some((c) => c.id === id) ? id : null);
+      await this.cargarEstudiantes(this.cursoId(), 1, version);
     } catch (error) {
       if (version === this.version) this.cargaCursos.fallar(error);
     } finally {
@@ -68,46 +62,38 @@ export class EstudiantesCurso {
   }
 
   protected cambiarCurso(evento: Event): void {
-    const id = Number((evento.target as HTMLSelectElement).value);
-    if (!this.cursos().some((curso) => curso.id === id)) return;
+    const valor = (evento.target as HTMLSelectElement).value;
+    const id = valor === '' ? null : Number(valor);
+    if (id !== null && !this.cursos().some((curso) => curso.id === id)) return;
     this.cursoId.set(id);
-    void this.router.navigate([], { relativeTo: this.ruta, queryParams: { curso: id }, replaceUrl: true });
+    void this.router.navigate([], {
+      relativeTo: this.ruta,
+      queryParams: { curso: id ?? undefined },
+      replaceUrl: true,
+    });
     void this.cargarEstudiantes(id, 1);
   }
 
   protected cargarPagina(pagina: number): void {
-    const id = this.cursoId();
-    if (id !== null && pagina >= 1 && pagina <= (this.seguimiento()?.totalPaginas ?? 0)) {
-      void this.cargarEstudiantes(id, pagina);
+    const totalPaginas = this.seguimiento()?.totalPaginas ?? 0;
+    if (pagina >= 1 && pagina <= totalPaginas) {
+      void this.cargarEstudiantes(this.cursoId(), pagina);
     }
   }
 
   protected reintentarEstudiantes(): void {
-    const id = this.cursoId();
-    if (id !== null) void this.cargarEstudiantes(id, this.pagina());
-  }
-
-  /** Descarga el CSV (se abre en Excel) con todos los inscritos, no solo los de esta página. */
-  protected async exportar(): Promise<void> {
-    const id = this.cursoId();
-    if (id === null || this.exportando()) return;
-    this.exportando.set(true);
-    try {
-      const { blob, nombre } = await this.seguimientoApi.exportar(id);
-      guardarBlob(blob, nombre);
-      this.toasts.exito(`Descargaste «${nombre}».`);
-    } catch (error) {
-      this.toasts.error(mensajeDeError(error, 'Exportar los estudiantes'));
-    } finally {
-      this.exportando.set(false);
-    }
+    void this.cargarEstudiantes(this.cursoId(), this.pagina());
   }
 
   protected iniciales(nombre: string): string {
     return nombre.split(/\s+/).slice(0, 2).map((parte) => parte[0] ?? '').join('').toUpperCase();
   }
 
-  private async cargarEstudiantes(id: number, pagina: number, version = ++this.version): Promise<void> {
+  protected pct(parte: number, total: number): number {
+    return total ? Math.round((parte / total) * 100) : 0;
+  }
+
+  private async cargarEstudiantes(id: number | null, pagina: number, version = ++this.version): Promise<void> {
     this.pagina.set(pagina);
     this.cargaEstudiantes.limpiar();
     this.cargaEstudiantes.ocupada.set(true);

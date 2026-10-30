@@ -2,7 +2,7 @@
   <header class="cabecera">
     <div>
       <h1 class="titulo-pagina">Estudiantes de mis cursos</h1>
-      <p class="subtitulo">Consulta inscripciones y avance de cada curso.</p>
+      <p class="subtitulo">Consulta inscripciones y avance de todos tus estudiantes o por cada curso.</p>
     </div>
     <a routerLink="/docente/cursos" class="btn btn-contorno">Mis cursos</a>
   </header>
@@ -22,8 +22,9 @@
     </div>
   } @else {
     <div class="selector-curso">
-      <label for="curso-seguimiento">Curso</label>
-      <select id="curso-seguimiento" class="control" [value]="cursoId()" (change)="cambiarCurso($event)">
+      <label for="curso-seguimiento">Filtrar por curso</label>
+      <select id="curso-seguimiento" class="control" [value]="cursoId() ?? ''" (change)="cambiarCurso($event)">
+        <option value="">Todos los estudiantes (todos mis cursos)</option>
         @for (curso of cursos(); track curso.id) {
           <option [value]="curso.id">{{ curso.titulo }}</option>
         }
@@ -31,28 +32,34 @@
     </div>
 
     @if (cargaEstudiantes.ocupada()) {
-      <app-esqueleto forma="filas" [cantidad]="5" [etiqueta]="'Cargando estudiantes de ' + (cursoSeleccionado()?.titulo ?? '') + '…'" />
+      <app-esqueleto forma="filas" [cantidad]="5" [etiqueta]="'Cargando estudiantes' + (cursoSeleccionado() ? ' de ' + cursoSeleccionado()!.titulo : '') + '…'" />
     } @else if (cargaEstudiantes.error()) {
       <div class="mensaje error" role="alert">
         <p>{{ cargaEstudiantes.error() }}</p>
         <button type="button" class="btn btn-contorno" (click)="reintentarEstudiantes()">Reintentar</button>
       </div>
     } @else if (seguimiento(); as datos) {
-      <div class="grid-stats" aria-label="Resumen del curso">
-        <app-indicador etiqueta="Inscritos" [valor]="'' + datos.resumen.inscritos" />
-        <app-indicador etiqueta="Completaron" [valor]="'' + datos.resumen.completados" />
+      <div class="grid-stats" [attr.aria-label]="cursoId() === null ? 'Resumen general de estudiantes' : 'Resumen del curso'">
+        <app-indicador etiqueta="Inscritos" [valor]="'' + datos.resumen.inscritos"
+          [nota]="cursoId() === null ? 'En todos tus cursos' : 'En este curso'" />
+        <app-indicador etiqueta="Completaron" [valor]="'' + datos.resumen.completados"
+          [nota]="datos.resumen.inscritos ? (pct(datos.resumen.completados, datos.resumen.inscritos) + ' % de los inscritos') : 'Sin inscritos'" />
         <app-indicador etiqueta="Progreso promedio" [valor]="datos.resumen.progresoPromedio + ' %'" />
-        <app-indicador etiqueta="Valoración del curso"
+        <app-indicador etiqueta="Valoración"
           [valor]="datos.resumen.valoracion.promedio === null ? '—' : (datos.resumen.valoracion.promedio | number:'1.1-1') + ' ★'"
           [nota]="datos.resumen.valoracion.total === 0 ? 'Sin reseñas todavía'
             : datos.resumen.valoracion.total + (datos.resumen.valoracion.total === 1 ? ' reseña' : ' reseñas')" />
       </div>
 
       <div class="barra-tabla">
-        <p class="texto-suave">{{ datos.total }} {{ datos.total === 1 ? 'estudiante inscrito' : 'estudiantes inscritos' }}</p>
-        <button type="button" class="btn btn-contorno btn-sm" [disabled]="exportando() || datos.total === 0" (click)="exportar()">
-          {{ exportando() ? 'Preparando archivo…' : 'Exportar a CSV (Excel)' }}
-        </button>
+        <p class="texto-suave">
+          {{ datos.total }} {{ datos.total === 1 ? 'estudiante encontrado' : 'estudiantes encontrados' }}
+          @if (cursoSeleccionado(); as sel) {
+            en «{{ sel.titulo }}»
+          } @else {
+            en todos tus cursos
+          }
+        </p>
       </div>
 
       @if (datos.items.length === 0) {
@@ -66,13 +73,40 @@
       } @else {
         <div class="tabla-contenedor" role="region" aria-label="Estudiantes inscritos" tabindex="0">
           <table class="tabla">
-            <thead><tr><th scope="col">Estudiante</th><th scope="col">Inscrito</th><th scope="col">Progreso</th><th scope="col">Última actividad</th><th scope="col">Calificación</th><th scope="col">Estado</th></tr></thead>
+            <thead>
+              <tr>
+                <th scope="col">Estudiante</th>
+                @if (cursoId() === null) {
+                  <th scope="col">Curso</th>
+                }
+                <th scope="col">Inscrito</th>
+                <th scope="col">Progreso</th>
+                <th scope="col">Última actividad</th>
+                <th scope="col">Calificación</th>
+                <th scope="col">Estado</th>
+              </tr>
+            </thead>
             <tbody>
-              @for (estudiante of datos.items; track estudiante.idPersona) {
+              @for (estudiante of datos.items; track (estudiante.idPersona + '-' + (estudiante.cursoId ?? ''))) {
                 <tr>
-                  <td><div class="persona"><app-avatar [texto]="iniciales(estudiante.nombre)" [tamano]="40" /><strong>{{ estudiante.nombre }}</strong></div></td>
+                  <td>
+                    <div class="persona">
+                      <app-avatar [texto]="iniciales(estudiante.nombre)" [tamano]="40" />
+                      <strong>{{ estudiante.nombre }}</strong>
+                    </div>
+                  </td>
+                  @if (cursoId() === null) {
+                    <td>
+                      <span class="chip chip-curso">{{ estudiante.cursoTitulo ?? 'Curso' }}</span>
+                    </td>
+                  }
                   <td class="texto-suave">{{ estudiante.inscritoEn | date:'dd/MM/yyyy' }}</td>
-                  <td><div class="progreso"><app-barra-progreso [valor]="estudiante.progresoPct" [verde]="estudiante.estado === 'COMPLETADA'" /><strong>{{ estudiante.progresoPct }} %</strong></div></td>
+                  <td>
+                    <div class="progreso">
+                      <app-barra-progreso [valor]="estudiante.progresoPct" [verde]="estudiante.estado === 'COMPLETADA'" />
+                      <strong>{{ estudiante.progresoPct }} %</strong>
+                    </div>
+                  </td>
                   <td class="texto-suave">{{ estudiante.ultimaActividadEn ? (estudiante.ultimaActividadEn | date:'dd/MM/yyyy HH:mm') : 'Sin actividad' }}</td>
                   <td>
                     @if (estudiante.estrellas !== null) {
@@ -81,7 +115,11 @@
                       <span class="texto-suave">Sin reseña</span>
                     }
                   </td>
-                  <td><span class="chip" [class.completado]="estudiante.estado === 'COMPLETADA'" [class.en-curso]="estudiante.estado !== 'COMPLETADA'">{{ estudiante.estado === 'COMPLETADA' ? 'Completado' : 'En curso' }}</span></td>
+                  <td>
+                    <span class="chip" [class.completado]="estudiante.estado === 'COMPLETADA'" [class.en-curso]="estudiante.estado !== 'COMPLETADA'">
+                      {{ estudiante.estado === 'COMPLETADA' ? 'Completado' : 'En curso' }}
+                    </span>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -96,7 +134,9 @@
           <button type="button" class="btn btn-contorno" [disabled]="datos.pagina >= datos.totalPaginas" (click)="cargarPagina(datos.pagina + 1)">Siguiente</button>
         </nav>
       }
-      <p class="texto-suave nota">Solo se muestra el progreso de estudiantes inscritos en este curso.</p>
+      <p class="texto-suave nota">
+        {{ cursoId() === null ? 'Mostrando estudiantes de todos tus cursos.' : 'Solo se muestra el progreso de estudiantes inscritos en este curso.' }}
+      </p>
     }
   }
 </div>

@@ -6607,10 +6607,12 @@ export interface components {
             curso: {
                 id: number;
                 titulo: string;
-            };
+            } | null;
             items: {
                 idPersona: number;
                 nombre: string;
+                cursoId?: number;
+                cursoTitulo?: string;
                 /** @enum {string} */
                 estado: "ACTIVA" | "COMPLETADA";
                 progresoPct: number;

@@ -137,21 +137,46 @@ export const aprendizajeService = {
     }, { actor: usuario.idPersona });
   },
 
-  async seguimiento(idCurso: number, filtro: PaginacionEstudiantes, usuario: UsuarioSesion): Promise<SeguimientoDocente> {
-    const curso = await cursoParaSeguimiento(idCurso, usuario);
-    const resumen = await repo.resumenSeguimiento(idCurso);
-    const filas = await repo.estudiantesDelCurso(idCurso, filtro.limite, (filtro.pagina - 1) * filtro.limite);
+  async seguimientoDocente(
+    idCurso: number | null, filtro: PaginacionEstudiantes, usuario: UsuarioSesion,
+  ): Promise<SeguimientoDocente> {
+    if (!usuario.roles.includes('DOCENTE') && !usuario.roles.includes('ADMIN')) throw AppError.sinPermiso();
+
+    let cursoInfo: { id: number; titulo: string } | null = null;
+    if (idCurso !== null) {
+      cursoInfo = await cursoParaSeguimiento(idCurso, usuario);
+    }
+
+    const idDocentePersona = usuario.roles.includes('DOCENTE') ? usuario.idPersona : null;
+    const resumen = await repo.resumenSeguimiento(idDocentePersona, idCurso);
+    const filas = await repo.estudiantesDelDocente(
+      idDocentePersona, idCurso, filtro.limite, (filtro.pagina - 1) * filtro.limite,
+    );
+
     return {
-      curso: { id: curso.id, titulo: curso.titulo },
+      curso: cursoInfo ? { id: cursoInfo.id, titulo: cursoInfo.titulo } : null,
       items: filas.map((fila) => ({
-        idPersona: fila.idPersona, nombre: fila.nombre, estado: fila.estado,
-        progresoPct: fila.progresoPct, ultimaLeccionId: fila.ultimaLeccionId,
-        inscritoEn: fila.inscritoEn.toISOString(), ultimaActividadEn: fila.ultimaActividadEn.toISOString(),
+        idPersona: fila.idPersona,
+        nombre: fila.nombre,
+        cursoId: fila.cursoId,
+        cursoTitulo: fila.cursoTitulo,
+        estado: fila.estado,
+        progresoPct: fila.progresoPct,
+        ultimaLeccionId: fila.ultimaLeccionId,
+        inscritoEn: fila.inscritoEn.toISOString(),
+        ultimaActividadEn: fila.ultimaActividadEn.toISOString(),
         estrellas: fila.estrellas,
       })),
-      pagina: filtro.pagina, limite: filtro.limite, total: resumen.inscritos,
-      totalPaginas: Math.ceil(resumen.inscritos / filtro.limite), resumen,
+      pagina: filtro.pagina,
+      limite: filtro.limite,
+      total: resumen.inscritos,
+      totalPaginas: Math.ceil(resumen.inscritos / filtro.limite),
+      resumen,
     };
+  },
+
+  async seguimiento(idCurso: number, filtro: PaginacionEstudiantes, usuario: UsuarioSesion): Promise<SeguimientoDocente> {
+    return aprendizajeService.seguimientoDocente(idCurso, filtro, usuario);
   },
 
   /** Todos los inscritos del curso en CSV para Excel (mismos permisos que el seguimiento). */

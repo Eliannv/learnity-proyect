@@ -15,5 +15,12 @@ export const paginacionEstudiantesSchema = z.strictObject({
   limite: z.coerce.number().int().min(1).max(50).default(20),
 });
 
+export const filtrosEstudiantesDocenteSchema = z.strictObject({
+  curso: z.coerce.number().int().positive().optional(),
+  pagina: z.coerce.number().int().min(1).max(10_000).default(1),
+  limite: z.coerce.number().int().min(1).max(50).default(20),
+});
+
 export type DatosProgreso = z.infer<typeof progresoLeccionSchema>;
 export type PaginacionEstudiantes = z.infer<typeof paginacionEstudiantesSchema>;
+export type FiltrosEstudiantesDocente = z.infer<typeof filtrosEstudiantesDocenteSchema>;

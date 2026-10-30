@@ -14,6 +14,15 @@
 .progreso strong { min-width: 48px; text-align: right; }
 .chip.en-curso { background: var(--azul-100); color: var(--azul-800); font-weight: 600; }
 .chip.completado { background: var(--verde-100); color: var(--verde-700); font-weight: 600; }
+.chip.chip-curso {
+  background: var(--azul-050, #eff6ff);
+  color: var(--azul-700, #1d4ed8);
+  font-weight: 500;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .paginacion { display: flex; justify-content: center; align-items: center; gap: 16px; }
 .nota { font-size: 14px; }
 td { white-space: nowrap; }

@@ -82,11 +82,11 @@ export const esquemasAprendizaje = {
     properties: {
       curso: { type: 'object', required: ['id', 'titulo'], properties: {
         id: { type: 'integer' }, titulo: { type: 'string' },
-      } },
+      }, nullable: true },
       items: { type: 'array', items: { type: 'object', required: [
         'idPersona', 'nombre', 'estado', 'progresoPct', 'ultimaLeccionId', 'inscritoEn', 'ultimaActividadEn', 'estrellas',
       ], properties: {
-        idPersona: { type: 'integer' }, nombre: { type: 'string' }, estado, progresoPct: porcentaje,
+        idPersona: { type: 'integer' }, nombre: { type: 'string' }, cursoId: { type: 'integer' }, cursoTitulo: { type: 'string' }, estado, progresoPct: porcentaje,
         ultimaLeccionId: idNulo, inscritoEn: fecha,
         ultimaActividadEn: fecha,
         estrellas: { type: 'integer', minimum: 1, maximum: 5, nullable: true, description: 'Su reseña vigente; null si no reseñó.' },
@@ -153,6 +153,25 @@ export const rutasAprendizaje = {
         401: error('Sin sesión'), 403: error('Sin rol ESTUDIANTE'),
         404: error('Lección no publicada o estudiante no inscrito'),
         429: error('Límite de peticiones'), 500: errorInterno,
+      },
+    },
+  },
+  '/docente/estudiantes': {
+    get: {
+      tags: ['Aprendizaje'], summary: 'Seguimiento de estudiantes del docente (todos los cursos o filtrado por curso)',
+      description: 'Solo DOCENTE o ADMIN. Lista inscripciones, avance y calificaciones de los cursos del docente.',
+      security: seguridad,
+      parameters: [{
+        in: 'query', name: 'curso', schema: { type: 'integer', minimum: 1 }, required: false,
+      }, {
+        in: 'query', name: 'pagina', schema: { type: 'integer', minimum: 1, default: 1 },
+      }, {
+        in: 'query', name: 'limite', schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
+      }],
+      responses: {
+        200: json(ref('SeguimientoDocente')),
+        400: error('Paginación o filtro inválidos'), 401: error('Sin sesión'),
+        403: error('Sin rol DOCENTE o ADMIN'), 404: error('Curso no disponible o ajeno'), 500: errorInterno,
       },
     },
   },

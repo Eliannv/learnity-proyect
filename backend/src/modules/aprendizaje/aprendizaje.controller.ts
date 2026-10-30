@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { datosValidados } from '../../shared/http/validar.js';
-import type { DatosProgreso, PaginacionEstudiantes } from './aprendizaje.esquemas.js';
+import type { DatosProgreso, FiltrosEstudiantesDocente, PaginacionEstudiantes } from './aprendizaje.esquemas.js';
 import { aprendizajeService } from './aprendizaje.service.js';
 
 function usuario(req: Request): UsuarioSesion {
@@ -27,9 +27,13 @@ export const aprendizajeController = {
     const { parametros: id } = datosValidados<number>(res);
     res.json(await aprendizajeService.guardarProgreso(id, req.body as DatosProgreso, usuario(req)));
   },
+  async seguimientoGeneral(req: Request, res: Response): Promise<void> {
+    const { consulta } = datosValidados<unknown, FiltrosEstudiantesDocente>(res);
+    res.json(await aprendizajeService.seguimientoDocente(consulta.curso ?? null, consulta, usuario(req)));
+  },
   async seguimiento(req: Request, res: Response): Promise<void> {
     const { parametros: id, consulta } = datosValidados<number, PaginacionEstudiantes>(res);
-    res.json(await aprendizajeService.seguimiento(id, consulta, usuario(req)));
+    res.json(await aprendizajeService.seguimientoDocente(id, consulta, usuario(req)));
   },
 
   async exportarEstudiantes(req: Request, res: Response): Promise<void> {

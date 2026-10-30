@@ -79,6 +79,8 @@ export interface ProgresoGuardado {
 export interface EstudianteCurso {
   idPersona: number;
   nombre: string;
+  cursoId?: number;
+  cursoTitulo?: string;
   estado: EstadoInscripcion;
   progresoPct: number;
   ultimaLeccionId: number | null;
@@ -89,7 +91,7 @@ export interface EstudianteCurso {
 }
 
 export interface SeguimientoDocente {
-  curso: { id: number; titulo: string };
+  curso: { id: number; titulo: string } | null;
   items: EstudianteCurso[];
   pagina: number;
   limite: number;

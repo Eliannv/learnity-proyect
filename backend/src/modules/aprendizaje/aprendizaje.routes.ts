@@ -3,7 +3,9 @@ import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
 import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { validarCuerpo, validarConsulta, validarParametros } from '../../shared/http/validar.js';
 import { aprendizajeController as controller } from './aprendizaje.controller.js';
-import { idAprendizajeRuta, paginacionEstudiantesSchema, progresoLeccionSchema } from './aprendizaje.esquemas.js';
+import {
+  filtrosEstudiantesDocenteSchema, idAprendizajeRuta, paginacionEstudiantesSchema, progresoLeccionSchema,
+} from './aprendizaje.esquemas.js';
 
 export const aprendizajeRoutes = Router();
 
@@ -15,6 +17,8 @@ aprendizajeRoutes.get('/mi-aprendizaje/cursos/:id', autenticar, autorizar('ESTUD
 aprendizajeRoutes.put('/lecciones/:id/progreso', limitarPorIp('progreso_leccion', 240, 15),
   autenticar, autorizar('ESTUDIANTE'), validarParametros(idAprendizajeRuta),
   validarCuerpo(progresoLeccionSchema), controller.guardarProgreso);
+aprendizajeRoutes.get('/docente/estudiantes', autenticar, autorizar('DOCENTE', 'ADMIN'),
+  validarConsulta(filtrosEstudiantesDocenteSchema), controller.seguimientoGeneral);
 aprendizajeRoutes.get('/docente/cursos/:id/estudiantes', autenticar, autorizar('DOCENTE', 'ADMIN'),
   validarParametros(idAprendizajeRuta), validarConsulta(paginacionEstudiantesSchema), controller.seguimiento);
 aprendizajeRoutes.get('/docente/cursos/:id/estudiantes/exportar', limitarPorIp('exportar_estudiantes', 30, 15),

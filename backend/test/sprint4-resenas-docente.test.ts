@@ -242,6 +242,12 @@ describe('Sprint 4 · seguimiento, exportación y analíticas del docente', () =
     const porNombre = new Map(r.json.items.map((i: { idPersona: number; estrellas: number | null }) => [i.idPersona, i.estrellas]));
     assert.equal(porNombre.get(ana.idPersona), 4);
     assert.equal(porNombre.get(beto.idPersona), null, 'la reseña oculta no cuenta');
+
+    const todos = await c.como(docente, 'GET', '/api/docente/estudiantes');
+    assert.equal(todos.status, 200, todos.texto);
+    assert.equal(todos.json.curso, null);
+    assert.ok(todos.json.items.length >= 2);
+    assert.ok(todos.json.items[0].cursoTitulo);
   });
 
   it('exporta a CSV para Excel y neutraliza fórmulas', async () => {
