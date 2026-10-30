@@ -61,6 +61,7 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_app', 'reporte_resena',            'INSERT,SELECT,UPDATE'),          -- 031
     ('learnity_app', 'visita_curso_dia',          'INSERT,SELECT,UPDATE'),          -- 031
     ('learnity_app', 'evento_acceso',             'INSERT,SELECT'),                 -- 032: solo añade filas
+    ('learnity_app', 'alerta_seguridad',          'SELECT'),                        -- 038; UPDATE solo por columna
     ('learnity_app', 'catalogo_categoria',        'SELECT'),
     ('learnity_app', 'catalogo_curso',            'SELECT'),
     ('learnity_app', 'catalogo_temario',          'SELECT'),
@@ -91,15 +92,19 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_lectura', 'resena',                    'SELECT'),                    -- 030
     ('learnity_lectura', 'reporte_resena',            'SELECT'),                    -- 031
     ('learnity_lectura', 'visita_curso_dia',          'SELECT'),                    -- 031
-    ('learnity_lectura', 'evento_acceso',             'SELECT')                     -- 032
+    ('learnity_lectura', 'evento_acceso',             'SELECT'),                    -- 032
+    ('learnity_lectura', 'alerta_seguridad',          'SELECT')                     -- 038
 ),
-esperado_columna (rol, objeto, columna) AS (
-  SELECT 'learnity_lectura', 'usuario', unnest(ARRAY['id_usuario', 'id_persona', 'correo', 'estado',
+esperado_columna (rol, objeto, privilegio, columna) AS (
+  SELECT 'learnity_lectura', 'usuario', 'SELECT', unnest(ARRAY['id_usuario', 'id_persona', 'correo', 'estado',
                                                       'intentos_fallidos', 'bloqueado_hasta', 'ultimo_acceso',
                                                       'actualizado_en'])
   UNION ALL
-  SELECT 'learnity_lectura', 'archivo', unnest(ARRAY['id_archivo', 'id_curso', 'tipo', 'nombre_original',
+  SELECT 'learnity_lectura', 'archivo', 'SELECT', unnest(ARRAY['id_archivo', 'id_curso', 'tipo', 'nombre_original',
                                                       'tamano_bytes', 'alto_px', 'duracion_seg'])
+  UNION ALL
+  -- 038: la app solo marca las alertas como atendidas.
+  SELECT 'learnity_app', 'alerta_seguridad', 'UPDATE', unnest(ARRAY['atendida_en', 'atendida_por', 'nota'])
 ),
 -- 019b: DML en las tablas del dominio y SELECT en auditoría, migraciones y vistas.
 esperado_pruebas (objeto, privilegios) AS (
@@ -115,6 +120,8 @@ esperado_pruebas (objeto, privilegios) AS (
          'SELECT'
   UNION ALL
   SELECT 'evento_acceso', 'DELETE,INSERT,SELECT'                                         -- 032
+  UNION ALL
+  SELECT 'alerta_seguridad', 'DELETE,SELECT'                                             -- 038: limpieza de las pruebas
 ),
 con_019b AS (
   SELECT current_database() ~ '_test$'
@@ -140,12 +147,12 @@ esperado AS (
      AND c.relnamespace = 'public'::regnamespace
      AND c.relkind = 'S'
   UNION ALL
-  SELECT rol, objeto || '(SELECT por columna)', string_agg(columna, ',' ORDER BY columna)
+  SELECT rol, objeto || '(' || privilegio || ' por columna)', string_agg(columna, ',' ORDER BY columna)
     FROM esperado_columna e
    WHERE EXISTS (SELECT 1 FROM pg_attribute a
                   WHERE a.attrelid = to_regclass('public.' || e.objeto)
                     AND a.attname = e.columna AND NOT a.attisdropped)
-   GROUP BY rol, objeto
+   GROUP BY rol, objeto, privilegio
 ),
 concedido AS (
   SELECT pg_get_userbyid(a.grantee) AS rol,

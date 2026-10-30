@@ -69,6 +69,10 @@ BEGIN
   IF to_regclass('public.evento_acceso') IS NOT NULL THEN
     GRANT SELECT, INSERT, DELETE ON evento_acceso TO learnity_pruebas;
   END IF;
+  -- 038: las alertas solo las crea analizar_alertas_seguridad(); los fixtures borran las de sus cuentas.
+  IF to_regclass('public.alerta_seguridad') IS NOT NULL THEN
+    GRANT SELECT, DELETE ON alerta_seguridad TO learnity_pruebas;
+  END IF;
 END $$;
 
 COMMIT;
