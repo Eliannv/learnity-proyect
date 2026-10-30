@@ -146,3 +146,57 @@ test('el administrador revoca el rol docente de una solicitud aprobada y la pers
   await expect(pagina.getByText('Publicó material que infringe derechos de autor.')).toBeVisible();
   await contexto.close();
 });
+
+test('el administrador suspende un curso publicado y lo reactiva; la alumna inscrita ve el aviso (D2)', async ({ page, context }) => {
+  const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin-suspende');
+  const docente = await crearCuenta(['ESTUDIANTE', 'DOCENTE'], 'docente-suspendido');
+  const alumna = await crearCuenta(['ESTUDIANTE'], 'alumna-suspendido');
+  const titulo = `${MARCA} Curso a suspender`;
+  await conFixtures(async (f) => {
+    const { rows: [cat] } = await f.query<{ id: number }>(
+      'INSERT INTO categoria (nombre, creada_por) VALUES ($1, $2) RETURNING id_categoria AS id', [`${MARCA} Suspensión`, admin.idPersona]);
+    const { rows: [curso] } = await f.query<{ id: number }>(
+      `INSERT INTO curso (id_docente, id_categoria, titulo, estado, revisado_por, publicado_en)
+       VALUES ($1, $2, $3, 'PUBLICADO', $4, now()) RETURNING id_curso AS id`,
+      [docente.idDocente, cat!.id, titulo, admin.idPersona]);
+    await f.query('INSERT INTO inscripcion (id_persona, id_curso, progreso_pct) VALUES ($1, $2, 30)', [alumna.idPersona, curso!.id]);
+  });
+
+  await iniciarSesionPorUI(page, admin.correo);
+  await page.goto('/admin/revision');
+  await page.getByRole('tab', { name: /Publicados/ }).click();
+  await expect(page).toHaveURL(/estado=PUBLICADO/);
+  const tarjeta = page.locator('li.tarjeta', { hasText: titulo });
+  await expect(tarjeta.getByText('1 inscrito')).toBeVisible();
+  await tarjeta.getByRole('link', { name: 'Ver curso' }).click();
+
+  const suspender = page.getByRole('button', { name: 'Suspender curso' });
+  await expect(suspender).toBeDisabled();
+  await page.getByLabel(/Motivo de la suspensión/).fill('Contenido inapropiado en el módulo 1.');
+  await page.getByLabel(/Confirmo/).check();
+  await revisarAccesibilidad(page);
+  await suspender.click();
+  await expect(page.getByText(/Suspendido el .*Motivo: Contenido inapropiado en el módulo 1\./)).toBeVisible();
+  await captura(page, 'admin-curso-suspendido');
+
+  // La alumna conserva el curso en Mi aprendizaje, marcado y sin poder abrirlo.
+  const { contexto, pagina } = await otroContexto(context);
+  await iniciarSesionPorUI(pagina, alumna.correo);
+  await pagina.goto('/mi-aprendizaje');
+  const suya = pagina.locator('article.curso', { hasText: titulo });
+  await expect(suya.getByText('Curso suspendido.')).toBeVisible();
+  await expect(suya.getByRole('button')).toHaveCount(0);
+  await expect(suya.getByText('30% completado')).toBeVisible();
+
+  // Volver lleva a la pestaña de suspendidos; desde el detalle se reactiva.
+  await page.getByRole('link', { name: '← Revisión de cursos' }).click();
+  await expect(page).toHaveURL(/estado=SUSPENDIDO/);
+  await page.locator('li.tarjeta', { hasText: titulo }).getByRole('link', { name: 'Ver curso' }).click();
+  await page.getByRole('button', { name: 'Reactivar curso' }).click();
+  await page.getByRole('dialog', { name: '¿Reactivar este curso?' }).getByRole('button', { name: 'Reactivar curso' }).click();
+  await expect(page.getByText('Curso reactivado: vuelve a estar publicado.')).toBeVisible();
+
+  await pagina.reload();
+  await expect(pagina.locator('article.curso', { hasText: titulo }).getByRole('button', { name: /Continuar|Empezar/ })).toBeVisible();
+  await contexto.close();
+});

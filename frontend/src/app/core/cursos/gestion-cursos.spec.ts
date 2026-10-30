@@ -54,6 +54,7 @@ function curso(
     requisitos: [],
     estado,
     motivoRechazo: null,
+    suspension: null,
     docente: 'Docente de prueba',
     modulos: [
       {

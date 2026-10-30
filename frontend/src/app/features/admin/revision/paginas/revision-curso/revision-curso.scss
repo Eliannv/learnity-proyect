@@ -1,1 +1,18 @@
 @use '../../../../../shared/estilos/cursos';
+
+.suspension {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gris-200);
+
+  h3,
+  p {
+    margin: 0;
+  }
+}
+
+.confirmo {
+  align-items: flex-start;
+  font-size: 15px;
+}

@@ -1,5 +1,7 @@
 <div class="pagina">
-  <a routerLink="/admin/revision">← Cursos pendientes</a>
+  <a routerLink="/admin/revision" [queryParams]="{ estado: curso()?.estado === 'EN_REVISION' ? null : curso()?.estado }">
+    ← Revisión de cursos
+  </a>
 
   <h1 class="titulo-pagina">Revisión del curso</h1>
 
@@ -48,6 +50,11 @@
       @if (c.motivoRechazo) {
         <p class="mensaje">Motivo del rechazo: {{ c.motivoRechazo }}</p>
       }
+      @if (c.suspension; as s) {
+        <p class="mensaje advertencia">
+          <strong>Suspendido el {{ s.suspendidoEn | date: 'd MMM y, HH:mm' }}.</strong> Motivo: {{ s.motivo }}
+        </p>
+      }
     </section>
 
     <section class="tarjeta bloque">
@@ -89,8 +96,41 @@
         <button type="button" class="btn btn-contorno" (click)="cargar()">
           Actualizar curso
         </button>
+      } @else if (c.estado === 'PUBLICADO') {
+        <p class="mensaje">Este curso ya no está pendiente de revisión. Está publicado en el catálogo.</p>
+        <form class="suspension" (submit)="$event.preventDefault(); suspender()" novalidate>
+          <h3>Suspender el curso</h3>
+          <p>Si detectas contenido inapropiado, suspéndelo: saldrá del catálogo, sus estudiantes inscritos no podrán abrirlo
+            (conservan su progreso) y el docente no podrá editarlo hasta que lo reactives. El docente recibirá el motivo por correo.</p>
+          <label class="campo">
+            Motivo de la suspensión (obligatorio, máximo 300 caracteres)
+            <textarea class="control" name="motivoSuspension" [(ngModel)]="motivoSuspension" maxlength="300"
+              [disabled]="p.ocupada()" [attr.aria-invalid]="!!p.campo('motivoSuspension') || !!p.campo('motivo')"
+              aria-describedby="error-motivo-suspension"></textarea>
+            <small id="error-motivo-suspension" class="error-campo">{{ p.campo('motivoSuspension') || p.campo('motivo') }}</small>
+          </label>
+          <label class="casilla confirmo">
+            <input type="checkbox" name="confirmo" [(ngModel)]="confirmo" [disabled]="p.ocupada()"
+              aria-describedby="error-confirmo" />
+            <span><strong>Confirmo</strong> que quiero suspender este curso publicado.</span>
+          </label>
+          <small id="error-confirmo" class="error-campo">{{ p.campo('confirmo') }}</small>
+          <div class="acciones">
+            <button type="submit" class="btn btn-peligro" [disabled]="p.ocupada() || !confirmo">
+              {{ p.ocupada() ? 'Suspendiendo…' : 'Suspender curso' }}
+            </button>
+          </div>
+        </form>
+      } @else if (c.estado === 'SUSPENDIDO') {
+        <p class="mensaje">Este curso ya no está pendiente de revisión. Está suspendido: al reactivarlo vuelve al catálogo y sus
+          estudiantes recuperan el acceso.</p>
+        <div class="acciones">
+          <button type="button" class="btn btn-primario" [disabled]="p.ocupada()" (click)="reactivar()">
+            {{ p.ocupada() ? 'Reactivando…' : 'Reactivar curso' }}
+          </button>
+        </div>
       } @else if (c.estado !== 'EN_REVISION') {
-        <p class="mensaje">Este curso ya no está pendiente de revisión.</p>
+        <p class="mensaje">Este curso ya no está pendiente de revisión. Lo consultas en modo lectura.</p>
       } @else {
         <label class="campo">
           Motivo del rechazo (obligatorio al rechazar, máximo 300 caracteres)

@@ -424,3 +424,27 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* D2 · Curso suspendido por la administración: atenuado, sin acciones, con el aviso en texto (no solo color). */
+.curso.suspendido .curso-portada {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+.aviso-suspendido {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ambar-600);
+  border-radius: var(--radio);
+  background: var(--ambar-100);
+  color: var(--ambar-800);
+  font-size: 13px;
+  line-height: 1.45;
+
+  lucide-icon {
+    flex: none;
+    margin-top: 1px;
+  }
+}

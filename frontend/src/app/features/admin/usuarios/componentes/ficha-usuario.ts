@@ -10,6 +10,7 @@ import type { DetalleUsuarioAdmin, RolUsuario } from '../usuarios.api';
 const NOMBRE_ROL: Record<RolUsuario, string> = { ESTUDIANTE: 'Estudiante', DOCENTE: 'Docente', ADMIN: 'Administrador' };
 const ESTADO_CURSO: Record<DetalleUsuarioAdmin['cursosCreados'][number]['estado'], string> = {
   BORRADOR: 'Borrador', EN_REVISION: 'En revisión', PUBLICADO: 'Publicado', RECHAZADO: 'Rechazado', ARCHIVADO: 'Archivado',
+  SUSPENDIDO: 'Suspendido',
 };
 
 /** Acción de la ficha en curso, para deshabilitar su botón mientras responde la API. */

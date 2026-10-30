@@ -5,18 +5,23 @@ import { environment } from '../../../../environments/environment';
 import type {
   CursoDetalle,
   DecisionRevision,
-  ColaRevision,
+  EstadoRevision,
+  RespuestaRevision,
 } from '../../../core/api/contrato';
 
+export type { CursoRevision, EstadoRevision, RespuestaRevision } from '../../../core/api/contrato';
+
+/** Revisión y gobernanza de cursos del administrador. */
 @Injectable({ providedIn: 'root' })
 export class RevisionApi {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiUrl;
 
-  colaRevision(): Promise<ColaRevision> {
+  /** Cursos de un estado (pestaña) y cuántos hay en cada estado. */
+  listar(estado: EstadoRevision): Promise<RespuestaRevision> {
     return firstValueFrom(
-      this.http.get<ColaRevision>(`${this.base}/admin/cursos`, {
-        params: { estado: 'EN_REVISION' },
+      this.http.get<RespuestaRevision>(`${this.base}/admin/cursos`, {
+        params: { estado },
       }),
     );
   }
@@ -34,5 +39,17 @@ export class RevisionApi {
         datos,
       ),
     );
+  }
+
+  /** PUBLICADO → SUSPENDIDO; `confirmo` es la casilla «Confirmo» marcada. */
+  suspender(id: number, motivo: string): Promise<CursoDetalle> {
+    return firstValueFrom(
+      this.http.post<CursoDetalle>(`${this.base}/admin/cursos/${id}/suspension`, { motivo, confirmo: true }),
+    );
+  }
+
+  /** SUSPENDIDO → PUBLICADO. */
+  reactivar(id: number): Promise<CursoDetalle> {
+    return firstValueFrom(this.http.delete<CursoDetalle>(`${this.base}/admin/cursos/${id}/suspension`));
   }
 }

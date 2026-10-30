@@ -30,7 +30,12 @@
       </button>
     </div>
   } @else {
-    @if (!editable()) {
+    @if (curso()?.suspension; as s) {
+      <div class="mensaje advertencia" role="note">
+        <strong>La administración suspendió este curso.</strong> No aparece en el catálogo, tus estudiantes no pueden
+        abrirlo (conservan su avance) y no admite cambios hasta que lo reactiven. Motivo: {{ s.motivo }}
+      </div>
+    } @else if (!editable()) {
       <p class="mensaje aviso-bloqueo">Este curso no permite cambios en su estado actual.</p>
     } @else if (curso()?.estado === 'PUBLICADO') {
       <p class="mensaje aviso-publicado" role="note">

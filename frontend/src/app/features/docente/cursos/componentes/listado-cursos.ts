@@ -14,13 +14,24 @@ import {
   type EstadoCurso,
   esEditable,
 } from '../../../../core/cursos/gestion-cursos.model';
-import type { CursoDelDocente } from '../../../../core/api/contrato';
+import type { CursoDelDocente, CursoRevision } from '../../../../core/api/contrato';
 import { Peticion } from '../../../../core/estado/peticion';
 import { EstadoCursoBadge } from '../../../../shared/ui/cursos/estado-curso';
 import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 
-/** En «Mis cursos» llegan también inscritos y valoración; la cola de revisión no los trae. */
-type CursoListado = CursoResumen & Partial<Pick<CursoDelDocente, 'estudiantes' | 'calificacion'>>;
+/** En «Mis cursos» llegan también inscritos y valoración; en Revisión, inscritos y suspensión. */
+type CursoListado = CursoResumen
+  & Partial<Pick<CursoDelDocente, 'estudiantes' | 'calificacion'>>
+  & Partial<Pick<CursoRevision, 'inscritos' | 'suspension'>>;
+
+/** Texto de la lista vacía en cada pestaña de Revisión de cursos. */
+const VACIO_ADMIN: Partial<Record<EstadoCurso, string>> = {
+  EN_REVISION: 'No hay cursos pendientes de revisión.',
+  PUBLICADO: 'No hay cursos publicados.',
+  SUSPENDIDO: 'No hay cursos suspendidos.',
+  RECHAZADO: 'No hay cursos rechazados.',
+  BORRADOR: 'No hay cursos en borrador.',
+};
 
 @Component({
   selector: 'app-listado-cursos',
@@ -30,6 +41,8 @@ type CursoListado = CursoResumen & Partial<Pick<CursoDelDocente, 'estudiantes' |
 })
 export class ListadoCursos {
   readonly admin = input(false);
+  /** En Revisión de cursos, la pestaña elegida: el servidor ya filtra por ella. */
+  readonly estadoAdmin = input<EstadoCurso>('EN_REVISION');
   readonly cargarCursos = input.required<() => Promise<{ items: CursoListado[] }>>();
 
   protected readonly p = new Peticion();
@@ -49,14 +62,19 @@ export class ListadoCursos {
     { valor: 'EN_REVISION', texto: 'En revisión' },
     { valor: 'RECHAZADO', texto: 'Rechazados' },
     { valor: 'PUBLICADO', texto: 'Publicados' },
+    { valor: 'SUSPENDIDO', texto: 'Suspendidos' },
   ];
 
   protected readonly visibles = computed(() =>
-    this.cursos().filter((curso) =>
-      this.admin()
-        ? curso.estado === 'EN_REVISION'
-        : this.filtro() === 'TODOS' || curso.estado === this.filtro(),
-    ),
+    this.admin()
+      ? this.cursos()
+      : this.cursos().filter((curso) => this.filtro() === 'TODOS' || curso.estado === this.filtro()),
+  );
+
+  protected readonly textoVacio = computed(() =>
+    this.admin()
+      ? VACIO_ADMIN[this.estadoAdmin()] ?? 'No hay cursos en este estado.'
+      : 'No tienes cursos en este estado. Puedes crear un curso nuevo.',
   );
 
   constructor() {
@@ -92,7 +110,7 @@ export class ListadoCursos {
   }
 
   protected etiquetaAccion(curso: CursoResumen): string {
-    if (this.admin()) return 'Revisar curso';
+    if (this.admin()) return curso.estado === 'EN_REVISION' ? 'Revisar curso' : 'Ver curso';
     switch (curso.estado) {
       case 'BORRADOR':
         return 'Continuar editando';
@@ -129,6 +147,8 @@ export class ListadoCursos {
         return 'Requiere ajustes según las observaciones administrativas para reenviarse.';
       case 'PUBLICADO':
         return 'Curso activo en el catálogo. Puedes seguir editándolo: los cambios se publican sin nueva revisión.';
+      case 'SUSPENDIDO':
+        return 'Suspendido por la administración: no aparece en el catálogo, sus estudiantes no pueden abrirlo y no admite cambios.';
       default:
         return '';
     }

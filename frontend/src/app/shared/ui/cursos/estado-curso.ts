@@ -14,6 +14,7 @@ const TEXTO: Record<EstadoCurso, string> = {
   PUBLICADO: 'Publicado',
   RECHAZADO: 'Rechazado',
   ARCHIVADO: 'Archivado',
+  SUSPENDIDO: 'Suspendido',
 };
 
 const CLASE: Record<EstadoCurso, string> = {
@@ -22,6 +23,7 @@ const CLASE: Record<EstadoCurso, string> = {
   PUBLICADO: 'estado-publicado',
   RECHAZADO: 'estado-rechazado',
   ARCHIVADO: 'estado-borrador',
+  SUSPENDIDO: 'estado-suspendido',
 };
 
 @Component({

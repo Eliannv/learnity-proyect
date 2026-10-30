@@ -100,6 +100,13 @@ fieldset:disabled {
     color: #205c2c;
 }
 
+/* Curso suspendido por la administración: aviso, no error del formulario. */
+.mensaje.advertencia {
+    background: var(--ambar-100);
+    color: var(--ambar-800);
+    border: 1px solid var(--ambar-600);
+}
+
 .lista {
     display: grid;
     gap: 14px;

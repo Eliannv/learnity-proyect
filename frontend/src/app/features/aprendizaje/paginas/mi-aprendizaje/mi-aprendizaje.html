@@ -30,6 +30,8 @@
           <button type="button" class="enlace boton-enlace" (click)="abrir(p)" [disabled]="navegando() !== null">
             {{ navegando() === p.curso.id ? 'Abriendo curso…' : 'Retomar curso' }}
           </button>
+        } @else if (pendientesSuspendidos()) {
+          <p>Tus cursos sin terminar están suspendidos temporalmente. Conservas tu avance para cuando vuelvan a estar disponibles.</p>
         } @else {
           <p>Completaste todos los cursos en los que te inscribiste.</p>
         }
@@ -91,22 +93,39 @@
     @if (lista().length) {
       <div class="grid">
         @for (i of lista(); track i.curso.id) {
-          <article class="curso tarjeta-curso">
-            <!-- La portada y el título abren la ficha del curso; «Continuar» va directo a la lección -->
-            <a class="curso-portada" [routerLink]="['/cursos', i.curso.id]" tabindex="-1" aria-hidden="true">
-              <app-portada-curso [categoria]="i.curso.categoria.nombre" [tono]="tono(i.curso.categoria.id)"
-                [imagen]="i.curso.portadaUrl" />
-            </a>
-            <a class="curso-titulo" [routerLink]="['/cursos', i.curso.id]">{{ i.curso.titulo }}</a>
+          <article class="curso tarjeta-curso" [class.suspendido]="i.suspendido">
+            @if (i.suspendido) {
+              <!-- D2: suspendido por la administración. No se abre ni enlaza a su ficha (salió del catálogo); el avance se conserva. -->
+              <span class="curso-portada">
+                <app-portada-curso [categoria]="i.curso.categoria.nombre" [tono]="tono(i.curso.categoria.id)"
+                  [imagen]="i.curso.portadaUrl" />
+              </span>
+              <span class="curso-titulo">{{ i.curso.titulo }}</span>
+            } @else {
+              <!-- La portada y el título abren la ficha del curso; «Continuar» va directo a la lección -->
+              <a class="curso-portada" [routerLink]="['/cursos', i.curso.id]" tabindex="-1" aria-hidden="true">
+                <app-portada-curso [categoria]="i.curso.categoria.nombre" [tono]="tono(i.curso.categoria.id)"
+                  [imagen]="i.curso.portadaUrl" />
+              </a>
+              <a class="curso-titulo" [routerLink]="['/cursos', i.curso.id]">{{ i.curso.titulo }}</a>
+            }
             <span class="curso-docente">{{ i.curso.docente }}</span>
             <div class="curso-avance">
               <app-barra-progreso [valor]="i.inscripcion.progresoPct" [verde]="i.inscripcion.estado === 'COMPLETADA'" />
               <span class="estado-texto">{{ i.leccionesCompletadas }}/{{ i.totalLecciones }} lecciones ·
                 {{ i.inscripcion.estado === 'COMPLETADA' ? 'Completado' : i.inscripcion.progresoPct + '% completado' }}</span>
             </div>
-            <button type="button" class="btn btn-primario abrir-curso" [disabled]="navegando() !== null" (click)="abrir(i)">
-              {{ navegando() === i.curso.id ? 'Abriendo…' : i.inscripcion.ultimaLeccionId ? 'Continuar' : 'Empezar' }}
-            </button>
+            @if (i.suspendido) {
+              <p class="aviso-suspendido" role="note">
+                <lucide-icon name="circle-pause" [size]="16" aria-hidden="true" />
+                <span><strong>Curso suspendido.</strong> La administración lo suspendió temporalmente. Conservas tu avance
+                  y podrás continuar cuando vuelva a estar disponible.</span>
+              </p>
+            } @else {
+              <button type="button" class="btn btn-primario abrir-curso" [disabled]="navegando() !== null" (click)="abrir(i)">
+                {{ navegando() === i.curso.id ? 'Abriendo…' : i.inscripcion.ultimaLeccionId ? 'Continuar' : 'Empezar' }}
+              </button>
+            }
           </article>
         }
       </div>

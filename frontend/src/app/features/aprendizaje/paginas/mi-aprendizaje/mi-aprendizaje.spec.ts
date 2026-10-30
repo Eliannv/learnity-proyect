@@ -48,4 +48,26 @@ describe('Mi aprendizaje', () => {
     expect(texto).toContain('50% completado');
     expect(texto).toContain('1/2 lecciones');
   });
+
+  it('D2: un curso suspendido conserva su avance, muestra el aviso y no se puede abrir', async () => {
+    const { fixture, api } = montar([{
+      curso: { id: 9, titulo: 'Redacción', subtitulo: null, portadaUrl: null,
+        nivel: 'PRINCIPIANTE', categoria: { id: 3, nombre: 'Idiomas' }, docente: 'Luis' },
+      inscripcion: { id: 5, cursoId: 9, estado: 'ACTIVA', progresoPct: 30,
+        ultimaLeccionId: 41, inscritoEn: '2026-10-22T00:00:00Z', completadoEn: null },
+      totalLecciones: 3, leccionesCompletadas: 1, suspendido: true,
+    }]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const tarjeta = el.querySelector('article.curso.suspendido')!;
+    expect(tarjeta.textContent).toContain('Curso suspendido.');
+    expect(tarjeta.textContent).toContain('30% completado');
+    expect(tarjeta.querySelector('button')).toBeNull();
+    expect(tarjeta.querySelector('a')).toBeNull();
+    expect(el.textContent).toContain('Tus cursos sin terminar están suspendidos temporalmente.');
+    expect(el.textContent).not.toContain('Completaste todos los cursos');
+    expect(api.detalle).not.toHaveBeenCalled();
+  });
 });

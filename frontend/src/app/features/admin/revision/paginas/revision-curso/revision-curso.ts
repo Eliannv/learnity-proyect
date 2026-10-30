@@ -1,5 +1,5 @@
 import { Esqueleto } from '../../../../../shared/ui/retroalimentacion/esqueleto';
-import { TitleCasePipe } from '@angular/common';
+import { DatePipe, TitleCasePipe } from '@angular/common';
 import {
   Component,
   effect,
@@ -25,6 +25,7 @@ import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/
     FormsModule,
     RouterLink,
     TitleCasePipe,
+    DatePipe,
     EstadoCursoBadge,
     ArbolTemario,
   ],
@@ -41,6 +42,9 @@ export class RevisionCurso {
   protected readonly descargando = signal(false);
 
   protected motivo = '';
+  /** Suspensión de un curso publicado: motivo y casilla «Confirmo». */
+  protected motivoSuspension = '';
+  protected confirmo = false;
 
   private readonly api = inject(RevisionApi);
   private readonly contenidoApi = inject(ContenidoApi);
@@ -73,6 +77,8 @@ export class RevisionCurso {
 
     this.curso.set(null);
     this.motivo = '';
+    this.motivoSuspension = '';
+    this.confirmo = false;
     this.descargando.set(false);
     this.carga.limpiar();
     this.p.limpiar();
@@ -140,6 +146,47 @@ export class RevisionCurso {
       decision === 'APROBAR'
         ? 'Curso publicado en el catálogo.'
         : 'Curso devuelto al docente con el motivo indicado.',
+    );
+  }
+
+  /** PUBLICADO → SUSPENDIDO: exige motivo y la casilla «Confirmo» (también la exige el servidor). */
+  protected async suspender(): Promise<void> {
+    const c = this.curso();
+    if (!c || this.p.ocupada()) return;
+    const motivo = this.motivoSuspension.trim();
+    const errores: Record<string, string> = {};
+    if (!motivo) errores['motivoSuspension'] = 'Escribe el motivo de la suspensión.';
+    if (!this.confirmo) errores['confirmo'] = 'Marca «Confirmo» para suspender el curso.';
+    if (Object.keys(errores).length) {
+      this.p.campos.set(errores);
+      return;
+    }
+    await this.p.ejecutar(
+      () => this.api.suspender(c.id, motivo),
+      (actualizado) => {
+        this.curso.set(actualizado);
+        this.motivoSuspension = '';
+        this.confirmo = false;
+      },
+      'Curso suspendido. Ya no aparece en el catálogo y avisamos al docente por correo.',
+    );
+  }
+
+  /** SUSPENDIDO → PUBLICADO, tras confirmar. */
+  protected async reactivar(): Promise<void> {
+    const c = this.curso();
+    if (!c || this.p.ocupada()) return;
+    const confirmado = await this.confirmacion.confirmar({
+      titulo: '¿Reactivar este curso?',
+      mensaje: 'Volverá al catálogo, sus estudiantes podrán continuar donde lo dejaron y el docente recibirá un correo.',
+      accion: 'Reactivar curso',
+      icono: 'circle-play',
+    });
+    if (!confirmado) return;
+    await this.p.ejecutar(
+      () => this.api.reactivar(c.id),
+      (actualizado) => this.curso.set(actualizado),
+      'Curso reactivado: vuelve a estar publicado.',
     );
   }
 }

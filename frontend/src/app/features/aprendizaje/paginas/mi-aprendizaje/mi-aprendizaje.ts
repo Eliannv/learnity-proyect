@@ -41,7 +41,12 @@ export class MiAprendizaje {
   protected readonly docentes = computed(() => [...new Set(this.cursos().map((i) => i.curso.docente))].sort());
   protected readonly totalLecciones = computed(() => this.cursos().reduce((s, c) => s + c.totalLecciones, 0));
   protected readonly completadas = computed(() => this.cursos().reduce((s, c) => s + c.leccionesCompletadas, 0));
-  protected readonly principal = computed(() => this.cursos().find((c) => c.inscripcion.estado !== 'COMPLETADA') ?? null);
+  /** Siguiente curso para retomar: ni completado ni suspendido (D2: un curso suspendido no se puede abrir). */
+  protected readonly principal = computed(() =>
+    this.cursos().find((c) => c.inscripcion.estado !== 'COMPLETADA' && !c.suspendido) ?? null);
+  /** Quedan cursos sin terminar, pero todos están suspendidos: no se puede decir que los completó. */
+  protected readonly pendientesSuspendidos = computed(() =>
+    this.cursos().some((c) => c.inscripcion.estado !== 'COMPLETADA' && c.suspendido));
   protected readonly hayFiltros = computed(() => !!(this.categoria() || this.progreso() || this.docente() || this.busqueda().trim()));
   protected readonly lista = computed(() => {
     const q = this.busqueda().trim().toLocaleLowerCase('es');

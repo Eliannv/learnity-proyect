@@ -1,1 +1,10 @@
-<app-listado-cursos [admin]="true" [cargarCursos]="cargarColaRevision" />
+<app-listado-cursos [admin]="true" [estadoAdmin]="pestana()" [cargarCursos]="cargarCursos()">
+  <div pestanas-admin class="pestanas" role="tablist" aria-label="Estado de los cursos">
+    @for (p of pestanas; track p.estado) {
+      <button type="button" role="tab" [attr.aria-selected]="pestana() === p.estado" [class.activa]="pestana() === p.estado"
+        (click)="elegir(p.estado)">
+        {{ p.texto }}@if (conteos(); as c) { <span class="contador">{{ c[p.estado] }}</span> }
+      </button>
+    }
+  </div>
+</app-listado-cursos>

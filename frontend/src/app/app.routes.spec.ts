@@ -73,7 +73,7 @@ const ESPERADO: string[] = [
   '/admin | match=full | redirige=revision',
   '/admin/usuarios | titulo=Usuarios · Learnity | data={"seccion":"Usuarios"} | pagina=AdminUsuarios',
   '/admin/solicitudes | titulo=Solicitudes de docente · Learnity | data={\"seccion\":\"Solicitudes de docente\"} | pagina=Solicitudes',
-  '/admin/revision | titulo=Cursos pendientes · Learnity | data={\"seccion\":\"Revisión de cursos\"} | pagina=RevisionCursos',
+  '/admin/revision | titulo=Revisión de cursos · Learnity | data={\"seccion\":\"Revisión de cursos\"} | pagina=RevisionCursos',
   '/admin/revision/:id | titulo=Revisión de curso · Learnity | data={\"seccion\":\"Revisión de cursos\"} | pagina=RevisionCurso',
   '/admin/categorias | titulo=Categorías · Learnity | data={\"seccion\":\"Categorías\"} | pagina=Categorias',
   '/admin/resenas | titulo=Reseñas · Learnity | data={\"seccion\":\"Reseñas\"} | pagina=ModeracionResenas',

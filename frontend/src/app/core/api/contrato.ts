@@ -42,7 +42,10 @@ export type ListaCursos =
   paths['/docente/cursos']['get']['responses'][200]['content']['application/json'];
 export type CursoDelDocente = Esquemas['CursoDelDocente'];
 /** Cola de revisión del administrador: cursos sin los datos de inscritos ni valoración. */
-export type ColaRevision = { items: CursoResumen[] };
+export type CursoRevision = Esquemas['CursoRevision'];
+export type EstadoRevision = NonNullable<NonNullable<paths['/admin/cursos']['get']['parameters']['query']>['estado']>;
+export type RespuestaRevision = paths['/admin/cursos']['get']['responses'][200]['content']['application/json'];
+export type SuspensionCurso = NonNullable<CursoDetalle['suspension']>;
 
 export type DecisionRevision =
   paths['/admin/cursos/{id}/revision']['put']['requestBody']['content']['application/json'];

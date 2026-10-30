@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 export const rutasRevision: Routes = [
   {
     path: '',
-    title: 'Cursos pendientes · Learnity',
+    title: 'Revisión de cursos · Learnity',
     data: { seccion: 'Revisión de cursos' },
     loadComponent: () =>
       import('./paginas/revision-cursos/revision-cursos').then((m) => m.RevisionCursos),

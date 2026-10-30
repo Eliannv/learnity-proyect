@@ -12,13 +12,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Cursos pendientes de revisión (ADMIN)
-         * @description Ordenados del más antiguo al más reciente. Un parámetro de consulta desconocido o un `estado` distinto de EN_REVISION dan 400.
+         * Cursos de un estado para Revisión de cursos (ADMIN)
+         * @description EN_REVISION, del más antiguo al más reciente; los demás estados, el modificado más recientemente primero. Como mucho 200. `conteos` trae cuántos cursos hay en cada estado (para las pestañas). Un parámetro de consulta desconocido o un `estado` fuera de la lista dan 400.
          */
         get: {
             parameters: {
                 query?: {
-                    estado?: "EN_REVISION";
+                    estado?: "EN_REVISION" | "PUBLICADO" | "SUSPENDIDO" | "RECHAZADO" | "BORRADOR";
                 };
                 header?: never;
                 path?: never;
@@ -33,7 +33,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            items: components["schemas"]["CursoResumen"][];
+                            items: components["schemas"]["CursoRevision"][];
+                            conteos: {
+                                EN_REVISION: number;
+                                PUBLICADO: number;
+                                SUSPENDIDO: number;
+                                RECHAZADO: number;
+                                BORRADOR: number;
+                            };
                         };
                     };
                 };
@@ -146,6 +153,177 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/cursos/{id}/suspension": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspender un curso publicado (ADMIN)
+         * @description PUBLICADO → SUSPENDIDO con el motivo y la confirmación explícita `confirmo: true`. Sale del catálogo, sus inscritos no pueden abrirlo (lo ven marcado como suspendido en Mi aprendizaje y conservan su progreso) y el docente no puede editarlo. Avisa al docente por correo. Queda en la auditoría con el administrador como autor.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Se recortan los espacios de los extremos. */
+                        motivo: string;
+                        /** @enum {boolean} */
+                        confirmo: true;
+                    };
+                };
+            };
+            responses: {
+                /** @description Curso completo, directamente en la raíz */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CursoDetalle"];
+                    };
+                };
+                /** @description Motivo vacío o largo, sin confirmar, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión ausente, inválida o revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador (SIN_PERMISO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso no está publicado (CURSO_NO_PUBLICADO) u otro administrador cambió su estado (CONFLICTO) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        /**
+         * Reactivar un curso suspendido (ADMIN)
+         * @description SUSPENDIDO → PUBLICADO: vuelve al catálogo, conserva su revisor y su fecha de publicación, y sus inscritos recuperan el acceso. Avisa al docente por correo. Queda en la auditoría con el administrador como autor.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Curso completo, directamente en la raíz */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CursoDetalle"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión ausente, inválida o revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador (SIN_PERMISO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso no existe (NO_ENCONTRADO) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El curso no está suspendido (CURSO_NO_SUSPENDIDO) u otro administrador cambió su estado (CONFLICTO) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -6130,12 +6308,25 @@ export interface components {
             id: number;
             titulo: string;
             /** @enum {string} */
-            estado: "BORRADOR" | "EN_REVISION" | "PUBLICADO" | "RECHAZADO" | "ARCHIVADO";
+            estado: "BORRADOR" | "EN_REVISION" | "PUBLICADO" | "RECHAZADO" | "ARCHIVADO" | "SUSPENDIDO";
             motivoRechazo: string | null;
             docente: string;
             modulos: number;
             /** @description Portada del curso para el listado; null si no tiene. */
             portadaUrl: string | null;
+        };
+        /** @description Curso en Revisión de cursos (administrador). */
+        CursoRevision: components["schemas"]["CursoResumen"] & {
+            /** @description Inscripciones en el curso (pierden el acceso si se suspende). */
+            inscritos: number;
+            /** Format: date-time */
+            actualizadoEn: string;
+            /** @description Solo SUSPENDIDO: cuándo y por qué lo suspendió un administrador. */
+            suspension: {
+                /** Format: date-time */
+                suspendidoEn: string;
+                motivo: string;
+            } | null;
         };
         CursoDelDocente: components["schemas"]["CursoResumen"] & {
             /** @description Inscripciones en el curso. */
@@ -6158,8 +6349,14 @@ export interface components {
             objetivos: string[];
             requisitos: string[];
             /** @enum {string} */
-            estado: "BORRADOR" | "EN_REVISION" | "PUBLICADO" | "RECHAZADO" | "ARCHIVADO";
+            estado: "BORRADOR" | "EN_REVISION" | "PUBLICADO" | "RECHAZADO" | "ARCHIVADO" | "SUSPENDIDO";
             motivoRechazo: string | null;
+            /** @description Solo SUSPENDIDO: cuándo y por qué lo suspendió un administrador. */
+            suspension: {
+                /** Format: date-time */
+                suspendidoEn: string;
+                motivo: string;
+            } | null;
             docente: string;
             modulos: components["schemas"]["ModuloPrivado"][];
             validacion: components["schemas"]["ValidacionCurso"];
@@ -6283,7 +6480,7 @@ export interface components {
                 id: number;
                 titulo: string;
                 /** @enum {string} */
-                estado: "BORRADOR" | "EN_REVISION" | "PUBLICADO" | "RECHAZADO" | "ARCHIVADO";
+                estado: "BORRADOR" | "EN_REVISION" | "PUBLICADO" | "RECHAZADO" | "ARCHIVADO" | "SUSPENDIDO";
                 inscritos: number;
             }[];
         };
@@ -6356,6 +6553,8 @@ export interface components {
             inscripcion: components["schemas"]["InscripcionAprendizaje"];
             totalLecciones: number;
             leccionesCompletadas: number;
+            /** @description Un administrador suspendió el curso: se conserva el progreso, pero el curso no se puede abrir (`GET /mi-aprendizaje/cursos/{id}` responde 404) hasta que lo reactive. Siempre false en el detalle. */
+            suspendido: boolean;
         };
         LeccionAprendizaje: {
             id: number;

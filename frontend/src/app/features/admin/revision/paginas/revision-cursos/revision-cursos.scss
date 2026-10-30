@@ -1,1 +1,42 @@
 @use '../../../../../shared/estilos/cursos';
+
+/* Pestañas por estado, como en Reseñas y Accesos; en pantallas estrechas se desplazan en horizontal. */
+.pestanas {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--gris-200);
+  overflow-x: auto;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--gris-500);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &.activa {
+      border-bottom-color: var(--azul-700);
+      color: var(--tinta-900);
+    }
+    &:hover {
+      color: var(--tinta-900);
+    }
+  }
+}
+
+.contador {
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--gris-100);
+  color: var(--tinta-900);
+  font-size: 12px;
+  text-align: center;
+}

@@ -44,7 +44,8 @@ export class InicioEstudiante {
 
   /** Cursos en progreso del estudiante (excluye los ya completados al 100%). */
   protected readonly continuar = computed(() =>
-    this.cursosInscritos().filter((i) => i.inscripcion.estado !== 'COMPLETADA')
+    // Un curso suspendido (D2) no se puede abrir: se ve solo en «Mi aprendizaje», con su aviso.
+    this.cursosInscritos().filter((i) => i.inscripcion.estado !== 'COMPLETADA' && !i.suspendido)
   );
 
   protected readonly idsInscritos = computed(() =>

@@ -8,7 +8,7 @@
       <p class="subtitulo-listado">
         {{
           admin()
-            ? 'Cursos pendientes de una decisión administrativa.'
+            ? 'Decide los cursos pendientes y supervisa el resto del catálogo: publicados, suspendidos, rechazados y borradores.'
             : 'Prepara tu curso y envíalo a revisión. Una vez publicado puedes seguir ampliándolo sin una nueva revisión.'
         }}
       </p>
@@ -25,6 +25,9 @@
       }
     </div>
   </header>
+
+  <!-- Revisión de cursos proyecta aquí sus pestañas por estado. -->
+  <ng-content select="[pestanas-admin]" />
 
   @if (!admin()) {
     <div class="filtros" aria-label="Filtrar cursos por estado">
@@ -80,7 +83,12 @@
                     <span class="sin-valoracion">Sin reseñas</span>
                   }
                 }
-                @if (admin()) { <span>Docente: <strong>{{ c.docente }}</strong></span> }
+                @if (admin()) {
+                  <span>Docente: <strong>{{ c.docente }}</strong></span>
+                  @if (c.inscritos !== undefined) {
+                    <span>{{ c.inscritos }} {{ c.inscritos === 1 ? 'inscrito' : 'inscritos' }}</span>
+                  }
+                }
               </p>
             </div>
             <app-estado-curso [estado]="c.estado" />
@@ -89,6 +97,12 @@
           <p class="estado-descripcion">
             {{ descripcionEstado(c.estado) }}
           </p>
+
+          @if (c.suspension; as s) {
+            <p class="mensaje advertencia">
+              <strong>Motivo de la suspensión:</strong> {{ s.motivo }}
+            </p>
+          }
 
           @if (c.estado === 'RECHAZADO' && c.motivoRechazo) {
             <p class="mensaje error">
@@ -115,13 +129,7 @@
           </div>
         </li>
       } @empty {
-        <li class="mensaje">
-          {{
-            admin()
-              ? 'No hay cursos pendientes de revisión.'
-              : 'No tienes cursos en este estado. Puedes crear un curso nuevo.'
-          }}
-        </li>
+        <li class="mensaje">{{ textoVacio() }}</li>
       }
     </ul>
   }
