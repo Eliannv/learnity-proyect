@@ -1,51 +1,60 @@
 /* =====================================================================
    Learnity · estilos globales
-   Tokens tomados del diseño en Pencil (Diseño App.pen).
+   Sistema del rediseño UI (docs/arquitectura/DIAGNOSTICO_REDISENO_UI.md §2): estilo «accent-ladder» de Taste
+   sobre el azul de Learnity. El tono pleno solo en marcas pequeñas (el botón relleno, la serie principal, el
+   ícono activo); sus tintes pálidos hacen el trabajo de área (fila activa, insignias, pistas de progreso).
+   El ámbar queda solo para las estrellas. Contrastes calculados con la fórmula WCAG (anotados al lado).
    ===================================================================== */
 
 :root {
-  /* Marca */
-  --azul-700: #2563eb;
-  --azul-600: #3b82f6;
-  --azul-800: #1d4ed8;
-  --azul-300: #93c5fd;
-  --azul-200: #bfdbfe;
-  --azul-100: #dbeafe;
-  --azul-050: #eff6ff;
-  --ambar-500: #f59e0b;
-  --ambar-600: #d97706;
-  --ambar-800: #92400e; /* texto sobre ámbar claro (contraste 6:1) */
-  --ambar-100: #fef3c7;
+  /* ------------------------------------------------------------ superficies y líneas */
+  --suelo: #f9fafb; /* fondo de los paneles */
+  --superficie: #ffffff;
+  --elevado: #f3f4f6; /* escalón de tono: filas de módulo, bloques de cifras */
+  --activo: #eef2f7; /* hover de filas y del menú */
+  --borde: #e5e7eb; /* borde de tarjeta y panel */
+  --regla: #f2f2f2; /* reglas de fila en tablas */
+  --borde-control: #868e9b; /* contorno de campos: 3,3:1 sobre blanco y 3,16:1 sobre --suelo (WCAG 1.4.11) */
 
-  /* Neutros */
-  --tinta-900: #0f172a;
-  --tinta-800: #1e293b;
-  --tinta-700: #334155;
-  --gris-500: #5d6b82; /* texto secundario: AA (>= 4,5:1) también sobre gris-100 y azul-050 */
-  --gris-400: #94a3b8;
-  --gris-200: #e2e8f0;
-  --gris-100: #f1f5f9;
-  --fondo-suave: #f5f8ff;
-  --blanco: #ffffff;
+  /* ------------------------------------------------------------ texto */
+  --tinta: #111827; /* 17,7:1 */
+  --tinta-2: #4b5563; /* secundario 7,6:1 */
+  --tinta-3: #5f6672; /* metadatos y cabeceras de tabla: 5,5:1 sobre --suelo, 5,2:1 sobre --activo */
 
-  /* Estados */
-  --verde-700: #15803d;
-  --verde-600: #16a34a;
-  --verde-100: #dcfce7;
-  --verde-050: #f0fdf4;
-  --rojo-700: #b91c1c;
-  --rojo-600: #dc2626;
-  --rojo-050: #fef2f2;
-  --rojo-200: #fecaca;
-  --morado-600: #7c3aed;
-  --morado-100: #f3e8ff;
-  --naranja-600: #ea580c;
-  --naranja-100: #ffedd5;
+  /* ------------------------------------------------------------ acento (azul de Learnity) */
+  --acento: #1d4ed8; /* 6,7:1; texto blanco encima 6,7:1 */
+  --acento-hover: #1e40af; /* 8,7:1 */
+  --acento-suave: #eff6ff; /* fila activa, insignia «Nuevo» */
+  --acento-pista: #dbeafe; /* pistas de progreso */
+  --acento-tinta: #1e3a8a; /* texto sobre los tintes: 9,5:1 sobre suave, 8,5:1 sobre pista */
 
-  /* Foco: 6,7:1 sobre blanco y 4,7:1 sobre azul-050 (WCAG 1.4.11 pide 3:1) */
-  --foco: var(--azul-800);
+  /* ------------------------------------------------------------ estrellas (único uso del ámbar) */
+  --estrella: #b4690e; /* gráfico: 4,2:1 */
+  --estrella-tinta: #8a4b08; /* la cifra «4,5»: 6,8:1 */
 
-  /* Espaciado (escala de 4 px) */
+  /* ------------------------------------------------------------ estados: pares pálidos */
+  --positivo: #1f7a4a; /* 5,3:1 */
+  --negativo: #b42318; /* 6,6:1 */
+  --pill-pos-fondo: #dcfce7;
+  --pill-pos-tinta: #14532d; /* 8,3:1 */
+  --pill-neg-fondo: #ffedea;
+  --pill-neg-tinta: #831c1e; /* 8,6:1 */
+  --pill-aviso-fondo: #fffbeb;
+  --pill-aviso-borde: #fde68a;
+  --pill-aviso-tinta: #92400e; /* 6,8:1 */
+  --pill-neutro-fondo: #f3f4f6;
+  --pill-neutro-tinta: #374151;
+
+  /* ------------------------------------------------------------ bandas oscuras (ficha, aula, pie) */
+  --cabecera-oscura: #16181d; /* neutra, no azul marino; texto blanco ≈ 18:1 */
+  --cabecera-oscura-2: #cbd5e1; /* secundario sobre la banda: 12:1 */
+
+  /* ------------------------------------------------------------ tipografía */
+  --fuente: 'DM Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fs-titulo-pagina: 32px; /* los paneles lo bajan a 24px (layout-panel) */
+  --fs-titulo-seccion: 22px;
+
+  /* ------------------------------------------------------------ espacio (escala de 4 px) */
   --espacio-1: 4px;
   --espacio-2: 8px;
   --espacio-3: 12px;
@@ -54,22 +63,71 @@
   --espacio-6: 32px;
   --espacio-7: 48px;
 
-  /* Capas y movimiento */
+  /* ------------------------------------------------------------ forma y profundidad */
+  --radio-sm: 6px; /* controles */
+  --radio: 8px; /* tarjetas */
+  --radio-md: 8px;
+  --radio-lg: 12px; /* lo que flota: modal, hojas */
+  --radio-chip: 4px;
+  /* Sin sombras en reposo: solo lo que flota (modal, menús, toasts, panel «Más», la tarjeta sticky). */
+  --sombra-flotante: 0 12px 32px rgb(17 24 39 / 14%);
+
+  /* ------------------------------------------------------------ movimiento (apple-design) */
+  --curva-salida: cubic-bezier(0.23, 1, 0.32, 1); /* como un muelle amortiguado (1,0): sin rebote */
+  --curva-hoja: cubic-bezier(0.32, 0.72, 0, 1); /* hojas, panel «Más», toasts */
+  --curva-entrada-salida: cubic-bezier(0.65, 0, 0.35, 1); /* acordeón y recorridos simétricos */
+  --t-pulsar: 100ms;
+  --t-micro: 160ms;
+  --t-panel: 220ms;
+  --t-hoja: 320ms;
+
+  /* ------------------------------------------------------------ capas y medidas */
   --z-header: 50;
   --z-modal: 100;
-  --duracion: 0.15s;
-
-  /* Forma */
-  --radio-sm: 6px;
-  --radio: 8px;
-  --radio-md: 12px;
-  --radio-lg: 16px;
-  --sombra: 0 1px 2px rgb(15 23 42 / 6%);
-  --sombra-lg: 0 24px 60px rgb(15 23 42 / 18%);
-
-  --fuente: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --alto-header: 64px;
   --alto-tabbar: 64px;
+  --foco: var(--acento); /* anillo de foco: 6,7:1 sobre blanco */
+
+  /* ------------------------------------------------------------ alias de compatibilidad
+     Los componentes que todavía no se han migrado usan estos nombres; apuntan a los tokens nuevos, así toman la
+     paleta nueva sin cambios. No usar en código nuevo. */
+  --azul-800: var(--acento-hover);
+  --azul-700: var(--acento);
+  --azul-600: var(--acento);
+  --azul-300: #93c5fd;
+  --azul-200: var(--acento-pista);
+  --azul-100: var(--acento-pista);
+  --azul-050: var(--acento-suave);
+  --ambar-500: var(--estrella);
+  --ambar-600: var(--estrella);
+  --ambar-800: var(--pill-aviso-tinta);
+  --ambar-100: var(--pill-aviso-fondo);
+  --tinta-900: var(--tinta);
+  --tinta-800: var(--tinta);
+  --tinta-700: var(--tinta-2);
+  --gris-500: var(--tinta-3);
+  --gris-400: #9ca3af;
+  --gris-200: var(--borde);
+  --gris-100: var(--elevado);
+  --gris-050: var(--suelo);
+  --fondo-suave: var(--suelo);
+  --blanco: var(--superficie);
+  --verde-700: var(--positivo);
+  --verde-600: var(--positivo);
+  --verde-100: var(--pill-pos-fondo);
+  --verde-050: #f0fdf4;
+  --rojo-700: var(--negativo);
+  --rojo-600: var(--negativo);
+  --rojo-200: #fecaca;
+  --rojo-050: #fef2f2;
+  /* Sin violeta ni naranja: los usos que quedan pasan al acento y al aviso. */
+  --morado-600: var(--acento);
+  --morado-100: var(--acento-suave);
+  --naranja-600: var(--pill-aviso-tinta);
+  --naranja-100: var(--pill-aviso-fondo);
+  --sombra: none;
+  --sombra-lg: var(--sombra-flotante);
+  --duracion: var(--t-micro);
 }
 
 *,
@@ -86,11 +144,14 @@ body {
 
 body {
   font-family: var(--fuente);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
-  color: var(--tinta-900);
-  background: var(--blanco);
+  color: var(--tinta);
+  background: var(--superficie);
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent; /* cada control tiene su propio estado :active */
+  /* Nombres, correos y títulos largos sin espacios se cortan en lugar de ensanchar la página en el móvil. */
+  overflow-wrap: break-word;
 }
 
 h1,
@@ -101,9 +162,21 @@ p {
   margin: 0;
 }
 
+h1,
+h2 {
+  text-wrap: balance;
+}
+
 a {
-  color: var(--azul-700);
+  color: var(--acento);
   text-decoration: none;
+}
+
+a,
+button,
+summary,
+label {
+  touch-action: manipulation;
 }
 
 button,
@@ -139,6 +212,15 @@ lucide-icon {
   outline-offset: 1px;
 }
 
+/* Cifras tabulares: en tablas, KPI, duraciones, contadores y todo lo que se compara o cambia. */
+.num,
+.tabla td,
+.contador {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Red de seguridad para lo que todavía no tenga su versión reducida: los componentes migrados sustituyen el
+   desplazamiento por un fundido corto en lugar de cortarlo todo. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -175,130 +257,131 @@ lucide-icon {
 
 /* ---------------------------------------------------------------- texto */
 .titulo-pagina {
-  font-size: 40px;
+  font-size: var(--fs-titulo-pagina);
   line-height: 1.15;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .titulo-seccion {
-  font-size: 28px;
+  font-size: var(--fs-titulo-seccion);
+  line-height: 1.25;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .subtitulo {
-  color: var(--gris-500);
-  font-size: 17px;
+  color: var(--tinta-2);
+  font-size: 16px;
 }
 
+/* Antes, etiqueta en mayúsculas espaciadas sobre el título. Ahora, una línea de contexto en minúscula de frase;
+   las vistas que la usan la retiran en su lote. */
 .eyebrow {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--gris-500);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tinta-2);
 }
 
 .texto-suave {
-  color: var(--gris-500);
+  color: var(--tinta-3);
 }
 
 .texto-verde {
-  color: var(--verde-700);
+  color: var(--positivo);
 }
 
 .texto-rojo {
-  color: var(--rojo-700);
+  color: var(--negativo);
 }
 
 @media (max-width: 900px) {
-  .titulo-pagina {
-    font-size: 28px;
-  }
-  .titulo-seccion {
-    font-size: 22px;
+  :root {
+    --fs-titulo-pagina: 26px;
+    --fs-titulo-seccion: 20px;
   }
   .subtitulo {
     font-size: 15px;
   }
 }
 
-/* ---------------------------------------------------------------- botones */
+/* ---------------------------------------------------------------- botones
+   Primario: relleno del acento. Secundario: blanco con borde de control y tinta. Terciario: texto.
+   La respuesta llega al pulsar (:active), no al soltar. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 0 18px;
+  min-height: 40px;
+  padding: 0 16px;
   border: 1px solid transparent;
-  border-radius: var(--radio);
+  border-radius: var(--radio-sm);
   font-weight: 600;
   font-size: 15px;
   line-height: 1;
   white-space: nowrap;
   text-decoration: none;
   transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+    background-color var(--t-micro) var(--curva-salida),
+    border-color var(--t-micro) var(--curva-salida),
+    color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
 
+  &:active:not(:disabled, .deshabilitado) {
+    transform: scale(0.97);
+  }
+
+  /* Deshabilitado legible: tinta-3 sobre elevado (5,2:1), sin transparencia. */
   &:disabled,
   &.deshabilitado {
-    opacity: 0.45;
+    background: var(--elevado);
+    border-color: var(--borde);
+    color: var(--tinta-3);
     cursor: not-allowed;
   }
 }
 
-.btn-primario {
-  background: var(--azul-700);
-  color: var(--blanco);
-  &:hover:not(:disabled) {
-    background: var(--azul-800);
-  }
-}
-
+.btn-primario,
 .btn-acento {
-  background: var(--ambar-500);
-  color: var(--tinta-900);
+  background: var(--acento);
+  color: #fff;
   &:hover:not(:disabled) {
-    background: #e48f06;
+    background: var(--acento-hover);
   }
 }
 
 .btn-contorno {
-  background: var(--blanco);
-  color: var(--azul-700);
-  border-color: var(--azul-700);
+  background: var(--superficie);
+  color: var(--tinta);
+  border-color: var(--borde-control);
   &:hover:not(:disabled) {
-    background: var(--azul-050);
+    background: var(--activo);
   }
 }
 
 .btn-suave {
-  background: var(--blanco);
-  color: var(--azul-700);
-  border-color: var(--azul-200);
+  background: var(--acento-suave);
+  color: var(--acento-tinta);
   &:hover:not(:disabled) {
-    background: var(--azul-050);
+    background: var(--acento-pista);
   }
 }
 
 .btn-peligro {
-  background: var(--blanco);
-  color: var(--rojo-700);
-  border-color: var(--rojo-700);
+  background: var(--superficie);
+  color: var(--negativo);
+  border-color: var(--negativo);
   &:hover:not(:disabled) {
-    background: var(--rojo-050);
+    background: var(--pill-neg-fondo);
   }
 }
 
 .btn-texto {
   background: transparent;
-  color: var(--azul-700);
+  color: var(--acento);
   padding: 0 8px;
-  &:hover {
+  &:hover:not(:disabled) {
     text-decoration: underline;
   }
 }
@@ -310,7 +393,8 @@ lucide-icon {
 }
 
 .btn-lg {
-  min-height: 50px;
+  min-height: 48px;
+  padding: 0 20px;
   font-size: 16px;
 }
 
@@ -319,7 +403,7 @@ lucide-icon {
 }
 
 .enlace {
-  color: var(--azul-700);
+  color: var(--acento);
   font-weight: 600;
   background: none;
   border: 0;
@@ -334,71 +418,86 @@ lucide-icon {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  max-width: 100%;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: var(--gris-100);
-  color: var(--tinta-800);
+  background: var(--pill-neutro-fondo);
+  color: var(--pill-neutro-tinta);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chip-azul {
-  background: var(--azul-100);
-  color: var(--tinta-900);
+  background: var(--acento-suave);
+  color: var(--acento-tinta);
 }
 
+/* Filtros en píldora: el activo en el tinte del acento, no relleno del tono pleno. */
 .chip-filtro {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  min-height: 36px;
+  padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid var(--azul-200);
-  background: var(--blanco);
-  color: var(--tinta-900);
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--tinta);
   font-size: 14px;
   font-weight: 500;
+  transition:
+    background-color var(--t-micro) var(--curva-salida),
+    border-color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
 
+  &:hover {
+    background: var(--activo);
+  }
+  &:active {
+    transform: scale(0.97);
+  }
   &.activo {
-    background: var(--azul-700);
-    border-color: var(--azul-700);
-    color: var(--blanco);
+    background: var(--acento-suave);
+    border-color: var(--acento-pista);
+    color: var(--acento-tinta);
   }
 }
 
+/* Estado de un curso: pares pálidos en minúscula de frase. */
 .estado {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-weight: 600;
   white-space: nowrap;
 }
 .estado-borrador {
-  background: var(--gris-100);
-  color: var(--gris-500);
+  background: var(--pill-neutro-fondo);
+  color: var(--pill-neutro-tinta);
 }
 .estado-revision {
-  background: var(--azul-100);
-  color: var(--tinta-900);
+  background: var(--acento-suave);
+  color: var(--acento-tinta);
 }
 .estado-publicado {
-  background: var(--verde-700);
-  color: var(--blanco);
+  background: var(--pill-pos-fondo);
+  color: var(--pill-pos-tinta);
 }
 .estado-rechazado {
-  background: var(--rojo-700);
-  color: var(--blanco);
+  background: var(--pill-neg-fondo);
+  color: var(--pill-neg-tinta);
 }
-/* Suspendido por la administración: ámbar oscuro sobre claro (contraste 6:1), distinto de «rechazado». */
+/* Suspendido por la administración: aviso con borde, distinto de «rechazado». */
 .estado-suspendido {
-  background: var(--ambar-100);
-  color: var(--ambar-800);
-  box-shadow: inset 0 0 0 1px var(--ambar-600);
+  background: var(--pill-aviso-fondo);
+  color: var(--pill-aviso-tinta);
+  box-shadow: inset 0 0 0 1px var(--pill-aviso-borde);
 }
 
 .punto-estado {
@@ -419,38 +518,40 @@ lucide-icon {
   }
 
   &.activo {
-    background: var(--verde-100);
-    color: var(--verde-700);
+    background: var(--pill-pos-fondo);
+    color: var(--pill-pos-tinta);
   }
   &.inactivo {
-    background: var(--gris-100);
-    color: var(--gris-500);
+    background: var(--pill-neutro-fondo);
+    color: var(--tinta-3);
   }
 }
 
+/* Contador de una cola que pide acción. */
 .contador {
   display: inline-grid;
   place-items: center;
-  min-width: 24px;
-  height: 24px;
+  min-width: 22px;
+  height: 22px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--ambar-500);
-  color: var(--tinta-900);
-  font-size: 13px;
+  background: var(--acento-suave);
+  color: var(--acento-tinta);
+  font-size: 12px;
   font-weight: 700;
 }
 
-/* ---------------------------------------------------------------- tarjetas */
+/* ---------------------------------------------------------------- tarjetas
+   Separadas por un borde de 1px o un escalón de tono; sin sombra en reposo. */
 .tarjeta {
-  background: var(--blanco);
-  border: 1px solid var(--gris-200);
-  border-radius: var(--radio-md);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
 }
 
 .tarjeta-suave {
-  background: var(--azul-050);
-  border-radius: var(--radio-md);
+  background: var(--elevado);
+  border-radius: var(--radio);
 }
 
 .grid-stats {
@@ -476,32 +577,32 @@ lucide-icon {
 .etiqueta {
   font-size: 14px;
   font-weight: 600;
-  color: var(--tinta-900);
+  color: var(--tinta);
 }
 
 .control {
   width: 100%;
-  min-height: 46px;
+  min-height: 44px;
   padding: 10px 14px;
-  border: 1px solid var(--azul-200);
-  border-radius: var(--radio);
-  background: var(--blanco);
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-sm);
+  background: var(--superficie);
   font-size: 15px;
-  color: var(--tinta-900);
+  color: var(--tinta);
   outline: none;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+  transition: border-color var(--t-micro) var(--curva-salida);
 
   &::placeholder {
-    color: var(--gris-500);
+    color: var(--tinta-3);
+  }
+  &:hover:not(:disabled, :focus) {
+    border-color: var(--tinta-3);
   }
   &:focus {
-    border-color: var(--azul-700);
-    box-shadow: 0 0 0 3px rgb(37 99 235 / 15%);
+    border-color: var(--acento);
   }
   &.invalido {
-    border-color: var(--rojo-600);
+    border-color: var(--negativo);
   }
 }
 
@@ -513,7 +614,9 @@ textarea.control {
 
 select.control {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-color: var(--superficie);
+  color: var(--tinta);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235F6672' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   padding-right: 40px;
@@ -528,7 +631,7 @@ select.control {
   > lucide-icon:first-child {
     position: absolute;
     left: 14px;
-    color: var(--gris-500);
+    color: var(--tinta-3);
     pointer-events: none;
   }
   > .control {
@@ -544,21 +647,21 @@ select.control {
     border: 0;
     border-radius: var(--radio-sm);
     background: transparent;
-    color: var(--gris-500);
+    color: var(--tinta-3);
     &:hover {
-      background: var(--gris-100);
+      background: var(--activo);
     }
   }
 }
 
 .ayuda {
   font-size: 13px;
-  color: var(--gris-500);
+  color: var(--tinta-3);
 }
 
 .error-campo {
   font-size: 13px;
-  color: var(--rojo-700);
+  color: var(--negativo);
 }
 
 .casilla {
@@ -571,7 +674,7 @@ select.control {
   input {
     width: 18px;
     height: 18px;
-    accent-color: var(--azul-700);
+    accent-color: var(--acento);
     cursor: pointer;
   }
 }
@@ -583,60 +686,68 @@ select.control {
   align-items: flex-start;
   padding: 12px 14px;
   border-radius: var(--radio);
-  background: var(--azul-050);
+  background: var(--acento-suave);
   font-size: 14px;
-  color: var(--tinta-900);
+  color: var(--tinta);
 
   lucide-icon {
-    color: var(--azul-700);
+    color: var(--acento);
     margin-top: 1px;
   }
 
   &.error {
-    background: var(--rojo-050);
-    color: var(--rojo-700);
-    border: 1px solid var(--rojo-200);
+    background: var(--pill-neg-fondo);
+    color: var(--pill-neg-tinta);
     lucide-icon {
-      color: var(--rojo-700);
+      color: var(--negativo);
     }
   }
   &.exito {
-    background: var(--verde-050);
-    color: var(--verde-700);
+    background: var(--pill-pos-fondo);
+    color: var(--pill-pos-tinta);
     lucide-icon {
-      color: var(--verde-700);
+      color: var(--positivo);
     }
   }
 }
 
-/* ---------------------------------------------------------------- tablas */
+/* ---------------------------------------------------------------- tablas
+   Reglas y alineación: cabecera gris de 12px en minúscula de frase, sin banda; números a la derecha. */
 .tabla-contenedor {
-  border: 1px solid var(--gris-200);
-  border-radius: var(--radio-md);
+  /* Posicionado: así el texto .visualmente-oculto (absoluto) de las celdas queda dentro de la caja que se desplaza
+     y no ensancha la página. */
+  position: relative;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
   overflow-x: auto;
-  background: var(--blanco);
+  background: var(--superficie);
 }
 
 .tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 15px;
+  font-size: 14px;
 
   th {
-    padding: 14px 16px;
-    background: var(--azul-050);
-    color: var(--gris-500);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--borde);
+    color: var(--tinta-3);
     font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-weight: 500;
     text-align: left;
     white-space: nowrap;
   }
   td {
-    padding: 14px 16px;
-    border-top: 1px solid var(--gris-200);
+    padding: 12px 16px;
+    border-top: 1px solid var(--regla);
     vertical-align: middle;
+  }
+  tbody tr:first-child td {
+    border-top: 0;
+  }
+  th.num,
+  td.num {
+    text-align: right;
   }
 }
 
@@ -647,14 +758,14 @@ select.control {
   flex-wrap: wrap;
   gap: 8px;
   font-size: 14px;
-  color: var(--gris-500);
+  color: var(--tinta-3);
 
   a {
-    color: var(--azul-700);
+    color: var(--acento);
     font-weight: 500;
   }
   lucide-icon {
-    color: var(--gris-500);
+    color: var(--tinta-3);
   }
 }
 
@@ -667,7 +778,7 @@ select.control {
 
 .separador {
   border: 0;
-  border-top: 1px solid var(--gris-200);
+  border-top: 1px solid var(--borde);
   margin: 0;
 }
 
@@ -680,17 +791,9 @@ select.control {
   white-space: nowrap;
 }
 
-/* Silueta de carga (skeleton): bloque gris con un brillo que recorre. Se combina con el tamaño de cada vista. */
+/* Silueta de carga: un bloque gris plano con el tamaño final de cada valor, sin brillo ni movimiento, para que
+   la vista no salte cuando llegan los datos. */
 .esqueleto {
   display: block;
-  background: linear-gradient(90deg, var(--gris-100) 0%, var(--gris-050, #f8fafc) 50%, var(--gris-100) 100%);
-  background-size: 200% 100%;
-  animation: esqueleto-brillo 1.4s ease-in-out infinite;
-}
-@keyframes esqueleto-brillo {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .esqueleto { animation: none; }
+  background: var(--elevado);
 }

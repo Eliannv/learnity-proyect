@@ -2,8 +2,14 @@ header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: var(--blanco);
-  border-bottom: 1px solid var(--gris-200);
+  background: var(--superficie);
+  /* La regla aparece solo al desplazar (clase .desplazado), cuando el contenido pasa por debajo. */
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--t-micro) var(--curva-salida);
+
+  &.desplazado {
+    border-bottom-color: var(--borde);
+  }
 }
 
 .barra {
@@ -26,9 +32,12 @@ header {
   height: 40px;
   margin-left: -8px;
   border: 0;
-  border-radius: var(--radio);
+  border-radius: var(--radio-sm);
   background: transparent;
-  color: var(--tinta-900);
+  color: var(--tinta);
+  transition: background-color var(--t-micro) var(--curva-salida), transform var(--t-pulsar) var(--curva-salida);
+  &:hover { background: var(--activo); }
+  &:active { transform: scale(0.94); }
 }
 
 .categorias {
@@ -41,10 +50,12 @@ header {
   gap: 6px;
   border: 0;
   background: none;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 15px;
+  color: var(--tinta);
   white-space: nowrap;
   padding: 8px 0;
+  &:hover { color: var(--acento); }
 }
 
 .contenedor-buscador {
@@ -60,9 +71,12 @@ header {
 }
 
 .enlace-marca {
-  color: var(--azul-700);
-  font-weight: 600;
+  color: var(--tinta);
+  font-size: 15px;
+  font-weight: 500;
   white-space: nowrap;
+  transition: color var(--t-micro) var(--curva-salida);
+  &:hover { color: var(--acento); }
 }
 
 .desplegable {
@@ -74,26 +88,35 @@ header {
   display: flex;
   flex-direction: column;
   padding: 8px;
-  border: 1px solid var(--gris-200);
-  border-radius: var(--radio-md);
-  background: var(--blanco);
-  box-shadow: 0 12px 32px rgb(15 23 42 / 12%);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flotante);
+  /* Sale de su disparador: fundido y 4px de recorrido hacia abajo. */
+  transform-origin: top left;
+  transition:
+    opacity var(--t-micro) var(--curva-salida),
+    transform var(--t-micro) var(--curva-salida);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 
   a,
   button {
     padding: 10px 12px;
     border: 0;
-    border-radius: var(--radio);
+    border-radius: var(--radio-sm);
     background: none;
-    color: var(--tinta-900);
+    color: var(--tinta);
     text-align: left;
     font-size: 15px;
     &:hover {
-      background: var(--azul-050);
+      background: var(--activo);
     }
   }
   button {
-    color: var(--rojo-700);
+    color: var(--negativo);
   }
 }
 
@@ -104,7 +127,7 @@ header {
   max-height: calc(100dvh - var(--alto-header));
   overflow-y: auto;
   padding: 12px 16px 20px;
-  border-top: 1px solid var(--gris-200);
+  border-top: 1px solid var(--borde);
 
   a,
   button {
@@ -112,7 +135,7 @@ header {
     border: 0;
     background: none;
     text-align: left;
-    color: var(--tinta-900);
+    color: var(--tinta);
     font-weight: 600;
   }
   .sub {
@@ -126,7 +149,7 @@ header {
     margin: 8px 0;
   }
   button {
-    color: var(--rojo-700);
+    color: var(--negativo);
   }
 }
 
@@ -140,21 +163,33 @@ header {
   }
 }
 
-/* ------------------------------------------- fila de categorías (como Udemy) */
+/* ------------------------------------------- fila de categorías (como Udemy): enlaces de texto, sin caja */
 .barra-categorias {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 4px 28px;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--gris-200);
-  background: var(--blanco);
-  box-shadow: 0 2px 6px rgb(15 23 42 / 6%);
+  padding: 10px 24px 12px;
+  background: var(--superficie);
+  border-top: 1px solid var(--borde);
 
   a {
     font-size: 14px;
-    color: var(--tinta-800);
+    color: var(--tinta-2);
     white-space: nowrap;
-    &:hover { color: var(--azul-700); }
+    text-underline-offset: 4px;
+    &:hover {
+      color: var(--tinta);
+      text-decoration: underline;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desplegable {
+    transition: opacity var(--t-micro) linear;
+    @starting-style {
+      transform: none;
+    }
   }
 }

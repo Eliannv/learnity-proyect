@@ -18,11 +18,10 @@ import {
 import { LucideAngularModule } from 'lucide-angular';
 import { filter, map } from 'rxjs';
 
-import { FooterSitio } from '../comun/footer-sitio';
 import { MenuCuenta } from '../comun/menu-cuenta';
 import { TabBar } from '../comun/tab-bar';
 import { Logo } from '../../shared/ui/marca/logo';
-import { MENU } from './menu-panel';
+import { GRUPO_CUENTA, MENU, type ItemMenu } from './menu-panel';
 
 @Component({
   selector: 'app-layout-panel',
@@ -33,7 +32,6 @@ import { MENU } from './menu-panel';
     LucideAngularModule,
     Logo,
     MenuCuenta,
-    FooterSitio,
     TabBar,
   ],
   templateUrl: './layout-panel.html',
@@ -67,9 +65,17 @@ export class LayoutPanel {
     return items.filter((item) => !tabs.some((tab) => tab.ruta === item.ruta));
   });
 
-  protected readonly rutaPerfil = computed(
-    () => `${this.config().inicio}/perfil`,
-  );
+  /** Grupos del menú lateral en su orden, sin la cuenta (que va al pie). */
+  protected readonly grupos = computed(() => {
+    const { grupos, items } = this.config();
+    return grupos
+      .filter((nombre) => nombre !== GRUPO_CUENTA)
+      .map((nombre) => ({ nombre, items: items.filter((item) => item.grupo === nombre) }))
+      .filter((grupo) => grupo.items.length > 0);
+  });
+
+  protected readonly cuenta = computed<ItemMenu[]>(() =>
+    this.config().items.filter((item) => item.grupo === GRUPO_CUENTA));
 
   protected readonly seccion = toSignal(
     this.router.events.pipe(

@@ -1,154 +1,234 @@
+/* Shell «open plane» del estilo accent-ladder: menú lateral claro sobre el fondo de la página, separado del lienzo
+   por una línea. El elemento activo lleva el tinte del acento (sin barra izquierda); el tono pleno solo en su ícono.
+   Pantallas de trabajo: títulos a 24px y cuerpo a 14px (DIAGNOSTICO_REDISENO_UI.md §2.3). */
 :host {
-  --ancho-riel: 64px;
-  --ancho-riel-abierto: 264px;
+  --ancho-lateral: 248px;
+  --fs-titulo-pagina: 24px;
+  --fs-titulo-seccion: 18px;
   display: flex;
   min-height: 100dvh;
+  background: var(--suelo);
 }
 
-/* ---------------------------------------------------------------- riel lateral
-   Al expandirse reserva su ancho en el layout: el contenido sigue visible.
-   También se abre al enfocar sus enlaces con el teclado. */
-.riel {
+/* ---------------------------------------------------------------- menú lateral */
+.lateral {
   position: sticky;
   top: 0;
-  z-index: 60;
   flex-shrink: 0;
-  width: var(--ancho-riel);
+  display: flex;
+  flex-direction: column;
+  width: var(--ancho-lateral);
   height: 100dvh;
-  overflow: hidden;
-  transition: width 0.2s ease-out;
+  padding: 16px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--suelo);
+  border-right: 1px solid var(--borde);
+}
 
-  &:hover,
-  &:focus-within {
-    width: var(--ancho-riel-abierto);
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 8px;
+  margin-bottom: 20px;
+  border-radius: var(--radio-sm);
+  color: var(--tinta);
+}
 
-    .riel-texto,
-    .contador,
-    .numero {
-      opacity: 1;
+.marca-texto {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.ambito {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tinta-3);
+}
+
+nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  & + & {
+    margin-top: 20px;
+  }
+
+  /* La cuenta va al pie del menú. */
+  &.cuenta {
+    margin-top: auto;
+    padding-top: 20px;
+  }
+}
+
+.grupo-nombre {
+  padding: 0 10px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tinta-3);
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radio-sm);
+  color: var(--tinta-2);
+  font-size: 14px;
+  white-space: nowrap;
+  transition:
+    background-color var(--t-micro) var(--curva-salida),
+    color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
+
+  &:hover {
+    background: var(--activo);
+    color: var(--tinta);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+
+  &.activo {
+    background: var(--acento-suave);
+    color: var(--acento-tinta);
+    font-weight: 600;
+
+    .item-icono {
+      color: var(--acento);
     }
   }
 }
 
-.riel-interior {
-  width: var(--ancho-riel-abierto);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 12px 0;
-  background: var(--tinta-900);
-  color: #cbd5e1;
-}
-
-.riel-marca {
-  display: flex;
-  align-items: center;
-  height: 52px;
-  margin-bottom: 16px;
-  color: var(--blanco);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
-
-  small {
-    margin-left: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--azul-300);
-  }
-}
-
-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-nav a,
-.riel-vista {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-height: 48px;
-  padding-right: 16px;
-  color: #cbd5e1;
-  font-size: 14px;
-  white-space: nowrap;
-
-  &:hover {
-    background: var(--tinta-800);
-    color: var(--blanco);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--azul-300);
-    outline-offset: -4px;
-  }
-}
-
-nav a.activo {
-  background: var(--tinta-800);
-  color: var(--blanco);
-  font-weight: 600;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 8px;
-    bottom: 8px;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: var(--azul-600);
-  }
-  .riel-icono {
-    color: var(--azul-300);
-  }
-}
-
-.riel-icono {
+.item-icono {
   position: relative;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: var(--ancho-riel);
+  width: 20px;
+  color: var(--tinta-3);
+}
+
+.item-texto {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .aviso-punto {
   position: absolute;
-  top: -2px;
-  right: 16px;
-  width: 9px;
-  height: 9px;
+  top: -3px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--ambar-500);
-  box-shadow: 0 0 0 2px var(--tinta-900);
-}
-
-.riel-texto {
-  flex: 1;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.contador,
-.numero {
-  opacity: 0;
-  transition: opacity 0.15s;
+  background: var(--negativo);
+  box-shadow: 0 0 0 2px var(--suelo);
 }
 
 .numero {
-  font-size: 13px;
-  color: var(--gris-400);
+  font-size: 12px;
+  color: var(--tinta-3);
 }
 
-.riel-vista {
-  margin-top: auto;
-  border-top: 1px solid var(--tinta-800);
-  padding-top: 4px;
+/* ---------------------------------------------------------------- riel (901-1199 px)
+   64px de ancho: solo íconos, con la etiqueta como tooltip al pasar el ratón o al enfocar con el teclado. La etiqueta
+   sigue en el DOM (visualmente oculta), así que es el nombre accesible del enlace. */
+@media (min-width: 901px) and (max-width: 1199px) {
+  :host {
+    --ancho-lateral: 64px;
+  }
+
+  .lateral {
+    padding: 16px 10px;
+    overflow: visible;
+  }
+
+  .marca {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .marca-texto,
+  .grupo-nombre,
+  .numero,
+  .contador {
+    display: none;
+  }
+
+  .item-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .grupo + .grupo {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--borde);
+  }
+
+  .grupo.cuenta {
+    margin-top: auto;
+    border-top: 0;
+  }
+
+  .item {
+    justify-content: center;
+    min-height: 44px;
+    padding: 0;
+
+    &::after {
+      content: attr(data-etiqueta);
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      z-index: 70;
+      padding: 6px 10px;
+      border-radius: var(--radio-sm);
+      background: var(--tinta);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-4px, -50%);
+      transition:
+        opacity var(--t-micro) var(--curva-salida),
+        transform var(--t-micro) var(--curva-salida);
+    }
+
+    &:hover::after,
+    &:focus-visible::after {
+      opacity: 1;
+      transform: translate(0, -50%);
+    }
+  }
 }
 
 /* ---------------------------------------------------------------- marco */
@@ -166,59 +246,55 @@ nav a.activo {
   display: flex;
   align-items: center;
   gap: 20px;
-  height: var(--alto-header);
+  height: 56px;
   padding: 0 32px;
-  background: var(--blanco);
-  border-bottom: 1px solid var(--gris-200);
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde);
 }
 
 .seccion {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--gris-500);
-  font-size: 15px;
+  color: var(--tinta-3);
+  font-size: 14px;
 
   strong {
-    color: var(--tinta-900);
+    color: var(--tinta);
+    font-weight: 600;
   }
 }
 
 .vista-estudiante {
   margin-left: auto;
-  padding: 10px 12px;
-  border-radius: var(--radio);
-  color: var(--tinta-900);
+  padding: 8px 12px;
+  border-radius: var(--radio-sm);
+  color: var(--tinta-2);
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
+  transition: background-color var(--t-micro) var(--curva-salida);
 
   &:hover {
-    background: var(--azul-050);
-    color: var(--azul-700);
+    background: var(--activo);
+    color: var(--tinta);
   }
 }
 
 .contenido {
   flex: 1;
-  padding: 32px 32px 48px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .riel,
-  .riel-texto,
-  .contador,
-  .numero {
-    transition: none;
-  }
+  padding: 28px 32px 48px;
+  font-size: 14px;
 }
 
 @media (max-width: 900px) {
   :host {
+    --fs-titulo-pagina: 22px;
     padding-bottom: var(--alto-tabbar);
   }
   .barra-superior {
     gap: 8px;
+    height: 56px;
     padding: 0 16px;
   }
   .marca-movil {

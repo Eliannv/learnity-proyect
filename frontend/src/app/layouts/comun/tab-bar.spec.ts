@@ -55,8 +55,14 @@ describe('barra inferior del panel', () => {
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
-    expect(el.querySelector('#tab-bar-mas')).toBeNull();
+    // Baja por el mismo camino por el que subió y se desmonta al terminar; el foco vuelve al momento.
+    expect(el.querySelector('#tab-bar-mas')?.classList).toContain('saliendo');
+    expect(botonMas(el).getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(botonMas(el));
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(el.querySelector('#tab-bar-mas')).toBeNull();
+    });
 
     await TestBed.inject(Router).navigateByUrl('/admin/auditoria');
     fixture.detectChanges();

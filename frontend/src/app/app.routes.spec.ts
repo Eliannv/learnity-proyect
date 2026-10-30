@@ -90,8 +90,9 @@ const ESPERADO: string[] = [
 ];
 
 describe('árbol de rutas', () => {
+  // Importa todos los componentes perezosos de la app: tarda 4-5 s y el límite por defecto (5 s) lo volvía intermitente.
   it('conserva URLs, guards, títulos, data y redirecciones', async () => {
     const actual = await describir(routes);
     expect(actual).toEqual(ESPERADO);
-  });
+  }, 20_000);
 });

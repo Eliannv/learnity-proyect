@@ -1,29 +1,43 @@
-<aside class="riel oculto-movil">
-  <div class="riel-interior">
-    <a class="riel-marca" [routerLink]="config().inicio" [attr.aria-label]="'Inicio del panel ' + config().etiqueta">
-      <span class="riel-icono"><app-logo [claro]="true" [tamano]="22" [soloIcono]="true" /></span>
-      <span class="riel-texto">Learnity <small>{{ config().etiqueta }}</small></span>
-    </a>
+<!-- Menú lateral claro con etiquetas (≥ 1200 px) o riel de 64 px con tooltip (901-1199 px). En el móvil, la barra
+     inferior. Las etiquetas siempre están en el DOM: son el nombre accesible de cada enlace en el riel. -->
+<aside class="lateral oculto-movil">
+  <a class="marca" [routerLink]="config().inicio" [attr.aria-label]="'Inicio del panel ' + config().etiqueta">
+    <app-logo [tamano]="24" [soloIcono]="true" />
+    <span class="marca-texto">Learnity <span class="ambito">{{ config().etiqueta }}</span></span>
+  </a>
 
-    <nav aria-label="Menú del panel">
-      @for (item of config().items; track item.ruta) {
-      <a [routerLink]="item.ruta" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: item.exacto ?? false }">
-        <span class="riel-icono">
-          <lucide-icon [name]="item.icono" [size]="22" />
+  <nav aria-label="Menú del panel">
+    @for (grupo of grupos(); track grupo.nombre) {
+    <div class="grupo" role="group" [attr.aria-label]="grupo.nombre">
+      <span class="grupo-nombre" aria-hidden="true">{{ grupo.nombre }}</span>
+      @for (item of grupo.items; track item.ruta) {
+      <a class="item" [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page"
+        [routerLinkActiveOptions]="{ exact: item.exacto ?? false }" [attr.data-etiqueta]="item.etiqueta">
+        <span class="item-icono">
+          <lucide-icon [name]="item.icono" [size]="18" aria-hidden="true" />
           @if (item.destacado) {
           <span class="aviso-punto" aria-hidden="true"></span>
           }
         </span>
-        <span class="riel-texto">{{ item.etiqueta }}</span>
+        <span class="item-texto">{{ item.etiqueta }}</span>
         @if (item.contador) {
-        <span [class]="item.destacado ? 'contador' : 'numero'">{{ item.contador }}</span>
+        <span class="num" [class.contador]="item.destacado" [class.numero]="!item.destacado">{{ item.contador }}</span>
         }
       </a>
       }
-    </nav>
+    </div>
+    }
 
-  
-  </div>
+    <div class="grupo cuenta" role="group" aria-label="Cuenta">
+      @for (item of cuenta(); track item.ruta) {
+      <a class="item" [routerLink]="item.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page"
+        [attr.data-etiqueta]="item.etiqueta">
+        <span class="item-icono"><lucide-icon [name]="item.icono" [size]="18" aria-hidden="true" /></span>
+        <span class="item-texto">{{ item.etiqueta }}</span>
+      </a>
+      }
+    </div>
+  </nav>
 </aside>
 
 <div class="marco">
@@ -34,7 +48,7 @@
     <span class="seccion oculto-movil">
       <strong>{{ config().etiqueta }}</strong>
       @if (seccion()) {
-      <lucide-icon name="chevron-right" [size]="16" />
+      <lucide-icon name="chevron-right" [size]="16" aria-hidden="true" />
       {{ seccion() }}
       }
     </span>
@@ -45,8 +59,6 @@
   <main class="contenido">
     <router-outlet />
   </main>
-
-  <app-footer-sitio [autenticado]="true" [rutaPerfil]="rutaPerfil()" class="oculto-movil" />
 </div>
 
 <app-tab-bar [items]="config().tabs" [mas]="mas()" />

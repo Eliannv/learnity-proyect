@@ -42,13 +42,18 @@ import { Logo } from '../../shared/ui/marca/logo';
           </div>
         </nav>
       </div>
+      <div class="contenedor">
+        <p class="cierre" aria-hidden="true">Learnity</p>
+      </div>
     </footer>
   `,
   styles: `
+    /* Cierre del sitio sobre la banda oscura neutra (no azul marino). Títulos en minúscula de frase y el nombre a
+       todo el ancho como cierre, en lugar de un mapa del sitio en mayúsculas. */
     footer {
-      background: var(--tinta-900);
-      color: var(--blanco);
-      padding: 56px 0 64px;
+      background: var(--cabecera-oscura);
+      color: #fff;
+      padding: 56px 0 32px;
     }
     .interior {
       display: flex;
@@ -60,7 +65,8 @@ import { Logo } from '../../shared/ui/marca/logo';
       p {
         margin-top: 14px;
         font-size: 14px;
-        color: var(--gris-400);
+        line-height: 1.6;
+        color: var(--cabecera-oscura-2);
       }
     }
     .columnas {
@@ -70,39 +76,52 @@ import { Logo } from '../../shared/ui/marca/logo';
       div {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
       }
       h4 {
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--azul-300);
-        margin-bottom: 4px;
-      }
-      a {
-        color: var(--blanco);
         font-size: 14px;
         font-weight: 600;
+        color: var(--cabecera-oscura-2);
+        margin-bottom: 2px;
+      }
+      a {
+        color: #fff;
+        font-size: 14px;
+        text-underline-offset: 4px;
         &:hover {
-          color: var(--azul-300);
+          text-decoration: underline;
         }
       }
     }
+    /* El nombre a todo el ancho: decorativo (aria-hidden), gris de 3,9:1 sobre la banda. */
+    .cierre {
+      margin-top: 48px;
+      font-size: clamp(56px, 13vw, 184px);
+      font-weight: 700;
+      line-height: 0.8;
+      letter-spacing: -0.05em;
+      color: #6b7280;
+      white-space: nowrap;
+      overflow: hidden;
+      user-select: none;
+    }
     @media (max-width: 900px) {
       footer {
-        padding: 40px 0 32px;
+        padding: 40px 0 24px;
       }
       .interior {
         flex-direction: column;
         gap: 28px;
       }
       .columnas {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: 24px;
         div {
-          gap: 20px;
+          gap: 14px;
         }
+      }
+      .cierre {
+        margin-top: 32px;
       }
     }
   `,

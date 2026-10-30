@@ -102,11 +102,13 @@ import { Avatar } from '../../shared/ui/marca/avatar';
       z-index: 70;
       width: 288px;
       border: 1px solid var(--gris-200);
-      border-radius: var(--radio-md);
-      background: var(--blanco);
-      color: var(--tinta-900);
-      box-shadow: 0 16px 40px rgb(15 23 42 / 16%);
-      animation: aparecer 0.14s ease-out;
+      border-radius: var(--radio);
+      background: var(--superficie);
+      color: var(--tinta);
+      box-shadow: var(--sombra-flotante);
+      /* Sale de su disparador (el avatar, arriba a la derecha). */
+      transform-origin: top right;
+      animation: aparecer var(--t-micro) var(--curva-salida);
     }
     .quien {
       display: flex;
@@ -140,7 +142,8 @@ import { Avatar } from '../../shared/ui/marca/avatar';
       border-top: 1px solid var(--gris-200);
       .eyebrow {
         padding: 6px 10px 4px;
-        font-size: 11px;
+        font-size: 12px;
+        color: var(--tinta-3);
       }
       a,
       button {

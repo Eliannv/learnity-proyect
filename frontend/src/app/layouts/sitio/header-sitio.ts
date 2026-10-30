@@ -19,9 +19,9 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
 @Component({
   selector: 'app-header-sitio',
   imports: [RouterLink, LucideAngularModule, Logo, MenuCuenta, VistaPreviaAprendizaje, BuscadorCurso],
-  host: { '(document:keydown.escape)': 'cerrarMenus()' },
+  host: { '(document:keydown.escape)': 'cerrarMenus()', '(window:scroll)': 'alDesplazar()' },
   template: `
-    <header>
+    <header [class.desplazado]="desplazado()">
       <div class="barra">
 
         <a routerLink="/" class="logo-enlace" aria-label="Learnity, inicio"><app-logo [tamano]="24" /></a>
@@ -109,6 +109,8 @@ export class HeaderSitio {
   protected readonly categorias = signal<string[]>([]);
   protected readonly menuMovil = signal(false);
   protected readonly menuCategorias = signal(false);
+  /** La regla inferior de la cabecera solo aparece cuando el contenido pasa por debajo. */
+  protected readonly desplazado = signal(false);
 
   private readonly url = toSignal(
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)),
@@ -153,6 +155,11 @@ export class HeaderSitio {
     } catch {
       this.categorias.set([]);
     }
+  }
+
+  protected alDesplazar(): void {
+    const desplazado = window.scrollY > 4;
+    if (desplazado !== this.desplazado()) this.desplazado.set(desplazado);
   }
 
   protected cerrarMenus() {
