@@ -1,0 +1,122 @@
+<header class="cabecera">
+  <div>
+    <h1 class="titulo-pagina">Sesiones y base de datos</h1>
+    <p class="subtitulo">Estado de la base de datos y sesiones abiertas en la plataforma; puedes cerrar cualquiera.</p>
+  </div>
+  <button type="button" class="btn btn-contorno btn-sm" [disabled]="cargando()" (click)="actualizar()">
+    <lucide-icon name="rotate-ccw" [size]="16" aria-hidden="true" /> Actualizar
+  </button>
+</header>
+
+<section class="estado" aria-labelledby="titulo-estado">
+  <h2 id="titulo-estado" class="titulo-seccion"><lucide-icon name="database" [size]="18" aria-hidden="true" /> Estado de la base de datos</h2>
+  @if (errorEstado()) {
+    <p class="error" role="alert">{{ errorEstado() }}
+      <button type="button" class="btn btn-texto btn-sm" (click)="cargarEstado()">Reintentar</button></p>
+  } @else if (estado(); as e) {
+    <dl class="indicadores">
+      <div class="indicador"><dt>PostgreSQL</dt><dd>{{ e.version }}</dd></div>
+      <div class="indicador"><dt>Tamaño</dt><dd>{{ bytes(e.tamanoBytes) }}</dd></div>
+      <div class="indicador"><dt>Conexiones abiertas</dt><dd>{{ e.conexiones }}</dd></div>
+      <div class="indicador">
+        <dt>En línea</dt>
+        <dd>{{ enLinea(e.iniciadaEn) }}
+          <span class="texto-suave detalle">desde el {{ e.iniciadaEn | date: 'd MMM y, HH:mm' }}</span></dd>
+      </div>
+      <div class="indicador">
+        <dt>Última migración</dt>
+        <dd><code>{{ e.ultimaMigracion?.version ?? '—' }}</code>
+          @if (e.ultimaMigracion?.aplicadaEn; as fecha) {
+            <span class="texto-suave detalle">aplicada el {{ fecha | date: 'd MMM y, HH:mm' }}</span>
+          }</dd>
+      </div>
+    </dl>
+  } @else {
+    <div class="fila-esqueleto esqueleto" aria-busy="true" aria-label="Cargando el estado de la base de datos"></div>
+  }
+</section>
+
+<section class="sesiones" aria-labelledby="titulo-sesiones">
+  <div class="barra">
+    <h2 id="titulo-sesiones" class="titulo-seccion"><lucide-icon name="monitor" [size]="18" aria-hidden="true" /> Sesiones abiertas
+      @if (datos(); as d) { <span class="chip">{{ d.paginacion.total }}</span> }
+    </h2>
+    <label class="control-icono buscador">
+      <lucide-icon name="search" [size]="18" aria-hidden="true" />
+      <input class="control" type="search" placeholder="Buscar por nombre o correo" aria-label="Buscar sesiones por nombre o correo"
+        [value]="busqueda()" (input)="buscar($any($event.target).value)" />
+    </label>
+  </div>
+
+  @if (error()) {
+    <app-estado-vista estado="error" titulo="No se pudieron cargar las sesiones" [mensaje]="error()" (reintentar)="cargar()" />
+  } @else if (!datos() && cargando()) {
+    <div class="tabla-contenedor" aria-busy="true" aria-label="Cargando sesiones">
+      @for (i of [1, 2, 3]; track i) { <div class="fila-esqueleto esqueleto"></div> }
+    </div>
+  } @else if (datos(); as d) {
+    @if (!d.items.length) {
+      <app-estado-vista estado="vacio" titulo="No hay sesiones abiertas"
+        [mensaje]="busqueda() ? 'Ninguna sesión coincide con la búsqueda.' : 'Nadie tiene una sesión abierta ahora.'" />
+    } @else {
+      <div class="tabla-contenedor" [attr.aria-busy]="cargando()" tabindex="0" role="region" aria-label="Sesiones abiertas">
+        <table class="tabla">
+          <caption class="visualmente-oculto">Sesiones abiertas, la renovada más recientemente primero</caption>
+          <thead>
+            <tr>
+              <th scope="col">Usuario</th>
+              <th scope="col">Rol</th>
+              <th scope="col">Navegador</th>
+              <th scope="col">Inicio</th>
+              <th scope="col">Última actividad</th>
+              <th scope="col">Expira</th>
+              <th scope="col"><span class="visualmente-oculto">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of d.items; track s.id) {
+              <tr [class.propia]="s.actual">
+                <td>
+                  <span class="quien">
+                    <strong>{{ s.usuario.nombre }}</strong>
+                    <span class="texto-suave">{{ s.usuario.correo }}</span>
+                    @if (s.actual) { <span class="chip chip-propia">Tu sesión actual</span> }
+                  </span>
+                </td>
+                <td>
+                  <span class="roles">
+                    @for (r of s.usuario.roles; track r) { <span class="chip">{{ nombreRol[r] }}</span> }
+                  </span>
+                </td>
+                <td [title]="s.agente ?? ''">{{ navegador(s.agente) }}</td>
+                <td><time [attr.datetime]="s.iniciadaEn">{{ s.iniciadaEn | date: 'd MMM y, HH:mm' }}</time></td>
+                <td><time [attr.datetime]="s.renovadaEn">{{ s.renovadaEn | date: 'd MMM y, HH:mm' }}</time></td>
+                <td><time [attr.datetime]="s.expiraEn">{{ s.expiraEn | date: 'd MMM y, HH:mm' }}</time></td>
+                <td>
+                  <button type="button" class="btn btn-contorno btn-sm peligro" [disabled]="cerrando() === s.id" (click)="cerrar(s)"
+                    [attr.aria-label]="(s.actual ? 'Cerrar tu sesión actual' : 'Cerrar la sesión de ' + s.usuario.nombre) + ' en ' + navegador(s.agente)">
+                    <lucide-icon name="log-out" [size]="16" aria-hidden="true" />
+                    {{ cerrando() === s.id ? 'Cerrando…' : 'Cerrar sesión' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <nav class="paginacion" aria-label="Páginas de sesiones">
+        <span class="texto-suave" aria-live="polite">
+          Página {{ d.paginacion.pagina }} de {{ d.paginacion.totalPaginas || 1 }} · {{ d.paginacion.total }} sesiones
+        </span>
+        <div class="botones">
+          <button type="button" class="btn btn-contorno btn-sm" [disabled]="d.paginacion.pagina <= 1 || cargando()"
+            (click)="irA(d.paginacion.pagina - 1)"><lucide-icon name="arrow-left" [size]="16" aria-hidden="true" /> Anterior</button>
+          <button type="button" class="btn btn-contorno btn-sm"
+            [disabled]="d.paginacion.pagina >= d.paginacion.totalPaginas || cargando()"
+            (click)="irA(d.paginacion.pagina + 1)">Siguiente <lucide-icon name="arrow-right" [size]="16" aria-hidden="true" /></button>
+        </div>
+      </nav>
+    }
+  }
+</section>

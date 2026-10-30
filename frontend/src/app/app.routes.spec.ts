@@ -78,6 +78,8 @@ const ESPERADO: string[] = [
   '/admin/categorias | titulo=Categorías · Learnity | data={\"seccion\":\"Categorías\"} | pagina=Categorias',
   '/admin/resenas | titulo=Reseñas · Learnity | data={\"seccion\":\"Reseñas\"} | pagina=ModeracionResenas',
   '/admin/accesos | titulo=Accesos · Learnity | data={"seccion":"Accesos"} | pagina=AdminAccesos',
+  '/admin/auditoria | titulo=Auditoría · Learnity | data={"seccion":"Auditoría"} | pagina=AdminAuditoria',
+  '/admin/sesiones | titulo=Sesiones y base de datos · Learnity | data={"seccion":"Sesiones y base de datos"} | pagina=AdminSesiones',
   '/admin/perfil | titulo=Ajustes y perfil · Learnity | data={\"seccion\":\"Ajustes y perfil\"} | pagina=AjustesPerfil',
   '/acceso-denegado | layout=LayoutSitio',
   '/acceso-denegado | titulo=Acceso denegado · Learnity | data={"tipo":"403"} | pagina=PaginaError',

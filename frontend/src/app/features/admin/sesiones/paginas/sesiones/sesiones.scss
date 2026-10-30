@@ -1,0 +1,62 @@
+:host { display: flex; flex-direction: column; gap: 24px; }
+
+.cabecera {
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px;
+  .btn { display: inline-flex; align-items: center; gap: 6px; }
+}
+.subtitulo { margin: 4px 0 0; color: var(--gris-500); }
+
+.titulo-seccion {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.estado {
+  padding: 18px 20px;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio-md);
+  background: var(--blanco);
+}
+.indicadores {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;
+  margin: 0;
+}
+.indicador {
+  display: grid; align-content: start; gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--radio);
+  background: var(--gris-100);
+  dt { font-size: 13px; font-weight: 600; color: var(--tinta-700); }
+  dd { margin: 0; font-size: 20px; font-weight: 700; overflow-wrap: anywhere; code { font-size: 15px; } }
+  .detalle { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; }
+}
+
+.sesiones { display: flex; flex-direction: column; gap: 16px; }
+.barra {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  .titulo-seccion { margin: 0; }
+}
+.buscador { flex: 0 1 320px; }
+
+td { font-size: 14px; white-space: nowrap; }
+.tabla td, .tabla th { padding-left: 12px; padding-right: 12px; }
+.quien { display: grid; gap: 2px; justify-items: start; span { font-size: 13px; } }
+.roles { display: flex; flex-wrap: wrap; gap: 4px; .chip { font-size: 12px; } }
+.chip-propia { background: var(--azul-050); color: var(--azul-700); font-weight: 600; }
+tr.propia td { background: var(--azul-050); }
+.peligro { display: inline-flex; align-items: center; gap: 6px; color: var(--rojo-700); }
+
+.fila-esqueleto { height: 52px; margin: 8px 12px; border-radius: var(--radio); }
+.error { margin: 0; color: var(--rojo-700); }
+
+.paginacion {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  .botones { display: flex; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; gap: 4px; }
+}
+
+@media (max-width: 760px) {
+  .estado { padding: 14px; }
+  .buscador { flex-basis: 100%; }
+}

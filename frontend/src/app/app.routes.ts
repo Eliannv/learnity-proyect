@@ -127,6 +127,16 @@ export const routes: Routes = [
           import('./features/admin/accesos/accesos.routes').then((m) => m.rutasAdminAccesos),
       },
       {
+        path: 'auditoria',
+        loadChildren: () =>
+          import('./features/admin/auditoria/auditoria.routes').then((m) => m.rutasAdminAuditoria),
+      },
+      {
+        path: 'sesiones',
+        loadChildren: () =>
+          import('./features/admin/sesiones/sesiones.routes').then((m) => m.rutasAdminSesiones),
+      },
+      {
         path: 'perfil',
         loadChildren: () =>
           import('./features/identidad/identidad.routes').then((m) => m.rutasAjustesPerfil),

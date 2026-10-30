@@ -319,3 +319,65 @@ test('el administrador busca una reseña, la oculta con motivo, retira la respue
   await expect(resenas.getByRole('button', { name: 'Editar' })).toBeVisible();
   await contexto.close();
 });
+
+test('el administrador revisa la auditoría con su diff y el estado de la base, y cierra sesiones (ajena y propia)', async ({ page, context }) => {
+  const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin-auditoria');
+  const alumna = await crearCuenta(['ESTUDIANTE'], 'alumna-sesiones');
+  const categoria = `${MARCA} Auditada`;
+
+  // Un cambio con actor: el administrador crea y renombra una categoría por la API.
+  const ctx = await request.newContext({ baseURL: URL_API, extraHTTPHeaders: { Origin: URL_WEB } });
+  const login = await ctx.post('/api/auth/login', { data: { correo: admin.correo, contrasena: CONTRASENA_PRUEBA } });
+  const token = (await login.json()).accessToken as string;
+  const creada = await ctx.post('/api/admin/categorias', { data: { nombre: categoria }, headers: { Authorization: `Bearer ${token}` } });
+  expect(creada.ok(), await creada.text()).toBeTruthy();
+  const { id } = await creada.json();
+  const editada = await ctx.put(`/api/admin/categorias/${id}`, {
+    data: { nombre: `${categoria} 2`, descripcion: null, activa: true }, headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(editada.ok(), await editada.text()).toBeTruthy();
+  await ctx.dispose();
+
+  await iniciarSesionPorUI(page, admin.correo);
+  await page.goto('/admin/auditoria');
+  await page.getByLabel('Tabla').selectOption('categoria');
+  await page.getByLabel('Operación').selectOption('UPDATE');
+  const fila = page.getByRole('row').filter({ hasText: admin.correo }).filter({ hasText: String(id) }).first();
+  await expect(fila).toContainText('learnity_app');
+  await revisarAccesibilidad(page);
+  await fila.getByRole('button', { name: /Ver el detalle/ }).click();
+  const detalle = page.getByRole('dialog', { name: /^Cambio \d+ · categoria$/ });
+  await expect(detalle.getByRole('heading', { name: 'Datos antes y después' })).toBeVisible();
+  const nombre = detalle.getByRole('row').filter({ has: page.getByRole('rowheader', { name: /nombre/ }) });
+  await expect(nombre.locator('td.antes')).toContainText(`Valor anterior: ${categoria}`);
+  await expect(nombre.locator('td.despues')).toContainText(`Valor nuevo: ${categoria} 2`);
+  await revisarAccesibilidad(page);
+  await captura(page, 'admin-auditoria-diff');
+  await detalle.getByRole('button', { name: 'Cerrar' }).click();
+
+  // Sesiones: la alumna tiene una abierta y el administrador la cierra.
+  const { contexto, pagina } = await otroContexto(context);
+  await iniciarSesionPorUI(pagina, alumna.correo);
+  await page.goto('/admin/sesiones');
+  await expect(page.getByText('PostgreSQL')).toBeVisible();
+  await page.getByLabel('Buscar sesiones por nombre o correo').fill(alumna.correo);
+  const deAlumna = page.getByRole('row').filter({ hasText: alumna.correo });
+  await expect(deAlumna).toHaveCount(1);
+  await revisarAccesibilidad(page);
+  await deAlumna.getByRole('button', { name: /Cerrar la sesión de/ }).click();
+  await page.getByRole('dialog', { name: '¿Cerrar esta sesión?' }).getByRole('button', { name: 'Cerrar sesión' }).click();
+  await expect(page.getByText(/Sesión de .* cerrada\./)).toBeVisible();
+  await pagina.goto('/mi-aprendizaje');
+  await expect(pagina).toHaveURL(/\/login/);
+  await contexto.close();
+
+  // La propia se marca, avisa distinto y, al cerrarla, saca al administrador.
+  await page.getByLabel('Buscar sesiones por nombre o correo').fill(admin.correo);
+  const propia = page.getByRole('row').filter({ hasText: 'Tu sesión actual' });
+  await expect(propia).toHaveCount(1);
+  await propia.getByRole('button', { name: /Cerrar tu sesión actual/ }).click();
+  await page.getByRole('dialog', { name: '¿Cerrar tu sesión actual?' }).getByRole('button', { name: 'Cerrar mi sesión' }).click();
+  await expect(page).toHaveURL(/\/login|\/$/);
+  await page.goto('/admin/sesiones');
+  await expect(page).toHaveURL(/\/login/);
+});

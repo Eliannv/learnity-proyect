@@ -84,6 +84,8 @@ export const MENU: Record<
       },
       { icono: 'message-square-text', etiqueta: 'Reseñas', ruta: '/admin/resenas' },
       { icono: 'key-round', etiqueta: 'Accesos', ruta: '/admin/accesos' },
+      { icono: 'history', etiqueta: 'Auditoría', ruta: '/admin/auditoria' },
+      { icono: 'database', etiqueta: 'Sesiones y base de datos', ruta: '/admin/sesiones' },
     ],
 
     // Máximo cinco pestañas en móvil: el perfil sigue en el menú de la cuenta (avatar).

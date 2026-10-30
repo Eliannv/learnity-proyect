@@ -5341,6 +5341,447 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/auditoria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Visor de auditoría: cambios registrados, el más reciente primero
+         * @description Lee auditoria_cambio con la función auditoria_listar (SECURITY DEFINER, como mucho 100 filas por página).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    tabla?: string;
+                    operacion?: "INSERT" | "UPDATE" | "DELETE";
+                    /** @description Rol de PostgreSQL que ejecutó el cambio. */
+                    usuarioBd?: string;
+                    /** @description ID de la persona que hizo el cambio. */
+                    actor?: number;
+                    /** @description Inclusivo (ISO 8601 con zona). */
+                    desde?: string;
+                    /** @description Exclusivo (ISO 8601 con zona). */
+                    hasta?: string;
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaAuditoria"];
+                    };
+                };
+                /** @description Filtros inválidos o «desde» posterior a «hasta» */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/auditoria/opciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tablas, roles de base de datos y actores que aparecen en la auditoría (desplegables) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OpcionesAuditoria"];
+                    };
+                };
+                /** @description Parámetros no admitidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/auditoria/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un cambio con su transacción y los datos antes y después (para el diff) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID del registro de auditoría */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DetalleCambioAuditoria"];
+                    };
+                };
+                /** @description ID inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description El registro no existe */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/base-datos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Estado de la base: versión, tamaño, conexiones, arranque y última migración */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EstadoBaseDatos"];
+                    };
+                };
+                /** @description Parámetros no admitidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/sesiones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sesiones abiertas de todas las cuentas, la renovada más recientemente primero */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Busca en el nombre y el correo de la cuenta. */
+                    q?: string;
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaSesiones"];
+                    };
+                };
+                /** @description Filtros inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/sesiones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Cerrar una sesión abierta (motivo ADMIN)
+         * @description Cerrar la sesión con la que se hace la petición exige `confirmoPropia=true`.
+         */
+        delete: {
+            parameters: {
+                query?: {
+                    confirmoPropia?: "true" | "false";
+                };
+                header?: never;
+                path: {
+                    /** @description ID de la sesión (su familia de tokens) */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Sesión cerrada */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description ID inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La sesión no existe o ya está cerrada */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Es la sesión propia y no se confirmó (SESION_PROPIA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/salud": {
         parameters: {
             query?: never;
@@ -7375,6 +7816,124 @@ export interface components {
             intentosFallidos: number;
             /** Format: date-time */
             bloqueadoHasta: string;
+        };
+        CambioAuditoria: {
+            id: number;
+            /** Format: date-time */
+            fecha: string;
+            tabla: string;
+            /** @enum {string} */
+            operacion: "INSERT" | "UPDATE" | "DELETE";
+            /** @description Clave primaria del registro (p. ej. «12», o «12,3» en usuario_rol). */
+            registro: string | null;
+            /** @description Persona de la aplicación que hizo el cambio; null sin actor (migraciones, semillas o scripts). */
+            actor: {
+                id: number;
+                nombre: string;
+                correo: string | null;
+            } | null;
+            /** @description Rol de PostgreSQL que ejecutó el cambio (session_user). */
+            usuarioBd: string;
+            /** @description Solo en UPDATE. */
+            columnasCambiadas: string[] | null;
+        };
+        DetalleCambioAuditoria: {
+            id: number;
+            /** Format: date-time */
+            fecha: string;
+            tabla: string;
+            /** @enum {string} */
+            operacion: "INSERT" | "UPDATE" | "DELETE";
+            /** @description Clave primaria del registro (p. ej. «12», o «12,3» en usuario_rol). */
+            registro: string | null;
+            /** @description Persona de la aplicación que hizo el cambio; null sin actor (migraciones, semillas o scripts). */
+            actor: {
+                id: number;
+                nombre: string;
+                correo: string | null;
+            } | null;
+            /** @description Rol de PostgreSQL que ejecutó el cambio (session_user). */
+            usuarioBd: string;
+            /** @description Solo en UPDATE. */
+            columnasCambiadas: string[] | null;
+            /** @description Agrupa los cambios hechos en una misma operación. */
+            idTransaccion: number;
+            /** @description Fila completa en JSON, sin contrasena_hash, token_hash ni archivo.ruta. null en INSERT (antes) o DELETE (después). */
+            antes: {
+                [key: string]: unknown;
+            } | null;
+            /** @description Fila completa en JSON, sin contrasena_hash, token_hash ni archivo.ruta. null en INSERT (antes) o DELETE (después). */
+            despues: {
+                [key: string]: unknown;
+            } | null;
+        };
+        PaginaAuditoria: {
+            items: components["schemas"]["CambioAuditoria"][];
+            paginacion: {
+                total: number;
+                pagina: number;
+                limite: number;
+                totalPaginas: number;
+            };
+        };
+        OpcionesAuditoria: {
+            tablas: string[];
+            usuariosBd: string[];
+            /** @description Los 500 actores con un cambio más reciente. */
+            actores: {
+                id: number;
+                nombre: string;
+            }[];
+        };
+        EstadoBaseDatos: {
+            /** @description Versión de PostgreSQL (server_version). */
+            version: string;
+            tamanoBytes: number;
+            /** @description Conexiones abiertas a esta base, de cualquier rol. */
+            conexiones: number;
+            /**
+             * Format: date-time
+             * @description Arranque del servidor de PostgreSQL.
+             */
+            iniciadaEn: string;
+            ultimaMigracion: {
+                /** @description Número y nombre, p. ej. 037_supervision_auditoria. */
+                version: string;
+                /** Format: date-time */
+                aplicadaEn: string | null;
+            } | null;
+        };
+        SesionAdmin: {
+            /**
+             * Format: uuid
+             * @description Familia de la sesión: la identifica a lo largo de sus renovaciones.
+             */
+            id: string;
+            usuario: {
+                id: number;
+                nombre: string;
+                correo: string;
+                roles: ("ESTUDIANTE" | "DOCENTE" | "ADMIN")[];
+            };
+            /** @description User-Agent del navegador. No se muestra la IP. */
+            agente: string | null;
+            /** Format: date-time */
+            iniciadaEn: string;
+            /** Format: date-time */
+            renovadaEn: string;
+            /** Format: date-time */
+            expiraEn: string;
+            /** @description Es la sesión con la que el administrador hace la petición. */
+            actual: boolean;
+        };
+        PaginaSesiones: {
+            items: components["schemas"]["SesionAdmin"][];
+            paginacion: {
+                total: number;
+                pagina: number;
+                limite: number;
+                totalPaginas: number;
+            };
         };
     };
     responses: {
