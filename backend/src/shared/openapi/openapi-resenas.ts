@@ -4,6 +4,17 @@ import { error, errorInterno, erroresCuerpoJson, idInvalido, idRuta, json, ref, 
 const fecha = { type: 'string', format: 'date-time' };
 const fechaNula = { ...fecha, nullable: true };
 const cursoRef = { type: 'object', required: ['id', 'titulo'], properties: { id: { type: 'integer' }, titulo: { type: 'string' } } };
+const cursoDocenteOpcion = {
+  type: 'object',
+  required: ['id', 'titulo'],
+  properties: {
+    id: { type: 'integer' },
+    titulo: { type: 'string' },
+    estado: { type: 'string', nullable: true },
+    portadaUrl: { type: 'string', nullable: true },
+    iconoCategoria: { type: 'string', nullable: true },
+  },
+};
 const respuesta = {
   type: 'object', nullable: true, required: ['texto', 'fecha'], description: 'Respuesta pública del docente; null si no respondió.',
   properties: { texto: { type: 'string', maxLength: 1000 }, fecha },
@@ -85,7 +96,7 @@ export const esquemasResenas = {
     type: 'object',
     required: ['cursos', 'resumen', 'evolucion', 'items', 'pagina', 'limite', 'total', 'totalPaginas'],
     properties: {
-      cursos: { type: 'array', items: cursoRef },
+      cursos: { type: 'array', items: cursoDocenteOpcion },
       resumen: { allOf: [resumen, {
         type: 'object', required: ['sinResponder'], properties: { sinResponder: { type: 'integer', minimum: 0 } },
       }] },

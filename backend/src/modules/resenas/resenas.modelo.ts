@@ -74,8 +74,16 @@ export interface EvolucionMes {
   promedioAcumulado: number;
 }
 
+export interface CursoDocenteResenas {
+  id: number;
+  titulo: string;
+  estado?: string | null;
+  portadaUrl?: string | null;
+  iconoCategoria?: string | null;
+}
+
 export interface BandejaResenas {
-  cursos: { id: number; titulo: string }[];
+  cursos: CursoDocenteResenas[];
   resumen: ResumenResenas & { sinResponder: number };
   evolucion: EvolucionMes[];
   items: ResenaDocente[];

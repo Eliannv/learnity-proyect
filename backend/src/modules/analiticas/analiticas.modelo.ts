@@ -21,8 +21,16 @@ export interface CursoAnalitica {
   completados: number;
 }
 
+export interface CursoDocenteAnaliticas {
+  id: number;
+  titulo: string;
+  estado?: string | null;
+  portadaUrl?: string | null;
+  iconoCategoria?: string | null;
+}
+
 export interface Analiticas {
-  cursos: { id: number; titulo: string }[];
+  cursos: CursoDocenteAnaliticas[];
   resumen: {
     inscritos: number;
     completados: number;

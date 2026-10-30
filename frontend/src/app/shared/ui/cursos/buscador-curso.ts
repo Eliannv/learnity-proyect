@@ -112,8 +112,8 @@ function normalizar(texto: string): string {
                   (mousedown)="seleccionar(opcion, $event)"
                 >
                   <div class="miniatura" aria-hidden="true">
-                    @if (opcion.portadaUrl) {
-                      <img [src]="opcion.portadaUrl" alt="" loading="lazy" />
+                    @if (opcion.portadaUrl && !portadasFallidas()[opcion.id]) {
+                      <img [src]="opcion.portadaUrl" alt="" loading="lazy" (error)="marcarPortadaFallida(opcion.id)" />
                     } @else if (opcion.iconoCategoria) {
                       <app-portada-curso [iconoCategoria]="opcion.iconoCategoria" [compacta]="true" />
                     } @else {
@@ -252,6 +252,12 @@ export class BuscadorCurso {
 
   protected formatearEstado(estado: string): string {
     return ESTADOS[estado] ?? estado;
+  }
+
+  protected readonly portadasFallidas = signal<Record<number, boolean>>({});
+
+  protected marcarPortadaFallida(id: number): void {
+    this.portadasFallidas.update((mapa) => ({ ...mapa, [id]: true }));
   }
 
   protected estaSeleccionado(opcion: OpcionCursoBusqueda): boolean {

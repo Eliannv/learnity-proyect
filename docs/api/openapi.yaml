@@ -1892,7 +1892,8 @@
               "titulo": {
                 "type": "string"
               }
-            }
+            },
+            "nullable": true
           },
           "items": {
             "type": "array",
@@ -1913,6 +1914,12 @@
                   "type": "integer"
                 },
                 "nombre": {
+                  "type": "string"
+                },
+                "cursoId": {
+                  "type": "integer"
+                },
+                "cursoTitulo": {
                   "type": "string"
                 },
                 "estado": {
@@ -2630,6 +2637,18 @@
                 },
                 "titulo": {
                   "type": "string"
+                },
+                "estado": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "portadaUrl": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "iconoCategoria": {
+                  "type": "string",
+                  "nullable": true
                 }
               }
             }
@@ -3095,6 +3114,18 @@
                 },
                 "titulo": {
                   "type": "string"
+                },
+                "estado": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "portadaUrl": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "iconoCategoria": {
+                  "type": "string",
+                  "nullable": true
                 }
               }
             }
@@ -7454,6 +7485,105 @@
           },
           "429": {
             "description": "Límite de peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/docente/estudiantes": {
+      "get": {
+        "tags": [
+          "Aprendizaje"
+        ],
+        "summary": "Seguimiento de estudiantes del docente (todos los cursos o filtrado por curso)",
+        "description": "Solo DOCENTE o ADMIN. Lista inscripciones, avance y calificaciones de los cursos del docente.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "curso",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeguimientoDocente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Paginación o filtro inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE o ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Curso no disponible o ajeno",
             "content": {
               "application/json": {
                 "schema": {

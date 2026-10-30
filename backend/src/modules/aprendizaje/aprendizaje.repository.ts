@@ -313,7 +313,7 @@ export const aprendizajeRepository = {
   },
 
   async estudiantesDelCurso(idCurso: number, limite: number, offset: number): Promise<FilaEstudiante[]> {
-    return repo.estudiantesDelDocente(null, idCurso, limite, offset);
+    return aprendizajeRepository.estudiantesDelDocente(null, idCurso, limite, offset);
   },
 
   /** Todos los inscritos para exportar (con un tope que ningún curso real alcanza). */

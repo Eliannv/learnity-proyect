@@ -10,9 +10,12 @@ const CURSOS = `
 const numeroONull = (valor: string | null) => (valor === null ? null : Number(valor));
 
 export const analiticasRepository = {
-  async cursos(idPersona: number): Promise<{ id: number; titulo: string }[]> {
-    const { rows } = await consultar<{ id: number; titulo: string }>(
-      `SELECT c.id_curso AS id, c.titulo FROM curso c JOIN docente d ON d.id_docente = c.id_docente
+  async cursos(idPersona: number): Promise<{ id: number; titulo: string; estado: string; portadaUrl: string | null; iconoCategoria: string | null }[]> {
+    const { rows } = await consultar<{ id: number; titulo: string; estado: string; portadaUrl: string | null; iconoCategoria: string | null }>(
+      `SELECT c.id_curso AS id, c.titulo, c.estado, NULLIF(c.portada_url, '') AS "portadaUrl", cat.icono AS "iconoCategoria"
+         FROM curso c
+         JOIN docente d ON d.id_docente = c.id_docente
+         LEFT JOIN categoria cat ON cat.id_categoria = c.id_categoria
         WHERE d.id_persona = $1 AND d.estado = 'ACTIVO' ORDER BY c.titulo, c.id_curso`,
       [idPersona],
     );

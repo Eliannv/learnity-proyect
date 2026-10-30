@@ -10,7 +10,13 @@ export const esquemasAnaliticas = {
     type: 'object', required: ['cursos', 'resumen', 'actividad', 'conversion', 'embudo', 'porCurso'],
     properties: {
       cursos: { type: 'array', items: {
-        type: 'object', required: ['id', 'titulo'], properties: { id: { type: 'integer' }, titulo: { type: 'string' } },
+        type: 'object', required: ['id', 'titulo'], properties: {
+          id: { type: 'integer' },
+          titulo: { type: 'string' },
+          estado: { type: 'string', nullable: true },
+          portadaUrl: { type: 'string', nullable: true },
+          iconoCategoria: { type: 'string', nullable: true },
+        },
       } },
       resumen: {
         type: 'object', required: ['inscritos', 'completados', 'diasPromedioFinalizacion', 'diasMedianaFinalizacion'],

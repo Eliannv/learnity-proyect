@@ -3278,6 +3278,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docente/estudiantes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Seguimiento de estudiantes del docente (todos los cursos o filtrado por curso)
+         * @description Solo DOCENTE o ADMIN. Lista inscripciones, avance y calificaciones de los cursos del docente.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    curso?: number;
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SeguimientoDocente"];
+                    };
+                };
+                /** @description Paginación o filtro inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE o ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Curso no disponible o ajeno */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/docente/cursos/{id}/estudiantes": {
         parameters: {
             query?: never;
@@ -6801,6 +6881,9 @@ export interface components {
             cursos: {
                 id: number;
                 titulo: string;
+                estado?: string | null;
+                portadaUrl?: string | null;
+                iconoCategoria?: string | null;
             }[];
             resumen: {
                 /** @description Un decimal; null sin reseñas. */
@@ -6911,6 +6994,9 @@ export interface components {
             cursos: {
                 id: number;
                 titulo: string;
+                estado?: string | null;
+                portadaUrl?: string | null;
+                iconoCategoria?: string | null;
             }[];
             resumen: {
                 inscritos: number;
