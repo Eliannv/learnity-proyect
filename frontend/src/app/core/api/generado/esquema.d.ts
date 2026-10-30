@@ -2282,6 +2282,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/usuarios/{id}/bloqueo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Desbloquear una cuenta bloqueada por intentos fallidos (administrador)
+         * @description Quita el bloqueo temporal y reinicia el contador de intentos fallidos. Si la cuenta no estaba bloqueada, responde igual y no cambia nada. Queda en la auditoría con el administrador como autor.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Cuenta desbloqueada */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Usuario no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/usuarios/{id}/roles": {
         parameters: {
             query?: never;
@@ -4275,6 +4352,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/accesos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Registro de accesos: intentos de entrar a una cuenta, más recientes primero */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description `fallidos` muestra solo los intentos que no entraron. */
+                    resultado?: "todos" | "fallidos";
+                    /** @description Busca en el correo y en el nombre de la cuenta (sin distinguir mayúsculas). */
+                    q?: string;
+                    pagina?: number;
+                    limite?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaAccesos"];
+                    };
+                };
+                /** @description Filtros inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/accesos/bloqueadas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cuentas bloqueadas ahora por intentos fallidos, la que vence antes primero
+         * @description Para desbloquear una, `DELETE /admin/usuarios/{id}/bloqueo`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["CuentaBloqueada"][];
+                        };
+                    };
+                };
+                /** @description Parámetros no admitidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/salud": {
         parameters: {
             query?: never;
@@ -6106,6 +6323,45 @@ export interface components {
                 inscritos: number;
                 completados: number;
             }[] | null;
+        };
+        AccesoAdmin: {
+            id: number;
+            /** Format: date-time */
+            fecha: string;
+            /** @description null si el correo no corresponde a ninguna cuenta (o la cuenta se borró). */
+            usuario: {
+                id: number;
+                nombre: string;
+            } | null;
+            /** @description El correo escrito al entrar (aunque no exista) o, en REFRESH, el de la cuenta. null si no se conoce. */
+            correo: string | null;
+            /**
+             * @description CLAVE: inicio de sesión con contraseña. REFRESH: renovación de la sesión (solo se registran los fallos). RECUPERACION: nueva contraseña con el enlace del correo.
+             * @enum {string}
+             */
+            paso: "CLAVE" | "REFRESH" | "RECUPERACION";
+            exito: boolean;
+            /** @enum {string} */
+            motivo: "OK" | "CLAVE_INCORRECTA" | "CUENTA_BLOQUEADA" | "CUENTA_INACTIVA" | "CORREO_DESCONOCIDO" | "TOKEN_REUTILIZADO" | "TOKEN_INVALIDO";
+            /** @description User-Agent del navegador (hasta 200 caracteres). No se guarda la IP. */
+            agente: string | null;
+        };
+        PaginaAccesos: {
+            items: components["schemas"]["AccesoAdmin"][];
+            paginacion: {
+                total: number;
+                pagina: number;
+                limite: number;
+                totalPaginas: number;
+            };
+        };
+        CuentaBloqueada: {
+            idUsuario: number;
+            nombre: string;
+            correo: string;
+            intentosFallidos: number;
+            /** Format: date-time */
+            bloqueadoHasta: string;
         };
     };
     responses: {

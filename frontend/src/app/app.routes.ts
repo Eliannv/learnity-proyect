@@ -122,6 +122,11 @@ export const routes: Routes = [
           import('./features/admin/resenas/resenas.routes').then((m) => m.rutasAdminResenas),
       },
       {
+        path: 'accesos',
+        loadChildren: () =>
+          import('./features/admin/accesos/accesos.routes').then((m) => m.rutasAdminAccesos),
+      },
+      {
         path: 'perfil',
         loadChildren: () =>
           import('./features/identidad/identidad.routes').then((m) => m.rutasAjustesPerfil),

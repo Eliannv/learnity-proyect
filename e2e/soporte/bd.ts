@@ -56,6 +56,8 @@ export async function residuos(): Promise<Record<string, number>> {
         WHERE c.titulo LIKE $1 || '%' OR i.id_persona IN ${sub}`,
       categoria: "SELECT count(*) n FROM categoria WHERE nombre LIKE $1 || '%'",
       solicitud_docente: `SELECT count(*) n FROM solicitud_docente WHERE id_persona IN ${sub}`,
+      evento_acceso: `SELECT count(*) n FROM evento_acceso
+        WHERE id_usuario IN (SELECT id_usuario FROM usuario WHERE id_persona IN ${sub}) OR correo LIKE $1 || '%@qa-edge.test'`,
     };
     const salida: Record<string, number> = {};
     for (const [clave, sql] of Object.entries(consultas)) {

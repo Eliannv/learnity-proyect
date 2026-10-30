@@ -91,3 +91,7 @@ export type ResenaAdmin = Esquemas['ResenaAdmin'];
 export type PaginaResenasAdmin = Esquemas['PaginaResenasAdmin'];
 export type Analiticas = Esquemas['Analiticas'];
 export type RecursoAprendizaje = LeccionAprendizaje['recursos'][number];
+export type AccesoAdmin = Esquemas['AccesoAdmin'];
+export type PaginaAccesos = Esquemas['PaginaAccesos'];
+export type CuentaBloqueada = Esquemas['CuentaBloqueada'];
+export type ConsultaAccesos = NonNullable<paths['/admin/accesos']['get']['parameters']['query']>;
