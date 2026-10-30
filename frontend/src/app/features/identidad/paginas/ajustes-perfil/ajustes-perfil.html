@@ -1,26 +1,12 @@
 <h1 class="titulo">Ajustes y perfil</h1>
 
-<div class="pestanas" role="tablist" aria-label="Ajustes de la cuenta">
-  @for (p of pestanas; track p.id) {
-    <button
-      type="button"
-      role="tab"
-      [id]="'tab-' + p.id"
-      [attr.aria-selected]="pestana() === p.id"
-      [attr.aria-controls]="'panel-' + p.id"
-      [class.activa]="pestana() === p.id"
-      (click)="pestana.set(p.id)"
-    >
-      {{ p.texto }}
-    </button>
-  }
-</div>
-
-@switch (pestana()) {
-  @case ('perfil') {
-    <form class="panel" id="panel-perfil" role="tabpanel" aria-labelledby="tab-perfil" [formGroup]="form" (ngSubmit)="guardarPerfil()" novalidate>
-      <div class="columnas">
-        <div class="columna">
+<!-- Una sola página a dos columnas, como el perfil del estudiante: datos y contraseña a la izquierda; foto, vista
+     pública (docente) y cuenta a la derecha. -->
+<div class="perfil-rejilla">
+  <div class="principal">
+    <form class="tarjeta seccion-perfil" [formGroup]="form" (ngSubmit)="guardarPerfil()" novalidate aria-labelledby="t-datos">
+      <h2 id="t-datos">Datos personales</h2>
+      <div class="campos-dobles">
           <div class="campo">
             <label class="etiqueta" for="nombres">Nombres</label>
             <input id="nombres" class="control" formControlName="nombres" autocomplete="given-name" [class.invalido]="invalido(form.controls.nombres)" />
@@ -47,9 +33,6 @@
               {{ valores().biografia?.length ?? 0 }}/300
             </span>
           </div>
-        </div>
-
-        <div class="columna">
           <div class="campo">
             <label class="etiqueta" for="correo">Correo electrónico</label>
             <input id="correo" class="control" [value]="auth.usuario()?.correo" readonly />
@@ -59,39 +42,7 @@
             <label class="etiqueta" for="ciudad">Ciudad</label>
             <input id="ciudad" class="control" formControlName="ciudad" autocomplete="address-level2" />
           </div>
-
-          @if (auth.esDocente()) {
-            <section class="vista-docente" aria-label="Vista previa">
-              <span class="etiqueta-grupo">Así te ven tus estudiantes</span>
-              <div class="fila">
-                <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="48" />
-                <div>
-                  <strong>{{ valores().nombres }} {{ valores().apellidos }}</strong>
-                  <small>Docente en Learnity</small>
-                </div>
-              </div>
-              @if (valoracion(); as v) {
-                <p class="valoracion-docente">
-                  @if (v.promedio !== null) {
-                    <app-estrellas [valor]="v.promedio" />
-                    <strong>{{ v.promedio | number:'1.1-1' }}</strong>
-                    <span>Valoración como docente · {{ v.total }} {{ v.total === 1 ? 'reseña' : 'reseñas' }} en tus cursos publicados</span>
-                  } @else {
-                    <span>Todavía no tienes reseñas en tus cursos publicados.</span>
-                  }
-                </p>
-              }
-              <p>{{ valores().biografia || 'Aún no escribes tu biografía.' }}</p>
-            </section>
-          } @else {
-            <div class="aviso">
-              <lucide-icon name="lock" [size]="18" />
-              <span>Tu perfil es privado: nadie más ve qué cursos tomas ni tu avance.</span>
-            </div>
-          }
-        </div>
       </div>
-
       <div class="pie">
         <button type="submit" class="btn btn-primario btn-lg" [disabled]="form.pristine || guardandoPerfil()">
           {{ guardandoPerfil() ? 'Guardando…' : 'Guardar' }}
@@ -110,17 +61,9 @@
         }
       </div>
     </form>
-  }
 
-  @case ('foto') {
-    <section class="panel foto" id="panel-foto" role="tabpanel" aria-labelledby="tab-foto">
-      <h2>Tu foto de perfil</h2>
-      <app-foto-perfil [tamano]="160" />
-    </section>
-  }
-
-  @case ('contrasena') {
-    <form class="panel angosto" id="panel-contrasena" role="tabpanel" aria-labelledby="tab-contrasena" [formGroup]="formContrasena" (ngSubmit)="cambiarContrasena()" novalidate>
+    <form class="tarjeta seccion-perfil" [formGroup]="formContrasena" (ngSubmit)="cambiarContrasena()" novalidate aria-labelledby="t-contrasena">
+      <h2 id="t-contrasena">Contraseña</h2>
       <div class="campo">
         <label class="etiqueta" for="actual">Contraseña actual</label>
         <input id="actual" class="control" [type]="verContrasenas() ? 'text' : 'password'" formControlName="actual" autocomplete="current-password" [class.invalido]="invalido(formContrasena.controls.actual)" />
@@ -173,10 +116,45 @@
         }
       </div>
     </form>
-  }
+  </div>
 
-  @case ('cuenta') {
-    <section class="panel cuenta" id="panel-cuenta" role="tabpanel" aria-labelledby="tab-cuenta">
+  <aside class="lateral">
+    <section class="tarjeta seccion-perfil foto" aria-labelledby="t-foto">
+      <h2 id="t-foto">Foto de perfil</h2>
+      <app-foto-perfil [tamano]="120" />
+    </section>
+
+          @if (auth.esDocente()) {
+            <section class="vista-docente" aria-label="Vista previa">
+              <span class="etiqueta-grupo">Así te ven tus estudiantes</span>
+              <div class="fila">
+                <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="48" />
+                <div>
+                  <strong>{{ valores().nombres }} {{ valores().apellidos }}</strong>
+                  <small>Docente en Learnity</small>
+                </div>
+              </div>
+              @if (valoracion(); as v) {
+                <p class="valoracion-docente">
+                  @if (v.promedio !== null) {
+                    <app-estrellas [valor]="v.promedio" />
+                    <strong>{{ v.promedio | number:'1.1-1' }}</strong>
+                    <span>Valoración como docente · {{ v.total }} {{ v.total === 1 ? 'reseña' : 'reseñas' }} en tus cursos publicados</span>
+                  } @else {
+                    <span>Todavía no tienes reseñas en tus cursos publicados.</span>
+                  }
+                </p>
+              }
+              <p>{{ valores().biografia || 'Aún no escribes tu biografía.' }}</p>
+            </section>
+          } @else {
+            <div class="aviso">
+              <lucide-icon name="lock" [size]="18" />
+              <span>Tu perfil es privado: nadie más ve qué cursos tomas ni tu avance.</span>
+            </div>
+          }
+
+    <section class="tarjeta seccion-perfil cuenta" aria-label="Cuenta y roles">
       <div class="bloque">
         <h2>Tus roles</h2>
         <p class="texto-suave">Los roles se suman: toda cuenta es Estudiante. Administración aprueba el rol de Docente.</p>
@@ -201,5 +179,5 @@
         </button>
       </div>
     </section>
-  }
-}
+  </aside>
+</div>

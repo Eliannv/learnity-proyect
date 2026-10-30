@@ -14,7 +14,7 @@ const ESTADO_CURSO: Record<DetalleUsuarioAdmin['cursosCreados'][number]['estado'
 };
 
 /** Acción de la ficha en curso, para deshabilitar su botón mientras responde la API. */
-export type AccionFicha = 'desbloquear' | 'sesiones' | null;
+export type AccionFicha = 'desbloquear' | 'sesiones' | 'invitacion' | 'eliminar' | null;
 
 /**
  * Ficha de una cuenta (presentación): datos, bloqueo, sesiones abiertas, inscripciones y cursos creados.
@@ -49,8 +49,18 @@ export type AccionFicha = 'desbloquear' | 'sesiones' | null;
             @if (u.especialidad) { <div><dt>Especialidad</dt><dd>{{ u.especialidad }}</dd></div> }
             @if (u.invitacionPendienteHasta) {
               <div><dt>Invitación</dt><dd>Sin usar · vence {{ u.invitacionPendienteHasta | date: 'd MMM, HH:mm' }}</dd></div>
+            } @else if (!u.ultimoAcceso && u.activo) {
+              <div><dt>Invitación</dt><dd>Vencida o usada sin entrar</dd></div>
             }
           </dl>
+          @if (!u.ultimoAcceso && u.activo) {
+            <div class="acciones-ficha">
+              <button type="button" class="btn btn-contorno btn-sm" [disabled]="ocupado() === 'invitacion'" (click)="reenviarInvitacion.emit()">
+                <lucide-icon name="mail" [size]="16" aria-hidden="true" />
+                {{ ocupado() === 'invitacion' ? 'Enviando…' : 'Reenviar invitación' }}
+              </button>
+            </div>
+          }
 
           <section aria-labelledby="ficha-seguridad">
             <h3 id="ficha-seguridad">Acceso y seguridad</h3>
@@ -127,7 +137,15 @@ export type AccionFicha = 'desbloquear' | 'sesiones' | null;
                 <p class="texto-suave linea">Todavía no ha creado cursos.</p>
               }
             </section>
-          }
+            <div class="zona-eliminar">
+            <p>Eliminar solo sirve para cuentas creadas por error y sin actividad; si tiene cursos o inscripciones, desactívala.</p>
+            <button type="button" class="btn btn-sm btn-texto-peligro" [disabled]="esYo() || ocupado() === 'eliminar'"
+              [title]="esYo() ? 'No puedes eliminar tu propia cuenta' : ''" (click)="eliminar.emit()">
+              <lucide-icon name="trash-2" [size]="16" aria-hidden="true" />
+              {{ ocupado() === 'eliminar' ? 'Eliminando…' : 'Eliminar cuenta' }}
+            </button>
+          </div>
+        }
         </div>
       }
     </app-modal>
@@ -169,6 +187,12 @@ export type AccionFicha = 'desbloquear' | 'sesiones' | null;
       span { display: block; height: 100%; background: var(--acento); }
     }
     .bloque { height: 280px; border-radius: var(--radio); }
+    .acciones-ficha { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .zona-eliminar {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+      margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--borde);
+      p { margin: 0; font-size: 13px; color: var(--tinta-3); max-width: 46ch; }
+    }
   `,
 })
 export class FichaUsuario {
@@ -179,6 +203,8 @@ export class FichaUsuario {
   readonly ocupado = input<AccionFicha>(null);
   readonly desbloquear = output<void>();
   readonly cerrarSesiones = output<void>();
+  readonly reenviarInvitacion = output<void>();
+  readonly eliminar = output<void>();
   readonly reintentar = output<void>();
   readonly cerrar = output<void>();
 

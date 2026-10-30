@@ -95,6 +95,10 @@
                     <button type="button" class="btn btn-contorno btn-sm" [disabled]="ocupadoId() === u.id"
                       (click)="desbloquear(u)" [attr.aria-label]="'Desbloquear la cuenta de ' + u.nombre">Desbloquear</button>
                   }
+                  @if (!u.ultimoAcceso && u.activo) {
+                    <button type="button" class="btn btn-contorno btn-sm" [disabled]="ocupadoId() === u.id"
+                      (click)="reenviarInvitacion(u)" [attr.aria-label]="'Reenviar la invitación a ' + u.nombre">Reenviar invitación</button>
+                  }
                   <button type="button" class="btn btn-suave btn-sm" [disabled]="ocupadoId() === u.id"
                     (click)="abrirRoles(u)" [attr.aria-label]="'Editar roles de ' + u.nombre">Editar roles</button>
                   <button type="button" class="btn btn-sm" [class.btn-contorno]="!u.activo" [class.btn-texto-peligro]="u.activo"
@@ -102,6 +106,10 @@
                     [title]="esYo(u) ? 'No puedes desactivar tu propia cuenta' : ''"
                     [attr.aria-label]="(u.activo ? 'Desactivar la cuenta de ' : 'Activar la cuenta de ') + u.nombre">
                     {{ u.activo ? 'Desactivar' : 'Activar' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-icono-peligro" [disabled]="ocupadoId() === u.id || esYo(u)"
+                    (click)="eliminar(u)" [attr.aria-label]="'Eliminar la cuenta de ' + u.nombre" title="Eliminar cuenta">
+                    <lucide-icon name="trash-2" [size]="16" aria-hidden="true" />
                   </button>
                 </div>
               </td>
@@ -173,5 +181,6 @@
 @if (fichaDe(); as u) {
   <app-ficha-usuario [titulo]="'Ficha de ' + u.nombre" [detalle]="ficha()" [error]="errorFicha()" [esYo]="esYo(u)"
     [ocupado]="accionFicha()" (desbloquear)="desbloquear(u)" (cerrarSesiones)="cerrarSesiones(u)"
+    (reenviarInvitacion)="reenviarInvitacion(u)" (eliminar)="eliminar(u)"
     (reintentar)="cargarFicha()" (cerrar)="cerrarFicha()" />
 }

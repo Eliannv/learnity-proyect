@@ -69,6 +69,17 @@ export const usuariosController = {
     res.json(await service.cerrarSesiones(id, usuario(req)));
   },
 
+  async reenviarInvitacion(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.json(await service.reenviarInvitacion(id, usuario(req)));
+  },
+
+  async eliminar(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    await service.eliminar(id, usuario(req));
+    res.status(204).end();
+  },
+
   async desbloquear(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
     await service.desbloquear(id, usuario(req));

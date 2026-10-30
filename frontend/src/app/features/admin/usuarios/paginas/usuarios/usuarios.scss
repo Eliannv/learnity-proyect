@@ -77,6 +77,14 @@ td.estado-cuenta { white-space: normal; min-width: 96px; }
 tr.inactiva td { color: var(--tinta-3); }
 
 .acciones { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.btn-icono-peligro {
+  min-width: 32px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--negativo);
+  &:hover:not(:disabled) { background: var(--pill-neg-fondo); }
+}
 .btn-texto-peligro {
   border: 1px solid transparent;
   background: transparent;

@@ -197,3 +197,80 @@ describe('Cerrar sesiones (motivo ADMIN)', () => {
     assert.equal((await srv.pedir('/api/admin/usuarios/2147483647/sesiones', { metodo: 'DELETE', token: admin.token })).status, 404);
   });
 });
+
+describe('Reenviar invitación y eliminar cuenta', () => {
+  const enlace = (texto: string) => texto.match(/\/restablecer-contrasena#token=([A-Za-z0-9_-]{43})&invitacion=1/)?.[1];
+
+  it('reenvía un enlace nuevo de 72 h que invalida el anterior; si la persona ya entró, no aplica (409)', async () => {
+    const correo = fab.correo('reenvio');
+    const alta = await crear({ nombres: marca, apellidos: 'Reenvío', correo, roles: [] });
+    assert.equal(alta.status, 201, alta.texto);
+    const id = alta.json.id as number;
+    assert.equal((await srv.pedir(`/api/admin/usuarios/${id}/invitacion`, { metodo: 'POST', token: estudiante.token })).status, 403);
+
+    const r = await srv.pedir(`/api/admin/usuarios/${id}/invitacion`, { metodo: 'POST', token: admin.token });
+    assert.equal(r.status, 200, r.texto);
+    assert.ok(r.json.invitacionPendienteHasta);
+    const { rows: [vigentes] } = await f.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM token_recuperacion WHERE id_usuario = $1 AND proposito = 'INVITACION' AND usado_en IS NULL`, [id]);
+    assert.equal(vigentes!.n, 1, 'solo vale el último enlace');
+
+    const correos = await correosPara(correo);
+    assert.equal(correos.length, 2);
+    const [primero, segundo] = [enlace(correos[0]!.texto), enlace(correos[1]!.texto)];
+    assert.ok(primero && segundo && primero !== segundo);
+    assert.equal((await srv.pedir('/api/auth/restablecer', { metodo: 'POST', cuerpo: { token: primero, contrasena: CLAVE_NUEVA } })).status, 400,
+      'el enlace anterior ya no sirve');
+    assert.equal((await srv.pedir('/api/auth/restablecer', { metodo: 'POST', cuerpo: { token: segundo, contrasena: CLAVE_NUEVA } })).status, 200);
+    assert.ok(await iniciarSesion(srv, correo, CLAVE_NUEVA));
+
+    const otra = await srv.pedir(`/api/admin/usuarios/${id}/invitacion`, { metodo: 'POST', token: admin.token });
+    assert.equal(otra.status, 409);
+    assert.equal(otra.json.error.codigo, 'INVITACION_NO_APLICA');
+    assert.equal((await srv.pedir('/api/admin/usuarios/2147483647/invitacion', { metodo: 'POST', token: admin.token })).status, 404);
+  });
+
+  it('elimina una cuenta sin actividad y queda auditado con el administrador como autor', async () => {
+    const alta = await crear({ nombres: marca, apellidos: 'Por error', correo: fab.correo('por-error'), roles: ['DOCENTE'], especialidad: 'Física' });
+    assert.equal(alta.status, 201, alta.texto);
+    const { id, idPersona } = alta.json as { id: number; idPersona: number };
+    assert.equal((await srv.pedir(`/api/admin/usuarios/${id}`, { metodo: 'DELETE', token: estudiante.token })).status, 403);
+
+    const r = await srv.pedir(`/api/admin/usuarios/${id}`, { metodo: 'DELETE', token: admin.token });
+    assert.equal(r.status, 204, r.texto);
+    const { rows } = await f.query('SELECT 1 FROM persona WHERE id_persona = $1', [idPersona]);
+    assert.equal(rows.length, 0);
+    assert.equal((await srv.pedir(`/api/admin/usuarios/${id}`, { token: admin.token })).status, 404);
+    const { rows: [audit] } = await f.query<{ actor: number }>(
+      `SELECT id_persona_actor AS actor FROM auditoria_cambio
+        WHERE tabla = 'usuario' AND operacion = 'DELETE' AND (antes ->> 'id_usuario')::int = $1`, [id]);
+    assert.equal(audit?.actor, admin.idPersona);
+    assert.equal((await srv.pedir(`/api/admin/usuarios/${id}`, { metodo: 'DELETE', token: admin.token })).status, 404);
+  });
+
+  it('no borra la propia cuenta ni una con actividad o registros a su nombre: explica que se desactive (409)', async () => {
+    const propia = await srv.pedir(`/api/admin/usuarios/${admin.idUsuario}`, { metodo: 'DELETE', token: admin.token });
+    assert.equal(propia.status, 409);
+    assert.equal(propia.json.error.codigo, 'NO_AUTOELIMINAR');
+
+    // Con una categoría creada a su nombre: la clave foránea lo impide y no se borra nada.
+    const conRegistros = await fab.crearCuenta(['ESTUDIANTE']);
+    await f.query('INSERT INTO categoria (nombre, creada_por) VALUES ($1, $2)', [`${marca} cat ${conRegistros.idPersona}`, conRegistros.idPersona]);
+    const r = await srv.pedir(`/api/admin/usuarios/${conRegistros.idUsuario}`, { metodo: 'DELETE', token: admin.token });
+    assert.equal(r.status, 409, r.texto);
+    assert.equal(r.json.error.codigo, 'CUENTA_CON_REGISTROS');
+    assert.match(r.json.error.mensaje, /Desactívala/);
+    const { rows } = await f.query('SELECT 1 FROM usuario WHERE id_usuario = $1', [conRegistros.idUsuario]);
+    assert.equal(rows.length, 1, 'no se borró nada');
+
+    // Inscrita en un curso: no se borra (su progreso y reseñas dependen de la cuenta).
+    const { rows: [curso] } = await f.query<{ id: number }>("SELECT id_curso AS id FROM curso WHERE estado = 'PUBLICADO' LIMIT 1");
+    if (curso) {
+      const inscrita = await fab.crearCuenta(['ESTUDIANTE']);
+      await f.query('INSERT INTO inscripcion (id_persona, id_curso) VALUES ($1, $2)', [inscrita.idPersona, curso.id]);
+      const i = await srv.pedir(`/api/admin/usuarios/${inscrita.idUsuario}`, { metodo: 'DELETE', token: admin.token });
+      assert.equal(i.status, 409, i.texto);
+      assert.equal(i.json.error.codigo, 'CUENTA_CON_ACTIVIDAD');
+    }
+  });
+});

@@ -46,7 +46,7 @@ const MAX_BYTES = 2 * 1024 * 1024;
     </div>
   `,
   styles: `
-    .foto-perfil { display: grid; justify-items: start; gap: 12px; }
+    .foto-perfil { display: grid; justify-items: CENTER; gap: 12px; }
     .vista { width: var(--t, 96px); height: auto; aspect-ratio: 1; border-radius: 50%; object-fit: cover; }
     .acciones { display: flex; flex-wrap: wrap; gap: 8px; .btn { display: inline-flex; align-items: center; gap: 6px; } }
     label.btn { cursor: pointer; }

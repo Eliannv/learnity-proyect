@@ -460,6 +460,15 @@ export const identidadRepository = {
    * Enlace de invitación (032): como uno de recuperación, pero vale hasta 72 horas. El vencimiento se calcula con el
    * mismo now() que `creado_en`: calcularlo en Node lo dejaría unos milisegundos por encima del CHECK de vigencia.
    */
+  /** Da por usados los enlaces de invitación pendientes: al reenviarla solo vale el último. */
+  async invalidarInvitaciones(cliente: pg.PoolClient, idUsuario: number): Promise<void> {
+    await cliente.query(
+      `UPDATE token_recuperacion SET usado_en = now()
+        WHERE id_usuario = $1 AND proposito = 'INVITACION' AND usado_en IS NULL`,
+      [idUsuario],
+    );
+  },
+
   async crearInvitacion(cliente: pg.PoolClient, idUsuario: number, tokenHash: string, horas: number): Promise<Date> {
     const { rows } = await cliente.query<{ expiraEn: Date }>(
       `INSERT INTO token_recuperacion (id_usuario, token_hash, expira_en, proposito)

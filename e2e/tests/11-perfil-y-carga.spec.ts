@@ -22,7 +22,6 @@ test('panel del docente: guarda el perfil, cambia la contraseña y vuelve a entr
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tu perfil se guardó.' })).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Contraseña' }).click();
   await page.getByLabel('Contraseña actual').fill(CONTRASENA_PRUEBA);
   await page.getByLabel('Nueva contraseña', { exact: true }).fill(nueva);
   await page.getByLabel('Repite la nueva contraseña').fill(nueva);

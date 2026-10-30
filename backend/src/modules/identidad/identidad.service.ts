@@ -502,6 +502,11 @@ export interface ServicioIdentidad {
     cliente: PoolClient,
     datos: { nombres: string; apellidos: string; correo: string },
   ): Promise<{ idPersona: number; idUsuario: number; token: string; expiraEn: Date }>;
+  /**
+   * Nuevo enlace de invitación de HORAS_INVITACION horas: invalida los anteriores sin usar. Dentro de la transacción
+   * del administrador. Devuelve el token en claro solo para enviarlo por correo.
+   */
+  renovarInvitacion(cliente: PoolClient, idUsuario: number): Promise<{ token: string; expiraEn: Date }>;
   sesionesActivas(idUsuario: number): Promise<SesionActiva[]>;
   /** Vencimiento de la invitación sin usar, o null. */
   invitacionPendiente(idUsuario: number): Promise<Date | null>;
@@ -532,6 +537,12 @@ export const identidadApi: ServicioIdentidad = {
     const token = generarTokenOpaco();
     const expiraEn = await repo.crearInvitacion(cliente, idUsuario, hashToken(token), HORAS_INVITACION);
     return { idPersona, idUsuario, token, expiraEn };
+  },
+  async renovarInvitacion(cliente, idUsuario) {
+    await repo.invalidarInvitaciones(cliente, idUsuario);
+    const token = generarTokenOpaco();
+    const expiraEn = await repo.crearInvitacion(cliente, idUsuario, hashToken(token), HORAS_INVITACION);
+    return { token, expiraEn };
   },
   sesionesActivas: (idUsuario) => repo.sesionesActivas(idUsuario),
   invitacionPendiente: (idUsuario) => repo.invitacionPendiente(idUsuario),

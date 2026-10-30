@@ -49,4 +49,15 @@ export class AdminUsuariosApi {
   desbloquear(id: number): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`${this.base}/${id}/bloqueo`));
   }
+
+  /** Enlace nuevo de 72 h para una cuenta que aún no entró; invalida el anterior. Devuelve su vencimiento. */
+  reenviarInvitacion(id: number): Promise<string> {
+    return firstValueFrom(this.http.post<{ invitacionPendienteHasta: string }>(`${this.base}/${id}/invitacion`, {}))
+      .then((r) => r.invitacionPendienteHasta);
+  }
+
+  /** Borra una cuenta sin actividad (si la tiene, el backend responde 409 con el motivo). */
+  eliminar(id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${this.base}/${id}`));
+  }
 }

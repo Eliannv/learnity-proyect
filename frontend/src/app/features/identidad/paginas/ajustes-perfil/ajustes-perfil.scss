@@ -277,3 +277,66 @@ textarea.control {
     max-width: none;
   }
 }
+
+/* ---------------------------------------------------------------- una sola página a dos columnas
+   Como el perfil del estudiante: los datos y la contraseña a la izquierda; foto, vista pública y cuenta a la derecha. */
+.perfil-rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 24px;
+}
+
+.principal,
+.lateral {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.seccion-perfil {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+}
+
+.campos-dobles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+
+  .campo:has(textarea) {
+    grid-column: 1 / -1;
+  }
+}
+
+.lateral .foto {
+  justify-items: center;
+  text-align: center;
+}
+
+.lateral .cuenta .bloque + .bloque {
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+}
+
+@media (max-width: 1100px) {
+  .perfil-rejilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .campos-dobles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .seccion-perfil {
+    padding: 20px 16px;
+  }
+}

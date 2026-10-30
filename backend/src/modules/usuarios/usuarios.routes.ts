@@ -98,6 +98,22 @@ usuariosRoutes.delete(
   controller.cerrarSesiones,
 );
 
+usuariosRoutes.post(
+  '/admin/usuarios/:id/invitacion',
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosUsuario),
+  controller.reenviarInvitacion,
+);
+
+usuariosRoutes.delete(
+  '/admin/usuarios/:id',
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosUsuario),
+  controller.eliminar,
+);
+
 usuariosRoutes.delete(
   '/admin/usuarios/:id/bloqueo',
   autenticar,

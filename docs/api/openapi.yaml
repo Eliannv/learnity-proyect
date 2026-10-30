@@ -7630,6 +7630,90 @@
       }
     },
     "/admin/usuarios/{id}": {
+      "delete": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Eliminar una cuenta creada por error (administrador)",
+        "description": "Solo cuentas sin actividad: sin cursos creados, sin inscripciones y sin registros a su nombre. Si la tiene, responde 409 y la cuenta debe desactivarse. No se puede eliminar la propia ni al único administrador. Queda en la auditoría con el administrador como autor (migración 039).",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cuenta eliminada"
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "NO_AUTOELIMINAR, ULTIMO_ADMIN, CUENTA_CON_CURSOS, CUENTA_CON_ACTIVIDAD o CUENTA_CON_REGISTROS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      },
       "get": {
         "tags": [
           "Usuarios"
@@ -7894,6 +7978,108 @@
           },
           "404": {
             "description": "Usuario no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/usuarios/{id}/invitacion": {
+      "post": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Reenviar la invitación de una cuenta que aún no entró (administrador)",
+        "description": "Genera un enlace nuevo de 72 horas para crear la contraseña, invalida el anterior y lo envía por correo. Solo para cuentas activas que nunca han iniciado sesión.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA (\"Revisa los datos enviados.\") con `detalles: [{ campo: \"id\", mensaje: \"Debe ser un entero positivo en decimal.\" }]`, o con el mensaje \"Es demasiado grande.\" si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitación reenviada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "invitacionPendienteHasta"
+                  ],
+                  "properties": {
+                    "invitacionPendienteHasta": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "La cuenta está desactivada o ya entró (CUENTA_INACTIVA, INVITACION_NO_APLICA)",
             "content": {
               "application/json": {
                 "schema": {

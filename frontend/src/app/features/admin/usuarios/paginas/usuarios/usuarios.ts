@@ -236,6 +236,42 @@ export class AdminUsuarios {
   }
 
   /** Desbloqueo desde la fila o desde la ficha. */
+  protected async reenviarInvitacion(u: Pick<UsuarioAdmin, 'id' | 'nombre' | 'correo'>): Promise<void> {
+    this.accionFicha.set('invitacion');
+    this.ocupadoId.set(u.id);
+    try {
+      await this.api.reenviarInvitacion(u.id);
+      this.toast.exito(`Invitación reenviada a ${u.correo}. El enlace anterior ya no sirve; el nuevo vence en 72 horas.`);
+      if (this.fichaDe()?.id === u.id) await this.cargarFicha();
+    } catch (error) {
+      this.toast.error(mensajeDeError(error, 'Reenviar la invitación'));
+    } finally {
+      this.accionFicha.set(null);
+      this.ocupadoId.set(null);
+    }
+  }
+
+  protected async eliminar(u: Pick<UsuarioAdmin, 'id' | 'nombre'>): Promise<void> {
+    const ok = await this.confirmacion.confirmar({
+      titulo: `¿Eliminar la cuenta de ${u.nombre}?`, accion: 'Eliminar cuenta', peligro: true, icono: 'trash-2',
+      mensaje: 'Se borra la cuenta con sus roles y sesiones, y no se puede deshacer (queda en la auditoría). Solo es posible si no tiene cursos, inscripciones ni registros a su nombre; si los tiene, desactívala.',
+    });
+    if (!ok) return;
+    this.accionFicha.set('eliminar');
+    this.ocupadoId.set(u.id);
+    try {
+      await this.api.eliminar(u.id);
+      this.toast.exito(`Cuenta de ${u.nombre} eliminada.`);
+      if (this.fichaDe()?.id === u.id) this.cerrarFicha();
+      void this.cargar();
+    } catch (error) {
+      this.toast.error(mensajeDeError(error, 'Eliminar la cuenta'));
+    } finally {
+      this.accionFicha.set(null);
+      this.ocupadoId.set(null);
+    }
+  }
+
   protected async desbloquear(u: Pick<UsuarioAdmin, 'id' | 'nombre'>): Promise<void> {
     this.accionFicha.set('desbloquear');
     this.ocupadoId.set(u.id);

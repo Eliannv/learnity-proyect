@@ -363,6 +363,25 @@ export const rutasSolicitudes = {
     },
   },
   '/admin/usuarios/{id}': {
+    delete: {
+      tags: ['Usuarios'],
+      summary: 'Eliminar una cuenta creada por error (administrador)',
+      description:
+        'Solo cuentas sin actividad: sin cursos creados, sin inscripciones y sin registros a su nombre. Si la tiene, ' +
+        'responde 409 y la cuenta debe desactivarse. No se puede eliminar la propia ni al único administrador. ' +
+        'Queda en la auditoría con el administrador como autor (migración 039).',
+      security: seguridad,
+      parameters: [idRuta],
+      responses: {
+        204: { description: 'Cuenta eliminada' },
+        400: error(idInvalido),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        404: error('Usuario no encontrado'),
+        409: error('NO_AUTOELIMINAR, ULTIMO_ADMIN, CUENTA_CON_CURSOS, CUENTA_CON_ACTIVIDAD o CUENTA_CON_REGISTROS'),
+        500: errorInterno,
+      },
+    },
     get: {
       tags: ['Usuarios'],
       summary: 'Ficha de una cuenta: sesiones abiertas, inscripciones y cursos creados (administrador)',
@@ -425,6 +444,32 @@ export const rutasSolicitudes = {
         401: error('Sin sesión'),
         403: error('No es administrador'),
         404: error('Usuario no encontrado'),
+        500: errorInterno,
+      },
+    },
+  },
+  '/admin/usuarios/{id}/invitacion': {
+    post: {
+      tags: ['Usuarios'],
+      summary: 'Reenviar la invitación de una cuenta que aún no entró (administrador)',
+      description:
+        'Genera un enlace nuevo de 72 horas para crear la contraseña, invalida el anterior y lo envía por correo. ' +
+        'Solo para cuentas activas que nunca han iniciado sesión.',
+      security: seguridad,
+      parameters: [idRuta],
+      responses: {
+        200: {
+          description: 'Invitación reenviada',
+          content: { 'application/json': { schema: {
+            type: 'object', required: ['invitacionPendienteHasta'],
+            properties: { invitacionPendienteHasta: { type: 'string', format: 'date-time' } },
+          } } },
+        },
+        400: error(idInvalido),
+        401: error('Sin sesión'),
+        403: error('No es administrador'),
+        404: error('Usuario no encontrado'),
+        409: error('La cuenta está desactivada o ya entró (CUENTA_INACTIVA, INVITACION_NO_APLICA)'),
         500: errorInterno,
       },
     },

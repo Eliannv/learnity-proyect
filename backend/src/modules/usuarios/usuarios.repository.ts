@@ -361,6 +361,12 @@ export const usuariosRepository = {
     return f ? { idUsuario: f.id_usuario, idPersona: f.id_persona, estado: f.estado, roles: f.roles } : null;
   },
 
+  /** Borra la cuenta con admin_eliminar_cuenta (migración 039): OK, NO_EXISTE, TIENE_CURSOS o TIENE_INSCRIPCIONES. */
+  async eliminarCuenta(cliente: PoolClient, idUsuario: number): Promise<string> {
+    const { rows } = await cliente.query<{ r: string }>('SELECT admin_eliminar_cuenta($1) AS r', [idUsuario]);
+    return rows[0]!.r;
+  },
+
   async contarAdminsActivos(cliente: PoolClient): Promise<number> {
     const r = await cliente.query<{ total: number }>(
       `SELECT count(DISTINCT u.id_usuario)::int AS total

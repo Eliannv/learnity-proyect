@@ -13,8 +13,6 @@ import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api
 import { Avatar } from '../../../../shared/ui/marca/avatar';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../../shared/validadores/contrasena';
 
-type Pestana = 'perfil' | 'foto' | 'contrasena' | 'cuenta';
-
 const NOMBRES_ROL = { ESTUDIANTE: 'Estudiante', DOCENTE: 'Docente', ADMIN: 'Administrador' } as const;
 const DESCRIPCION_ROL = {
   ESTUDIANTE: 'Te inscribes en cursos y avanzas a tu ritmo.',
@@ -40,13 +38,6 @@ export class AjustesPerfil {
   private readonly perfiles = inject(PerfilService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
-  protected readonly pestanas: { id: Pestana; texto: string }[] = [
-    { id: 'perfil', texto: 'Perfil' },
-    { id: 'foto', texto: 'Foto de perfil' },
-    { id: 'contrasena', texto: 'Contraseña' },
-    { id: 'cuenta', texto: 'Cuenta y roles' },
-  ];
-  protected readonly pestana = signal<Pestana>('perfil');
 
   protected readonly roles = computed(() =>
     this.auth.roles().map((r) => ({ nombre: NOMBRES_ROL[r], descripcion: DESCRIPCION_ROL[r] })),

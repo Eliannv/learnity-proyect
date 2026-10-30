@@ -227,6 +227,70 @@ export const usuariosService = {
    * Toda cuenta debe conservar al menos el rol ESTUDIANTE.
    * No permite quitarse el rol ADMIN a uno mismo ni dejar el sistema sin administradores.
    */
+  /**
+   * Reenvía la invitación de una cuenta creada por el administrador que aún no entró nunca: un enlace nuevo de
+   * 72 horas que invalida el anterior. Si la persona ya entró, usa «¿Olvidaste tu contraseña?».
+   */
+  async reenviarInvitacion(idUsuario: number, admin: UsuarioSesion): Promise<{ invitacionPendienteHasta: string }> {
+    const cuenta = await enTransaccion(async (cliente) => {
+      const u = await repo.buscarUsuarioAdmin(idUsuario, cliente);
+      if (!u) throw AppError.noEncontrado('El usuario no existe.');
+      if (u.estado !== 'ACTIVO') throw AppError.conflicto('La cuenta está desactivada: actívala antes de reenviar la invitación.', 'CUENTA_INACTIVA');
+      if (u.ultimoAcceso !== null) {
+        throw AppError.conflicto('Esta persona ya entró a su cuenta. Si olvidó su contraseña, puede usar «¿Olvidaste tu contraseña?».', 'INVITACION_NO_APLICA');
+      }
+      const invitacion = await identidadApi.renovarInvitacion(cliente, idUsuario);
+      return { ...u, ...invitacion };
+    }, { actor: admin.idPersona });
+
+    notificar('invitacion', correoInvitacion({
+      para: cuenta.correo,
+      nombres: cuenta.nombres,
+      enlace: `${env.FRONTEND_URL}/restablecer-contrasena#token=${cuenta.token}&invitacion=1`,
+      horas: HORAS_INVITACION,
+      roles: cuenta.roles.map((r) => NOMBRE_ROL[r]).join(', '),
+    }));
+    registrarEvento('invitacion_reenviada', { idUsuario, idAdmin: admin.idUsuario });
+    return { invitacionPendienteHasta: cuenta.expiraEn.toISOString() };
+  },
+
+  /**
+   * Elimina una cuenta creada por error. Solo sin actividad propia (cursos creados, inscripciones o registros a su
+   * nombre): si la tiene, responde 409 y explica que se desactive. No se puede eliminar la propia cuenta ni al único
+   * administrador. Queda en la auditoría con el administrador como autor.
+   */
+  async eliminar(idUsuario: number, admin: UsuarioSesion): Promise<void> {
+    if (admin.idUsuario === idUsuario) {
+      throw AppError.conflicto('No puedes eliminar tu propia cuenta.', 'NO_AUTOELIMINAR');
+    }
+    try {
+      await enTransaccion(async (cliente) => {
+        const usuario = await repo.buscarUsuarioPorId(cliente, idUsuario);
+        if (!usuario) throw AppError.noEncontrado('El usuario no existe.');
+        if (usuario.roles.includes('ADMIN') && (await repo.contarAdminsActivos(cliente)) <= 1) {
+          throw AppError.conflicto('No se puede eliminar al único administrador del sistema.', 'ULTIMO_ADMIN');
+        }
+        const resultado = await repo.eliminarCuenta(cliente, idUsuario);
+        if (resultado === 'NO_EXISTE') throw AppError.noEncontrado('El usuario no existe.');
+        if (resultado === 'TIENE_CURSOS') {
+          throw AppError.conflicto('Tiene cursos creados. Desactiva la cuenta o reasigna sus cursos antes de eliminarla.', 'CUENTA_CON_CURSOS');
+        }
+        if (resultado === 'TIENE_INSCRIPCIONES') {
+          throw AppError.conflicto('Está inscrita en cursos (con su progreso y reseñas). Desactívala en lugar de eliminarla.', 'CUENTA_CON_ACTIVIDAD');
+        }
+      }, { actor: admin.idPersona });
+    } catch (error) {
+      if ((error as { code?: string }).code === '23503') {
+        throw AppError.conflicto(
+          'Tiene registros a su nombre en la plataforma (por ejemplo, categorías o revisiones). Desactívala en lugar de eliminarla.',
+          'CUENTA_CON_REGISTROS',
+        );
+      }
+      throw error;
+    }
+    registrarEvento('usuario_eliminado_por_admin', { idUsuario, idAdmin: admin.idUsuario });
+  },
+
   async cambiarRoles(idUsuario: number, datos: CambioRolesUsuario, admin: UsuarioSesion): Promise<UsuarioAdmin> {
     const roles: RolUsuario[] = Array.from(new Set([...datos.roles, 'ESTUDIANTE' as const]));
 
