@@ -17,7 +17,7 @@ export interface FichaCursoAprendizaje {
   subtitulo: string | null;
   portadaUrl: string | null;
   nivel: 'PRINCIPIANTE' | 'INTERMEDIO' | 'AVANZADO';
-  categoria: { id: number; nombre: string };
+  categoria: { id: number; nombre: string; icono: string };
   docente: string;
 }
 

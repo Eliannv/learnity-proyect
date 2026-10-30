@@ -19,6 +19,7 @@ export interface FilaCursoInscrito extends FilaInscripcion {
   nivel: FichaCursoAprendizaje['nivel'];
   categoriaId: number;
   categoriaNombre: string;
+  categoriaIcono: string;
   docente: string;
   totalLecciones: number;
   leccionesCompletadas: number;
@@ -72,7 +73,7 @@ const LECCION_DISPONIBLE = `((l.tipo = 'VIDEO' AND l.youtube_video_id IS NOT NUL
 
 const CAMPOS_CURSO = `
   c.titulo, c.subtitulo, c.portada_url AS "portadaUrl", c.nivel, (c.estado = 'SUSPENDIDO') AS suspendido,
-  cat.id_categoria AS "categoriaId", cat.nombre AS "categoriaNombre",
+  cat.id_categoria AS "categoriaId", cat.nombre AS "categoriaNombre", cat.icono AS "categoriaIcono",
   concat_ws(' ', p.nombres, p.apellidos) AS docente,
   (SELECT count(*)::int FROM modulo m JOIN leccion l ON l.id_modulo = m.id_modulo
     WHERE m.id_curso = c.id_curso AND ${LECCION_DISPONIBLE}) AS "totalLecciones",

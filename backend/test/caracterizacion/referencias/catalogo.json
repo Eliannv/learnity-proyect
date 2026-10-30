@@ -4,11 +4,13 @@
     "cuerpo": [
       {
         "id": "<id:categoria#A>",
-        "nombre": "<marca> Álgebra"
+        "nombre": "<marca> Álgebra",
+        "icono": "tags"
       },
       {
         "id": "<id:categoria#B>",
-        "nombre": "<marca> biología"
+        "nombre": "<marca> biología",
+        "icono": "tags"
       }
     ]
   },
@@ -22,7 +24,8 @@
           "subtitulo": "Sub Gamma",
           "categoria": {
             "id": "<id:categoria#B>",
-            "nombre": "<marca> biología"
+            "nombre": "<marca> biología",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "AVANZADO",
@@ -39,7 +42,8 @@
           "subtitulo": "Sub Beta",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "INTERMEDIO",
@@ -56,7 +60,8 @@
           "subtitulo": "Sub Alfa 100%",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -73,7 +78,8 @@
           "subtitulo": "Sub Eta categoria inactiva",
           "categoria": {
             "id": "<id:categoria#C>",
-            "nombre": "<marca> Cálculo inactiva"
+            "nombre": "<marca> Cálculo inactiva",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -90,7 +96,8 @@
           "subtitulo": "Sub Theta docente inactivo",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -107,7 +114,8 @@
           "subtitulo": "Sub Delta heredado",
           "categoria": {
             "id": "<id:categoria#B>",
-            "nombre": "<marca> biología"
+            "nombre": "<marca> biología",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -135,7 +143,8 @@
           "subtitulo": "Sub Alfa 100%",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -152,7 +161,8 @@
           "subtitulo": "Sub Eta categoria inactiva",
           "categoria": {
             "id": "<id:categoria#C>",
-            "nombre": "<marca> Cálculo inactiva"
+            "nombre": "<marca> Cálculo inactiva",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -180,7 +190,8 @@
           "subtitulo": "Sub Beta",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "INTERMEDIO",
@@ -197,7 +208,8 @@
           "subtitulo": "Sub Gamma",
           "categoria": {
             "id": "<id:categoria#B>",
-            "nombre": "<marca> biología"
+            "nombre": "<marca> biología",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "AVANZADO",
@@ -214,7 +226,8 @@
           "subtitulo": "Sub Theta docente inactivo",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -242,7 +255,8 @@
           "subtitulo": "Sub Alfa 100%",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -259,7 +273,8 @@
           "subtitulo": "Sub Beta",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "INTERMEDIO",
@@ -276,7 +291,8 @@
           "subtitulo": "Sub Delta heredado",
           "categoria": {
             "id": "<id:categoria#B>",
-            "nombre": "<marca> biología"
+            "nombre": "<marca> biología",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -293,7 +309,8 @@
           "subtitulo": "Sub Eta categoria inactiva",
           "categoria": {
             "id": "<id:categoria#C>",
-            "nombre": "<marca> Cálculo inactiva"
+            "nombre": "<marca> Cálculo inactiva",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -310,7 +327,8 @@
           "subtitulo": "Sub Gamma",
           "categoria": {
             "id": "<id:categoria#B>",
-            "nombre": "<marca> biología"
+            "nombre": "<marca> biología",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "AVANZADO",
@@ -327,7 +345,8 @@
           "subtitulo": "Sub Theta docente inactivo",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "PRINCIPIANTE",
@@ -355,7 +374,8 @@
           "subtitulo": "Sub Gamma",
           "categoria": {
             "id": "<id:categoria#B>",
-            "nombre": "<marca> biología"
+            "nombre": "<marca> biología",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "AVANZADO",
@@ -372,7 +392,8 @@
           "subtitulo": "Sub Beta",
           "categoria": {
             "id": "<id:categoria#A>",
-            "nombre": "<marca> Álgebra"
+            "nombre": "<marca> Álgebra",
+            "icono": "tags"
           },
           "docente": "<marca> estudiante-docente",
           "nivel": "INTERMEDIO",
@@ -418,7 +439,8 @@
       "subtitulo": "Sub Alfa 100%",
       "categoria": {
         "id": "<id:categoria#A>",
-        "nombre": "<marca> Álgebra"
+        "nombre": "<marca> Álgebra",
+        "icono": "tags"
       },
       "docente": "<marca> estudiante-docente",
       "nivel": "PRINCIPIANTE",
@@ -486,7 +508,8 @@
       "subtitulo": "Sub Beta",
       "categoria": {
         "id": "<id:categoria#A>",
-        "nombre": "<marca> Álgebra"
+        "nombre": "<marca> Álgebra",
+        "icono": "tags"
       },
       "docente": "<marca> estudiante-docente",
       "nivel": "INTERMEDIO",
@@ -533,7 +556,8 @@
       "subtitulo": "Sub Delta heredado",
       "categoria": {
         "id": "<id:categoria#B>",
-        "nombre": "<marca> biología"
+        "nombre": "<marca> biología",
+        "icono": "tags"
       },
       "docente": "<marca> estudiante-docente",
       "nivel": "PRINCIPIANTE",
@@ -580,7 +604,8 @@
       "subtitulo": "Sub Eta categoria inactiva",
       "categoria": {
         "id": "<id:categoria#C>",
-        "nombre": "<marca> Cálculo inactiva"
+        "nombre": "<marca> Cálculo inactiva",
+        "icono": "tags"
       },
       "docente": "<marca> estudiante-docente",
       "nivel": "PRINCIPIANTE",
@@ -627,7 +652,8 @@
       "subtitulo": "Sub Theta docente inactivo",
       "categoria": {
         "id": "<id:categoria#A>",
-        "nombre": "<marca> Álgebra"
+        "nombre": "<marca> Álgebra",
+        "icono": "tags"
       },
       "docente": "<marca> estudiante-docente",
       "nivel": "PRINCIPIANTE",

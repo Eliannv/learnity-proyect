@@ -1,4 +1,5 @@
 // Contrato de Categorías (administración, ADR-012). Mantener en paridad con modules/categorias.
+import { ICONOS_CATEGORIA } from '../catalogos/iconos-categoria.js';
 import { error, errorInterno, erroresCuerpoJson, idInvalido, idRuta, json, ref, seguridad } from './openapi-comun.js';
 
 const nombre = {
@@ -13,23 +14,36 @@ const duplicada = error('Ya existe una categoría con ese nombre, sin distinguir
 const comunes = { 401: error('Sin sesión'), 403: error('Sin rol ADMIN') };
 
 export const esquemasCategorias = {
+  IconoCategoria: {
+    type: 'string', enum: [...ICONOS_CATEGORIA],
+    description: 'Ícono de Lucide (kebab-case) que el administrador elige para la categoría (migración 035).',
+  },
   CategoriaAdmin: {
-    type: 'object', required: ['id', 'nombre', 'descripcion', 'activa', 'cursos', 'cursosPublicados'],
+    type: 'object', required: ['id', 'nombre', 'descripcion', 'activa', 'icono', 'cursos', 'cursosPublicados'],
     properties: {
       id: { type: 'integer' }, nombre: { type: 'string' }, descripcion: { type: 'string', nullable: true },
-      activa: { type: 'boolean' },
+      activa: { type: 'boolean' }, icono: ref('IconoCategoria'),
       cursos: { type: 'integer', minimum: 0, description: 'Cursos de cualquier estado con esta categoría.' },
       cursosPublicados: { type: 'integer', minimum: 0 },
     },
   },
   DatosCategoriaNueva: {
     type: 'object', additionalProperties: false, required: ['nombre'],
-    properties: { nombre, descripcion },
+    properties: { nombre, descripcion, icono: { ...ref('IconoCategoria'), description: 'Sin él, `tags`.' } },
   },
   DatosCategoria: {
     type: 'object', additionalProperties: false, required: ['nombre', 'activa'],
     description: 'Reemplazo completo. Desactivar no borra ni oculta cursos publicados; deja de ofrecerse al crear o editar cursos.',
-    properties: { nombre, descripcion, activa: { type: 'boolean' } },
+    properties: {
+      nombre, descripcion, activa: { type: 'boolean' },
+      icono: { ...ref('IconoCategoria'), description: 'Sin él, conserva el que tenía.' },
+      reasignarA: {
+        type: 'integer', format: 'int32', minimum: 1,
+        description: 'Mueve todos los cursos de esta categoría (de cualquier estado) a esa otra categoría activa, en la misma ' +
+          'transacción y con el administrador como autor en la auditoría. Se usa al desactivarla. 400 (detalle en ' +
+          '`reasignarA`) si es la misma categoría o si no existe o está inactiva.',
+      },
+    },
   },
 };
 
@@ -52,7 +66,7 @@ export const rutasCategorias = {
       security: seguridad, requestBody: cuerpo('DatosCategoriaNueva'),
       responses: {
         201: json(ref('CategoriaAdmin'), 'Categoría creada'),
-        ...erroresCuerpoJson('Nombre o descripción inválidos (SOLICITUD_INVALIDA)'),
+        ...erroresCuerpoJson('Nombre, descripción o ícono inválidos (SOLICITUD_INVALIDA)'),
         ...comunes, 409: duplicada, 500: errorInterno,
       },
     },
@@ -63,7 +77,7 @@ export const rutasCategorias = {
       security: seguridad, parameters: [idRuta], requestBody: cuerpo('DatosCategoria'),
       responses: {
         200: json(ref('CategoriaAdmin')),
-        ...erroresCuerpoJson(`Nombre o descripción inválidos o ${idInvalido}`),
+        ...erroresCuerpoJson(`Nombre, descripción, ícono o destino de la reasignación inválidos, o ${idInvalido}`),
         ...comunes, 404: error('La categoría no existe'), 409: duplicada, 500: errorInterno,
       },
     },

@@ -131,7 +131,8 @@ describe('GET /api/categorias (CAR-CAT-01..03)', () => {
     assert.equal(r.status, 200);
     const propias = (r.json as any[]).filter((x) => x.nombre.startsWith(marca));
     assert.deepEqual(propias.map((x) => x.id), [categorias['A'], categorias['B']]);
-    for (const x of propias) assert.deepEqual(claves(x), ['id', 'nombre']);
+    // Sprint 4 (035): `icono` se añadió a propósito.
+    for (const x of propias) assert.deepEqual(claves(x), ['id', 'nombre', 'icono']);
     const todos = (r.json as any[]).map((x) => x.nombre);
     assert.deepEqual(propias.map((x) => x.nombre.slice(marca.length + 1)), ['Álgebra', 'biología']);
     assert.equal(todos.length >= 2, true);
@@ -146,7 +147,7 @@ describe('GET /api/cursos (CAR-CAT-04..17)', () => {
     assert.equal(r.json.pagina, 1);
     assert.equal(r.json.limite, 9);
     assert.deepEqual(claves(r.json.items[0]), ITEM);
-    assert.deepEqual(claves(r.json.items[0].categoria), ['id', 'nombre']);
+    assert.deepEqual(claves(r.json.items[0].categoria), ['id', 'nombre', 'icono']); // Sprint 4 (035)
     assert.ok(r.json.items.every((x: any) => x.estado === 'PUBLICADO'));
     assert.deepEqual(sinRutasPrivadas(r.json), []);
   });

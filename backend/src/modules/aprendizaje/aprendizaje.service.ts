@@ -28,7 +28,7 @@ function cursoInscrito(fila: FilaCursoInscrito): CursoInscrito {
     curso: {
       id: fila.cursoId, titulo: fila.titulo, subtitulo: fila.subtitulo,
       portadaUrl: fila.portadaUrl, nivel: fila.nivel,
-      categoria: { id: fila.categoriaId, nombre: fila.categoriaNombre }, docente: fila.docente,
+      categoria: { id: fila.categoriaId, nombre: fila.categoriaNombre, icono: fila.categoriaIcono }, docente: fila.docente,
     },
     inscripcion: inscripcionPublica(fila),
     totalLecciones: fila.totalLecciones, leccionesCompletadas: fila.leccionesCompletadas,

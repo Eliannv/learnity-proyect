@@ -22,8 +22,9 @@ export const esquemasAprendizaje = {
     properties: {
       id: { type: 'integer' }, titulo: { type: 'string' }, subtitulo: { type: 'string', nullable: true },
       portadaUrl: { type: 'string', nullable: true }, nivel,
-      categoria: { type: 'object', required: ['id', 'nombre'], properties: {
+      categoria: { type: 'object', required: ['id', 'nombre', 'icono'], properties: {
         id: { type: 'integer' }, nombre: { type: 'string' },
+        icono: { type: 'string', description: 'Ícono de Lucide (kebab-case) de la categoría.' },
       } },
       docente: { type: 'string' },
     },

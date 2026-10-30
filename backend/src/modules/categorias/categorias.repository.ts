@@ -4,7 +4,7 @@ import type { CategoriaAdmin } from './categorias.modelo.js';
 
 // Lee la tabla `categoria` (también las inactivas), nunca la vista pública del catálogo (ADR-012 §6).
 const CAMPOS = `
-  cat.id_categoria AS id, cat.nombre, cat.descripcion, cat.activa,
+  cat.id_categoria AS id, cat.nombre, cat.descripcion, cat.activa, cat.icono,
   (SELECT count(*)::int FROM curso c WHERE c.id_categoria = cat.id_categoria) AS cursos,
   (SELECT count(*)::int FROM curso c WHERE c.id_categoria = cat.id_categoria AND c.estado = 'PUBLICADO')
     AS "cursosPublicados"`;
@@ -34,22 +34,41 @@ export const categoriasRepository = {
     return rows.length > 0;
   },
 
-  async crear(cliente: PoolClient, nombre: string, descripcion: string | null, idPersona: number): Promise<number> {
+  async crear(
+    cliente: PoolClient, nombre: string, descripcion: string | null, icono: string, idPersona: number,
+  ): Promise<number> {
     const { rows } = await cliente.query<{ id: number }>(
-      `INSERT INTO categoria (nombre, descripcion, creada_por) VALUES ($1, $2, $3)
+      `INSERT INTO categoria (nombre, descripcion, icono, creada_por) VALUES ($1, $2, $3, $4)
        RETURNING id_categoria AS id`,
-      [nombre, descripcion, idPersona],
+      [nombre, descripcion, icono, idPersona],
     );
     return rows[0]!.id;
   },
 
+  /** `icono` null conserva el que tenía. */
   async actualizar(
-    cliente: PoolClient, id: number, nombre: string, descripcion: string | null, activa: boolean,
+    cliente: PoolClient, id: number, nombre: string, descripcion: string | null, activa: boolean, icono: string | null,
   ): Promise<boolean> {
     const r = await cliente.query(
-      'UPDATE categoria SET nombre = $2, descripcion = $3, activa = $4 WHERE id_categoria = $1',
-      [id, nombre, descripcion, activa],
+      `UPDATE categoria SET nombre = $2, descripcion = $3, activa = $4, icono = COALESCE($5, icono)
+        WHERE id_categoria = $1`,
+      [id, nombre, descripcion, activa, icono],
     );
     return r.rowCount === 1;
+  },
+
+  /** ¿Existe y está activa? (destino de una reasignación). Bloquea la fila para que nadie la desactive a la vez. */
+  async activaParaReasignar(cliente: PoolClient, id: number): Promise<boolean> {
+    const { rows } = await cliente.query<{ activa: boolean }>(
+      'SELECT activa FROM categoria WHERE id_categoria = $1 FOR SHARE',
+      [id],
+    );
+    return rows[0]?.activa === true;
+  },
+
+  /** Mueve todos los cursos (de cualquier estado) de una categoría a otra. Devuelve cuántos movió. */
+  async reasignarCursos(cliente: PoolClient, origen: number, destino: number): Promise<number> {
+    const r = await cliente.query('UPDATE curso SET id_categoria = $2 WHERE id_categoria = $1', [origen, destino]);
+    return r.rowCount ?? 0;
   },
 };

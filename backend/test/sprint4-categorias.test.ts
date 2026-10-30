@@ -51,7 +51,7 @@ describe('Sprint 4 · CRUD de categorías del administrador (ADR-012)', () => {
     assert.equal(creada.status, 201, creada.texto);
     idCategoria = creada.json.id;
     assert.deepEqual(creada.json, {
-      id: idCategoria, nombre: `${marca} Diseño`, descripcion: null, activa: true, cursos: 0, cursosPublicados: 0,
+      id: idCategoria, nombre: `${marca} Diseño`, descripcion: null, activa: true, icono: 'tags', cursos: 0, cursosPublicados: 0,
     });
 
     const repetida = await como(admin, 'POST', '/api/admin/categorias', { nombre: `${marca} DISEÑO` });

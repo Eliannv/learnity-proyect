@@ -96,8 +96,11 @@ const cuentaInexistente = error('La cuenta ya no existe (NO_ENCONTRADO)');
 
 const esquemasCatalogo = {
   CategoriaPublica: {
-    type: 'object', required: ['id', 'nombre'],
-    properties: { id: { type: 'integer' }, nombre: { type: 'string' } },
+    type: 'object', required: ['id', 'nombre', 'icono'],
+    properties: {
+      id: { type: 'integer' }, nombre: { type: 'string' },
+      icono: { type: 'string', description: 'Ícono de Lucide (kebab-case) elegido por el administrador; `tags` si no eligió.' },
+    },
   },
   CursoPublico: {
     type: 'object',

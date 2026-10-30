@@ -1,6 +1,7 @@
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
+import { ICONO_CATEGORIA_POR_DEFECTO } from '../../shared/catalogos/iconos-categoria.js';
 import { registrarEvento } from '../../shared/log/registro.js';
 import type { DatosCategoria, DatosCategoriaNueva } from './categorias.esquemas.js';
 import type { CategoriaAdmin } from './categorias.modelo.js';
@@ -36,26 +37,42 @@ export const categoriasService = {
       if (await repo.nombreOcupado(cliente, datos.nombre)) {
         throw AppError.conflicto(DUPLICADA, 'CATEGORIA_DUPLICADA');
       }
-      const id = await repo.crear(cliente, datos.nombre, datos.descripcion, usuario.idPersona);
+      const id = await repo.crear(
+        cliente, datos.nombre, datos.descripcion, datos.icono ?? ICONO_CATEGORIA_POR_DEFECTO, usuario.idPersona);
       return (await repo.buscar(cliente, id))!;
     }, { actor: usuario.idPersona }));
     registrarEvento('categoria_creada', { idCategoria: categoria.id, activa: true });
     return categoria;
   },
 
-  /** Reemplazo completo. Desactivar no toca los cursos; solo deja de ofrecerse al crearlos o editarlos. */
+  /**
+   * Reemplazo completo. Desactivar no toca los cursos; solo deja de ofrecerse al crearlos o editarlos. Con
+   * `reasignarA`, además mueve todos sus cursos a esa categoría activa en la misma transacción (queda en la auditoría).
+   */
   async actualizar(id: number, datos: DatosCategoria, usuario: UsuarioSesion): Promise<CategoriaAdmin> {
     exigirAdmin(usuario);
+    let reasignados = 0;
     const categoria = await sinDuplicados(() => enTransaccion(async (cliente) => {
       if (await repo.nombreOcupado(cliente, datos.nombre, id)) {
         throw AppError.conflicto(DUPLICADA, 'CATEGORIA_DUPLICADA');
       }
-      if (!(await repo.actualizar(cliente, id, datos.nombre, datos.descripcion, datos.activa))) {
+      if (!(await repo.actualizar(cliente, id, datos.nombre, datos.descripcion, datos.activa, datos.icono ?? null))) {
         throw AppError.noEncontrado('Categoría no encontrada.');
+      }
+      if (datos.reasignarA !== undefined) {
+        const invalido = (mensaje: string) =>
+          AppError.solicitudInvalida('Revisa los datos de la categoría.', [{ campo: 'reasignarA', mensaje }]);
+        if (datos.reasignarA === id) throw invalido('Elige otra categoría para los cursos.');
+        if (!(await repo.activaParaReasignar(cliente, datos.reasignarA))) {
+          throw invalido('La categoría de destino no existe o está inactiva.');
+        }
+        reasignados = await repo.reasignarCursos(cliente, id, datos.reasignarA);
       }
       return (await repo.buscar(cliente, id))!;
     }, { actor: usuario.idPersona }));
-    registrarEvento('categoria_actualizada', { idCategoria: id, activa: categoria.activa });
+    registrarEvento('categoria_actualizada', {
+      idCategoria: id, activa: categoria.activa, ...(datos.reasignarA !== undefined && { reasignadaA: datos.reasignarA, reasignados }),
+    });
     return categoria;
   },
 };

@@ -16,6 +16,7 @@ export interface CursoFila {
   descripcion: string;
   categoriaId: number;
   categoriaNombre: string;
+  categoriaIcono: string;
   docente: string;
   docenteBio: string | null;
   nivel: NivelCurso;
@@ -41,10 +42,11 @@ export interface LeccionFila {
 
 // Vistas creadas por la migración 026 (ADR-002): `catalogo_categoria`, `catalogo_curso` y `catalogo_temario`.
 // Si la base de pruebas aún está en la línea base H0 (antes de aplicar 026 con `postgres`), se usa un CTE
-// equivalente con las mismas columnas públicas (nunca `archivo.ruta` ni `id_archivo`).
+// equivalente con las mismas columnas públicas (nunca `archivo.ruta` ni `id_archivo`). Una base tan antigua tampoco
+// tiene `categoria.icono` (035): el CTE devuelve el ícono genérico.
 const CTE_CATEGORIA = `
   WITH catalogo_categoria AS (
-    SELECT cat.id_categoria AS id, cat.nombre
+    SELECT cat.id_categoria AS id, cat.nombre, 'tags'::varchar AS icono
       FROM categoria cat
      WHERE cat.activa = TRUE
   )`;
@@ -68,7 +70,8 @@ const CTE_CURSO = `
            COALESCE(contenido.modulos, 0)::INT         AS modulos,
            COALESCE(contenido.lecciones, 0)::INT       AS lecciones,
            COALESCE(contenido.segundos, 0)::INT        AS segundos,
-           COALESCE(popular.inscripciones, 0)::INT     AS inscripciones
+           COALESCE(popular.inscripciones, 0)::INT     AS inscripciones,
+           'tags'::varchar                             AS categoria_icono
       FROM curso c
       JOIN categoria cat ON cat.id_categoria = c.id_categoria
       JOIN docente d     ON d.id_docente = c.id_docente
@@ -116,7 +119,7 @@ async function tieneVistasCatalogo(): Promise<boolean> {
 
 const CAMPOS_CURSO = `
   c.id, c.titulo, c.subtitulo, c.descripcion,
-  c.categoria_id AS "categoriaId", c.categoria_nombre AS "categoriaNombre",
+  c.categoria_id AS "categoriaId", c.categoria_nombre AS "categoriaNombre", c.categoria_icono AS "categoriaIcono",
   c.docente, c.docente_bio AS "docenteBio",
   c.nivel, c.portada_url AS "portadaUrl", c.objetivos, c.requisitos,
   c.publicado_en AS "publicadoEn",
@@ -155,7 +158,7 @@ export const catalogoRepository = {
   async categoriasPublicas(): Promise<CategoriaPublica[]> {
     const pre = (await tieneVistasCatalogo()) ? '' : CTE_CATEGORIA;
     const { rows } = await consultar<CategoriaPublica>(
-      `${pre} SELECT id, nombre FROM catalogo_categoria ORDER BY nombre ASC, id ASC`,
+      `${pre} SELECT id, nombre, icono FROM catalogo_categoria ORDER BY nombre ASC, id ASC`,
     );
     return rows;
   },

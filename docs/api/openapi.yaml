@@ -87,7 +87,8 @@
         "type": "object",
         "required": [
           "id",
-          "nombre"
+          "nombre",
+          "icono"
         ],
         "properties": {
           "id": {
@@ -95,6 +96,10 @@
           },
           "nombre": {
             "type": "string"
+          },
+          "icono": {
+            "type": "string",
+            "description": "Ícono de Lucide (kebab-case) elegido por el administrador; `tags` si no eligió."
           }
         }
       },
@@ -1623,7 +1628,8 @@
             "type": "object",
             "required": [
               "id",
-              "nombre"
+              "nombre",
+              "icono"
             ],
             "properties": {
               "id": {
@@ -1631,6 +1637,10 @@
               },
               "nombre": {
                 "type": "string"
+              },
+              "icono": {
+                "type": "string",
+                "description": "Ícono de Lucide (kebab-case) de la categoría."
               }
             }
           },
@@ -2168,6 +2178,34 @@
           }
         }
       },
+      "IconoCategoria": {
+        "type": "string",
+        "enum": [
+          "tags",
+          "code",
+          "pen-tool",
+          "languages",
+          "briefcase",
+          "monitor",
+          "megaphone",
+          "book-open",
+          "graduation-cap",
+          "chart-line",
+          "lightbulb",
+          "presentation",
+          "camera",
+          "palette",
+          "music",
+          "calculator",
+          "flask-conical",
+          "globe",
+          "heart-pulse",
+          "database",
+          "cpu",
+          "wrench"
+        ],
+        "description": "Ícono de Lucide (kebab-case) que el administrador elige para la categoría (migración 035)."
+      },
       "CategoriaAdmin": {
         "type": "object",
         "required": [
@@ -2175,6 +2213,7 @@
           "nombre",
           "descripcion",
           "activa",
+          "icono",
           "cursos",
           "cursosPublicados"
         ],
@@ -2191,6 +2230,9 @@
           },
           "activa": {
             "type": "boolean"
+          },
+          "icono": {
+            "$ref": "#/components/schemas/IconoCategoria"
           },
           "cursos": {
             "type": "integer",
@@ -2221,6 +2263,10 @@
             "nullable": true,
             "maxLength": 300,
             "description": "Vacía o ausente se guarda como null."
+          },
+          "icono": {
+            "$ref": "#/components/schemas/IconoCategoria",
+            "description": "Sin él, `tags`."
           }
         }
       },
@@ -2247,6 +2293,16 @@
           },
           "activa": {
             "type": "boolean"
+          },
+          "icono": {
+            "$ref": "#/components/schemas/IconoCategoria",
+            "description": "Sin él, conserva el que tenía."
+          },
+          "reasignarA": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "description": "Mueve todos los cursos de esta categoría (de cualquier estado) a esa otra categoría activa, en la misma transacción y con el administrador como autor en la auditoría. Se usa al desactivarla. 400 (detalle en `reasignarA`) si es la misma categoría o si no existe o está inactiva."
           }
         }
       },
@@ -7925,7 +7981,7 @@
             }
           },
           "400": {
-            "description": "Nombre o descripción inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Nombre, descripción o ícono inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -8023,7 +8079,7 @@
             }
           },
           "400": {
-            "description": "Nombre o descripción inválidos o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
+            "description": "Nombre, descripción, ícono o destino de la reasignación inválidos, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {

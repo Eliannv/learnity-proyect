@@ -14,6 +14,8 @@ export interface FiltrosPublicos {
 export interface CategoriaPublica {
   id: number;
   nombre: string;
+  /** Ícono de Lucide elegido por el administrador (migración 035). */
+  icono: string;
 }
 
 export interface CursoPublico {

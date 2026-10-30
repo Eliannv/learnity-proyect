@@ -20,6 +20,7 @@ function cursoPublico(fila: CursoFila): CursoPublico {
     categoria: {
       id: fila.categoriaId,
       nombre: fila.categoriaNombre,
+      icono: fila.categoriaIcono,
     },
     docente: fila.docente,
     nivel: fila.nivel,
