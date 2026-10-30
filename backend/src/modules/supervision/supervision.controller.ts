@@ -3,7 +3,7 @@ import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { datosValidados } from '../../shared/http/validar.js';
 import type {
-  FiltroAccesosAdmin, FiltroAuditoriaAdmin, FiltroSesionesAdmin, RevocacionSesion,
+  AtencionAlerta, FiltroAccesosAdmin, FiltroAlertasAdmin, FiltroAuditoriaAdmin, FiltroSesionesAdmin, RevocacionSesion,
 } from './supervision.esquemas.js';
 import { supervisionService as service } from './supervision.service.js';
 
@@ -40,6 +40,20 @@ export const supervisionController = {
 
   async estadoBaseDatos(_req: Request, res: Response): Promise<void> {
     res.json(await service.estadoBaseDatos());
+  },
+
+  async alertas(_req: Request, res: Response): Promise<void> {
+    const { consulta } = datosValidados<unknown, FiltroAlertasAdmin>(res);
+    res.json(await service.alertas(consulta));
+  },
+
+  async analizarAlertas(req: Request, res: Response): Promise<void> {
+    res.json(await service.analizarAlertas(usuario(req)));
+  },
+
+  async atenderAlerta(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.json(await service.atenderAlerta(id, (req.body as AtencionAlerta).nota, usuario(req)));
   },
 
   async sesiones(req: Request, res: Response): Promise<void> {

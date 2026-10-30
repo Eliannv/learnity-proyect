@@ -47,7 +47,31 @@ export const revocacionSesion = z.strictObject({
   confirmoPropia: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
 });
 
+export const filtroAlertas = z.strictObject({
+  estado: z.enum(['pendientes', 'todas']).default('pendientes'),
+  severidad: opcional(z.enum(['ALTA', 'MEDIA', 'BAJA'])),
+  tipo: opcional(z.enum(['INTENTOS_FALLIDOS', 'CAMBIO_PRIVILEGIOS', 'RAFAGA_RESENAS', 'MODIFICACION_MASIVA'])),
+  pagina: z.coerce.number().int().min(1).max(10_000).default(1),
+  limite: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const idAlerta = z.object({
+  id: z.string().regex(/^[1-9][0-9]{0,15}$/, 'Debe ser un entero positivo en decimal.').transform(Number),
+}).transform(({ id }) => id);
+
+/** Nota opcional al marcar una alerta como atendida: vacía o solo espacios se guarda como null. */
+export const atencionAlerta = z.strictObject({
+  nota: z.string()
+    .refine((v) => !v.includes('\u0000'), 'No puede contener caracteres nulos.')
+    .transform((v) => v.normalize('NFC').trim())
+    .pipe(z.string().max(300, 'La nota debe tener como máximo 300 caracteres.'))
+    .nullish()
+    .transform((v) => v || null),
+});
+
 export type FiltroAccesosAdmin = z.infer<typeof filtroAccesos>;
+export type FiltroAlertasAdmin = z.infer<typeof filtroAlertas>;
+export type AtencionAlerta = z.infer<typeof atencionAlerta>;
 export type FiltroAuditoriaAdmin = z.infer<typeof filtroAuditoria>;
 export type FiltroSesionesAdmin = z.infer<typeof filtroSesiones>;
 export type RevocacionSesion = z.infer<typeof revocacionSesion>;

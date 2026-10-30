@@ -27,6 +27,9 @@ const propiedadesCambio = {
   columnasCambiadas: { type: 'array', nullable: true, items: { type: 'string' }, description: 'Solo en UPDATE.' },
 };
 const requeridosCambio = ['id', 'fecha', 'tabla', 'operacion', 'registro', 'actor', 'usuarioBd', 'columnasCambiadas'];
+const tipoAlerta = { type: 'string', enum: ['INTENTOS_FALLIDOS', 'CAMBIO_PRIVILEGIOS', 'RAFAGA_RESENAS', 'MODIFICACION_MASIVA'] };
+const severidadAlerta = { type: 'string', enum: ['ALTA', 'MEDIA', 'BAJA'] };
+const ids = { type: 'array', items: { type: 'integer' } };
 const idSesion = {
   in: 'path', name: 'id', required: true, description: 'ID de la sesión (su familia de tokens)',
   schema: { type: 'string', format: 'uuid' },
@@ -134,6 +137,58 @@ export const esquemasSupervision = {
     type: 'object', required: ['items', 'paginacion'],
     properties: { items: { type: 'array', items: ref('SesionAdmin') }, paginacion },
   },
+  AlertaSeguridad: {
+    type: 'object',
+    required: ['id', 'tipo', 'severidad', 'descripcion', 'detectadaEn', 'usuario', 'evidencia', 'atencion'],
+    properties: {
+      id: { type: 'integer' }, tipo: tipoAlerta, severidad: severidadAlerta, descripcion: { type: 'string', maxLength: 300 },
+      detectadaEn: fecha,
+      usuario: {
+        type: 'object', nullable: true, required: ['id', 'nombre', 'correo'],
+        description: 'Cuenta implicada: la atacada, la que recibió o perdió el rol, o la del actor. null si no hay o se borró.',
+        properties: { id: { type: 'integer' }, nombre: { type: 'string' }, correo: { type: 'string' } },
+      },
+      evidencia: {
+        type: 'object', required: ['auditoria', 'accesos'], description: 'Registros que la provocaron (como mucho 50 de cada uno).',
+        properties: {
+          auditoria: { ...ids, description: 'IDs del visor de auditoría (GET /admin/auditoria/{id}).' },
+          accesos: { ...ids, description: 'IDs del registro de accesos.' },
+        },
+      },
+      atencion: {
+        type: 'object', nullable: true, required: ['fecha', 'por', 'nota'], description: 'null mientras esté pendiente.',
+        properties: {
+          fecha,
+          por: {
+            type: 'object', nullable: true, required: ['id', 'nombre'],
+            properties: { id: { type: 'integer' }, nombre: { type: 'string' } },
+          },
+          nota: { type: 'string', nullable: true, maxLength: 300 },
+        },
+      },
+    },
+  },
+  PaginaAlertas: {
+    type: 'object', required: ['items', 'paginacion', 'contadores'],
+    properties: {
+      items: { type: 'array', items: ref('AlertaSeguridad') }, paginacion,
+      contadores: {
+        type: 'object', required: ['pendientes', 'todas'], description: 'Con los mismos filtros de severidad y tipo.',
+        properties: { pendientes: entero, todas: entero },
+      },
+    },
+  },
+  ResultadoAnalisisAlertas: {
+    type: 'object', required: ['nuevas', 'desde'],
+    properties: {
+      nuevas: { ...entero, description: 'Alertas nuevas. Un hallazgo ya registrado no se duplica.' },
+      desde: { ...fecha, description: 'Inicio del periodo revisado (las últimas 24 horas).' },
+    },
+  },
+  DatosAtencionAlerta: {
+    type: 'object', additionalProperties: false,
+    properties: { nota: { type: 'string', nullable: true, maxLength: 300, description: 'Vacía o solo espacios se guarda como null.' } },
+  },
 };
 
 export const rutasSupervision = {
@@ -216,6 +271,49 @@ export const rutasSupervision = {
       responses: {
         200: json(ref('EstadoBaseDatos')), 400: error('Parámetros no admitidos'), 401: error('Sin sesión'),
         403: error('No es administrador'), 500: errorInterno,
+      },
+    },
+  },
+  '/admin/alertas': {
+    get: {
+      tags: ['Supervisión'], summary: 'Alertas de seguridad, la más reciente primero, con los contadores de cada pestaña',
+      security: seguridad,
+      parameters: [
+        { in: 'query', name: 'estado', schema: { type: 'string', enum: ['pendientes', 'todas'], default: 'pendientes' } },
+        { in: 'query', name: 'severidad', schema: severidadAlerta },
+        { in: 'query', name: 'tipo', schema: tipoAlerta },
+        { in: 'query', name: 'pagina', schema: { type: 'integer', minimum: 1, maximum: 10_000, default: 1 } },
+        { in: 'query', name: 'limite', schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 } },
+      ],
+      responses: {
+        200: json(ref('PaginaAlertas')), 400: error('Filtros inválidos'), 401: error('Sin sesión'),
+        403: error('No es administrador'), 500: errorInterno,
+      },
+    },
+  },
+  '/admin/alertas/analisis': {
+    post: {
+      tags: ['Supervisión'], summary: 'Ejecutar el análisis ahora sobre las últimas 24 horas',
+      description: 'Llama a analizar_alertas_seguridad (038) en una transacción con el administrador como actor. '
+        + 'Las reglas y sus umbrales están en la migración. Hasta 30 peticiones por IP y 15 minutos.',
+      security: seguridad,
+      responses: {
+        200: json(ref('ResultadoAnalisisAlertas')), 400: error('Parámetros no admitidos'), 401: error('Sin sesión'),
+        403: error('No es administrador'), 429: error('Límite de peticiones'), 500: errorInterno,
+      },
+    },
+  },
+  '/admin/alertas/{id}/atencion': {
+    put: {
+      tags: ['Supervisión'], summary: 'Marcar una alerta como atendida (con nota opcional)',
+      description: 'Queda auditado con el administrador como actor.',
+      security: seguridad,
+      parameters: [{ in: 'path', name: 'id', required: true, description: 'ID de la alerta', schema: { type: 'integer', minimum: 1 } }],
+      requestBody: { required: true, content: { 'application/json': { schema: ref('DatosAtencionAlerta') } } },
+      responses: {
+        200: json(ref('AlertaSeguridad')), 400: error('ID o nota inválidos'), 401: error('Sin sesión'),
+        403: error('No es administrador'), 404: error('La alerta no existe'),
+        409: error('Ya estaba atendida (ALERTA_ATENDIDA)'), 500: errorInterno,
       },
     },
   },

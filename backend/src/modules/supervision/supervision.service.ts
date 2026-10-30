@@ -1,13 +1,19 @@
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
+import { enTransaccion } from '../../shared/database/pool.js';
 import { registrarEvento } from '../../shared/log/registro.js';
 import { identidadApi } from '../identidad/index.js';
-import type { FiltroAccesosAdmin, FiltroAuditoriaAdmin, FiltroSesionesAdmin } from './supervision.esquemas.js';
 import type {
-  CambioAuditoria, CuentaBloqueadaAdmin, DetalleCambioAuditoria, EstadoBaseDatos, OpcionesAuditoria, PaginaAccesos,
-  PaginaAuditoria, PaginaSesiones, Paginacion,
+  FiltroAccesosAdmin, FiltroAlertasAdmin, FiltroAuditoriaAdmin, FiltroSesionesAdmin,
+} from './supervision.esquemas.js';
+import type {
+  AlertaSeguridad, CambioAuditoria, CuentaBloqueadaAdmin, DetalleCambioAuditoria, EstadoBaseDatos, OpcionesAuditoria,
+  PaginaAccesos, PaginaAlertas, PaginaAuditoria, PaginaSesiones, Paginacion, ResultadoAnalisis,
 } from './supervision.modelo.js';
-import { supervisionRepository as repo, type FilaCambio } from './supervision.repository.js';
+import { supervisionRepository as repo, type FilaAlerta, type FilaCambio } from './supervision.repository.js';
+
+/** «Ejecutar análisis ahora» revisa las últimas 24 horas. */
+const HORAS_ANALISIS = 24;
 
 // Capa service: supervisión del administrador. Los accesos, bloqueos y sesiones pertenecen a Identidad y se leen
 // por su API; la auditoría y la salud de la base, con las funciones de la 037.
@@ -19,6 +25,17 @@ const cambio = (f: FilaCambio): CambioAuditoria => ({
   id: Number(f.id), fecha: f.fecha.toISOString(), tabla: f.tabla, operacion: f.operacion, registro: f.registro,
   actor: f.idActor === null ? null : { id: f.idActor, nombre: f.actor ?? 'Cuenta eliminada', correo: f.actorCorreo },
   usuarioBd: f.usuarioBd, columnasCambiadas: f.columnasCambiadas,
+});
+
+const alerta = (f: FilaAlerta): AlertaSeguridad => ({
+  id: Number(f.id), tipo: f.tipo, severidad: f.severidad, descripcion: f.descripcion,
+  detectadaEn: f.detectadaEn.toISOString(),
+  usuario: f.idUsuario === null ? null : { id: f.idUsuario, nombre: f.nombre ?? '', correo: f.correo ?? '' },
+  evidencia: { auditoria: f.evidencia.auditoria ?? [], accesos: f.evidencia.accesos ?? [] },
+  atencion: f.atendidaEn === null ? null : {
+    fecha: f.atendidaEn.toISOString(), nota: f.nota,
+    por: f.idAtendio === null ? null : { id: f.idAtendio, nombre: f.atendio ?? 'Cuenta eliminada' },
+  },
 });
 
 export const supervisionService = {
@@ -70,6 +87,29 @@ export const supervisionService = {
       ultimaMigracion: e.ultimaMigracion === null ? null
         : { version: e.ultimaMigracion, aplicadaEn: e.aplicadaEn?.toISOString() ?? null },
     };
+  },
+
+  // -------------------------------------------------------------- alertas
+
+  async alertas(filtro: FiltroAlertasAdmin): Promise<PaginaAlertas> {
+    const { items, total, pendientes, todas } = await repo.listarAlertas(filtro);
+    return { items: items.map(alerta), paginacion: paginacion(total, filtro.pagina, filtro.limite), contadores: { pendientes, todas } };
+  },
+
+  /** Busca hallazgos en las últimas 24 horas. Lo que ya se había detectado no se duplica. */
+  async analizarAlertas(usuario: UsuarioSesion): Promise<ResultadoAnalisis> {
+    const desde = new Date(Date.now() - HORAS_ANALISIS * 3_600_000);
+    const nuevas = await enTransaccion((cliente) => repo.analizarAlertas(cliente, desde), { actor: usuario.idPersona });
+    registrarEvento('alertas_analizadas', { nuevas, idAdmin: usuario.idPersona });
+    return { nuevas, desde: desde.toISOString() };
+  },
+
+  async atenderAlerta(id: number, nota: string | null, usuario: UsuarioSesion): Promise<AlertaSeguridad> {
+    const resultado = await enTransaccion(
+      (cliente) => repo.atenderAlerta(cliente, id, usuario.idPersona, nota), { actor: usuario.idPersona });
+    if (resultado === 'no') throw AppError.noEncontrado('La alerta no existe.');
+    if (resultado === 'ya') throw AppError.conflicto('Esta alerta ya fue atendida.', 'ALERTA_ATENDIDA');
+    return alerta((await repo.alertaPorId(id))!);
   },
 
   // -------------------------------------------------------------- sesiones

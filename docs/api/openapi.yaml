@@ -3966,6 +3966,223 @@
             }
           }
         }
+      },
+      "AlertaSeguridad": {
+        "type": "object",
+        "required": [
+          "id",
+          "tipo",
+          "severidad",
+          "descripcion",
+          "detectadaEn",
+          "usuario",
+          "evidencia",
+          "atencion"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "INTENTOS_FALLIDOS",
+              "CAMBIO_PRIVILEGIOS",
+              "RAFAGA_RESENAS",
+              "MODIFICACION_MASIVA"
+            ]
+          },
+          "severidad": {
+            "type": "string",
+            "enum": [
+              "ALTA",
+              "MEDIA",
+              "BAJA"
+            ]
+          },
+          "descripcion": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "detectadaEn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuario": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "id",
+              "nombre",
+              "correo"
+            ],
+            "description": "Cuenta implicada: la atacada, la que recibió o perdió el rol, o la del actor. null si no hay o se borró.",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "nombre": {
+                "type": "string"
+              },
+              "correo": {
+                "type": "string"
+              }
+            }
+          },
+          "evidencia": {
+            "type": "object",
+            "required": [
+              "auditoria",
+              "accesos"
+            ],
+            "description": "Registros que la provocaron (como mucho 50 de cada uno).",
+            "properties": {
+              "auditoria": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "description": "IDs del visor de auditoría (GET /admin/auditoria/{id})."
+              },
+              "accesos": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "description": "IDs del registro de accesos."
+              }
+            }
+          },
+          "atencion": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "fecha",
+              "por",
+              "nota"
+            ],
+            "description": "null mientras esté pendiente.",
+            "properties": {
+              "fecha": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "por": {
+                "type": "object",
+                "nullable": true,
+                "required": [
+                  "id",
+                  "nombre"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "nombre": {
+                    "type": "string"
+                  }
+                }
+              },
+              "nota": {
+                "type": "string",
+                "nullable": true,
+                "maxLength": 300
+              }
+            }
+          }
+        }
+      },
+      "PaginaAlertas": {
+        "type": "object",
+        "required": [
+          "items",
+          "paginacion",
+          "contadores"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertaSeguridad"
+            }
+          },
+          "paginacion": {
+            "type": "object",
+            "required": [
+              "total",
+              "pagina",
+              "limite",
+              "totalPaginas"
+            ],
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "pagina": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "limite": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "totalPaginas": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "contadores": {
+            "type": "object",
+            "required": [
+              "pendientes",
+              "todas"
+            ],
+            "description": "Con los mismos filtros de severidad y tipo.",
+            "properties": {
+              "pendientes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "todas": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      },
+      "ResultadoAnalisisAlertas": {
+        "type": "object",
+        "required": [
+          "nuevas",
+          "desde"
+        ],
+        "properties": {
+          "nuevas": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Alertas nuevas. Un hallazgo ya registrado no se duplica."
+          },
+          "desde": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Inicio del periodo revisado (las últimas 24 horas)."
+          }
+        }
+      },
+      "DatosAtencionAlerta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "nota": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 300,
+            "description": "Vacía o solo espacios se guarda como null."
+          }
+        }
       }
     },
     "responses": {
@@ -10842,6 +11059,293 @@
           },
           "403": {
             "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/alertas": {
+      "get": {
+        "tags": [
+          "Supervisión"
+        ],
+        "summary": "Alertas de seguridad, la más reciente primero, con los contadores de cada pestaña",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "estado",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pendientes",
+                "todas"
+              ],
+              "default": "pendientes"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severidad",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALTA",
+                "MEDIA",
+                "BAJA"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "tipo",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INTENTOS_FALLIDOS",
+                "CAMBIO_PRIVILEGIOS",
+                "RAFAGA_RESENAS",
+                "MODIFICACION_MASIVA"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limite",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaAlertas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Filtros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/alertas/analisis": {
+      "post": {
+        "tags": [
+          "Supervisión"
+        ],
+        "summary": "Ejecutar el análisis ahora sobre las últimas 24 horas",
+        "description": "Llama a analizar_alertas_seguridad (038) en una transacción con el administrador como actor. Las reglas y sus umbrales están en la migración. Hasta 30 peticiones por IP y 15 minutos.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoAnalisisAlertas"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros no admitidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/alertas/{id}/atencion": {
+      "put": {
+        "tags": [
+          "Supervisión"
+        ],
+        "summary": "Marcar una alerta como atendida (con nota opcional)",
+        "description": "Queda auditado con el administrador como actor.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID de la alerta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatosAtencionAlerta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertaSeguridad"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID o nota inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La alerta no existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ya estaba atendida (ALERTA_ATENDIDA)",
             "content": {
               "application/json": {
                 "schema": {

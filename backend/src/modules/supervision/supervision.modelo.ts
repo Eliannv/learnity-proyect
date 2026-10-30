@@ -102,3 +102,34 @@ export interface PaginaSesiones {
   items: SesionAdmin[];
   paginacion: Paginacion;
 }
+
+// ------------------------------------------------------------------ alertas (038)
+
+export type TipoAlerta = 'INTENTOS_FALLIDOS' | 'CAMBIO_PRIVILEGIOS' | 'RAFAGA_RESENAS' | 'MODIFICACION_MASIVA';
+export type SeveridadAlerta = 'ALTA' | 'MEDIA' | 'BAJA';
+
+export interface AlertaSeguridad {
+  id: number;
+  tipo: TipoAlerta;
+  severidad: SeveridadAlerta;
+  descripcion: string;
+  detectadaEn: string;
+  /** Cuenta implicada (la atacada, la que recibió o perdió el rol, o la del actor); null si no hay o se borró. */
+  usuario: { id: number; nombre: string; correo: string } | null;
+  /** Registros que la provocaron: ids del visor de auditoría y del registro de accesos. */
+  evidencia: { auditoria: number[]; accesos: number[] };
+  atencion: { fecha: string; por: { id: number; nombre: string } | null; nota: string | null } | null;
+}
+
+export interface PaginaAlertas {
+  items: AlertaSeguridad[];
+  paginacion: Paginacion;
+  contadores: { pendientes: number; todas: number };
+}
+
+export interface ResultadoAnalisis {
+  /** Alertas nuevas (las repetidas no se duplican). */
+  nuevas: number;
+  /** Desde cuándo se revisó (las últimas 24 horas). */
+  desde: string;
+}
