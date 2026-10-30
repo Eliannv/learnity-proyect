@@ -15,7 +15,7 @@ describe('Catálogo público', () => {
       resolver = resolve;
     });
     const api = {
-      categorias: vi.fn().mockResolvedValue([{ id: 1, nombre: 'Programación' }]),
+      categorias: vi.fn().mockResolvedValue([{ id: 1, nombre: 'Programación', icono: 'code' }]),
       catalogo: vi
         .fn()
         .mockReturnValueOnce(primera)

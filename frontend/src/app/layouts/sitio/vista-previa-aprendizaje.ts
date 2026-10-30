@@ -37,7 +37,7 @@ import { PortadaCurso } from '../../shared/ui/cursos/portada-curso';
               <li>
                 <a [routerLink]="ruta(i)" (click)="abierto.set(false)">
                   <span class="miniatura">
-                    <app-portada-curso [categoria]="i.curso.categoria.nombre" [imagen]="i.curso.portadaUrl" [compacta]="true" />
+                    <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [imagen]="i.curso.portadaUrl" [compacta]="true" />
                   </span>
                   <span class="texto">
                     <strong>{{ i.curso.titulo }}</strong>

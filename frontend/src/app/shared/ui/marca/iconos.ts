@@ -77,6 +77,15 @@ import {
   MessageSquareText,
   Reply,
   Star,
+  Calculator,
+  Cpu,
+  Database,
+  FlaskConical,
+  Globe,
+  HeartPulse,
+  Music,
+  Palette,
+  Wrench,
 } from 'lucide-angular';
 
 /**
@@ -163,4 +172,13 @@ export const ICONOS = {
   MessageSquareText,
   Reply,
   Star,
+  Calculator,
+  Cpu,
+  Database,
+  FlaskConical,
+  Globe,
+  HeartPulse,
+  Music,
+  Palette,
+  Wrench,
 };

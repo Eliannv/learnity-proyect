@@ -118,7 +118,7 @@
 
   <ng-template #tarjetaInscripcion let-movil="movil">
     <div class="tarjeta-inscripcion" [class.solo-movil]="movil">
-      <div class="portada"><app-portada-curso [categoria]="c.categoria.nombre" [tono]="tono()" [imagen]="c.portadaUrl" /></div>
+      <div class="portada"><app-portada-curso [iconoCategoria]="c.categoria.icono" [tono]="tono()" [imagen]="c.portadaUrl" /></div>
       <p>Curso gratuito.</p>
       <button type="button" class="btn btn-acento btn-lg btn-bloque"
         [disabled]="procesando() || consultandoInscripcion()"

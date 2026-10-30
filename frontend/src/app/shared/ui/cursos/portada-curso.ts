@@ -1,10 +1,10 @@
 import { Component, computed, input } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { ICONO_CATEGORIA, type Tono } from '../tipos-ui';
+import type { Tono } from '../tipos-ui';
 
 /**
  * Portada del curso. Si el curso tiene imagen (curso.portada_url) la muestra;
- * si no, dibuja una portada con el ícono de su categoría en un tono de la marca.
+ * si no, dibuja una portada con el ícono de su categoría (el que eligió el administrador) en un tono de la marca.
  * `icono` superpone un indicador centrado (por ejemplo, reproducir en la última lección).
  */
 @Component({
@@ -15,7 +15,7 @@ import { ICONO_CATEGORIA, type Tono } from '../tipos-ui';
       @if (imagen()) {
         <img [src]="imagen()" alt="" loading="lazy" />
       } @else if (!icono()) {
-        <lucide-icon class="marca" [name]="iconoCategoria()" [size]="tamanoMarca()" [strokeWidth]="1.5" />
+        <lucide-icon class="marca" [name]="marcaCategoria()" [size]="tamanoMarca()" [strokeWidth]="1.5" />
       }
       @if (icono()) {
         <span class="superpuesto"><lucide-icon [name]="icono()!" [size]="compacta() ? 18 : 22" /></span>
@@ -84,13 +84,14 @@ import { ICONO_CATEGORIA, type Tono } from '../tipos-ui';
   host: { '[class.compacta]': 'compacta()' },
 })
 export class PortadaCurso {
-  readonly categoria = input.required<string>();
+  /** Ícono de la categoría que devuelve la API (`categoria.icono`); sin él, un libro. */
+  readonly iconoCategoria = input<string | null | undefined>(null);
   readonly tono = input<Tono>(1);
   readonly imagen = input<string | null>(null);
   readonly icono = input<string | null>(null);
   /** Miniaturas (menús y listas): ícono de categoría más pequeño. */
   readonly compacta = input(false);
 
-  protected readonly iconoCategoria = computed(() => ICONO_CATEGORIA[this.categoria()] ?? 'book-open');
+  protected readonly marcaCategoria = computed(() => this.iconoCategoria() || 'book-open');
   protected readonly tamanoMarca = computed(() => (this.compacta() ? 28 : 96));
 }

@@ -233,7 +233,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     f.detectChanges();
 
     http.expectOne('/api/categorias').flush([
-      { id: 2, nombre: 'Programación' },
+      { id: 2, nombre: 'Programación', icono: 'code' },
     ]);
 
     if (id !== 'nuevo') {
@@ -312,7 +312,7 @@ describe('Flujo docente y ADMIN: API y pantallas', () => {
     boton(f, 'Actualizar curso').click();
 
     http.expectOne('/api/categorias').flush([
-      { id: 2, nombre: 'Programación' },
+      { id: 2, nombre: 'Programación', icono: 'code' },
     ]);
 
     http.expectOne('/api/docente/cursos/41').flush(curso());

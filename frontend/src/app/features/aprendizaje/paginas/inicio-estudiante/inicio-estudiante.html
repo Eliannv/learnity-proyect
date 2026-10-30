@@ -27,7 +27,7 @@
         @for (i of continuar(); track i.curso.id) {
           <div class="continuar" role="listitem" (click)="abrir(i)" (keydown.enter)="abrir(i)" tabindex="0" style="cursor: pointer;">
             <span class="continuar-portada">
-              <app-portada-curso [categoria]="i.curso.categoria.nombre" [tono]="tonoDe(i.curso.categoria.id)" [compacta]="true" />
+              <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [tono]="tonoDe(i.curso.categoria.id)" [compacta]="true" />
             </span>
             <span class="continuar-texto">
               <small>{{ i.curso.categoria.nombre }}</small>
@@ -68,6 +68,7 @@
             role="listitem"
             [titulo]="c.titulo"
             [categoria]="c.categoria.nombre"
+            [iconoCategoria]="c.categoria.icono"
             [meta]="c.docente"
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
@@ -94,6 +95,7 @@
             role="listitem"
             [titulo]="c.titulo"
             [categoria]="c.categoria.nombre"
+            [iconoCategoria]="c.categoria.icono"
             [meta]="c.docente"
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
@@ -123,6 +125,7 @@
             role="listitem"
             [titulo]="c.titulo"
             [categoria]="c.categoria.nombre"
+            [iconoCategoria]="c.categoria.icono"
             [meta]="c.docente"
             [tono]="tonoDe(c.categoria.id)"
             [nuevo]="p === 'nuevos'"
@@ -141,7 +144,7 @@
     <div class="temas">
       @for (cat of categorias(); track cat.id) {
         <a class="tema" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
-          <span class="tema-icono"><lucide-icon [name]="iconoDe(cat.nombre)" [size]="22" /></span>
+          <span class="tema-icono"><lucide-icon [name]="cat.icono" [size]="22" /></span>
           <span>
             <strong>{{ cat.nombre }}</strong>
             <small>Ver cursos</small>

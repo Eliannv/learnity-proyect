@@ -35,7 +35,7 @@ describe('Mi aprendizaje', () => {
   it('renderiza el porcentaje y la lección completada que devolvió el servidor', async () => {
     const { fixture } = montar([{
       curso: { id: 8, titulo: 'Seguridad de datos', subtitulo: null, portadaUrl: null,
-        nivel: 'PRINCIPIANTE', categoria: { id: 3, nombre: 'Tecnología' }, docente: 'Elena' },
+        nivel: 'PRINCIPIANTE', categoria: { id: 3, nombre: 'Tecnología', icono: 'cpu' }, docente: 'Elena' },
       inscripcion: { id: 4, cursoId: 8, estado: 'ACTIVA', progresoPct: 50,
         ultimaLeccionId: 40, inscritoEn: '2026-10-22T00:00:00Z', completadoEn: null },
       totalLecciones: 2, leccionesCompletadas: 1,
@@ -52,7 +52,7 @@ describe('Mi aprendizaje', () => {
   it('D2: un curso suspendido conserva su avance, muestra el aviso y no se puede abrir', async () => {
     const { fixture, api } = montar([{
       curso: { id: 9, titulo: 'Redacción', subtitulo: null, portadaUrl: null,
-        nivel: 'PRINCIPIANTE', categoria: { id: 3, nombre: 'Idiomas' }, docente: 'Luis' },
+        nivel: 'PRINCIPIANTE', categoria: { id: 3, nombre: 'Idiomas', icono: 'languages' }, docente: 'Luis' },
       inscripcion: { id: 5, cursoId: 9, estado: 'ACTIVA', progresoPct: 30,
         ultimaLeccionId: 41, inscritoEn: '2026-10-22T00:00:00Z', completadoEn: null },
       totalLecciones: 3, leccionesCompletadas: 1, suspendido: true,

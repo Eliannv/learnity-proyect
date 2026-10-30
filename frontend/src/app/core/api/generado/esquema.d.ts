@@ -3704,7 +3704,7 @@ export interface paths {
                         "application/json": components["schemas"]["CategoriaAdmin"];
                     };
                 };
-                /** @description Nombre o descripción inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Nombre, descripción o ícono inválidos (SOLICITUD_INVALIDA). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -3785,7 +3785,7 @@ export interface paths {
                         "application/json": components["schemas"]["CategoriaAdmin"];
                     };
                 };
-                /** @description Nombre o descripción inválidos o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                /** @description Nombre, descripción, ícono o destino de la reasignación inválidos, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -6129,6 +6129,8 @@ export interface components {
         CategoriaPublica: {
             id: number;
             nombre: string;
+            /** @description Ícono de Lucide (kebab-case) elegido por el administrador; `tags` si no eligió. */
+            icono: string;
         };
         CursoPublico: {
             id: number;
@@ -6545,6 +6547,8 @@ export interface components {
             categoria: {
                 id: number;
                 nombre: string;
+                /** @description Ícono de Lucide (kebab-case) de la categoría. */
+                icono: string;
             };
             docente: string;
         };
@@ -6675,11 +6679,17 @@ export interface components {
             /** @enum {string} */
             estado: "ACTIVA" | "COMPLETADA";
         };
+        /**
+         * @description Ícono de Lucide (kebab-case) que el administrador elige para la categoría (migración 035).
+         * @enum {string}
+         */
+        IconoCategoria: "tags" | "code" | "pen-tool" | "languages" | "briefcase" | "monitor" | "megaphone" | "book-open" | "graduation-cap" | "chart-line" | "lightbulb" | "presentation" | "camera" | "palette" | "music" | "calculator" | "flask-conical" | "globe" | "heart-pulse" | "database" | "cpu" | "wrench";
         CategoriaAdmin: {
             id: number;
             nombre: string;
             descripcion: string | null;
             activa: boolean;
+            icono: components["schemas"]["IconoCategoria"];
             /** @description Cursos de cualquier estado con esta categoría. */
             cursos: number;
             cursosPublicados: number;
@@ -6689,6 +6699,8 @@ export interface components {
             nombre: string;
             /** @description Vacía o ausente se guarda como null. */
             descripcion?: string | null;
+            /** @description Sin él, `tags`. */
+            icono?: components["schemas"]["IconoCategoria"];
         };
         /** @description Reemplazo completo. Desactivar no borra ni oculta cursos publicados; deja de ofrecerse al crear o editar cursos. */
         DatosCategoria: {
@@ -6697,6 +6709,13 @@ export interface components {
             /** @description Vacía o ausente se guarda como null. */
             descripcion?: string | null;
             activa: boolean;
+            /** @description Sin él, conserva el que tenía. */
+            icono?: components["schemas"]["IconoCategoria"];
+            /**
+             * Format: int32
+             * @description Mueve todos los cursos de esta categoría (de cualquier estado) a esa otra categoría activa, en la misma transacción y con el administrador como autor en la auditoría. Se usa al desactivarla. 400 (detalle en `reasignarA`) si es la misma categoría o si no existe o está inactiva.
+             */
+            reasignarA?: number;
         };
         Resena: {
             id: number;

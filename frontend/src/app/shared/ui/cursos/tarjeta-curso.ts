@@ -14,10 +14,10 @@ import { PortadaCurso } from './portada-curso';
     <article class="tarjeta-curso">
       @if (enlace()) {
         <a class="portada" [routerLink]="enlace()" tabindex="-1" aria-hidden="true">
-          <app-portada-curso [categoria]="categoria()" [tono]="tono()" [imagen]="imagen()" />
+          <app-portada-curso [iconoCategoria]="iconoCategoria()" [tono]="tono()" [imagen]="imagen()" />
         </a>
       } @else {
-        <div class="portada"><app-portada-curso [categoria]="categoria()" [tono]="tono()" [imagen]="imagen()" /></div>
+        <div class="portada"><app-portada-curso [iconoCategoria]="iconoCategoria()" [tono]="tono()" [imagen]="imagen()" /></div>
       }
       <div class="cuerpo">
         <div class="chips">
@@ -86,6 +86,8 @@ import { PortadaCurso } from './portada-curso';
 export class TarjetaCurso {
   readonly titulo = input.required<string>();
   readonly categoria = input.required<string>();
+  /** Ícono de la categoría que devuelve la API (`categoria.icono`). */
+  readonly iconoCategoria = input<string | null | undefined>(null);
   readonly meta = input.required<string>();
   readonly tono = input<Tono>(1);
   readonly nuevo = input(false);

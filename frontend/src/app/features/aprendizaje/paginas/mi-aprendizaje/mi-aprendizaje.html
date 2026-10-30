@@ -97,14 +97,14 @@
             @if (i.suspendido) {
               <!-- D2: suspendido por la administración. No se abre ni enlaza a su ficha (salió del catálogo); el avance se conserva. -->
               <span class="curso-portada">
-                <app-portada-curso [categoria]="i.curso.categoria.nombre" [tono]="tono(i.curso.categoria.id)"
+                <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [tono]="tono(i.curso.categoria.id)"
                   [imagen]="i.curso.portadaUrl" />
               </span>
               <span class="curso-titulo">{{ i.curso.titulo }}</span>
             } @else {
               <!-- La portada y el título abren la ficha del curso; «Continuar» va directo a la lección -->
               <a class="curso-portada" [routerLink]="['/cursos', i.curso.id]" tabindex="-1" aria-hidden="true">
-                <app-portada-curso [categoria]="i.curso.categoria.nombre" [tono]="tono(i.curso.categoria.id)"
+                <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [tono]="tono(i.curso.categoria.id)"
                   [imagen]="i.curso.portadaUrl" />
               </a>
               <a class="curso-titulo" [routerLink]="['/cursos', i.curso.id]">{{ i.curso.titulo }}</a>

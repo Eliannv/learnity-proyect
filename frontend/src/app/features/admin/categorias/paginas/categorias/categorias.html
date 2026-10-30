@@ -17,7 +17,8 @@
       <button type="button" class="btn btn-primario btn-sm" (click)="nueva()">Nueva categoría</button>
     </app-estado-vista>
   } @else {
-    <div class="tabla-contenedor">
+    <!-- Se desplaza en horizontal en pantallas estrechas: con tabindex se recorre también con el teclado. -->
+    <div class="tabla-contenedor" tabindex="0" role="region" aria-label="Categorías del catálogo">
       <table class="tabla">
         <caption class="visualmente-oculto">Categorías del catálogo</caption>
         <thead>
@@ -34,7 +35,7 @@
             <tr [class.inactiva]="!c.activa">
               <td>
                 <div class="nombre">
-                  <span class="icono" aria-hidden="true"><lucide-icon [name]="icono(c.nombre)" [size]="20" /></span>
+                  <span class="icono" aria-hidden="true"><lucide-icon [name]="c.icono" [size]="20" /></span>
                   <span>
                     <strong>{{ c.nombre }}</strong>
                     @if (c.descripcion) { <small class="texto-suave">{{ c.descripcion }}</small> }
@@ -83,6 +84,20 @@
           placeholder="Qué tipo de cursos agrupa"></textarea>
         @if (errores()['descripcion']) { <small class="error" role="alert">{{ errores()['descripcion'] }}</small> }
       </label>
+      <fieldset class="selector-icono">
+        <legend>Ícono <small class="texto-suave">· {{ nombreIcono[f.icono] }}</small></legend>
+        <p class="ayuda">Aparece en el catálogo, en las portadas de los cursos sin imagen y en el inicio.</p>
+        <div class="rejilla-iconos">
+          @for (i of iconos; track i) {
+            <label class="opcion-icono" [class.elegido]="f.icono === i" [title]="nombreIcono[i]">
+              <input type="radio" class="visualmente-oculto" name="icono" [value]="i" [(ngModel)]="f.icono"
+                [attr.aria-label]="nombreIcono[i]" />
+              <lucide-icon [name]="i" [size]="22" aria-hidden="true" />
+            </label>
+          }
+        </div>
+        @if (errores()['icono']) { <small class="error" role="alert">{{ errores()['icono'] }}</small> }
+      </fieldset>
       @if (f.id !== null) {
         <label class="interruptor">
           <input type="checkbox" name="activa" [(ngModel)]="f.activa" />
@@ -100,20 +115,52 @@
   </app-modal>
 }
 
-@if (desactivando(); as c) {
-  <app-modal [titulo]="'¿Desactivar «' + c.nombre + '»?'" icono="tags" [ancho]="480" (cerrar)="desactivando.set(null)">
-    <p class="texto-modal">
-      Dejará de aparecer al crear o editar cursos.
-      @if (c.cursosPublicados) {
-        Sus {{ c.cursosPublicados }} cursos publicados siguen visibles en el catálogo.
+@if (desactivando(); as d) {
+  <app-modal [titulo]="'¿Desactivar «' + d.categoria.nombre + '»?'" icono="tags" [ancho]="520" (cerrar)="desactivando.set(null)">
+    <form class="formulario" (ngSubmit)="desactivar()" novalidate>
+      <p class="texto-modal">Dejará de aparecer al crear o editar cursos.</p>
+      @if (d.categoria.cursos > 0) {
+        <p class="resumen-cursos" role="note">
+          <lucide-icon name="book-open" [size]="18" aria-hidden="true" />
+          <span>Tiene <strong>{{ d.categoria.cursos }} {{ d.categoria.cursos === 1 ? 'curso' : 'cursos' }}</strong>,
+            {{ d.categoria.cursosPublicados }} {{ d.categoria.cursosPublicados === 1 ? 'publicado' : 'publicados' }}.</span>
+        </p>
+        <fieldset class="opciones-cursos">
+          <legend class="visualmente-oculto">Qué hacer con sus cursos</legend>
+          <label class="opcion">
+            <input type="radio" name="mover" [value]="false" [(ngModel)]="moverCursos" />
+            <span><strong>Dejarlos en esta categoría</strong>
+              <small class="texto-suave">Los publicados siguen en el catálogo; los que están en preparación no podrán enviarse
+                a revisión hasta que cambien de categoría o la reactives.</small></span>
+          </label>
+          <label class="opcion">
+            <input type="radio" name="mover" [value]="true" [(ngModel)]="moverCursos" />
+            <span><strong>Moverlos todos a otra categoría activa</strong>
+              <small class="texto-suave">Se mueven en la misma operación y queda registrado en la auditoría.</small></span>
+          </label>
+        </fieldset>
+        @if (moverCursos) {
+          <label class="campo">
+            <span>Categoría de destino</span>
+            <select class="control" name="destino" [(ngModel)]="destino" [attr.aria-invalid]="!!errorDestino()"
+              aria-describedby="error-destino" (ngModelChange)="errorDestino.set('')">
+              <option [ngValue]="null" disabled>Elige una categoría</option>
+              @for (x of destinos(); track x.id) { <option [ngValue]="x.id">{{ x.nombre }}</option> }
+            </select>
+            @if (!destinos().length) {
+              <small class="texto-suave">No hay otra categoría activa. Crea una o reactiva alguna primero.</small>
+            }
+            <small id="error-destino" class="error" [attr.role]="errorDestino() ? 'alert' : null">{{ errorDestino() }}</small>
+          </label>
+        }
       }
-      @if (c.cursos - c.cursosPublicados > 0) {
-        {{ c.cursos - c.cursosPublicados }} cursos en preparación no podrán enviarse a revisión hasta que cambien de categoría o la reactives.
-      }
-    </p>
-    <div class="pie">
-      <button type="button" class="btn btn-contorno" (click)="desactivando.set(null)">Cancelar</button>
-      <button type="button" class="btn btn-peligro" (click)="cambiarActiva(c, false)">Desactivar categoría</button>
-    </div>
+      <div class="pie">
+        <button type="button" class="btn btn-contorno" (click)="desactivando.set(null)">Cancelar</button>
+        <button type="submit" class="btn btn-peligro" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando…'
+            : moverCursos && d.categoria.cursos > 0 ? 'Mover cursos y desactivar' : 'Desactivar categoría' }}
+        </button>
+      </div>
+    </form>
   </app-modal>
 }

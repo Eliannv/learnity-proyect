@@ -7,7 +7,7 @@ const publicado: CursoPublico = {
   id: 1,
   titulo: 'Python',
   subtitulo: null,
-  categoria: { id: 2, nombre: 'Programación' },
+  categoria: { id: 2, nombre: 'Programación', icono: 'code' },
   docente: 'Carlos Mendoza',
   nivel: 'PRINCIPIANTE',
   portadaUrl: null,

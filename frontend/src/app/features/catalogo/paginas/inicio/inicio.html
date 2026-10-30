@@ -46,7 +46,7 @@
     <a class="chip-filtro activo" routerLink="/cursos">Todas</a>
     @for (cat of categorias(); track cat.id) {
       <a class="chip-filtro" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
-        <lucide-icon [name]="iconos[cat.nombre] || 'book-open'" [size]="18" />
+        <lucide-icon [name]="cat.icono" [size]="18" />
         {{ cat.nombre }}
       </a>
     }
@@ -75,6 +75,7 @@
           <app-tarjeta-curso
             [titulo]="c.titulo"
             [categoria]="c.categoria.nombre"
+            [iconoCategoria]="c.categoria.icono"
             [meta]="c.docente + ' · ' + c.minutos + ' min · ' + c.lecciones + ' lecciones'"
             [tono]="tonoDe(c.categoria.id)"
             [enlace]="'/cursos/' + c.id"
@@ -102,6 +103,7 @@
           <app-tarjeta-curso
             [titulo]="c.titulo"
             [categoria]="c.categoria.nombre"
+            [iconoCategoria]="c.categoria.icono"
             [meta]="c.docente + ' · ' + c.minutos + ' min · ' + c.lecciones + ' lecciones'"
             [tono]="tonoDe(c.categoria.id)"
             [nuevo]="true"

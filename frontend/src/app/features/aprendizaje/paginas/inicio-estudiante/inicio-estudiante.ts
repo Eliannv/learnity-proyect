@@ -13,7 +13,7 @@ import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
 import { Carrusel } from '../../../../shared/ui/navegacion/carrusel';
 import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
-import { ICONO_CATEGORIA, type Tono } from '../../../../shared/ui/tipos-ui';
+import type { Tono } from '../../../../shared/ui/tipos-ui';
 
 type Pestana = 'populares' | 'nuevos' | 'avanzados';
 
@@ -132,9 +132,5 @@ export class InicioEstudiante {
 
   protected tonoDe(id: number): Tono {
     return (id % 3 === 0 ? 3 : id % 3 === 1 ? 1 : 2) as Tono;
-  }
-
-  protected iconoDe(categoria: string): string {
-    return ICONO_CATEGORIA[categoria] || 'book-open';
   }
 }

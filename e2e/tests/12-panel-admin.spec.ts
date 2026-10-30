@@ -200,3 +200,47 @@ test('el administrador suspende un curso publicado y lo reactiva; la alumna insc
   await expect(pagina.locator('article.curso', { hasText: titulo }).getByRole('button', { name: /Continuar|Empezar/ })).toBeVisible();
   await contexto.close();
 });
+
+test('el administrador elige el ícono de una categoría y, al desactivarla, mueve sus cursos a otra', async ({ page }) => {
+  const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin-categorias');
+  const docente = await crearCuenta(['ESTUDIANTE', 'DOCENTE'], 'docente-categorias');
+  const origen = `${MARCA} Fotografía`;
+  const destino = `${MARCA} Imagen`;
+  const titulo = `${MARCA} Luz natural`;
+  await conFixtures(async (f) => {
+    const { rows: [o] } = await f.query<{ id: number }>(
+      'INSERT INTO categoria (nombre, creada_por) VALUES ($1, $2) RETURNING id_categoria AS id', [origen, admin.idPersona]);
+    await f.query('INSERT INTO categoria (nombre, creada_por, icono) VALUES ($1, $2, $3)', [destino, admin.idPersona, 'palette']);
+    await f.query(
+      `INSERT INTO curso (id_docente, id_categoria, titulo, estado, revisado_por, publicado_en)
+       VALUES ($1, $2, $3, 'PUBLICADO', $4, now())`, [docente.idDocente, o!.id, titulo, admin.idPersona]);
+  });
+
+  await iniciarSesionPorUI(page, admin.correo);
+  await page.goto('/admin/categorias');
+  await page.getByRole('button', { name: `Editar ${origen}` }).click();
+  const editar = page.getByRole('dialog', { name: 'Editar categoría' });
+  // El selector es un grupo de radios: se recorre con las flechas del teclado.
+  await editar.getByRole('radio', { name: 'Etiquetas (genérico)' }).focus();
+  for (let i = 0; i < 12; i++) await page.keyboard.press('ArrowRight'); // de «tags» a «camera» (posición 13)
+  await expect(editar.getByRole('radio', { name: 'Cámara' })).toBeChecked();
+  await revisarAccesibilidad(page);
+  await editar.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(page.getByText('Categoría guardada.')).toBeVisible();
+
+  // El catálogo público ya dibuja el ícono elegido en la portada del curso.
+  await page.goto(`/cursos?q=${encodeURIComponent(titulo)}`);
+  await expect(page.locator('app-tarjeta-curso', { hasText: titulo }).locator('lucide-icon svg.lucide-camera')).toBeVisible();
+
+  await page.goto('/admin/categorias');
+  await page.getByRole('button', { name: `Desactivar ${origen}` }).click();
+  const desactivar = page.getByRole('dialog', { name: new RegExp(`Desactivar «${origen}»`) });
+  await expect(desactivar.getByText('1 curso')).toBeVisible();
+  await desactivar.getByText('Moverlos todos a otra categoría activa').click();
+  await desactivar.getByLabel('Categoría de destino').selectOption({ label: destino });
+  await revisarAccesibilidad(page);
+  await desactivar.getByRole('button', { name: 'Mover cursos y desactivar' }).click();
+  await expect(page.getByText(`«${origen}» desactivada. Su curso pasó a «${destino}».`)).toBeVisible();
+  const fila = page.getByRole('row', { name: new RegExp(destino) });
+  await expect(fila.getByRole('cell').nth(1)).toHaveText('1');
+});

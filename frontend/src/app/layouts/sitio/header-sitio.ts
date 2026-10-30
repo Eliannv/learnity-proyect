@@ -58,7 +58,7 @@ import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
                         [class.activo]="indiceActivo() === idx"
                         (mouseenter)="indiceActivo.set(idx)"
                         (click)="cerrarBusqueda(termino)">
-                        <span class="miniatura"><app-portada-curso [categoria]="c.categoria.nombre" [imagen]="c.portadaUrl" [compacta]="true" /></span>
+                        <span class="miniatura"><app-portada-curso [iconoCategoria]="c.categoria.icono" [imagen]="c.portadaUrl" [compacta]="true" /></span>
                         <span class="texto"><strong>{{ c.titulo }}</strong><small>{{ c.docente }} · {{ c.categoria.nombre }}</small></span>
                       </a>
                     </li>

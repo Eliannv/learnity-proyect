@@ -5,7 +5,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { BuscadorMovil } from '../../../../shared/ui/navegacion/buscador-movil';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
-import { ICONO_CATEGORIA, type Tono } from '../../../../shared/ui/tipos-ui';
+import type { Tono } from '../../../../shared/ui/tipos-ui';
 import {
   CatalogoApi,
   type CategoriaPublica,
@@ -28,7 +28,6 @@ export class Inicio {
   protected readonly totalCursos = signal(0);
   protected readonly cargando = signal(true);
   protected readonly error = signal(false);
-  protected readonly iconos = ICONO_CATEGORIA;
 
   protected readonly indicadores = computed(() => [
     { valor: String(this.totalCursos()), etiqueta: 'Cursos disponibles' },
