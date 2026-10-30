@@ -28,7 +28,7 @@ export type AccionFicha = 'desbloquear' | 'sesiones' | null;
       @if (error()) {
         <app-estado-vista estado="error" titulo="No se pudo cargar la ficha" [mensaje]="error()" (reintentar)="reintentar.emit()" />
       } @else if (!detalle()) {
-        <div class="esqueleto bloque" aria-busy="true" aria-label="Cargando la ficha"></div>
+        <div class="esqueleto bloque" role="status" aria-busy="true" aria-label="Cargando la ficha"></div>
       } @else if (detalle(); as u) {
         <div class="ficha">
           <header class="cabecera">

@@ -47,7 +47,9 @@ const ICONO: Record<TipoToast, string> = { exito: 'circle-check', error: 'circle
       color: var(--blanco);
       box-shadow: var(--sombra-lg);
       pointer-events: auto;
-      animation: entrar 0.2s ease-out;
+      /* Entra desde el borde de la pantalla más cercano, sin fundido: el texto conserva su contraste en cada
+         fotograma (axe lo mide aunque el aviso esté entrando). */
+      animation: entrar var(--t-panel) var(--curva-salida);
       p { margin: 2px 0 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
     }
     .exito { border-left-color: #22c55e; lucide-icon { color: #4ade80; } }
@@ -66,9 +68,13 @@ const ICONO: Record<TipoToast, string> = { exito: 'circle-check', error: 'circle
       &:hover { background: rgb(255 255 255 / 12%); color: var(--blanco); }
       &:focus-visible { outline: 2px solid var(--blanco); outline-offset: 1px; }
     }
-    @keyframes entrar { from { opacity: 0; transform: translateY(8px); } }
+    @keyframes entrar { from { transform: translateY(calc(100% + 20px)); } }
+    @keyframes entrar-arriba { from { transform: translateY(calc(-100% - 12px)); } }
+    @media (max-width: 600px) {
+      .pila { top: 12px; bottom: auto; right: 16px; }
+      .toast { animation-name: entrar-arriba; }
+    }
     @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
-    @media (max-width: 600px) { .pila { top: 12px; bottom: auto; right: 16px; } }
   `,
 })
 export class Toasts {

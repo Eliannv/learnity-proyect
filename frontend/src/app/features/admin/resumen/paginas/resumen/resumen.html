@@ -14,7 +14,7 @@
 @if (error()) {
   <app-estado-vista estado="error" titulo="No se pudo cargar el resumen" [mensaje]="error()" (reintentar)="cargar()" />
 } @else if (!datos()) {
-  <div class="rejilla-atencion" aria-busy="true" aria-label="Cargando el resumen">
+  <div class="rejilla-atencion" role="status" aria-busy="true" aria-label="Cargando el resumen">
     @for (i of [1, 2, 3, 4, 5]; track i) { <div class="esqueleto tarjeta-esqueleto"></div> }
   </div>
 } @else if (datos(); as d) {

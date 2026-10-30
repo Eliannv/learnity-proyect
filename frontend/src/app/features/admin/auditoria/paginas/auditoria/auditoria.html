@@ -58,7 +58,7 @@
 @if (error()) {
   <app-estado-vista estado="error" titulo="No se pudo cargar la auditoría" [mensaje]="error()" (reintentar)="cargar()" />
 } @else if (!datos() && cargando()) {
-  <div class="tabla-contenedor" aria-busy="true" aria-label="Cargando auditoría">
+  <div class="tabla-contenedor" role="status" aria-busy="true" aria-label="Cargando auditoría">
     @for (i of [1, 2, 3, 4, 5]; track i) { <div class="fila-esqueleto esqueleto"></div> }
   </div>
 } @else if (datos(); as d) {
@@ -140,7 +140,7 @@
     } @else if (detalle(); as d) {
       <app-diff-cambio [detalle]="d" />
     } @else {
-      <div class="fila-esqueleto esqueleto" aria-busy="true" aria-label="Cargando el detalle"></div>
+      <div class="fila-esqueleto esqueleto" role="status" aria-busy="true" aria-label="Cargando el detalle"></div>
     }
   </app-modal>
 }

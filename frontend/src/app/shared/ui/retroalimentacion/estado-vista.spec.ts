@@ -20,7 +20,7 @@ describe('EstadoVistaComponent', () => {
   }
 
   it('anuncia la carga como estado ocupado', () => {
-    const caja = crear('cargando').nativeElement.querySelector('.estado');
+    const caja = crear('cargando').nativeElement.querySelector('.caja');
     expect(caja.getAttribute('role')).toBe('status');
     expect(caja.getAttribute('aria-busy')).toBe('true');
     expect(caja.textContent).toContain('Cargando');

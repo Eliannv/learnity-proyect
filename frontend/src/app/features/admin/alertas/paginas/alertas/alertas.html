@@ -39,7 +39,7 @@
 @if (error()) {
   <app-estado-vista estado="error" titulo="No se pudieron cargar las alertas" [mensaje]="error()" (reintentar)="cargar()" />
 } @else if (!datos() && cargando()) {
-  <div class="lista" aria-busy="true" aria-label="Cargando alertas">
+  <div class="lista" role="status" aria-busy="true" aria-label="Cargando alertas">
     @for (i of [1, 2, 3]; track i) { <div class="tarjeta-esqueleto esqueleto"></div> }
   </div>
 } @else if (datos(); as d) {

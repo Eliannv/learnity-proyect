@@ -107,7 +107,7 @@
       </div>
     </dl>
   } @else {
-    <div class="indicadores-esqueleto" aria-busy="true" aria-label="Cargando el estado de la base de datos">
+    <div class="indicadores-esqueleto" role="status" aria-busy="true" aria-label="Cargando el estado de la base de datos">
       @for (i of [1, 2, 3, 4, 5]; track i) {
         <div class="esqueleto tarjeta-esqueleto"></div>
       }
@@ -135,7 +135,7 @@
   @if (error()) {
     <app-estado-vista estado="error" titulo="No se pudieron cargar las sesiones" [mensaje]="error()" (reintentar)="cargar()" />
   } @else if (!datos() && cargando()) {
-    <div class="tabla-contenedor" aria-busy="true" aria-label="Cargando sesiones">
+    <div class="tabla-contenedor" role="status" aria-busy="true" aria-label="Cargando sesiones">
       @for (i of [1, 2, 3]; track i) { <div class="fila-esqueleto esqueleto"></div> }
     </div>
   } @else if (datos(); as d) {

@@ -26,7 +26,7 @@
   </div>
 } @else if (datos(); as d) {
   <div class="contenido" [attr.aria-busy]="carga.ocupada()">
-    <div class="grid-stats" aria-label="Indicadores">
+    <div class="grid-stats" role="group" aria-label="Indicadores">
       <app-indicador etiqueta="Inscritos" icono="users" [valor]="'' + d.resumen.inscritos"
         [nota]="curso() ? 'En este curso' : 'En todos tus cursos'" />
       <app-indicador etiqueta="Completaron" icono="trophy" [valor]="'' + d.resumen.completados"

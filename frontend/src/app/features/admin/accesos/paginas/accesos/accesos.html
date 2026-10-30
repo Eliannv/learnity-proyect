@@ -17,7 +17,7 @@
     <p class="error" role="alert">{{ errorBloqueadas() }}
       <button type="button" class="btn btn-texto btn-sm" (click)="cargarBloqueadas()">Reintentar</button></p>
   } @else if (bloqueadas() === null) {
-    <div class="fila-esqueleto esqueleto" aria-busy="true" aria-label="Cargando cuentas bloqueadas"></div>
+    <div class="fila-esqueleto esqueleto" role="status" aria-busy="true" aria-label="Cargando cuentas bloqueadas"></div>
   } @else if (!bloqueadas()!.length) {
     <p class="texto-suave nada">Ninguna cuenta está bloqueada. Una cuenta se bloquea 15 minutos tras 5 contraseñas incorrectas seguidas.</p>
   } @else {
@@ -62,7 +62,7 @@
   @if (error()) {
     <app-estado-vista estado="error" titulo="No se pudo cargar el registro de accesos" [mensaje]="error()" (reintentar)="cargar()" />
   } @else if (!datos() && cargando()) {
-    <div class="tabla-contenedor" aria-busy="true" aria-label="Cargando accesos">
+    <div class="tabla-contenedor" role="status" aria-busy="true" aria-label="Cargando accesos">
       @for (i of [1, 2, 3, 4, 5]; track i) { <div class="fila-esqueleto esqueleto"></div> }
     </div>
   } @else if (datos(); as d) {

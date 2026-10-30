@@ -25,7 +25,7 @@ const TITULOS: Record<EstadoVista, string> = {
   imports: [LucideAngularModule],
   template: `
     <div
-      class="estado"
+      class="caja"
       [class.error]="estado() === 'error'"
       [attr.role]="estado() === 'error' ? 'alert' : 'status'"
       [attr.aria-busy]="estado() === 'cargando' ? 'true' : null"
@@ -44,10 +44,13 @@ const TITULOS: Record<EstadoVista, string> = {
     </div>
   `,
   styles: `
+    /* min-width: 0 y el tope al 100%: dentro de rejillas y en 390px no ensancha la página. */
     :host {
       display: block;
+      min-width: 0;
     }
-    .estado {
+    /* «caja» y no «estado»: esa clase es la píldora global de styles.scss (nowrap, 12px, 600) y se colaba aquí. */
+    .caja {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -58,7 +61,7 @@ const TITULOS: Record<EstadoVista, string> = {
       border-radius: var(--radio-md);
       background: var(--blanco);
     }
-    .estado.error {
+    .caja.error {
       border-style: solid;
       border-color: var(--rojo-200);
       background: var(--rojo-050);
@@ -87,7 +90,7 @@ const TITULOS: Record<EstadoVista, string> = {
       color: var(--rojo-700);
     }
     .mensaje {
-      max-width: 46ch;
+      max-width: min(46ch, 100%);
       font-size: 14px;
       color: var(--gris-500);
     }

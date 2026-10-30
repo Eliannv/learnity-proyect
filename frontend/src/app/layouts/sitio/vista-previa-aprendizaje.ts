@@ -26,7 +26,7 @@ import { PortadaCurso } from '../../shared/ui/cursos/portada-curso';
     @if (abierto()) {
       <div class="panel">
         @if (cargando() && !recientes()) {
-          <div class="cargando" aria-busy="true" aria-label="Cargando tus cursos">
+          <div class="cargando" role="status" aria-busy="true" aria-label="Cargando tus cursos">
             @for (i of [1, 2]; track i) { <span class="esqueleto fila-esqueleto"></span> }
           </div>
         } @else if (error()) {
