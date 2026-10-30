@@ -8,8 +8,11 @@ import {
   idSesion, revocacionSesion,
 } from './supervision.esquemas.js';
 
-// Supervisión del administrador: accesos, cuentas bloqueadas, auditoría, salud de la base, sesiones y alertas.
+// Supervisión del administrador: resumen, accesos, cuentas bloqueadas, auditoría, salud de la base, sesiones y alertas.
 export const supervisionRoutes = Router();
+
+supervisionRoutes.get('/admin/resumen', autenticar, autorizar('ADMIN'),
+  validarConsulta(consultaVacia), controller.resumen);
 
 supervisionRoutes.get('/admin/accesos', autenticar, autorizar('ADMIN'),
   validarConsulta(filtroAccesos), controller.accesos);

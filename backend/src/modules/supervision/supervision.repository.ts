@@ -41,6 +41,15 @@ export interface FilaAlerta {
   nota: string | null;
 }
 
+export interface FilaResumen {
+  solicitudesDocente: number; reportesResenas: number; alertasSeguridad: number; alertasAltas: number;
+  activos: number; inactivos: number; cuentasBloqueadas: number; estudiantes: number; docentes: number; admins: number;
+  cursosPorEstado: Record<string, number>;
+  inscripciones: number; inscripcionesActivas: number; inscripcionesCompletadas: number;
+  resenasPromedio: string | null; resenasTotal: number;
+  generadoEn: Date;
+}
+
 const SELECT_ALERTA = `
   SELECT a.id_alerta AS id, a.tipo, a.severidad, a.descripcion, a.detectada_en AS "detectadaEn",
          u.id_usuario AS "idUsuario", concat_ws(' ', pu.nombres, pu.apellidos) AS nombre, u.correo, a.evidencia,
@@ -79,6 +88,56 @@ export const supervisionRepository = {
       'SELECT tipo, valor, etiqueta FROM auditoria_opciones()',
     );
     return rows;
+  },
+
+  // ------------------------------------------------------------ resumen
+
+  /**
+   * Indicadores del resumen en una sola consulta. Lee tablas de otros módulos solo para contar (como Analíticas):
+   * learnity_app ya puede leerlas y aquí no se modifica nada.
+   */
+  async resumen(): Promise<FilaResumen> {
+    const { rows } = await consultar<FilaResumen>(`
+      SELECT
+        (SELECT count(*)::int FROM solicitud_docente WHERE estado = 'PENDIENTE') AS "solicitudesDocente",
+        (SELECT count(*)::int FROM reporte_resena WHERE estado = 'PENDIENTE') AS "reportesResenas",
+        (SELECT count(*)::int FROM alerta_seguridad WHERE atendida_en IS NULL) AS "alertasSeguridad",
+        (SELECT count(*)::int FROM alerta_seguridad WHERE atendida_en IS NULL AND severidad = 'ALTA') AS "alertasAltas",
+        u.activos, u.inactivos, u.bloqueadas AS "cuentasBloqueadas", u.estudiantes, u.docentes, u.admins,
+        c.por_estado AS "cursosPorEstado",
+        i.total AS "inscripciones", i.activas AS "inscripcionesActivas", i.completadas AS "inscripcionesCompletadas",
+        r.promedio AS "resenasPromedio", r.total AS "resenasTotal",
+        now() AS "generadoEn"
+      FROM (
+        SELECT count(*) FILTER (WHERE us.estado = 'ACTIVO')::int AS activos,
+               count(*) FILTER (WHERE us.estado = 'INACTIVO')::int AS inactivos,
+               count(*) FILTER (WHERE us.bloqueado_hasta > now())::int AS bloqueadas,
+               count(*) FILTER (WHERE us.estado = 'ACTIVO' AND roles.nombres @> ARRAY['ESTUDIANTE']::varchar[])::int AS estudiantes,
+               count(*) FILTER (WHERE us.estado = 'ACTIVO' AND roles.nombres @> ARRAY['DOCENTE']::varchar[])::int AS docentes,
+               count(*) FILTER (WHERE us.estado = 'ACTIVO' AND roles.nombres @> ARRAY['ADMIN']::varchar[])::int AS admins
+          FROM usuario us
+          CROSS JOIN LATERAL (
+            SELECT COALESCE(array_agg(ro.nombre), '{}') AS nombres
+              FROM usuario_rol ur JOIN rol ro ON ro.id_rol = ur.id_rol
+             WHERE ur.id_usuario = us.id_usuario) roles
+      ) u
+      CROSS JOIN (
+        SELECT COALESCE(jsonb_object_agg(estado, n), '{}') AS por_estado
+          FROM (SELECT estado, count(*)::int AS n FROM curso GROUP BY estado) e
+      ) c
+      CROSS JOIN (
+        SELECT count(*)::int AS total, count(*) FILTER (WHERE estado = 'ACTIVA')::int AS activas,
+               count(*) FILTER (WHERE estado = 'COMPLETADA')::int AS completadas
+          FROM inscripcion
+      ) i
+      CROSS JOIN (
+        SELECT round(avg(re.estrellas), 1) AS promedio, count(*)::int AS total
+          FROM resena re
+          JOIN inscripcion ins ON ins.id_inscripcion = re.id_inscripcion
+          JOIN curso cu ON cu.id_curso = ins.id_curso AND cu.estado = 'PUBLICADO'
+         WHERE re.eliminado_en IS NULL AND re.ocultada_en IS NULL
+      ) r`);
+    return rows[0]!;
   },
 
   // ------------------------------------------------------------ alertas (038)

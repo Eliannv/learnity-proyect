@@ -42,6 +42,10 @@ export const supervisionController = {
     res.json(await service.estadoBaseDatos());
   },
 
+  async resumen(_req: Request, res: Response): Promise<void> {
+    res.json(await service.resumen());
+  },
+
   async alertas(_req: Request, res: Response): Promise<void> {
     const { consulta } = datosValidados<unknown, FiltroAlertasAdmin>(res);
     res.json(await service.alertas(consulta));

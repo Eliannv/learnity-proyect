@@ -137,6 +137,50 @@ export const esquemasSupervision = {
     type: 'object', required: ['items', 'paginacion'],
     properties: { items: { type: 'array', items: ref('SesionAdmin') }, paginacion },
   },
+  ResumenAdmin: {
+    type: 'object', required: ['atencion', 'usuarios', 'cursos', 'inscripciones', 'resenas', 'generadoEn'],
+    properties: {
+      atencion: {
+        type: 'object', description: 'Lo que espera una acción del administrador.',
+        required: ['solicitudesDocente', 'cursosEnRevision', 'reportesResenas', 'alertasSeguridad', 'alertasAltas', 'cuentasBloqueadas'],
+        properties: {
+          solicitudesDocente: entero, cursosEnRevision: entero, reportesResenas: entero, alertasSeguridad: entero,
+          alertasAltas: { ...entero, description: 'Alertas pendientes de severidad ALTA.' }, cuentasBloqueadas: entero,
+        },
+      },
+      usuarios: {
+        type: 'object', required: ['activos', 'inactivos', 'porRol'],
+        properties: {
+          activos: entero, inactivos: entero,
+          porRol: {
+            type: 'object', required: ['ESTUDIANTE', 'DOCENTE', 'ADMIN'], description: 'Cuentas activas con cada rol (una cuenta puede tener varios).',
+            properties: { ESTUDIANTE: entero, DOCENTE: entero, ADMIN: entero },
+          },
+        },
+      },
+      cursos: {
+        type: 'object', required: ['total', 'porEstado'],
+        properties: {
+          total: entero,
+          porEstado: {
+            type: 'object', required: ['BORRADOR', 'EN_REVISION', 'PUBLICADO', 'RECHAZADO', 'ARCHIVADO', 'SUSPENDIDO'],
+            properties: {
+              BORRADOR: entero, EN_REVISION: entero, PUBLICADO: entero, RECHAZADO: entero, ARCHIVADO: entero, SUSPENDIDO: entero,
+            },
+          },
+        },
+      },
+      inscripciones: {
+        type: 'object', required: ['total', 'activas', 'completadas'],
+        properties: { total: entero, activas: entero, completadas: entero },
+      },
+      resenas: {
+        type: 'object', required: ['promedio', 'total'], description: 'Reseñas visibles de cursos publicados.',
+        properties: { promedio: { type: 'number', nullable: true, minimum: 1, maximum: 5 }, total: entero },
+      },
+      generadoEn: fecha,
+    },
+  },
   AlertaSeguridad: {
     type: 'object',
     required: ['id', 'tipo', 'severidad', 'descripcion', 'detectadaEn', 'usuario', 'evidencia', 'atencion'],
@@ -192,6 +236,16 @@ export const esquemasSupervision = {
 };
 
 export const rutasSupervision = {
+  '/admin/resumen': {
+    get: {
+      tags: ['Supervisión'], summary: 'Resumen del panel: contadores de atención rápida e indicadores globales',
+      security: seguridad,
+      responses: {
+        200: json(ref('ResumenAdmin')), 400: error('Parámetros no admitidos'), 401: error('Sin sesión'),
+        403: error('No es administrador'), 500: errorInterno,
+      },
+    },
+  },
   '/admin/accesos': {
     get: {
       tags: ['Supervisión'], summary: 'Registro de accesos: intentos de entrar a una cuenta, más recientes primero',

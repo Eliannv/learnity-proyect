@@ -8,7 +8,7 @@ import type {
 } from './supervision.esquemas.js';
 import type {
   AlertaSeguridad, CambioAuditoria, CuentaBloqueadaAdmin, DetalleCambioAuditoria, EstadoBaseDatos, OpcionesAuditoria,
-  PaginaAccesos, PaginaAlertas, PaginaAuditoria, PaginaSesiones, Paginacion, ResultadoAnalisis,
+  PaginaAccesos, PaginaAlertas, PaginaAuditoria, PaginaSesiones, Paginacion, ResultadoAnalisis, ResumenAdmin,
 } from './supervision.modelo.js';
 import { supervisionRepository as repo, type FilaAlerta, type FilaCambio } from './supervision.repository.js';
 
@@ -86,6 +86,34 @@ export const supervisionService = {
       iniciadaEn: e.iniciadaEn.toISOString(),
       ultimaMigracion: e.ultimaMigracion === null ? null
         : { version: e.ultimaMigracion, aplicadaEn: e.aplicadaEn?.toISOString() ?? null },
+    };
+  },
+
+  // -------------------------------------------------------------- resumen
+
+  async resumen(): Promise<ResumenAdmin> {
+    const f = await repo.resumen();
+    const estado = (clave: string) => f.cursosPorEstado[clave] ?? 0;
+    return {
+      atencion: {
+        solicitudesDocente: f.solicitudesDocente, cursosEnRevision: estado('EN_REVISION'),
+        reportesResenas: f.reportesResenas, alertasSeguridad: f.alertasSeguridad, alertasAltas: f.alertasAltas,
+        cuentasBloqueadas: f.cuentasBloqueadas,
+      },
+      usuarios: {
+        activos: f.activos, inactivos: f.inactivos,
+        porRol: { ESTUDIANTE: f.estudiantes, DOCENTE: f.docentes, ADMIN: f.admins },
+      },
+      cursos: {
+        total: Object.values(f.cursosPorEstado).reduce((a, n) => a + n, 0),
+        porEstado: {
+          BORRADOR: estado('BORRADOR'), EN_REVISION: estado('EN_REVISION'), PUBLICADO: estado('PUBLICADO'),
+          RECHAZADO: estado('RECHAZADO'), ARCHIVADO: estado('ARCHIVADO'), SUSPENDIDO: estado('SUSPENDIDO'),
+        },
+      },
+      inscripciones: { total: f.inscripciones, activas: f.inscripcionesActivas, completadas: f.inscripcionesCompletadas },
+      resenas: { promedio: f.resenasPromedio === null ? null : Number(f.resenasPromedio), total: f.resenasTotal },
+      generadoEn: f.generadoEn.toISOString(),
     };
   },
 

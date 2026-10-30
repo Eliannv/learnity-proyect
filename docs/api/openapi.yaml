@@ -3967,6 +3967,195 @@
           }
         }
       },
+      "ResumenAdmin": {
+        "type": "object",
+        "required": [
+          "atencion",
+          "usuarios",
+          "cursos",
+          "inscripciones",
+          "resenas",
+          "generadoEn"
+        ],
+        "properties": {
+          "atencion": {
+            "type": "object",
+            "description": "Lo que espera una acción del administrador.",
+            "required": [
+              "solicitudesDocente",
+              "cursosEnRevision",
+              "reportesResenas",
+              "alertasSeguridad",
+              "alertasAltas",
+              "cuentasBloqueadas"
+            ],
+            "properties": {
+              "solicitudesDocente": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cursosEnRevision": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reportesResenas": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "alertasSeguridad": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "alertasAltas": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Alertas pendientes de severidad ALTA."
+              },
+              "cuentasBloqueadas": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "usuarios": {
+            "type": "object",
+            "required": [
+              "activos",
+              "inactivos",
+              "porRol"
+            ],
+            "properties": {
+              "activos": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "inactivos": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "porRol": {
+                "type": "object",
+                "required": [
+                  "ESTUDIANTE",
+                  "DOCENTE",
+                  "ADMIN"
+                ],
+                "description": "Cuentas activas con cada rol (una cuenta puede tener varios).",
+                "properties": {
+                  "ESTUDIANTE": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "DOCENTE": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "ADMIN": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "cursos": {
+            "type": "object",
+            "required": [
+              "total",
+              "porEstado"
+            ],
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "porEstado": {
+                "type": "object",
+                "required": [
+                  "BORRADOR",
+                  "EN_REVISION",
+                  "PUBLICADO",
+                  "RECHAZADO",
+                  "ARCHIVADO",
+                  "SUSPENDIDO"
+                ],
+                "properties": {
+                  "BORRADOR": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "EN_REVISION": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "PUBLICADO": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "RECHAZADO": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "ARCHIVADO": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "SUSPENDIDO": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "inscripciones": {
+            "type": "object",
+            "required": [
+              "total",
+              "activas",
+              "completadas"
+            ],
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "activas": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "completadas": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "resenas": {
+            "type": "object",
+            "required": [
+              "promedio",
+              "total"
+            ],
+            "description": "Reseñas visibles de cursos publicados.",
+            "properties": {
+              "promedio": {
+                "type": "number",
+                "nullable": true,
+                "minimum": 1,
+                "maximum": 5
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "generadoEn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "AlertaSeguridad": {
         "type": "object",
         "required": [
@@ -10555,6 +10744,64 @@
           },
           "404": {
             "description": "El curso no existe o no es propio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
+    "/admin/resumen": {
+      "get": {
+        "tags": [
+          "Supervisión"
+        ],
+        "summary": "Resumen del panel: contadores de atención rápida e indicadores globales",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumenAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros no admitidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No es administrador",
             "content": {
               "application/json": {
                 "schema": {

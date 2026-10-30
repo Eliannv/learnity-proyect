@@ -103,6 +103,30 @@ export interface PaginaSesiones {
   paginacion: Paginacion;
 }
 
+// ------------------------------------------------------------------ resumen
+
+export interface ResumenAdmin {
+  /** Lo que espera una acción del administrador; cada contador enlaza a su vista. */
+  atencion: {
+    solicitudesDocente: number;
+    cursosEnRevision: number;
+    reportesResenas: number;
+    alertasSeguridad: number;
+    /** De las alertas pendientes, las de severidad ALTA. */
+    alertasAltas: number;
+    cuentasBloqueadas: number;
+  };
+  usuarios: { activos: number; inactivos: number; porRol: { ESTUDIANTE: number; DOCENTE: number; ADMIN: number } };
+  cursos: {
+    total: number;
+    porEstado: { BORRADOR: number; EN_REVISION: number; PUBLICADO: number; RECHAZADO: number; ARCHIVADO: number; SUSPENDIDO: number };
+  };
+  inscripciones: { total: number; activas: number; completadas: number };
+  /** Reseñas visibles (ni borradas ni ocultadas) de cursos publicados. */
+  resenas: { promedio: number | null; total: number };
+  generadoEn: string;
+}
+
 // ------------------------------------------------------------------ alertas (038)
 
 export type TipoAlerta = 'INTENTOS_FALLIDOS' | 'CAMBIO_PRIVILEGIOS' | 'RAFAGA_RESENAS' | 'MODIFICACION_MASIVA';
