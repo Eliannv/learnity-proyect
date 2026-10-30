@@ -1,0 +1,107 @@
+<header class="cabecera">
+  <div>
+    <h1 class="titulo-pagina">Resumen</h1>
+    <p class="subtitulo">
+      Lo que espera tu atención y el estado general de la plataforma.
+      @if (datos(); as d) { <span class="texto-suave">Actualizado a las {{ d.generadoEn | date: 'HH:mm' }}.</span> }
+    </p>
+  </div>
+  <button type="button" class="btn btn-contorno btn-sm" [disabled]="cargando()" (click)="cargar()">
+    <lucide-icon name="rotate-ccw" [size]="16" aria-hidden="true" /> Actualizar
+  </button>
+</header>
+
+@if (error()) {
+  <app-estado-vista estado="error" titulo="No se pudo cargar el resumen" [mensaje]="error()" (reintentar)="cargar()" />
+} @else if (!datos()) {
+  <div class="rejilla-atencion" aria-busy="true" aria-label="Cargando el resumen">
+    @for (i of [1, 2, 3, 4, 5]; track i) { <div class="esqueleto tarjeta-esqueleto"></div> }
+  </div>
+} @else if (datos(); as d) {
+  <section aria-labelledby="titulo-atencion">
+    <h2 id="titulo-atencion" class="titulo-seccion">
+      Atención rápida
+      <span class="texto-suave total">{{ totalPendientes() ? totalPendientes() + ' casos esperan una acción' : 'Nada pendiente' }}</span>
+    </h2>
+    <ul class="rejilla-atencion">
+      @for (p of pendientes(); track p.clave) {
+        <li>
+          <a class="tarjeta-atencion" [class.con-casos]="p.cantidad > 0" [class.urgente]="!!p.urgente"
+            [routerLink]="p.ruta" [queryParams]="p.queryParams" [attr.aria-label]="p.titulo + ': ' + p.cantidad + ' ' + p.detalle + (p.urgente ? ', ' + p.urgente : '') + '. Ir a ' + p.titulo">
+            <span class="cabeza">
+              <lucide-icon [name]="p.icono" [size]="20" aria-hidden="true" />
+              <span class="titulo">{{ p.titulo }}</span>
+            </span>
+            <span class="cantidad">{{ p.cantidad | number }}</span>
+            <span class="detalle">
+              {{ p.cantidad ? p.detalle : 'Al día' }}
+              @if (p.urgente) { <strong class="aviso">· {{ p.urgente }}</strong> }
+            </span>
+            <span class="ir" aria-hidden="true">Ir <lucide-icon name="arrow-right" [size]="14" /></span>
+          </a>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section aria-labelledby="titulo-indicadores">
+    <h2 id="titulo-indicadores" class="titulo-seccion">Indicadores globales de la plataforma</h2>
+    <div class="rejilla-indicadores">
+      <article class="indicador" aria-labelledby="ind-usuarios">
+        <h3 id="ind-usuarios"><lucide-icon name="users" [size]="18" aria-hidden="true" /> Usuarios activos</h3>
+        <p class="valor">{{ d.usuarios.activos | number }}</p>
+        <dl class="desglose">
+          <div><dt>Estudiantes</dt><dd>{{ d.usuarios.porRol.ESTUDIANTE | number }}</dd></div>
+          <div><dt>Docentes</dt><dd>{{ d.usuarios.porRol.DOCENTE | number }}</dd></div>
+          <div><dt>Administradores</dt><dd>{{ d.usuarios.porRol.ADMIN | number }}</dd></div>
+          <div><dt>Desactivados</dt><dd>{{ d.usuarios.inactivos | number }}</dd></div>
+        </dl>
+        <a class="enlace" routerLink="/admin/usuarios">Ver usuarios</a>
+      </article>
+
+      <article class="indicador" aria-labelledby="ind-cursos">
+        <h3 id="ind-cursos"><lucide-icon name="book-open" [size]="18" aria-hidden="true" /> Cursos</h3>
+        <p class="valor">{{ d.cursos.porEstado.PUBLICADO | number }} <span class="unidad">publicados</span></p>
+        <dl class="desglose">
+          <div class="alerta-texto" [class.activo]="d.cursos.porEstado.SUSPENDIDO > 0">
+            <dt>Suspendidos</dt><dd>{{ d.cursos.porEstado.SUSPENDIDO | number }}</dd></div>
+          <div><dt>En revisión</dt><dd>{{ d.cursos.porEstado.EN_REVISION | number }}</dd></div>
+          <div><dt>Borradores</dt><dd>{{ d.cursos.porEstado.BORRADOR | number }}</dd></div>
+          <div><dt>Rechazados</dt><dd>{{ d.cursos.porEstado.RECHAZADO | number }}</dd></div>
+          @if (d.cursos.porEstado.ARCHIVADO) {
+            <div><dt>Archivados</dt><dd>{{ d.cursos.porEstado.ARCHIVADO | number }}</dd></div>
+          }
+          <div><dt>Total</dt><dd>{{ d.cursos.total | number }}</dd></div>
+        </dl>
+        <a class="enlace" routerLink="/admin/revision" [queryParams]="{ estado: 'PUBLICADO' }">Ver cursos publicados</a>
+      </article>
+
+      <article class="indicador" aria-labelledby="ind-inscripciones">
+        <h3 id="ind-inscripciones"><lucide-icon name="graduation-cap" [size]="18" aria-hidden="true" /> Inscripciones</h3>
+        <p class="valor">{{ d.inscripciones.total | number }}</p>
+        <dl class="desglose">
+          <div><dt>En curso</dt><dd>{{ d.inscripciones.activas | number }}</dd></div>
+          <div><dt>Completadas</dt><dd>{{ d.inscripciones.completadas | number }}
+            <span class="texto-suave">({{ porcentaje(d.inscripciones.completadas, d.inscripciones.total) }} %)</span></dd></div>
+        </dl>
+        <div class="barra" role="img"
+          [attr.aria-label]="porcentaje(d.inscripciones.completadas, d.inscripciones.total) + ' % de las inscripciones están completadas'">
+          <span [style.width.%]="porcentaje(d.inscripciones.completadas, d.inscripciones.total)"></span>
+        </div>
+      </article>
+
+      <article class="indicador" aria-labelledby="ind-satisfaccion">
+        <h3 id="ind-satisfaccion"><lucide-icon name="star" [size]="18" aria-hidden="true" /> Satisfacción</h3>
+        @if (d.resenas.promedio !== null) {
+          <p class="valor">{{ d.resenas.promedio | number: '1.1-1' }} <span class="unidad">de 5 estrellas</span></p>
+        } @else {
+          <p class="valor sin-datos">Sin reseñas</p>
+        }
+        <dl class="desglose">
+          <div><dt>Reseñas visibles</dt><dd>{{ d.resenas.total | number }}</dd></div>
+        </dl>
+        <a class="enlace" routerLink="/admin/resenas">Ver reseñas</a>
+      </article>
+    </div>
+  </section>
+}

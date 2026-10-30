@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import type { ReporteResena, ResenaAdmin } from '../../../../../core/api/contrato';
 import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
@@ -39,7 +39,7 @@ const ocultada: ResenaAdmin = {
   }],
 };
 
-function montar(confirmar: boolean, items: ResenaAdmin[] = [resena]) {
+function montar(confirmar: boolean, items: ResenaAdmin[] = [resena], consulta: Record<string, string> = {}) {
   const api = {
     todas: vi.fn().mockResolvedValue({
       cursos: [{ id: 7, titulo: 'Álgebra' }], items, pagina: 1, limite: 20, total: items.length, totalPaginas: 1,
@@ -54,6 +54,7 @@ function montar(confirmar: boolean, items: ResenaAdmin[] = [resena]) {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]), { provide: AdminResenasApi, useValue: api }, { provide: ToastService, useValue: toasts },
+      { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(consulta) } } },
       { provide: ConfirmacionService, useValue: { confirmar: vi.fn().mockResolvedValue(confirmar) } },
       { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) },
     ],
@@ -214,5 +215,13 @@ describe('reseñas del administrador', () => {
     boton(fixture.nativeElement, 'Desestimar reporte').click();
     await fixture.whenStable();
     expect(api.resolver).not.toHaveBeenCalled();
+  });
+
+  it('con ?vista=PENDIENTE (desde el resumen) abre directamente los reportes pendientes', async () => {
+    const { fixture, api } = montar(true, [resena], { vista: 'PENDIENTE' });
+    await vi.waitFor(() => expect(api.reportes).toHaveBeenCalledWith('PENDIENTE'));
+    expect(api.todas).not.toHaveBeenCalled();
+    fixture.detectChanges();
+    expect(boton(fixture.nativeElement, 'Reportes pendientes').getAttribute('aria-selected')).toBe('true');
   });
 });

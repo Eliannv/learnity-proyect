@@ -95,7 +95,12 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'revision',
+        redirectTo: 'resumen',
+      },
+      {
+        path: 'resumen',
+        loadChildren: () =>
+          import('./features/admin/resumen/resumen.routes').then((m) => m.rutasAdminResumen),
       },
       {
         path: 'usuarios',

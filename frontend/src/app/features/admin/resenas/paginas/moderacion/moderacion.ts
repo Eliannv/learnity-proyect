@@ -1,7 +1,7 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type {
   EntradaHistorialResena, EstadoReporte, MotivoReporte, PaginaResenasAdmin, ReporteResena, ResenaAdmin,
@@ -90,6 +90,9 @@ export class ModeracionResenas {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizador));
+    // El resumen enlaza con ?vista=PENDIENTE para abrir directamente los reportes pendientes.
+    const vista = inject(ActivatedRoute).snapshot.queryParamMap.get('vista');
+    if (VISTAS.some((v) => v.valor === vista)) this.vista.set(vista as Vista);
     void this.cargar();
   }
 

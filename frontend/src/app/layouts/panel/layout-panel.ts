@@ -61,6 +61,12 @@ export class LayoutPanel {
     () => MENU[this.rol()],
   );
 
+  /** Secciones del menú lateral que no están en la barra inferior: van en su pestaña «Más». */
+  protected readonly mas = computed(() => {
+    const { items, tabs } = this.config();
+    return items.filter((item) => !tabs.some((tab) => tab.ruta === item.ruta));
+  });
+
   protected readonly rutaPerfil = computed(
     () => `${this.config().inicio}/perfil`,
   );

@@ -114,3 +114,4 @@ export type AlertaSeguridad = Esquemas['AlertaSeguridad'];
 export type PaginaAlertas = Esquemas['PaginaAlertas'];
 export type ResultadoAnalisisAlertas = Esquemas['ResultadoAnalisisAlertas'];
 export type ConsultaAlertas = NonNullable<paths['/admin/alertas']['get']['parameters']['query']>;
+export type ResumenAdmin = Esquemas['ResumenAdmin'];

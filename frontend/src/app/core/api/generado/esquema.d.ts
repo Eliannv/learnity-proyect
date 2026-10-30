@@ -5201,6 +5201,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/resumen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resumen del panel: contadores de atención rápida e indicadores globales */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResumenAdmin"];
+                    };
+                };
+                /** @description Parámetros no admitidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/accesos": {
         parameters: {
             query?: never;
@@ -8172,6 +8236,51 @@ export interface components {
                 limite: number;
                 totalPaginas: number;
             };
+        };
+        ResumenAdmin: {
+            /** @description Lo que espera una acción del administrador. */
+            atencion: {
+                solicitudesDocente: number;
+                cursosEnRevision: number;
+                reportesResenas: number;
+                alertasSeguridad: number;
+                /** @description Alertas pendientes de severidad ALTA. */
+                alertasAltas: number;
+                cuentasBloqueadas: number;
+            };
+            usuarios: {
+                activos: number;
+                inactivos: number;
+                /** @description Cuentas activas con cada rol (una cuenta puede tener varios). */
+                porRol: {
+                    ESTUDIANTE: number;
+                    DOCENTE: number;
+                    ADMIN: number;
+                };
+            };
+            cursos: {
+                total: number;
+                porEstado: {
+                    BORRADOR: number;
+                    EN_REVISION: number;
+                    PUBLICADO: number;
+                    RECHAZADO: number;
+                    ARCHIVADO: number;
+                    SUSPENDIDO: number;
+                };
+            };
+            inscripciones: {
+                total: number;
+                activas: number;
+                completadas: number;
+            };
+            /** @description Reseñas visibles de cursos publicados. */
+            resenas: {
+                promedio: number | null;
+                total: number;
+            };
+            /** Format: date-time */
+            generadoEn: string;
         };
         AlertaSeguridad: {
             id: number;

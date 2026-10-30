@@ -44,8 +44,8 @@ test.describe('E2E-06: vista a 390 px sin scroll horizontal', () => {
   test('administrador', async ({ page }) => {
     const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin');
     await iniciarSesionPorUI(page, admin.correo);
-    const mal = await conScroll(page, ['/admin/revision', '/admin/solicitudes', '/admin/categorias', '/admin/perfil',
-      '/admin/accesos']);
+    const mal = await conScroll(page, ['/admin/resumen', '/admin/revision', '/admin/solicitudes', '/admin/categorias',
+      '/admin/perfil', '/admin/accesos', '/admin/resenas', '/admin/auditoria', '/admin/alertas', '/admin/sesiones']);
     expect(mal, mal.join('\n')).toEqual([]);
   });
 });

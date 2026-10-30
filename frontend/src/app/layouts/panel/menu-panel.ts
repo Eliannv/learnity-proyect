@@ -61,6 +61,7 @@ export const MENU: Record<
     inicio: '/admin',
 
     items: [
+      { icono: 'layout-dashboard', etiqueta: 'Resumen', ruta: '/admin/resumen' },
       {
         icono: 'user',
         etiqueta: 'Mi perfil',
@@ -89,25 +90,14 @@ export const MENU: Record<
       { icono: 'database', etiqueta: 'Sesiones y base de datos', ruta: '/admin/sesiones' },
     ],
 
-    // Máximo cinco pestañas en móvil: el perfil sigue en el menú de la cuenta (avatar).
+    // Cinco pestañas en móvil: las cuatro más usadas y «Más», que abre el resto de secciones del menú lateral
+    // (Solicitudes, Categorías, Reseñas, Accesos, Auditoría, Sesiones y el perfil). La lista de «Más» se calcula
+    // en el layout: todo lo de `items` que no está aquí.
     tabs: [
+      { icono: 'layout-dashboard', etiqueta: 'Resumen', ruta: '/admin/resumen' },
       { icono: 'users', etiqueta: 'Usuarios', ruta: '/admin/usuarios' },
-      {
-        icono: 'user-check',
-        etiqueta: 'Solicitudes',
-        ruta: '/admin/solicitudes',
-      },
-      {
-        icono: 'shield-check',
-        etiqueta: 'Cursos',
-        ruta: '/admin/revision',
-      },
-      {
-        icono: 'tags',
-        etiqueta: 'Categorías',
-        ruta: '/admin/categorias',
-      },
-      { icono: 'message-square-text', etiqueta: 'Reseñas', ruta: '/admin/resenas' },
+      { icono: 'shield-check', etiqueta: 'Cursos', ruta: '/admin/revision' },
+      { icono: 'shield-alert', etiqueta: 'Alertas', ruta: '/admin/alertas' },
     ],
   },
 };

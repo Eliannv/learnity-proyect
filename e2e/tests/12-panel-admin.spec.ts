@@ -438,3 +438,46 @@ test('el administrador ejecuta el análisis de alertas, sigue la evidencia y mar
     await conFixtures((f) => f.query('DELETE FROM alerta_seguridad WHERE detectada_en >= $1', [inicio]));
   }
 });
+
+test('el panel abre en el Resumen con la atención rápida enlazada, y en el móvil «Más» lleva a todas las secciones', async ({ page }) => {
+  const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin-resumen');
+  const aspirante = await crearCuenta(['ESTUDIANTE'], 'aspirante-resumen');
+  await conFixtures((f) => f.query(
+    `INSERT INTO solicitud_docente (id_persona, especialidad, motivo)
+     VALUES ($1, 'Historia', 'Quiero enseñar historia universal con recursos visuales y lecturas guiadas para todos.')`,
+    [aspirante.idPersona]));
+
+  await iniciarSesionPorUI(page, admin.correo);
+  await page.goto('/admin');
+  await expect(page).toHaveURL(/\/admin\/resumen$/);
+  await expect(page.getByRole('heading', { name: 'Resumen', level: 1 })).toBeVisible();
+  const solicitudes = page.getByRole('link', { name: /^Solicitudes de docente: [1-9]\d* pendientes? de decidir/ });
+  await expect(solicitudes).toHaveClass(/con-casos/);
+  await expect(page.getByRole('heading', { name: 'Indicadores globales de la plataforma' })).toBeVisible();
+  await revisarAccesibilidad(page);
+  await captura(page, 'admin-resumen');
+  await solicitudes.click();
+  await expect(page).toHaveURL(/\/admin\/solicitudes/);
+
+  // Teléfono: cuatro pestañas y «Más» con el resto de secciones del menú lateral.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin/resumen');
+  const barra = page.getByRole('navigation', { name: 'Navegación principal' });
+  await expect(barra.getByRole('link')).toHaveText(['Resumen', 'Usuarios', 'Cursos', 'Alertas']);
+  const mas = barra.getByRole('button', { name: 'Más' });
+  await mas.click();
+  await expect(mas).toHaveAttribute('aria-expanded', 'true');
+  const panel = page.getByRole('navigation', { name: 'Más secciones' });
+  await expect(panel.getByRole('link')).toHaveText(
+    ['Mi perfil', 'Solicitudes de docente', 'Categorías', 'Reseñas', 'Accesos', 'Auditoría', 'Sesiones y base de datos']);
+  await revisarAccesibilidad(page);
+  await captura(page, 'admin-movil-mas');
+  await panel.getByRole('link', { name: 'Auditoría' }).click();
+  await expect(page).toHaveURL(/\/admin\/auditoria/);
+  await expect(panel).toHaveCount(0);
+  await expect(mas).toHaveClass(/activo/);
+  await mas.click();
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCount(0);
+  await expect(mas).toBeFocused();
+});
