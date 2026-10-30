@@ -65,6 +65,10 @@ BEGIN
   IF to_regclass('public.catalogo_curso') IS NOT NULL THEN
     GRANT SELECT ON catalogo_categoria, catalogo_curso, catalogo_temario TO learnity_pruebas;
   END IF;
+  -- 032: los fixtures fabrican accesos antiguos y borran los de su marca (la app solo inserta).
+  IF to_regclass('public.evento_acceso') IS NOT NULL THEN
+    GRANT SELECT, INSERT, DELETE ON evento_acceso TO learnity_pruebas;
+  END IF;
 END $$;
 
 COMMIT;

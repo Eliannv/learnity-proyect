@@ -60,6 +60,7 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_app', 'resena',                    'INSERT,SELECT,UPDATE'),          -- 030; la 031 quita DELETE
     ('learnity_app', 'reporte_resena',            'INSERT,SELECT,UPDATE'),          -- 031
     ('learnity_app', 'visita_curso_dia',          'INSERT,SELECT,UPDATE'),          -- 031
+    ('learnity_app', 'evento_acceso',             'INSERT,SELECT'),                 -- 032: solo añade filas
     ('learnity_app', 'catalogo_categoria',        'SELECT'),
     ('learnity_app', 'catalogo_curso',            'SELECT'),
     ('learnity_app', 'catalogo_temario',          'SELECT'),
@@ -89,7 +90,8 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_lectura', 'curso_publicado_sin_revision', 'SELECT'),
     ('learnity_lectura', 'resena',                    'SELECT'),                    -- 030
     ('learnity_lectura', 'reporte_resena',            'SELECT'),                    -- 031
-    ('learnity_lectura', 'visita_curso_dia',          'SELECT')                     -- 031
+    ('learnity_lectura', 'visita_curso_dia',          'SELECT'),                    -- 031
+    ('learnity_lectura', 'evento_acceso',             'SELECT')                     -- 032
 ),
 esperado_columna (rol, objeto, columna) AS (
   SELECT 'learnity_lectura', 'usuario', unnest(ARRAY['id_usuario', 'id_persona', 'correo', 'estado',
@@ -111,6 +113,8 @@ esperado_pruebas (objeto, privilegios) AS (
   SELECT unnest(ARRAY['schema_migraciones', 'auditoria_cambio', 'catalogo_categoria', 'catalogo_curso',
                       'catalogo_temario']),
          'SELECT'
+  UNION ALL
+  SELECT 'evento_acceso', 'DELETE,INSERT,SELECT'                                         -- 032
 ),
 con_019b AS (
   SELECT current_database() ~ '_test$'
