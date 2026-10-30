@@ -46,8 +46,8 @@ describe('bandeja de reseñas del docente', () => {
       expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
     });
     const texto = fixture.nativeElement.textContent as string;
-    expect(texto).toContain('Calificó con 4 ★ al llevar el 100 % del curso');
-    expect(texto).toContain('Reseña editada (antes 2 ★, ahora 4 ★)');
+    expect(texto).toContain('Calificó con 4 estrellas al llevar el 100 % del curso');
+    expect(texto).toContain('Reseña editada (antes 2 estrellas, ahora 4 estrellas)');
     expect(texto).toContain('El gráfico aparece cuando haya reseñas en al menos dos meses distintos.');
   });
 

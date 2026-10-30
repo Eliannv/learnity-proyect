@@ -1,136 +1,167 @@
 @use '../../../../shared/estilos/cursos';
 
+/* «Mis cursos» y «Revisión de cursos» (H14): una fila por curso, como el panel de instructor de Udemy.
+   Miniatura 16:9 a la izquierda, título, métricas y estado en el centro y las acciones a la derecha.
+   Por debajo de 700px la fila se apila sin pasar del ancho de la pantalla. */
 .listado-cursos-pagina {
-  max-width: 1520px;
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
-  padding: 0 16px;
+}
 
-  .subtitulo-listado {
-    margin: 4px 0 0;
-    font-size: 15px;
-    color: var(--gris-600, #475569);
+.barra-filtros-cursos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px 0 20px;
+
+  .buscador-mis-cursos {
+    width: min(380px, 100%);
   }
 
-  .barra-filtros-cursos {
+  .filtros {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin: 16px 0 20px;
-
-    .buscador-mis-cursos {
-      width: min(380px, 100%);
-    }
-
-    .filtros {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-  }
-
-  .lista-cursos {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-    gap: 20px;
-
-    .tarjeta {
-      background: var(--blanco, #fff);
-      border: 1px solid var(--gris-200, #e2e8f0);
-      border-radius: 12px;
-      overflow: hidden;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-      // Portada a sangre en la parte superior de la tarjeta.
-      .portada-curso {
-        aspect-ratio: 16 / 7;
-        margin: -22px -22px 0;
-        background: linear-gradient(135deg, var(--azul-100, #dbeafe), var(--azul-050, #eff6ff));
-        border-bottom: 1px solid var(--gris-200, #e2e8f0);
-        display: grid;
-        place-items: center;
-        overflow: hidden;
-
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-
-        .portada-inicial {
-          font-size: 2.6rem;
-          font-weight: 800;
-          color: var(--azul-700, #2563eb);
-        }
-      }
-
-      &:hover {
-        border-color: var(--gris-300, #cbd5e1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-      }
-
-      .cabecera-curso {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
-
-        .info-curso {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-
-          .titulo-curso {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--tinta-900, #0f172a);
-          }
-
-          .meta-curso {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 4px 14px;
-            margin: 0;
-            font-size: 13px;
-            color: var(--gris-500, #64748b);
-          }
-          .valoracion {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            app-estrellas { font-size: 13px; }
-            strong { color: var(--ambar-800); }
-          }
-        }
-      }
-
-      .estado-descripcion {
-        margin: 0;
-        font-size: 14px;
-        color: var(--gris-600, #475569);
-        line-height: 1.45;
-      }
-
-      .acciones-tarjeta {
-        margin-top: 4px;
-        padding-top: 12px;
-        border-top: 1px solid var(--gris-100, #f1f5f9);
-      }
-    }
+    gap: 8px;
+    min-width: 0;
   }
 }
 
-@media (max-width: 650px) {
-  .listado-cursos-pagina .lista-cursos {
-    grid-template-columns: 1fr;
+.lista-cursos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fila-curso {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr) auto;
+  column-gap: 20px;
+  row-gap: 8px;
+  align-content: start;
+  padding: 16px;
+  transition: border-color var(--t-micro) var(--curva-salida);
+
+  &:hover {
+    border-color: var(--borde-control);
   }
-  .listado-cursos-pagina .lista-cursos .tarjeta .portada-curso {
-    margin: -16px -16px 0;
+
+  /* Todo lo que no es miniatura ni acciones va a la columna central, una línea por elemento. */
+  > * {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .portada-curso {
+    grid-column: 1;
+    grid-row: 1 / span 6;
+    align-self: start;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radio-sm);
+    background: var(--elevado);
+    overflow: hidden;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .portada-inicial {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--tinta-3);
+    }
+  }
+
+  .acciones-tarjeta {
+    grid-column: 3;
+    grid-row: 1 / span 6;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+}
+
+.cabecera-curso {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+}
+
+.info-curso {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.titulo-curso {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tinta);
+  overflow-wrap: anywhere;
+}
+
+.meta-curso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--tinta-3);
+}
+
+.valoracion {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  app-estrellas {
+    font-size: 13px;
+  }
+  strong {
+    color: var(--estrella-tinta);
+  }
+}
+
+.estado-descripcion {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--tinta-2);
+}
+
+@media (max-width: 700px) {
+  .fila-curso {
+    grid-template-columns: minmax(0, 1fr);
+
+    > *,
+    .portada-curso,
+    .acciones-tarjeta {
+      grid-column: 1;
+      grid-row: auto;
+    }
+
+    .acciones-tarjeta {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+  }
+
+  .cabecera-curso {
+    flex-direction: column;
+    gap: 8px;
   }
 }

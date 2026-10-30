@@ -37,7 +37,7 @@
       </div>
 
       <hr class="separador" />
-      <span class="eyebrow">Contraseña</span>
+      <span class="etiqueta-grupo">Contraseña</span>
       <div class="fila-doble">
         <div class="campo">
           <label class="etiqueta" for="actual">Contraseña actual</label>
@@ -79,12 +79,12 @@
 
     <aside class="lateral">
       <section class="tarjeta-suave foto">
-        <span class="eyebrow">Foto de perfil</span>
+        <span class="etiqueta-grupo">Foto de perfil</span>
         <app-foto-perfil [tamano]="96" />
       </section>
 
       <section class="tarjeta cuenta">
-        <span class="eyebrow">Tu cuenta</span>
+        <span class="etiqueta-grupo">Tu cuenta</span>
         <strong>Estudiante{{ activaDesde() ? ' · activa desde el ' + activaDesde() : '' }}</strong>
         <p class="texto-suave">Nadie más puede ver qué cursos tomas ni tu avance.</p>
         <button type="button" class="btn btn-contorno btn-bloque" (click)="auth.cerrarSesion()">Cerrar sesión</button>

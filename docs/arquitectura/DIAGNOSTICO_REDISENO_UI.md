@@ -453,6 +453,81 @@ Cada lote termina con `ng test`, `ng build`, la suite E2E completa con axe a 144
 - capturas del «después» a 1440 y 390 junto a las del «antes»;
 - crítica en el formato de §1.4 con la puntuación nueva.
 
+### 5.1 Resultado del «después» (cierre del rediseño, 30 de octubre de 2026)
+
+**Commits** en `sprint4/elian-panel-admin`: `4a119f0` (este diagnóstico), `b2089fe` (accesibilidad y desbordes encontrados al
+validar), `ee0f4dd` (Lote 1), `c55c33e` (contrato: `calificacion` en `GET /cursos`), `b9b12ef` (Lote 2), `bf04064` (Lote 3)
+y el commit del Lote 4.
+
+**Validación final**
+
+| Comprobación | Antes | Después |
+|---|---|---|
+| `ng test` | 185 pruebas | 191/191 |
+| `ng build` | sin avisos | sin avisos ni excesos de presupuesto CSS (el aula, 8 kB) |
+| E2E con axe | 34/35 (`10-resenas-docente` roto desde `fe327cc`) | **35/35** |
+| Vistas con scroll horizontal (1440 y 390) | 10 de 42 | **0 de 42** |
+| Taste, modo aplicación (`--app`) | — | **0 FAIL**, 33 WARN |
+| Taste, modo página | 131 FAIL, 116 WARN | 72 FAIL, 98 WARN |
+
+**Taste por categoría (modo página)**
+
+| Categoría | Antes | Después | Lectura |
+|---|---|---|---|
+| emoji (`★`, `⚠️`, `🖼️`, `✓`) | 22 | **0** | Estrellas SVG compartidas, texto («4 estrellas», «4,5 de 5») e íconos de Lucide |
+| eyebrow | 16 | **0** | Retiradas; las etiquetas de grupo usan `.etiqueta-grupo` (13px, minúscula de frase) |
+| gradient | 5 | **0** | Tonos planos en portadas, miniaturas, gráficos y la pantalla de acceso |
+| transition-all | 6 | **0** | Propiedades nombradas con los tokens de movimiento |
+| purple / default-font | 1 / 1 | **0 / 0** | Sin violeta; DM Sans |
+| shadow | 40 | 26 | Quedan las capas que flotan (menús, modal, toasts, tooltip del riel, tarjeta fija de la ficha) y anillos `inset` de selección |
+| hairline | 46 | 45 | Son reglas de tabla y bordes de campo: permitidos en pantallas de aplicación (`app-screens` §13) |
+| outlined-box | 102 | 94 | Bordes de 1px de tarjetas de panel: permitidos en aplicación |
+| mono | 0 | 1 | El visor `diff-cambio` muestra valores literales de la base de datos |
+
+```
+ROUND 1 — sitio público (inicio, catálogo, ficha, aula)
+Seen in one second: una foto grande a la derecha, el título en negro y un botón azul; debajo, cursos con su valoración.
+Idea (one sentence): la ficha y el catálogo se leen como un marketplace de verdad: valoración, docente y lo que incluye cada curso a la vista.
+Live thing: «Este curso incluye» calculado del temario real, la tarjeta de inscripción fija y el temario con «Expandir todas las secciones».
+Layout words by section: hero=split 50/50 / categorías=chips / destacados=grid / recientes=grid / cómo funciona=three-sentences / footer=sitemap+wordmark
+Scores: design 7.5 · usability 8 · creativity 6 · content 7 → overall 7.2
+Caps applied: ninguno (sin eyebrows, sin sombras en reposo, sin degradados).
+Top three problems:
+1. Inicio repite dos rejillas de cuatro tarjetas seguidas; una de ellas podría ser un carrusel o una fila horizontal.
+2. El hero sigue siendo una foto de stock; con fotografía propia del producto (el aula en uso) ganaría.
+3. La ficha en el móvil apila «Este curso incluye» antes de «Lo que aprenderás»; Udemy lo deja más abajo.
+```
+
+Paneles (las siete preguntas de `app-screens.md` §2.7):
+
+1. **¿La pregunta de la pantalla la responde lo más grande?** Sí. «Mis cursos» es una lista de filas con el estado en píldora
+   y la acción a la derecha; en «Usuarios» manda la tabla, con títulos de 24px.
+2. **¿Los bordes compartidos se respetan?** Sí. Las cuatro tarjetas de «Indicadores globales» terminan a la misma altura (H16),
+   «Usuarios» cabe entero a 1440px con «Editar roles» visible (H15) y las filas de «Mis cursos» no dejan huecos (H14).
+3. **¿El color está solo en los datos, el estado y la acción?** Sí. Filtros activos y pestañas en el tinte pálido del acento o
+   en tinta; los casos que piden atención en los pares pálidos de aviso y error; los gráficos en acento y gris.
+4. **¿Las cifras cuadran y se alinean?** Sí: cifras tabulares (`.num`) en tablas, indicadores, contadores y fechas.
+5. **¿Un cero se ve como cero?** Sí: «0 Al día»; y donde no hay dato, «Sin reseñas» en lugar de «0 min» o «0,0».
+6. **¿La leyenda corresponde a la marca?** Sí: serie principal en `--acento`, comparación en gris de control, ejes neutros.
+7. **En el móvil, ¿la navegación se pliega?** Sí: cuatro pestañas y «Más» (hoja que sube y baja por el mismo camino).
+
+```
+ROUND 1 — paneles de docente y administrador
+Scores: design 7.5 · usability 8 · creativity 5.5 · content 7.5 → overall 7.1
+Top three problems:
+1. «Atención rápida» desalinea la cifra cuando el título ocupa dos líneas («Solicitudes de docente»).
+2. Quedan bordes de 1px en todas las tarjetas de panel: correctos, pero un escalón de tono en los bloques secundarios aligeraría.
+3. El visor PDF del aula sigue ocupando un lienzo blanco alto sin miniatura cuando el documento no carga.
+```
+
+**Puntuación global:** el sitio público pasa de 5,9 a **7,2**; los paneles, que en §1.4 solo se evaluaron con las siete preguntas (cuatro «no»), quedan en **7,1** con las siete en «sí».
+
+**Pendiente fuera del alcance de los cuatro lotes:**
+- las burbujas decorativas de la pantalla de acceso (el linter no las marca; se mantienen por decisión del lote 4);
+- las capturas de página completa muestran los elementos fijos (barra de inscripción, menú lateral) a media página: es un efecto de la captura, no de la interfaz.
+
+Capturas finales del «después»: `…\scratchpad\despues-cierre\` (43 capturas, 0 desbordes medidos en 42 vistas).
+
 ## Apéndice A. Capturas del «antes»
 
 `C:\Users\ASUSVI~1\AppData\Local\Temp\claude\C--Users-ASUS-VIVOBOOK-Documents-Programaci-n-Practicas-preprofesionales-learnity\65a6b516-a095-43d2-99fb-e7a9686d5d3f\scratchpad\antes\`

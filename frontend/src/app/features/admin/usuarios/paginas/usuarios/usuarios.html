@@ -18,7 +18,7 @@
     @for (f of filtrosRol(); track f.valor) {
       <button type="button" class="chip-filtro" [class.activo]="rol() === f.valor" [attr.aria-pressed]="rol() === f.valor"
         (click)="filtrarRol(f.valor)">
-        {{ f.texto }}@if (f.total !== undefined) { · {{ f.total }} }
+        {{ f.texto }}@if (f.total !== undefined) { <span class="num conteo">{{ f.total }}</span> }
       </button>
     }
   </div>
@@ -62,15 +62,15 @@
             <tr [class.inactiva]="!u.activo">
               <td>
                 <div class="persona">
-                  <app-avatar [texto]="iniciales(u)" [imagen]="u.fotoUrl" [tamano]="40" />
-                  <span>
-                    <button type="button" class="enlace-nombre" (click)="abrirFicha(u)"
+                  <app-avatar [texto]="iniciales(u)" [imagen]="u.fotoUrl" [tamano]="32" />
+                  <span class="persona-texto">
+                    <button type="button" class="enlace-nombre" (click)="abrirFicha(u)" [title]="u.nombre"
                       [attr.aria-label]="'Ver la ficha de ' + u.nombre">{{ u.nombre }}</button>
                     @if (esYo(u)) { <small class="texto-suave">(tú)</small> }
                   </span>
                 </div>
               </td>
-              <td class="texto-suave">{{ u.correo }}</td>
+              <td class="texto-suave correo" [title]="u.correo">{{ u.correo }}</td>
               <td>
                 <div class="roles">
                   @for (r of u.roles; track r) {
@@ -78,7 +78,7 @@
                   }
                 </div>
               </td>
-              <td>
+              <td class="estado-cuenta">
                 <span class="punto-estado" [class.activo]="u.activo" [class.inactivo]="!u.activo">
                   {{ u.activo ? 'Activa' : 'Inactiva' }}
                 </span>
@@ -88,7 +88,7 @@
                   </span>
                 }
               </td>
-              <td class="texto-suave">{{ u.creadoEn | date: 'd MMM y' }}</td>
+              <td class="texto-suave num">{{ u.creadoEn | date: 'd MMM y' }}</td>
               <td>
                 <div class="acciones">
                   @if (u.bloqueadoHasta) {
@@ -112,7 +112,7 @@
     </div>
 
     <nav class="paginacion" aria-label="Páginas de usuarios">
-      <span class="texto-suave" aria-live="polite">
+      <span class="texto-suave num" aria-live="polite">
         Página {{ d.paginacion.pagina }} de {{ d.paginacion.totalPaginas || 1 }} · {{ d.paginacion.total }} cuentas
       </span>
       <div class="botones">

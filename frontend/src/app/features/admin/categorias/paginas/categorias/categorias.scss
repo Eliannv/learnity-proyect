@@ -25,17 +25,17 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radio);
-  background: var(--azul-100);
-  color: var(--azul-700);
+  background: var(--acento-pista);
+  color: var(--acento);
 }
-tr.inactiva .icono { background: var(--gris-100); color: var(--gris-500); }
+tr.inactiva .icono { background: var(--elevado); color: var(--tinta-3); }
 td { white-space: nowrap; }
 .acciones { display: flex; justify-content: flex-end; gap: 6px; }
 .btn-texto-peligro {
   border: 1px solid transparent;
   background: transparent;
-  color: var(--rojo-700);
-  &:hover:not(:disabled) { background: var(--rojo-050); }
+  color: var(--negativo);
+  &:hover:not(:disabled) { background: var(--pill-neg-fondo); }
 }
 .fila-esqueleto { height: 56px; margin: 8px 12px; border-radius: var(--radio); }
 
@@ -50,10 +50,10 @@ td { white-space: nowrap; }
   display: flex;
   align-items: center;
   gap: 10px;
-  input { width: 18px; height: 18px; accent-color: var(--azul-600); }
+  input { width: 18px; height: 18px; accent-color: var(--acento); }
 }
-.error { margin: 0; color: var(--rojo-700); }
-.texto-modal { margin: 0; line-height: 1.55; color: var(--tinta-800); }
+.error { margin: 0; color: var(--negativo); }
+.texto-modal { margin: 0; line-height: 1.55; color: var(--tinta); }
 
 /* Selector de ícono: radios nativos (flechas del teclado dentro del grupo) dibujados como baldosas. */
 .selector-icono {
@@ -74,18 +74,18 @@ td { white-space: nowrap; }
   display: grid;
   place-items: center;
   min-height: 44px;
-  border: 1px solid var(--gris-200);
+  border: 1px solid var(--borde);
   border-radius: var(--radio);
-  color: var(--tinta-700);
+  color: var(--tinta-2);
   cursor: pointer;
-  &:hover { background: var(--azul-050); }
+  &:hover { background: var(--acento-suave); }
   &.elegido {
-    border-color: var(--azul-700);
-    background: var(--azul-100);
-    color: var(--azul-800);
-    box-shadow: inset 0 0 0 1px var(--azul-700);
+    border-color: var(--acento);
+    background: var(--acento-pista);
+    color: var(--acento-tinta);
+    box-shadow: inset 0 0 0 1px var(--acento);
   }
-  &:has(input:focus-visible) { outline: 3px solid var(--azul-600); outline-offset: 2px; }
+  &:has(input:focus-visible) { outline: 3px solid var(--acento); outline-offset: 2px; }
 }
 
 .resumen-cursos {
@@ -95,8 +95,8 @@ td { white-space: nowrap; }
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--radio);
-  background: var(--azul-050);
-  color: var(--tinta-900);
+  background: var(--acento-suave);
+  color: var(--tinta);
 }
 .opciones-cursos { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
 .opcion {
@@ -104,13 +104,13 @@ td { white-space: nowrap; }
   align-items: flex-start;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid var(--gris-200);
+  border: 1px solid var(--borde);
   border-radius: var(--radio);
   cursor: pointer;
-  input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--azul-600); }
+  input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--acento); }
   span { display: grid; gap: 2px; }
   small { font-size: 13px; line-height: 1.45; }
-  &:has(input:checked) { border-color: var(--azul-600); background: var(--azul-050); }
+  &:has(input:checked) { border-color: var(--acento); background: var(--acento-suave); }
 }
 .pie { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 

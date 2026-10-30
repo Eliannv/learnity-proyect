@@ -12,7 +12,7 @@
   justify-content: space-between;
   gap: 20px;
   padding: 18px 20px;
-  border: 1px solid var(--gris-200, #e2e8f0);
+  border: 1px solid var(--borde);
   border-radius: 12px;
   background: #fff;
   h2 { margin: 0 0 4px; font-size: 1.25rem; }
@@ -22,17 +22,16 @@
 .instruccion-temario {
   max-width: 70ch;
   margin: 0;
-  color: var(--gris-600, #475569);
+  color: var(--tinta-2);
   line-height: 1.5;
 }
 
 .modulo {
   min-width: 0;
-  border: 1px solid var(--gris-200, #e2e8f0);
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, .05);
 }
 
 .modulo-summary {
@@ -41,9 +40,9 @@
   justify-content: space-between;
   gap: 14px;
   padding: 14px 18px;
-  background: var(--gris-050, #f8fafc);
+  background: var(--suelo);
   cursor: pointer;
-  &:focus-visible { outline: 3px solid var(--azul-600, #2563eb); outline-offset: -3px; }
+  &:focus-visible { outline: 3px solid var(--acento); outline-offset: -3px; }
 }
 
 .modulo-summary-info {
@@ -55,12 +54,12 @@
 .modulo-titulo-texto { font-weight: 700; overflow-wrap: anywhere; }
 .badge-orden-modulo {
   flex: 0 0 auto;
-  color: var(--azul-700, #1d4ed8);
+  color: var(--acento);
   font-size: .82rem;
   font-weight: 700;
 }
 .badge-contador-docs {
-  color: var(--gris-600, #475569);
+  color: var(--tinta-2);
   font-size: .82rem;
   white-space: nowrap;
 }
@@ -71,13 +70,13 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 10px 18px;
-  border-top: 1px solid var(--gris-200, #e2e8f0);
-  border-bottom: 1px solid var(--gris-200, #e2e8f0);
+  border-top: 1px solid var(--borde);
+  border-bottom: 1px solid var(--borde);
 }
 .separador-acciones {
   width: 1px;
   height: 26px;
-  background: var(--gris-200, #e2e8f0);
+  background: var(--borde);
   margin: 0 4px;
 }
 
@@ -101,16 +100,16 @@
 }
 .formulario-nuevo-modulo {
   padding: 16px 18px;
-  border: 1px dashed var(--azul-300, #93c5fd);
-  background: var(--azul-050, #f0f7ff);
+  border: 1px dashed var(--acento-pista);
+  background: var(--acento-suave);
 }
 .editor-integrado {
   margin: 12px 18px;
   padding: 16px;
-  border: 1px solid var(--azul-200, #bfdbfe);
-  border-left: 4px solid var(--azul-600, #2563eb);
+  border: 1px solid var(--acento-pista);
+  border-left: 4px solid var(--acento);
   border-radius: 8px;
-  background: var(--azul-050, #f0f7ff);
+  background: var(--acento-suave);
 }
 .casilla-preview {
   display: flex;
@@ -129,7 +128,7 @@
 }
 .contenido-fila {
   min-width: 0;
-  border: 1px solid var(--gris-200, #e2e8f0);
+  border: 1px solid var(--borde);
   border-radius: 8px;
   padding: 10px 12px;
 }
@@ -146,8 +145,8 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--gris-100, #f1f5f9);
-  color: var(--gris-700, #334155);
+  background: var(--elevado);
+  color: var(--tinta-2);
   font-weight: 700;
   font-size: .82rem;
 }
@@ -157,7 +156,7 @@
   display: grid;
   line-height: 1.35;
   strong { overflow-wrap: anywhere; }
-  small { color: var(--gris-600, #475569); }
+  small { color: var(--tinta-2); }
 }
 .contenido-acciones {
   display: flex;
@@ -183,9 +182,9 @@
   aspect-ratio: 16 / 9;
   margin: 0;
   padding: 16px;
-  border: 1px dashed var(--gris-300, #cbd5e1);
+  border: 1px dashed var(--borde-control);
   border-radius: 8px;
-  color: var(--gris-600, #475569);
+  color: var(--tinta-2);
   text-align: center;
 }
 .contenido-apoyo {
@@ -193,9 +192,9 @@
   gap: 8px;
   min-width: 0;
   padding: 12px 14px;
-  border: 1px solid var(--gris-200, #e2e8f0);
+  border: 1px solid var(--borde);
   border-radius: 8px;
-  background: var(--gris-050, #f8fafc);
+  background: var(--suelo);
   h4 { margin: 0; font-size: .95rem; }
 }
 .contenido-documento {
@@ -204,9 +203,9 @@
 }
 .contenido-vacio {
   padding: 18px;
-  color: var(--gris-600, #475569);
-  background: var(--gris-050, #f8fafc);
-  border: 1px dashed var(--gris-300, #cbd5e1);
+  color: var(--tinta-2);
+  background: var(--suelo);
+  border: 1px dashed var(--borde-control);
   border-radius: 8px;
 }
 .temario-vacio {

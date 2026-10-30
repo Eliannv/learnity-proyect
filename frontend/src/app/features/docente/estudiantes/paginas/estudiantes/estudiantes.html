@@ -43,14 +43,14 @@
         <button type="button" class="btn btn-contorno" (click)="reintentarEstudiantes()">Reintentar</button>
       </div>
     } @else if (seguimiento(); as datos) {
-      <div class="grid-stats" [attr.aria-label]="cursoId() === null ? 'Resumen general de estudiantes' : 'Resumen del curso'">
+      <div class="grid-stats" role="group" [attr.aria-label]="cursoId() === null ? 'Resumen general de estudiantes' : 'Resumen del curso'">
         <app-indicador etiqueta="Inscritos" [valor]="'' + datos.resumen.inscritos"
           [nota]="cursoId() === null ? 'En todos tus cursos' : 'En este curso'" />
         <app-indicador etiqueta="Completaron" [valor]="'' + datos.resumen.completados"
           [nota]="datos.resumen.inscritos ? (pct(datos.resumen.completados, datos.resumen.inscritos) + ' % de los inscritos') : 'Sin inscritos'" />
         <app-indicador etiqueta="Progreso promedio" [valor]="datos.resumen.progresoPromedio + ' %'" />
         <app-indicador etiqueta="Valoración"
-          [valor]="datos.resumen.valoracion.promedio === null ? '—' : (datos.resumen.valoracion.promedio | number:'1.1-1') + ' ★'"
+          [valor]="datos.resumen.valoracion.promedio === null ? '—' : (datos.resumen.valoracion.promedio | number:'1.1-1') + ' de 5'"
           [nota]="datos.resumen.valoracion.total === 0 ? 'Sin reseñas todavía'
             : datos.resumen.valoracion.total + (datos.resumen.valoracion.total === 1 ? ' reseña' : ' reseñas')" />
       </div>

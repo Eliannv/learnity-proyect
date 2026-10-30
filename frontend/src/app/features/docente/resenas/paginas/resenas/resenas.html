@@ -58,7 +58,7 @@
   <section class="resumen" aria-label="Resumen de satisfacción">
     <div class="grid-stats">
       <app-indicador etiqueta="Valoración" icono="star"
-        [valor]="d.resumen.promedio === null ? '—' : (d.resumen.promedio | number: '1.1-1') + ' ★'"
+        [valor]="d.resumen.promedio === null ? '—' : (d.resumen.promedio | number: '1.1-1') + ' de 5'"
         [nota]="d.resumen.total === 0 ? 'Sin reseñas' : d.resumen.total + (d.resumen.total === 1 ? ' reseña' : ' reseñas')" />
       <app-indicador etiqueta="Sin responder" icono="message-square-text" [valor]="'' + d.resumen.sinResponder"
         [nota]="d.resumen.sinResponder === 0 ? 'Respondiste todas' : 'Esperan tu respuesta'" />
@@ -67,7 +67,7 @@
         <ul>
           @for (n of [5, 4, 3, 2, 1]; track n) {
             <li>
-              <span>{{ n }} ★</span>
+              <span class="num">{{ n }} {{ n === 1 ? 'estrella' : 'estrellas' }}</span>
               <span class="pista"><span class="relleno" [style.width.%]="d.resumen.total ? (d.resumen.distribucion[n - 1]! / d.resumen.total) * 100 : 0"></span></span>
               <span class="cuenta">{{ d.resumen.distribucion[n - 1] }}</span>
             </li>
@@ -83,7 +83,7 @@
           [categoriasLargas]="evolucion().largas" [series]="evolucion().series" [minimo]="1" [maximo]="5" [decimales]="1" />
       } @else {
         <p class="texto-suave">El gráfico aparece cuando haya reseñas en al menos dos meses distintos.
-          @if (d.evolucion.length === 1) { Este mes: {{ d.evolucion[0]!.promedio | number: '1.1-1' }} ★ con {{ d.evolucion[0]!.total }} {{ d.evolucion[0]!.total === 1 ? 'reseña' : 'reseñas' }}. }
+          @if (d.evolucion.length === 1) { Este mes: {{ d.evolucion[0]!.promedio | number: '1.1-1' }} de 5 con {{ d.evolucion[0]!.total }} {{ d.evolucion[0]!.total === 1 ? 'reseña' : 'reseñas' }}. }
         </p>
       }
     </div>
@@ -107,11 +107,11 @@
           <app-estrellas [valor]="r.estrellas" />
           <span class="progreso-resena">
             <lucide-icon name="trending-up" [size]="15" aria-hidden="true" />
-            Calificó con {{ r.estrellas }} ★ al llevar el {{ r.progresoAlResenar }} % del curso
+            Calificó con {{ r.estrellas }} {{ r.estrellas === 1 ? 'estrella' : 'estrellas' }} al llevar el {{ r.progresoAlResenar }} % del curso
           </span>
           @if (r.editado) {
             <span class="chip chip-gris" [title]="r.editadoEn ? 'Editada el ' + (r.editadoEn | date: 'd MMM y, HH:mm') : ''">
-              Reseña editada{{ r.estrellasOriginales !== r.estrellas ? ' (antes ' + r.estrellasOriginales + ' ★, ahora ' + r.estrellas + ' ★)' : '' }}
+              Reseña editada{{ r.estrellasOriginales !== r.estrellas ? ' (antes ' + r.estrellasOriginales + ' ' + (r.estrellasOriginales === 1 ? 'estrella' : 'estrellas') + ', ahora ' + r.estrellas + ' ' + (r.estrellas === 1 ? 'estrella' : 'estrellas') + ')' : '' }}
             </span>
           }
           @if (r.reporte) {
@@ -192,7 +192,7 @@
 @if (reportando(); as r) {
   <app-modal titulo="Reportar reseña" icono="flag" [ancho]="520" (cerrar)="reportando.set(null)">
     <form class="formulario" (ngSubmit)="enviarReporte()" novalidate>
-      <p class="texto-suave cita">«{{ r.comentario ?? r.estrellas + ' ★ sin comentario' }}» — {{ r.estudiante }}</p>
+      <p class="texto-suave cita">«{{ r.comentario ?? r.estrellas + (r.estrellas === 1 ? ' estrella' : ' estrellas') + ' sin comentario' }}» — {{ r.estudiante }}</p>
       <fieldset class="motivos">
         <legend>¿Por qué la reportas?</legend>
         @for (m of motivos; track m.valor) {

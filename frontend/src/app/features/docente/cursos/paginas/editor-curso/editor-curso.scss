@@ -13,10 +13,10 @@
     gap: 6px;
     font-size: 14px;
     font-weight: 500;
-    color: var(--azul-600, #2563eb);
+    color: var(--acento);
     margin-bottom: -4px;
     &:hover {
-      color: var(--azul-800, #1e40af);
+      color: var(--acento-tinta);
       text-decoration: underline;
     }
   }
@@ -24,7 +24,7 @@
   .cabecera-editor .subtitulo-editor {
     margin: 4px 0 0;
     font-size: 15px;
-    color: var(--gris-600, #475569);
+    color: var(--tinta-2);
   }
 
   .aviso-bloqueo {
@@ -35,9 +35,9 @@
   }
 
   .aviso-publicado {
-    background: var(--verde-050, #f0fdf4);
+    background: var(--pill-pos-fondo);
     border: 1px solid #bbf7d0;
-    border-left: 4px solid var(--verde-700, #15803d);
+    border-left: 4px solid var(--positivo);
     color: #14532d;
     font-weight: 500;
   }
@@ -47,6 +47,7 @@
   }
 }
 
+/* Pasos del editor: barra fija sobre la superficie (sin cristal ni sombra); el paso activo en el tinte del acento. */
 .stepper-editor {
   position: sticky;
   top: 8px;
@@ -54,13 +55,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--gris-200, #e2e8f0);
-  border-radius: 10px;
   margin: 6px 0 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding: 6px 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
 
   .stepper-item {
     flex: 1 1 0;
@@ -69,40 +68,38 @@
     justify-content: center;
     gap: 10px;
     padding: 8px 12px;
-    border: 1px solid transparent;
-    border-radius: 6px;
+    border: 0;
+    border-radius: var(--radio-sm);
     background: transparent;
     cursor: pointer;
     font-family: inherit;
-    transition: all 0.15s ease;
+    transition:
+      background-color var(--t-micro) var(--curva-salida),
+      transform var(--t-pulsar) var(--curva-salida);
 
     &:not(:disabled):hover:not(.activo) {
-      background: rgba(0, 0, 0, 0.03);
+      background: var(--activo);
+    }
+    &:not(:disabled):active {
+      transform: scale(0.98);
     }
 
     &.activo {
-      background: #eff6ff;
-      border-color: #bfdbfe;
+      background: var(--acento-suave);
 
-      .stepper-circulo:not(.completado) {
-        background: var(--azul-600, #2563eb);
-        color: #ffffff;
+      .stepper-circulo {
+        background: var(--acento);
+        color: #fff;
       }
-
       .stepper-titulo {
-        color: var(--azul-700, #1d4ed8);
+        color: var(--acento-tinta);
         font-weight: 700;
       }
     }
 
-    &.completado:not(.activo) {
-      .stepper-circulo {
-        background: #16a34a;
-        color: #ffffff;
-      }
-      .stepper-titulo {
-        color: var(--tinta-900, #0f172a);
-      }
+    &.completado:not(.activo) .stepper-circulo {
+      background: var(--positivo);
+      color: #fff;
     }
 
     &:disabled {
@@ -111,29 +108,29 @@
     }
 
     .stepper-circulo {
+      display: inline-flex;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
+      background: var(--elevado);
+      color: var(--tinta-2);
+      font-size: 12px;
       font-weight: 700;
-      background: var(--gris-200, #e2e8f0);
-      color: var(--gris-600, #475569);
-      flex-shrink: 0;
     }
 
     .stepper-titulo {
-      font-size: 13.5px;
+      font-size: 14px;
       font-weight: 600;
-      color: var(--gris-700, #334155);
+      color: var(--tinta-2);
       white-space: nowrap;
     }
   }
 
   .stepper-flecha {
-    color: var(--gris-400, #94a3b8);
+    color: var(--tinta-3);
     font-size: 14px;
     user-select: none;
   }

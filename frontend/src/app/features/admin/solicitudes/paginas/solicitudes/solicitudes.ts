@@ -110,15 +110,15 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
 
           <div class="datos">
             <div class="dato">
-              <span class="eyebrow">Especialidad</span>
+              <span class="dato-etiqueta">Especialidad</span>
               <strong>{{ s.especialidad }}</strong>
             </div>
             <div class="dato">
-              <span class="eyebrow">Enviada</span>
+              <span class="dato-etiqueta">Enviada</span>
               <strong>{{ fecha(s.enviadaEn) }}</strong>
             </div>
             <div class="dato">
-              <span class="eyebrow">Cursos completados</span>
+              <span class="dato-etiqueta">Cursos completados</span>
               <strong>{{ s.solicitante.cursosCompletados }}</strong>
             </div>
           </div>
@@ -260,7 +260,7 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
       display: flex;
       gap: 4px;
       padding: 8px;
-      border-bottom: 1px solid var(--gris-200);
+      border-bottom: 1px solid var(--borde);
       overflow-x: auto;
       button {
         min-height: 40px;
@@ -268,17 +268,17 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
         border: 0;
         border-radius: var(--radio);
         background: none;
-        color: var(--gris-500);
+        color: var(--tinta-3);
         font-weight: 500;
         font-size: 14px;
         white-space: nowrap;
         &.activa {
-          background: var(--azul-050);
-          color: var(--azul-700);
+          background: var(--acento-suave);
+          color: var(--acento);
           font-weight: 600;
         }
         &:hover:not(.activa) {
-          background: var(--gris-100);
+          background: var(--elevado);
         }
       }
     }
@@ -293,15 +293,15 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
       background: none;
       text-align: left;
       &.seleccionado {
-        background: var(--azul-050);
-        border-left-color: var(--azul-700);
+        background: var(--acento-suave);
+        border-left-color: var(--acento);
       }
       &:hover:not(.seleccionado) {
-        background: var(--gris-100);
+        background: var(--elevado);
       }
     }
     li + li .item {
-      border-top: 1px solid var(--gris-200);
+      border-top: 1px solid var(--borde);
     }
     .vacio {
       display: flex;
@@ -309,7 +309,7 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
       align-items: center;
       gap: 10px;
       padding: 32px 16px;
-      color: var(--gris-500);
+      color: var(--tinta-3);
       text-align: center;
     }
     .quien {
@@ -357,29 +357,29 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
       align-self: flex-start;
       padding: 4px 12px;
       border-radius: 999px;
-      background: var(--ambar-100);
-      color: var(--ambar-800);
+      background: var(--pill-aviso-fondo);
+      color: var(--pill-aviso-tinta);
       font-weight: 600;
       font-size: 14px;
       &.aprobada {
-        background: var(--verde-100);
-        color: var(--verde-700);
+        background: var(--pill-pos-fondo);
+        color: var(--positivo);
       }
       &.rechazada,
       &.revocada {
-        background: var(--rojo-050);
-        color: var(--rojo-700);
+        background: var(--pill-neg-fondo);
+        color: var(--negativo);
       }
     }
     .btn-contorno-peligro {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      border: 1px solid var(--rojo-200);
-      background: var(--blanco);
-      color: var(--rojo-700);
+      border: 1px solid var(--pill-neg-fondo);
+      background: var(--superficie);
+      color: var(--negativo);
       &:hover:not(:disabled) {
-        background: var(--rojo-050);
+        background: var(--pill-neg-fondo);
       }
     }
     .revocacion {
@@ -391,10 +391,10 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
       }
     }
     .aviso.advertencia {
-      background: var(--ambar-100);
-      color: var(--ambar-800);
+      background: var(--pill-aviso-fondo);
+      color: var(--pill-aviso-tinta);
       lucide-icon {
-        color: var(--ambar-800);
+        color: var(--pill-aviso-tinta);
       }
     }
     .datos {
@@ -408,12 +408,18 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
       gap: 4px;
       padding: 12px 14px;
       border-radius: var(--radio);
-      background: var(--azul-050);
+      background: var(--elevado);
       overflow-wrap: anywhere;
       strong {
-        font-size: 17px;
+        font-size: 16px;
         font-weight: 600;
+        font-variant-numeric: tabular-nums;
       }
+    }
+    .dato-etiqueta {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--tinta-3);
     }
     .botones {
       display: flex;

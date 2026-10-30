@@ -72,7 +72,7 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
         <nav class="menu-movil solo-movil" aria-label="Menú">
           <a routerLink="/" (click)="cerrarMenus()">Inicio</a>
           <a routerLink="/cursos" (click)="cerrarMenus()">Catálogo de cursos</a>
-          <span class="eyebrow">Categorías</span>
+          <span class="etiqueta-grupo">Categorías</span>
           @for (c of categorias(); track c) {
             <a class="sub" routerLink="/cursos" [queryParams]="{ categoria: c }" (click)="cerrarMenus()">{{ c }}</a>
           }

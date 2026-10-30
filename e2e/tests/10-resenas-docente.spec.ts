@@ -71,26 +71,29 @@ test('el docente gestiona sus reseñas, exporta, ve analíticas y el administrad
   }
   await Promise.all([comoDocente.ctx.dispose(), comoAdmin.ctx.dispose()]);
 
-  // 1. Mis cursos y Estudiantes muestran inscritos y valoración; se exporta a CSV.
+  // 1. Mis cursos y Estudiantes muestran inscritos y valoración (desde fe327cc el indicador se llama «Valoración» y la
+  //    vista ya no exporta a CSV): el resumen del curso y la calificación de cada inscrito en la tabla.
   await iniciarSesionPorUI(page, docente.correo);
   await page.goto('/docente/cursos');
   const tarjeta = page.getByRole('listitem').filter({ hasText: `${MARCA} Física con reseñas` });
   await expect(tarjeta).toContainText('2 estudiantes');
   await expect(tarjeta).toContainText('(2 reseñas)');
   await page.goto(`/docente/estudiantes?curso=${curso.id}`);
-  await expect(page.getByText('Valoración del curso')).toBeVisible();
-  const [descarga] = await Promise.all([
-    page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Exportar a CSV (Excel)' }).click(),
-  ]);
-  expect(descarga.suggestedFilename()).toMatch(/^estudiantes-.*\.csv$/);
+  const resumen = page.getByRole('group', { name: 'Resumen del curso' });
+  await expect(resumen).toContainText('Valoración');
+  await expect(resumen).toContainText(/2[.,]5 de 5/);
+  await expect(resumen).toContainText('2 reseñas');
+  const inscritos = page.getByRole('region', { name: 'Estudiantes inscritos' });
+  await expect(inscritos.getByRole('row')).toHaveCount(3);
+  await expect(inscritos.getByRole('img', { name: '4 de 5 estrellas' })).toBeVisible();
+  await expect(inscritos.getByRole('img', { name: '1 de 5 estrellas' })).toBeVisible();
   await revisarAccesibilidad(page);
 
   // 2. Bandeja: avance al reseñar, edición «antes / ahora», responder y reportar.
   await page.goto('/docente/resenas');
   const deAna = page.getByRole('article', { name: /Reseña de .*ana-resenas|Reseña de/ }).filter({ hasText: 'Mejoró con los ejemplos.' });
-  await expect(deAna).toContainText('Calificó con 4 ★ al llevar el 0 % del curso');
-  await expect(deAna).toContainText('Reseña editada (antes 2 ★, ahora 4 ★)');
+  await expect(deAna).toContainText('Calificó con 4 estrellas al llevar el 0 % del curso');
+  await expect(deAna).toContainText('Reseña editada (antes 2 estrellas, ahora 4 estrellas)');
   await deAna.getByRole('button', { name: 'Responder' }).click();
   await deAna.getByLabel('Tu respuesta pública').fill('¡Gracias! Añadí más ejemplos resueltos.');
   await deAna.getByRole('button', { name: 'Publicar respuesta' }).click();

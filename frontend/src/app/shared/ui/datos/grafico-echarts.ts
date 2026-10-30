@@ -17,6 +17,9 @@ import type { SerieGrafico } from './grafico-series';
 
 export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
 
+/** La tipografía de la app en ejes, leyenda y tooltips (el lienzo no admite font-variant-numeric). */
+const FUENTE_GRAFICO = "'DM Sans', system-ui, sans-serif";
+
 @Component({
   selector: 'app-grafico-echarts',
   imports: [LucideAngularModule],
@@ -119,10 +122,10 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
 
     .selector-tipo {
       display: inline-flex;
-      background: var(--gris-100, #f1f5f9);
+      background: var(--elevado);
       padding: 3px;
       border-radius: var(--radio-md, 8px);
-      border: 1px solid var(--gris-200, #e2e8f0);
+      border: 1px solid var(--borde);
       gap: 2px;
     }
 
@@ -133,7 +136,7 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
       padding: 6px 12px;
       font-size: 13px;
       font-weight: 500;
-      color: var(--tinta-700, #475569);
+      color: var(--tinta-2);
       background: transparent;
       border: 0;
       border-radius: 6px;
@@ -144,14 +147,14 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
         box-shadow var(--t-micro) var(--curva-salida);
 
       &:hover {
-        color: var(--tinta-900, #0f172a);
+        color: var(--tinta);
       }
 
       &.activo {
-        background: var(--blanco, #ffffff);
-        color: var(--azul-700, #1d4ed8);
+        background: var(--superficie);
+        color: var(--acento-tinta);
         font-weight: 600;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        box-shadow: inset 0 0 0 1px var(--borde);
       }
     }
 
@@ -167,7 +170,7 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
 
       summary {
         cursor: pointer;
-        color: var(--azul-700, #1d4ed8);
+        color: var(--acento);
         font-weight: 600;
         padding: 4px 0;
         user-select: none;
@@ -179,10 +182,10 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
 
       .tabla-contenedor {
         margin-top: 10px;
-        border: 1px solid var(--gris-200, #e2e8f0);
+        border: 1px solid var(--borde);
         border-radius: var(--radio-md, 8px);
         overflow-x: auto;
-        background: var(--blanco, #ffffff);
+        background: var(--superficie);
         -webkit-overflow-scrolling: touch;
       }
 
@@ -194,31 +197,26 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
 
         th {
           padding: 12px 16px;
-          background: var(--azul-050, #eff6ff);
-          color: var(--gris-600, #475569);
+          border-bottom: 1px solid var(--borde);
+          color: var(--tinta-3);
           font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
+          font-weight: 500;
           text-align: left;
           white-space: nowrap;
         }
 
         th[scope="row"] {
-          background: transparent;
-          color: var(--tinta-800, #1e293b);
+          color: var(--tinta);
           font-weight: 600;
-          text-transform: none;
-          letter-spacing: normal;
           font-size: 13px;
           white-space: nowrap;
         }
 
         td {
           padding: 12px 16px;
-          border-top: 1px solid var(--gris-200, #e2e8f0);
+          border-top: 1px solid var(--borde);
           text-align: left;
-          color: var(--tinta-900, #0f172a);
+          color: var(--tinta);
           font-variant-numeric: tabular-nums;
           white-space: nowrap;
         }
@@ -275,10 +273,10 @@ export type TipoGraficoEcharts = 'barras' | 'lineas' | 'area' | 'apiladas';
         }
 
         &.activo {
-          background: var(--blanco, #ffffff);
-          color: var(--azul-700, #1d4ed8);
+          background: var(--superficie);
+          color: var(--acento-tinta);
           font-weight: 700;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+          box-shadow: inset 0 0 0 1px var(--borde);
         }
       }
 
@@ -368,9 +366,10 @@ export class GraficoEcharts {
       return;
     }
 
-    // Colores corporativos validados (Azul Learnity y Ámbar Learnity)
-    const colorPrimario = '#1d4ed8'; // var(--azul-700)
-    const colorSecundario = '#d97706'; // var(--ambar-600)
+    // Serie principal en el acento; la de comparación en gris de control (3,3:1 sobre blanco). Colores planos, sin
+    // degradados ni sombras: el dato es lo que tiene color (DIAGNOSTICO_REDISENO_UI.md, §2).
+    const colorPrimario = '#1d4ed8'; // --acento
+    const colorSecundario = '#868e9b'; // --borde-control
     const colores = [colorPrimario, colorSecundario];
 
     const opcionesSeries: echarts.SeriesOption[] = series.map((s, index) => {
@@ -383,15 +382,11 @@ export class GraficoEcharts {
           data: [...s.valores],
           barMaxWidth: 26,
           itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: index === 0 ? '#3b82f6' : '#f59e0b' },
-              { offset: 1, color },
-            ]),
-            borderRadius: [5, 5, 0, 0],
+            color,
+            borderRadius: [4, 4, 0, 0],
           },
           emphasis: {
             focus: 'series',
-            itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.2)' },
           },
         };
       } else if (tipo === 'apiladas') {
@@ -427,16 +422,7 @@ export class GraficoEcharts {
             borderColor: '#ffffff',
           },
           areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              {
-                offset: 0,
-                color: index === 0 ? 'rgba(59, 130, 246, 0.45)' : 'rgba(245, 158, 11, 0.45)',
-              },
-              {
-                offset: 1,
-                color: index === 0 ? 'rgba(29, 78, 216, 0.04)' : 'rgba(217, 119, 6, 0.04)',
-              },
-            ]),
+            color: index === 0 ? 'rgba(29, 78, 216, 0.10)' : 'rgba(134, 142, 155, 0.10)',
           },
           emphasis: {
             focus: 'series',
@@ -485,27 +471,27 @@ export class GraficoEcharts {
         itemWidth: 10,
         itemHeight: 10,
         textStyle: {
-          color: '#334155',
+          color: '#4b5563',
           fontSize: 13,
           fontWeight: 500,
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: FUENTE_GRAFICO,
         },
       },
       tooltip: {
         trigger: 'axis',
         axisPointer: {
           type: tipo === 'barras' || tipo === 'apiladas' ? 'shadow' : 'line',
-          shadowStyle: { color: 'rgba(226, 232, 240, 0.4)' },
-          lineStyle: { color: '#94a3b8', type: 'dashed' },
+          shadowStyle: { color: 'rgba(229, 231, 235, 0.45)' },
+          lineStyle: { color: '#868e9b', type: 'dashed' },
         },
-        backgroundColor: '#0f172a',
-        borderColor: '#1e293b',
+        backgroundColor: '#111827',
+        borderColor: '#111827',
         borderRadius: 8,
         padding: [10, 14],
         textStyle: {
           color: '#f8fafc',
           fontSize: 13,
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: FUENTE_GRAFICO,
         },
         formatter: (params: any) => {
           if (!Array.isArray(params) || !params.length) return '';
@@ -528,12 +514,12 @@ export class GraficoEcharts {
       xAxis: {
         type: 'category',
         data: categorias,
-        axisLine: { lineStyle: { color: '#cbd5e1' } },
+        axisLine: { lineStyle: { color: '#e5e7eb' } },
         axisTick: { show: false },
         axisLabel: {
-          color: '#64748b',
+          color: '#5f6672',
           fontSize: 12,
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: FUENTE_GRAFICO,
           margin: 12,
         },
       },
@@ -544,14 +530,14 @@ export class GraficoEcharts {
         minInterval: 1,
         splitLine: {
           lineStyle: {
-            color: '#f1f5f9',
+            color: '#f2f2f2',
             type: 'solid',
           },
         },
         axisLabel: {
-          color: '#64748b',
+          color: '#5f6672',
           fontSize: 12,
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: FUENTE_GRAFICO,
         },
       },
       series: opcionesSeries,

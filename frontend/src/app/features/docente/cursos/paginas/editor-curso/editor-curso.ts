@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import {
   type CursoDetalle,
   type DatosCuestionario,
@@ -34,8 +35,9 @@ import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/
 
 @Component({
   selector: 'app-editor-curso',
-  imports: [Esqueleto, 
+  imports: [Esqueleto,
     RouterLink,
+    LucideAngularModule,
     EstadoCursoBadge,
     FormularioFicha,
     ArbolTemario,

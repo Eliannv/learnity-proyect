@@ -270,17 +270,17 @@ lucide-icon {
   letter-spacing: -0.01em;
 }
 
+/* Los paneles la bajan a 14px con --fs-subtitulo (layout-panel). */
 .subtitulo {
   color: var(--tinta-2);
-  font-size: 16px;
+  font-size: var(--fs-subtitulo, 16px);
 }
 
-/* Antes, etiqueta en mayúsculas espaciadas sobre el título. Ahora, una línea de contexto en minúscula de frase;
-   las vistas que la usan la retiran en su lote. */
-.eyebrow {
-  font-size: 14px;
+/* Etiqueta pequeña que nombra un grupo (un menú, un bloque de datos): minúscula de frase, sin mayúsculas espaciadas. */
+.etiqueta-grupo {
+  font-size: 13px;
   font-weight: 500;
-  color: var(--tinta-2);
+  color: var(--tinta-3);
 }
 
 .texto-suave {

@@ -6,9 +6,9 @@
   display: grid;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid var(--gris-200, #e2e8f0);
+  border: 1px solid var(--borde);
   border-radius: 8px;
-  background: var(--gris-050, #f8fafc);
+  background: var(--suelo);
 }
 
 .evaluacion-resumen {
@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  p { margin: 0; color: var(--gris-700, #334155); line-height: 1.45; }
+  p { margin: 0; color: var(--tinta-2); line-height: 1.45; }
   .btn { flex: 0 0 auto; }
 }
 
@@ -38,16 +38,16 @@
   min-width: 0;
   margin: 0;
   padding: 14px;
-  border: 1px solid var(--gris-200, #e2e8f0);
-  border-left: 4px solid var(--azul-600, #2563eb);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--acento);
   border-radius: 8px;
   background: #fff;
-  > legend { padding: 0 6px; font-weight: 700; color: var(--azul-700, #1d4ed8); }
+  > legend { padding: 0 6px; font-weight: 700; color: var(--acento); }
   textarea { resize: vertical; min-height: 56px; }
   .quitar { justify-self: end; }
 }
 
-.opciones-ayuda { margin: 0; font-size: .85rem; color: var(--gris-600, #475569); }
+.opciones-ayuda { margin: 0; font-size: .85rem; color: var(--tinta-2); }
 
 .opciones { display: grid; gap: 6px; }
 
@@ -60,7 +60,7 @@
   border: 1px solid transparent;
   border-radius: 8px;
   &.correcta { border-color: #86efac; background: #f0fdf4; }
-  .marca-correcta { width: 18px; height: 18px; accent-color: var(--verde-700, #15803d); }
+  .marca-correcta { width: 18px; height: 18px; accent-color: var(--positivo); }
   .control { min-width: 0; }
 }
 
@@ -70,12 +70,12 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--gris-100, #f1f5f9);
+  background: var(--elevado);
   font-weight: 700;
   font-size: .82rem;
 }
 
-.etiqueta-correcta { color: var(--verde-700, #15803d); font-size: .8rem; font-weight: 700; }
+.etiqueta-correcta { color: var(--positivo); font-size: .8rem; font-weight: 700; }
 
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn-peligro { color: #b91c1c; border-color: #fecaca; }

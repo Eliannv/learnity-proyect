@@ -1,10 +1,11 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, input, output, signal } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import type { CategoriaPublica, CursoDetalle } from '../../../../core/api/contrato';
 
 @Component({
   selector: 'app-formulario-ficha',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, LucideAngularModule],
   templateUrl: './formulario-ficha.html',
   styleUrl: './formulario-ficha.scss',
 })

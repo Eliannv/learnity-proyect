@@ -12,11 +12,11 @@
 .progreso { display: flex; align-items: center; gap: 12px; min-width: 180px; }
 .progreso app-barra-progreso { flex: 1; }
 .progreso strong { min-width: 48px; text-align: right; }
-.chip.en-curso { background: var(--azul-100); color: var(--azul-800); font-weight: 600; }
-.chip.completado { background: var(--verde-100); color: var(--verde-700); font-weight: 600; }
+.chip.en-curso { background: var(--acento-pista); color: var(--acento-tinta); font-weight: 600; }
+.chip.completado { background: var(--pill-pos-fondo); color: var(--positivo); font-weight: 600; }
 .chip.chip-curso {
-  background: var(--azul-050, #eff6ff);
-  color: var(--azul-700, #1d4ed8);
+  background: var(--acento-suave);
+  color: var(--acento);
   font-weight: 500;
   max-width: 220px;
   overflow: hidden;

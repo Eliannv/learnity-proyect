@@ -129,9 +129,11 @@ fieldset:disabled {
     gap: 8px;
 }
 
+/* Filtro pulsado: el par pálido del acento, como .chip-filtro.activo (sin relleno saturado). */
 .filtros [aria-pressed='true'] {
-    background: var(--tinta-900);
-    color: white;
+    border-color: transparent;
+    background: var(--acento-suave);
+    color: var(--acento-tinta);
 }
 
 .modulo {

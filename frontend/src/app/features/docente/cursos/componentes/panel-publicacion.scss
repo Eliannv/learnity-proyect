@@ -6,10 +6,9 @@
   display: grid;
   gap: 16px;
   padding: 18px;
-  border: 1px solid var(--gris-200, #e2e8f0);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 3px 12px rgba(15, 23, 42, .06);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
 }
 .panel-cabecera {
   display: flex;
@@ -17,7 +16,7 @@
   align-items: flex-start;
   gap: 8px;
   h2 { font-size: 1rem; margin: 0 0 3px; }
-  .estado { color: var(--gris-600, #475569); font-size: .8rem; }
+  .estado { color: var(--tinta-2); font-size: .8rem; }
 }
 .conteo {
   flex: 0 0 auto;
@@ -35,12 +34,12 @@
   gap: 4px;
   padding: 12px 6px;
   border-radius: 8px;
-  background: var(--gris-050, #f8fafc);
+  background: var(--suelo);
   text-align: center;
   font-size: .75rem;
-  color: var(--gris-600, #475569);
+  color: var(--tinta-2);
   span { display: grid; }
-  strong { color: var(--tinta-900, #0f172a); font-size: 1.1rem; }
+  strong { color: var(--tinta); font-size: 1.1rem; }
 }
 .texto-estado { margin: 0; font-size: .85rem; line-height: 1.45; }
 .lista-pendientes {
@@ -60,17 +59,17 @@
     border: 1px solid transparent;
     border-radius: 6px;
     background: transparent;
-    color: var(--gris-700, #334155);
+    color: var(--tinta-2);
     text-align: left;
     font: inherit;
     font-size: .82rem;
     line-height: 1.4;
     cursor: pointer;
-    &:hover, &:focus-visible { background: var(--azul-050, #eff6ff); color: var(--azul-700, #1d4ed8); }
+    &:hover, &:focus-visible { background: var(--acento-suave); color: var(--acento); }
   }
 }
 .boton-enviar { width: 100%; justify-content: center; text-align: center; }
-.ayuda-panel { color: var(--gris-600, #475569); }
+.ayuda-panel { color: var(--tinta-2); }
 
 @media (max-width: 1050px) {
   .panel-preparacion { position: static; }

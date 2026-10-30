@@ -86,8 +86,8 @@ const CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     .roles .ayuda { margin: 0 0 4px; }
     .opcion {
       display: flex; align-items: flex-start; gap: 12px;
-      padding: 12px 14px; border: 1px solid var(--gris-200); border-radius: var(--radio); cursor: pointer;
-      input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--azul-600); }
+      padding: 12px 14px; border: 1px solid var(--borde); border-radius: var(--radio); cursor: pointer;
+      input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--acento); }
       span { display: grid; gap: 2px; }
       small { font-size: 13px; }
     }

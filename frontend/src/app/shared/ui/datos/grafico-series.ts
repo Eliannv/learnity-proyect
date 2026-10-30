@@ -8,7 +8,7 @@ export interface SerieGrafico {
 
 // Paleta categórica validada (validate_palette.js, modo claro): azul → ámbar, en ese orden fijo.
 // ΔE con daltonismo 32,3 y con visión normal 38,3; ambos con contraste ≥ 3:1 sobre blanco.
-const COLORES = ['var(--azul-700)', 'var(--ambar-600)'] as const;
+const COLORES = ['var(--acento)', 'var(--borde-control)'] as const;
 
 const ANCHO = 640;
 const ALTO = 220;
@@ -107,31 +107,31 @@ const MARGEN = { arriba: 12, derecha: 12, abajo: 28, izquierda: 36 };
   styles: `
     .grafico { margin: 0; display: grid; gap: 10px; }
     .leyenda { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none;
-      font-size: 13px; color: var(--tinta-700); }
+      font-size: 13px; color: var(--tinta-2); }
     .leyenda li { display: inline-flex; align-items: center; gap: 8px; }
     .muestra { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
     .muestra.linea { height: 3px; width: 16px; border-radius: 2px; }
     .lienzo { position: relative; }
     svg { display: block; width: 100%; height: 220px; overflow: visible; }
-    .rejilla { stroke: var(--gris-200); stroke-width: 1; vector-effect: non-scaling-stroke; }
-    .eje { font-size: 11px; fill: var(--gris-500); }
-    .guia { stroke: var(--gris-400); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+    .rejilla { stroke: var(--borde); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .eje { font-size: 11px; fill: var(--tinta-3); font-variant-numeric: tabular-nums; }
+    .guia { stroke: var(--borde-control); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
     .trazo { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-    .punto { stroke: var(--blanco); stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .punto { stroke: var(--superficie); stroke-width: 2; vector-effect: non-scaling-stroke; }
     .barra { transition: opacity 0.12s; }
     .barra.atenuada { opacity: 0.35; }
     .zona { fill: transparent; }
     .teclado { position: absolute; inset: 0 0 28px 0; pointer-events: none; }
     .teclado span { position: absolute; top: 0; bottom: 0; width: 24px; transform: translateX(-50%); border-radius: 4px; }
-    .teclado span:focus-visible { outline: 2px solid var(--azul-700); outline-offset: 2px; }
+    .teclado span:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
     .detalle { position: absolute; top: 4px; z-index: 2; transform: translateX(12px); display: grid; gap: 4px;
-      min-width: 150px; padding: 10px 12px; border: 1px solid var(--gris-200); border-radius: var(--radio);
-      background: var(--blanco); box-shadow: 0 8px 24px rgb(15 23 42 / 12%); font-size: 13px; color: var(--tinta-800);
+      min-width: 150px; padding: 10px 12px; border: 1px solid var(--borde); border-radius: var(--radio);
+      background: var(--superficie); box-shadow: 0 8px 24px rgb(15 23 42 / 12%); font-size: 13px; color: var(--tinta);
       pointer-events: none; }
     .detalle.izquierda { transform: translateX(calc(-100% - 12px)); }
     .detalle span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
     .detalle i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
-    .tabla-datos summary { cursor: pointer; font-size: 13px; color: var(--azul-700); font-weight: 600; width: fit-content; }
+    .tabla-datos summary { cursor: pointer; font-size: 13px; color: var(--acento); font-weight: 600; width: fit-content; }
     .tabla-datos .tabla { margin-top: 10px; font-size: 13px; }
     @media (prefers-reduced-motion: reduce) { .barra { transition: none; } }
   `,

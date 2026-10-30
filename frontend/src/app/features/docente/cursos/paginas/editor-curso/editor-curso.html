@@ -68,7 +68,7 @@
         [class.completado]="paso1Completo()"
         (click)="cambiarPaso(1)"
       >
-        <span class="stepper-circulo" aria-hidden="true">{{ paso1Completo() ? '✓' : '1' }}</span>
+        <span class="stepper-circulo" aria-hidden="true">@if (paso1Completo()) { <lucide-icon name="check" [size]="14" /> } @else { 1 }</span>
         <span class="stepper-titulo">1. Información del curso</span>
       </button>
 
@@ -82,7 +82,7 @@
         [disabled]="!curso()"
         (click)="cambiarPaso(2)"
       >
-        <span class="stepper-circulo" aria-hidden="true">{{ paso2Completo() ? '✓' : '2' }}</span>
+        <span class="stepper-circulo" aria-hidden="true">@if (paso2Completo()) { <lucide-icon name="check" [size]="14" /> } @else { 2 }</span>
         <span class="stepper-titulo">2. Módulos y contenido</span>
       </button>
 

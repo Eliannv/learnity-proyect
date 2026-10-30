@@ -81,12 +81,12 @@ const ICONO: Record<Recurso['tipo'], string> = { PDF: 'file-text', PPT: 'present
       align-items: center;
       gap: 10px;
       padding: 8px 10px;
-      border: 1px solid var(--gris-200);
+      border: 1px solid var(--borde);
       border-radius: var(--radio);
-      background: var(--blanco);
+      background: var(--superficie);
     }
     .nombre { display: grid; min-width: 0; strong, small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
-    .peligro { color: var(--rojo-700); }
+    .peligro { color: var(--negativo); }
     .vacio { margin: 0; font-size: 0.88rem; }
     .texto-modal { margin: 0 0 20px; line-height: 1.55; }
     .pie { display: flex; justify-content: flex-end; gap: 10px; }

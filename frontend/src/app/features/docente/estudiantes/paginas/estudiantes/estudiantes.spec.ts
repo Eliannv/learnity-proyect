@@ -38,7 +38,7 @@ describe('seguimiento docente', () => {
     });
     expect(fixture.nativeElement.textContent).toContain('21');
     expect(fixture.nativeElement.textContent).toContain('Valoración');
-    expect(fixture.nativeElement.textContent).toMatch(/4[.,]5 ★/);
+    expect(fixture.nativeElement.textContent).toMatch(/4[.,]5 de 5/);
     expect(fixture.nativeElement.textContent).toContain('2 reseñas');
     expect(fixture.nativeElement.querySelector('td app-estrellas')?.getAttribute('aria-label')).toBe('4 de 5 estrellas');
     const siguiente = [...fixture.nativeElement.querySelectorAll('button')].find(

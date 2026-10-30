@@ -185,8 +185,8 @@ describe('reseñas del administrador', () => {
     });
     const historial = fixture.nativeElement.querySelector('.historial')?.textContent?.replace(/\s+/g, ' ');
     expect(historial).toContain('Historial completo (2)');
-    expect(historial).toContain('Publicó la reseña · Beto Ruiz · 3 ★');
-    expect(historial).toContain('Editó la reseña · Beto Ruiz · 3 ★ → 1 ★');
+    expect(historial).toContain('Publicó la reseña · Beto Ruiz · 3 estrellas');
+    expect(historial).toContain('Editó la reseña · Beto Ruiz · 3 estrellas → 1 estrella');
   });
 
   it('ocultar un reporte pide confirmación, resuelve y quita el reporte de la lista', async () => {

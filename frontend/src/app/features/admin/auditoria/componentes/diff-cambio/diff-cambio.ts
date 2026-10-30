@@ -66,21 +66,22 @@ import { filasDiff } from './filas-diff';
   styles: `
     :host { display: grid; gap: 10px; }
     .casilla { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
-    .contenedor { overflow-x: auto; border: 1px solid var(--gris-200); border-radius: var(--radio); }
-    .diff { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 8px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--gris-100); }
-    thead th { background: var(--gris-100); font-size: 12px; text-transform: uppercase; letter-spacing: .02em; }
+    /* Cabecera sin banda (12px, minúscula de frase); el antes y el después en los pares pálidos de error y de éxito. */
+    .contenedor { position: relative; overflow-x: auto; border: 1px solid var(--borde); border-radius: var(--radio); }
+    .diff { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+    th, td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--regla); }
+    thead th { font-size: 12px; font-weight: 500; color: var(--tinta-3); border-bottom-color: var(--borde); }
     tbody th { font-weight: 500; white-space: nowrap; }
     .valor { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--fuente-mono, ui-monospace, monospace); }
-    .antes { background: var(--rojo-050); color: var(--rojo-700); }
-    .despues { background: var(--verde-100); color: var(--verde-700); }
+    .antes { background: var(--pill-neg-fondo); color: var(--pill-neg-tinta); }
+    .despues { background: var(--pill-pos-fondo); color: var(--pill-pos-tinta); }
     .signo { margin-right: 6px; font-weight: 700; }
     .marca {
-      display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px;
-      background: var(--ambar-100); color: var(--ambar-800); font-size: 11px; font-weight: 600;
+      display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 999px;
+      background: var(--pill-aviso-fondo); color: var(--pill-aviso-tinta); font-size: 12px; font-weight: 600;
     }
-    .vacio { color: var(--gris-500); }
-    .sin-valor { font-style: italic; color: var(--tinta-700); }
+    .vacio { color: var(--tinta-3); }
+    .sin-valor { font-style: italic; color: var(--tinta-2); }
   `,
 })
 export class DiffCambio {

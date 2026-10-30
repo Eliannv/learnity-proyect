@@ -132,6 +132,8 @@
             <img
               [src]="url"
               alt="Vista previa de portada del curso"
+              width="640"
+              height="360"
               class="portada-img"
               [class.oculta]="errorCargaPortada()"
               loading="lazy"
@@ -140,7 +142,7 @@
             />
             @if (errorCargaPortada()) {
               <div class="aviso-error-imagen" role="alert">
-                <span class="icono-aviso" aria-hidden="true">⚠️</span>
+                <lucide-icon class="icono-aviso" name="triangle-alert" [size]="22" aria-hidden="true" />
                 <p>No se pudo cargar la imagen desde este enlace.</p>
                 <small>Comprueba que sea una URL directa y accesible a un archivo JPG, PNG o WebP.</small>
               </div>
@@ -148,7 +150,7 @@
           </div>
         } @else {
           <div class="caja-portada-preview vacia">
-            <span class="icono-placeholder" aria-hidden="true">🖼️</span>
+            <lucide-icon class="icono-placeholder" name="image" [size]="28" aria-hidden="true" />
             <small class="texto-placeholder">Escribe una URL para previsualizar aquí la portada (16:9)</small>
           </div>
         }

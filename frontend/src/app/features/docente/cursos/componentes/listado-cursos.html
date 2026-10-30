@@ -5,7 +5,7 @@
         {{ admin() ? 'Revisión de cursos' : 'Mis cursos' }}
       </h1>
 
-      <p class="subtitulo-listado">
+      <p class="subtitulo">
         {{
           admin()
             ? 'Decide los cursos pendientes y supervisa el resto del catálogo: publicados, suspendidos, rechazados y borradores.'
@@ -19,7 +19,7 @@
         Actualizar
       </button>
       @if (!admin()) {
-        <a class="btn btn-acento" routerLink="/docente/cursos/nuevo/editar">
+        <a class="btn btn-primario" routerLink="/docente/cursos/nuevo/editar">
           Nuevo curso
         </a>
       }
@@ -48,7 +48,8 @@
         @for (f of filtros; track f.valor) {
           <button
             type="button"
-            class="btn btn-contorno"
+            class="chip-filtro"
+            [class.activo]="filtro() === f.valor"
             [attr.aria-pressed]="filtro() === f.valor"
             (click)="filtro.set(f.valor)"
           >
@@ -69,11 +70,11 @@
   } @else {
     <ul class="lista lista-cursos">
       @for (c of visibles(); track c.id) {
-        <li class="tarjeta bloque">
+        <li class="tarjeta fila-curso">
           <!-- La portada identifica el curso de un vistazo; si falta o no carga, se muestra su inicial. -->
           <div class="portada-curso" aria-hidden="true">
             @if (c.portadaUrl && !portadaFallida(c.id)) {
-              <img [src]="c.portadaUrl" alt="" loading="lazy" (error)="marcarPortadaFallida(c.id)" />
+              <img [src]="c.portadaUrl" alt="" width="320" height="180" loading="lazy" (error)="marcarPortadaFallida(c.id)" />
             } @else {
               <span class="portada-inicial">{{ inicial(c.titulo) }}</span>
             }
@@ -83,15 +84,15 @@
             <div class="info-curso">
               <h2 class="titulo-curso">{{ c.titulo }}</h2>
               <p class="meta-curso">
-                <span>{{ c.modulos }} {{ c.modulos === 1 ? 'módulo' : 'módulos' }}</span>
+                <span class="num">{{ c.modulos }} {{ c.modulos === 1 ? 'módulo' : 'módulos' }}</span>
                 @if (c.estudiantes !== undefined) {
-                  <span>{{ c.estudiantes }} {{ c.estudiantes === 1 ? 'estudiante' : 'estudiantes' }}</span>
+                  <span class="num">{{ c.estudiantes }} {{ c.estudiantes === 1 ? 'estudiante' : 'estudiantes' }}</span>
                 }
                 @if (c.calificacion; as cal) {
                   @if (cal.promedio !== null) {
-                    <span class="valoracion">
-                      <app-estrellas [valor]="cal.promedio" />
+                    <span class="valoracion num">
                       <strong>{{ cal.promedio | number:'1.1-1' }}</strong>
+                      <app-estrellas [valor]="cal.promedio" />
                       ({{ cal.total }} {{ cal.total === 1 ? 'reseña' : 'reseñas' }})
                     </span>
                   } @else {
@@ -101,7 +102,7 @@
                 @if (admin()) {
                   <span>Docente: <strong>{{ c.docente }}</strong></span>
                   @if (c.inscritos !== undefined) {
-                    <span>{{ c.inscritos }} {{ c.inscritos === 1 ? 'inscrito' : 'inscritos' }}</span>
+                    <span class="num">{{ c.inscritos }} {{ c.inscritos === 1 ? 'inscrito' : 'inscritos' }}</span>
                   }
                 }
               </p>

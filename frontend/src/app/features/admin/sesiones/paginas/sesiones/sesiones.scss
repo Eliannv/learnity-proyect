@@ -19,7 +19,7 @@
 
 .subtitulo {
   margin: 4px 0 0;
-  color: var(--gris-500);
+  color: var(--tinta-3);
 }
 
 /* ------------------------------------------------ Estado Base de Datos */
@@ -28,10 +28,9 @@
   flex-direction: column;
   gap: 20px;
   padding: 22px 24px;
-  border: 1px solid var(--gris-200);
+  border: 1px solid var(--borde);
   border-radius: var(--radio-md);
-  background: var(--blanco);
-  box-shadow: var(--sombra);
+  background: var(--superficie);
 }
 
 .cabecera-bd {
@@ -56,9 +55,9 @@
   width: 44px;
   height: 44px;
   border-radius: var(--radio-md);
-  background: var(--azul-050);
-  color: var(--azul-700);
-  border: 1px solid var(--azul-100);
+  background: var(--acento-suave);
+  color: var(--acento);
+  border: 1px solid var(--acento-pista);
   flex-shrink: 0;
 }
 
@@ -66,14 +65,14 @@
   margin: 0;
   font-size: 18px;
   font-weight: 700;
-  color: var(--tinta-900);
+  color: var(--tinta);
   letter-spacing: -0.01em;
 }
 
 .subtitulo-bd {
   margin: 3px 0 0;
   font-size: 13px;
-  color: var(--gris-500);
+  color: var(--tinta-3);
 }
 
 .badge-salud {
@@ -82,11 +81,11 @@
   gap: 6px;
   padding: 4px 12px;
   border-radius: 999px;
-  background: var(--verde-050);
-  color: var(--verde-700);
+  background: var(--pill-pos-fondo);
+  color: var(--positivo);
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid var(--verde-100);
+  border: 1px solid var(--pill-pos-fondo);
   white-space: nowrap;
 }
 
@@ -94,9 +93,16 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--verde-600);
+  background: var(--positivo);
   box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
   animation: pulso-verde 2s infinite;
+}
+
+/* Movimiento reducido: el punto queda fijo (el texto «en línea» ya lo dice). */
+@media (prefers-reduced-motion: reduce) {
+  .punto-pulso {
+    animation: none;
+  }
 }
 
 @keyframes pulso-verde {
@@ -125,14 +131,13 @@
   gap: 12px;
   padding: 16px 18px;
   border-radius: var(--radio-md);
-  background: var(--gris-100);
-  border: 1px solid var(--gris-200);
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  background: var(--elevado);
+  border: 1px solid var(--borde);
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--t-micro) var(--curva-salida);
 
   &:hover {
-    border-color: var(--azul-300);
-    box-shadow: 0 2px 6px rgb(15 23 42 / 6%);
-    transform: translateY(-1px);
+    border-color: var(--borde-control);
   }
 
   .encabezado-tarjeta {
@@ -143,7 +148,7 @@
     dt {
       font-size: 13px;
       font-weight: 600;
-      color: var(--gris-600);
+      color: var(--tinta-2);
       margin: 0;
     }
   }
@@ -158,20 +163,20 @@
     flex-shrink: 0;
 
     &.icono-azul {
-      background: var(--azul-100);
-      color: var(--azul-700);
+      background: var(--acento-pista);
+      color: var(--acento);
     }
     &.icono-morado {
-      background: var(--morado-100);
-      color: var(--morado-600);
+      background: var(--acento-suave);
+      color: var(--acento);
     }
     &.icono-verde {
-      background: var(--verde-100);
-      color: var(--verde-700);
+      background: var(--pill-pos-fondo);
+      color: var(--positivo);
     }
     &.icono-ambar {
-      background: var(--ambar-100);
-      color: var(--ambar-800);
+      background: var(--pill-aviso-fondo);
+      color: var(--pill-aviso-tinta);
     }
     &.icono-indigo {
       background: #e0e7ff;
@@ -188,7 +193,7 @@
     .valor {
       font-size: 24px;
       font-weight: 800;
-      color: var(--tinta-900);
+      color: var(--tinta);
       line-height: 1.15;
       letter-spacing: -0.02em;
     }
@@ -201,17 +206,17 @@
       white-space: nowrap;
       font-size: 13px;
       font-weight: 600;
-      color: var(--tinta-800);
-      background: var(--blanco);
+      color: var(--tinta);
+      background: var(--superficie);
       padding: 4px 8px;
       border-radius: var(--radio-sm);
-      border: 1px solid var(--gris-200);
+      border: 1px solid var(--borde);
     }
 
     .detalle {
       font-size: 12px;
       line-height: 1.35;
-      color: var(--gris-500);
+      color: var(--tinta-3);
     }
   }
 }
@@ -232,9 +237,9 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: var(--radio);
-  background: var(--rojo-050);
-  border: 1px solid var(--rojo-200);
-  color: var(--rojo-700);
+  background: var(--pill-neg-fondo);
+  border: 1px solid var(--pill-neg-fondo);
+  color: var(--negativo);
 
   .contenido-error {
     display: flex;
@@ -273,14 +278,14 @@
       margin: 0;
       font-size: 18px;
       font-weight: 700;
-      color: var(--tinta-900);
+      color: var(--tinta);
     }
 
     .chip-contador {
       font-weight: 600;
-      background: var(--azul-050);
-      color: var(--azul-700);
-      border: 1px solid var(--azul-100);
+      background: var(--acento-suave);
+      color: var(--acento);
+      border: 1px solid var(--acento-pista);
     }
   }
 }
@@ -319,20 +324,20 @@ td {
 }
 
 .chip-propia {
-  background: var(--azul-050);
-  color: var(--azul-700);
+  background: var(--acento-suave);
+  color: var(--acento);
   font-weight: 600;
 }
 
 tr.propia td {
-  background: var(--azul-050);
+  background: var(--acento-suave);
 }
 
 .peligro {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--rojo-700);
+  color: var(--negativo);
 }
 
 .fila-esqueleto {

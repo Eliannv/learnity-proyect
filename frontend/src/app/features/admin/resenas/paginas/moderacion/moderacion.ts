@@ -48,6 +48,11 @@ const ACCION: Record<EntradaHistorialResena['accion'], string> = {
 const FILTROS_INICIALES: FiltrosResenasAdmin = { estado: 'todas', curso: null, estrellas: null, q: '' };
 const MAX_MOTIVO = 300;
 
+/** «1 estrella», «3 estrellas»: el historial nombra la valoración con palabras, no con un carácter de estrella. */
+function estrellasTexto(n: number): string {
+  return `${n} ${n === 1 ? 'estrella' : 'estrellas'}`;
+}
+
 /**
  * Reseñas del administrador: acceso total (todas, también las borradas y ocultadas, con su historial completo),
  * filtros, ocultar o restaurar, retirar la respuesta del docente y los reportes de los docentes.
@@ -227,8 +232,9 @@ export class ModeracionResenas {
 
   protected cambio(h: EntradaHistorialResena): string {
     if (h.estrellasAnterior !== null && h.estrellasNueva !== null && h.estrellasAnterior !== h.estrellasNueva) {
-      return `${h.estrellasAnterior} ★ → ${h.estrellasNueva} ★`;
+      return `${estrellasTexto(h.estrellasAnterior)} → ${estrellasTexto(h.estrellasNueva)}`;
     }
-    return h.accion === 'CREADA' || h.accion === 'REPUBLICADA' ? `${h.estrellasNueva} ★` : '';
+    const publicada = h.accion === 'CREADA' || h.accion === 'REPUBLICADA';
+    return publicada && h.estrellasNueva !== null ? estrellasTexto(h.estrellasNueva) : '';
   }
 }

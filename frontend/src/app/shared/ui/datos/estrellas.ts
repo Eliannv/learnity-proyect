@@ -7,7 +7,7 @@ const POSICIONES = [0, 26, 52, 78, 104];
 /**
  * Puntuación de 0 a 5 con estrellas parciales (solo lectura). Los lectores de pantalla
  * oyen «4,5 de 5 estrellas»; las estrellas dibujadas son decorativas.
- * Son SVG (no el carácter ★, que depende de la fuente): cada estrella mide 1em, así que siguen el tamaño de letra
+ * Son SVG (no un carácter de estrella, que depende de la fuente): cada estrella mide 1em, así que siguen el tamaño de letra
  * del contexto. La pista va en --borde y el relleno en --estrella, recortado con clip-path para las fracciones.
  */
 @Component({

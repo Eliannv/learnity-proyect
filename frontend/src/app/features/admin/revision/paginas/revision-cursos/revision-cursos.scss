@@ -5,7 +5,7 @@
   display: flex;
   gap: 4px;
   margin-bottom: 16px;
-  border-bottom: 1px solid var(--gris-200);
+  border-bottom: 1px solid var(--borde);
   overflow-x: auto;
 
   button {
@@ -16,17 +16,17 @@
     border: 0;
     border-bottom: 2px solid transparent;
     background: none;
-    color: var(--gris-500);
+    color: var(--tinta-3);
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
 
     &.activa {
-      border-bottom-color: var(--azul-700);
-      color: var(--tinta-900);
+      border-bottom-color: var(--acento);
+      color: var(--tinta);
     }
     &:hover {
-      color: var(--tinta-900);
+      color: var(--tinta);
     }
   }
 }
@@ -35,8 +35,8 @@
   min-width: 22px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--gris-100);
-  color: var(--tinta-900);
+  background: var(--elevado);
+  color: var(--tinta);
   font-size: 12px;
   text-align: center;
 }

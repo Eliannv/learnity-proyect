@@ -37,7 +37,7 @@ import { Avatar } from '../../shared/ui/marca/avatar';
 
         @if (auth.esDocente() || auth.esAdmin()) {
           <div class="grupo">
-            <span class="eyebrow">Paneles</span>
+            <span class="etiqueta-grupo">Paneles</span>
             @if (auth.esDocente()) {
               <a routerLink="/docente" (click)="cerrar()" role="menuitem">
                 <lucide-icon name="presentation" [size]="18" /> Panel del docente
@@ -140,7 +140,7 @@ import { Avatar } from '../../shared/ui/marca/avatar';
       flex-direction: column;
       padding: 8px;
       border-top: 1px solid var(--gris-200);
-      .eyebrow {
+      .etiqueta-grupo {
         padding: 6px 10px 4px;
         font-size: 12px;
         color: var(--tinta-3);
