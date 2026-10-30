@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { test, expect, request, type Page } from '@playwright/test';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { CONTRASENA_PRUEBA, crearCuenta, MARCA } from '../soporte/bd';
+import { conFixtures, CONTRASENA_PRUEBA, crearCuenta, MARCA } from '../soporte/bd';
 import { CONTRASENA_UI, DIR_BUZON, RAIZ_TMP, URL_API, URL_WEB } from '../soporte/entorno';
 import { correoNuevo, iniciarSesionPorUI, otroContexto } from '../soporte/ui';
 
@@ -110,5 +110,39 @@ test('el administrador crea una cuenta por invitación, revisa su ficha y cierra
   // En su navegador, la siguiente navegación ya no tiene sesión.
   await pagina.goto('/perfil');
   await expect(pagina).toHaveURL(/\/login/);
+  await contexto.close();
+});
+
+test('el administrador revoca el rol docente de una solicitud aprobada y la persona ve el motivo', async ({ page, context }) => {
+  const admin = await crearCuenta(['ESTUDIANTE', 'ADMIN'], 'admin-revoca');
+  const docente = await crearCuenta(['ESTUDIANTE', 'DOCENTE'], 'docente-revocado');
+  // Apellido propio: las cuentas de prueba llevan sus roles como apellidos y otras specs también aprueban solicitudes.
+  await conFixtures(async (f) => {
+    await f.query("UPDATE persona SET apellidos = 'Revocado' WHERE id_persona = $1", [docente.idPersona]);
+    await f.query(
+      `INSERT INTO solicitud_docente (id_persona, especialidad, motivo, estado, revisada_por, revisada_en)
+       VALUES ($1, 'Programación web', $2, 'APROBADA', $3, now())`,
+      [docente.idPersona, 'Quiero enseñar programación web a estudiantes que empiezan desde cero en la carrera.', admin.idPersona]);
+  });
+
+  await iniciarSesionPorUI(page, admin.correo);
+  await page.goto('/admin/solicitudes');
+  await page.getByRole('tab', { name: 'Aprobadas' }).click();
+  await page.getByRole('button', { name: new RegExp(`${MARCA} Revocado`) }).click();
+  await page.getByRole('button', { name: 'Revocar rol docente' }).click();
+  const modal = page.getByRole('dialog', { name: /¿Revocar el rol docente de/ });
+  await expect(modal.getByText('No tiene cursos publicados.')).toBeVisible();
+  await modal.getByLabel(/Motivo/).fill('Publicó material que infringe derechos de autor.');
+  await revisarAccesibilidad(page);
+  await modal.getByRole('button', { name: 'Revocar rol docente' }).click();
+  await expect(page.getByText(/ya no es docente\./)).toBeVisible();
+  await page.getByRole('tab', { name: 'Revocadas' }).click();
+  await expect(page.getByText('Motivo: Publicó material que infringe derechos de autor.')).toBeVisible();
+
+  const { contexto, pagina } = await otroContexto(context);
+  await iniciarSesionPorUI(pagina, docente.correo);
+  await pagina.goto('/perfil');
+  await expect(pagina.getByText('Tu rol de docente fue retirado')).toBeVisible();
+  await expect(pagina.getByText('Publicó material que infringe derechos de autor.')).toBeVisible();
   await contexto.close();
 });

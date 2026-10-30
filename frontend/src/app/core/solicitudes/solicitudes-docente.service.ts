@@ -2,31 +2,16 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import type { EstadoSolicitud, SolicitudDocente } from '../api/contrato';
 
-export type EstadoSolicitud = 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
-
-export interface SolicitudDocente {
-  id: number;
-  estado: EstadoSolicitud;
-  especialidad: string;
-  motivo: string;
-  observacion: string | null;
-  enviadaEn: string;
-  revisadaEn: string | null;
-  solicitante: {
-    nombres: string;
-    apellidos: string;
-    correo: string;
-    estudianteDesde: string;
-    cursosCompletados: number;
-  };
-}
+// Tipos generados desde docs/api/openapi.yaml (ADR-008); se reexportan con los nombres de siempre.
+export type { EstadoSolicitud, SolicitudDocente } from '../api/contrato';
 
 export type DecisionSolicitud = { decision: 'APROBAR' } | { decision: 'RECHAZAR'; observacion: string };
 
 /**
  * RF-05 y RF-22 · Solicitud para ser docente.
- * El estudiante la envía y consulta su estado; el administrador la aprueba o la rechaza.
+ * El estudiante la envía y consulta su estado; el administrador la aprueba, la rechaza o revoca el rol aprobado.
  */
 @Injectable({ providedIn: 'root' })
 export class SolicitudesDocenteService {
@@ -49,5 +34,10 @@ export class SolicitudesDocenteService {
 
   decidir(id: number, decision: DecisionSolicitud): Promise<SolicitudDocente> {
     return firstValueFrom(this.http.put<SolicitudDocente>(`${this.api}/admin/solicitudes/${id}`, decision));
+  }
+
+  /** D3 · Retira el rol docente de una solicitud aprobada. Sus cursos publicados siguen publicados. */
+  revocar(id: number, motivo: string): Promise<SolicitudDocente> {
+    return firstValueFrom(this.http.post<SolicitudDocente>(`${this.api}/admin/solicitudes/${id}/revocacion`, { motivo }));
   }
 }

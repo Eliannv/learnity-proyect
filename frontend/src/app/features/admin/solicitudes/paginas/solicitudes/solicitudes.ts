@@ -10,18 +10,24 @@ import {
   SolicitudesDocenteService,
 } from '../../../../../core/solicitudes/solicitudes-docente.service';
 import { Avatar } from '../../../../../shared/ui/marca/avatar';
+import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
 
 const PESTANAS: { estado: EstadoSolicitud; texto: string }[] = [
   { estado: 'PENDIENTE', texto: 'Pendientes' },
   { estado: 'APROBADA', texto: 'Aprobadas' },
   { estado: 'RECHAZADA', texto: 'Rechazadas' },
+  { estado: 'REVOCADA', texto: 'Revocadas' },
 ];
+
+const NOMBRE_ESTADO: Record<EstadoSolicitud, string> = {
+  PENDIENTE: 'Pendiente', APROBADA: 'Aprobada', RECHAZADA: 'Rechazada', REVOCADA: 'Revocada',
+};
 
 const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digit' });
 
 @Component({
   selector: 'app-solicitudes',
-  imports: [Esqueleto, FormsModule, LucideAngularModule, Avatar],
+  imports: [Esqueleto, FormsModule, LucideAngularModule, Avatar, Modal],
   template: `
     <header class="encabezado">
       <div>
@@ -96,8 +102,9 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
               <h2>{{ s.solicitante.nombres }} {{ s.solicitante.apellidos }}</h2>
               <span class="texto-suave">{{ s.solicitante.correo }} · Estudiante desde el {{ fecha(s.solicitante.estudianteDesde) }}</span>
             </div>
-            <span class="estado" [class.aprobada]="s.estado === 'APROBADA'" [class.rechazada]="s.estado === 'RECHAZADA'">
-              {{ s.estado === 'APROBADA' ? 'Aprobada' : s.estado === 'RECHAZADA' ? 'Rechazada' : 'Pendiente' }}
+            <span class="estado" [class.aprobada]="s.estado === 'APROBADA'" [class.rechazada]="s.estado === 'RECHAZADA'"
+              [class.revocada]="s.estado === 'REVOCADA'">
+              {{ nombreEstado[s.estado] }}
             </span>
           </div>
 
@@ -155,18 +162,72 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
                 <lucide-icon name="check" [size]="18" /> {{ decidiendo() ? 'Guardando…' : 'Aprobar y asignar rol Docente' }}
               </button>
             </div>
+          } @else if (s.estado === 'REVOCADA' && s.revocacion) {
+            <div class="aviso error">
+              <lucide-icon name="circle-x" [size]="18" />
+              <span>Aprobada el {{ fecha(s.revisadaEn) }} y revocada el {{ fecha(s.revocacion.revocadaEn) }}.
+                Motivo: {{ s.revocacion.motivo }}</span>
+            </div>
           } @else {
             <div class="aviso" [class.exito]="s.estado === 'APROBADA'">
               <lucide-icon [name]="s.estado === 'APROBADA' ? 'circle-check' : 'info'" [size]="18" />
               <span>
-                {{ s.estado === 'APROBADA' ? 'Aprobada' : 'Rechazada' }} el {{ fecha(s.revisadaEn) }}.
+                {{ nombreEstado[s.estado] }} el {{ fecha(s.revisadaEn) }}.
                 @if (s.observacion) { Observación: {{ s.observacion }} }
               </span>
             </div>
+            @if (s.estado === 'APROBADA') {
+              <div class="botones">
+                <button type="button" class="btn btn-contorno-peligro" (click)="abrirRevocacion(s)">
+                  <lucide-icon name="user-x" [size]="18" /> Revocar rol docente
+                </button>
+              </div>
+            }
           }
         </section>
       }
     </div>
+
+    @if (revocando(); as s) {
+      <app-modal [titulo]="'¿Revocar el rol docente de ' + s.solicitante.nombres + '?'" icono="user-x" [ancho]="520"
+        (cerrar)="cerrarRevocacion()">
+        <form class="revocacion" (submit)="$event.preventDefault(); revocar(s)" novalidate>
+          <p>Dejará de ser docente desde su próxima acción: no podrá crear ni editar cursos. Su cuenta de estudiante sigue
+            activa y podrá volver a solicitar el rol.</p>
+          <div class="aviso" [class.advertencia]="s.cursosPublicados > 0" role="note">
+            <lucide-icon [name]="s.cursosPublicados > 0 ? 'circle-alert' : 'info'" [size]="18" />
+            @if (s.cursosPublicados > 0) {
+              <span>Tiene <strong>{{ s.cursosPublicados }} {{ s.cursosPublicados === 1 ? 'curso publicado' : 'cursos publicados' }}</strong>.
+                Seguirán publicados, pero ya no podrá editarlos. Si alguno no debe seguir visible, suspéndelo desde
+                Revisión de cursos.</span>
+            } @else {
+              <span>No tiene cursos publicados.</span>
+            }
+          </div>
+          <div class="campo">
+            <label class="etiqueta" for="motivo-revocacion">Motivo (lo verá en su perfil y en el correo)</label>
+            <textarea id="motivo-revocacion" class="control" maxlength="300" [(ngModel)]="motivoRevocacion" name="motivo"
+              [class.invalido]="faltaMotivo()" [attr.aria-invalid]="faltaMotivo()" [disabled]="decidiendo()"
+              [attr.aria-describedby]="faltaMotivo() ? 'motivo-revocacion-error' : 'motivo-revocacion-ayuda'"
+              placeholder="Explica por qué se retira el rol…"></textarea>
+            @if (faltaMotivo()) {
+              <span id="motivo-revocacion-error" class="error-campo">Escribe el motivo para poder revocar.</span>
+            } @else {
+              <span id="motivo-revocacion-ayuda" class="ayuda">{{ motivoRevocacion.length }}/300 caracteres.</span>
+            }
+          </div>
+          @if (errorDecision()) {
+            <div class="aviso error" role="alert"><lucide-icon name="circle-alert" [size]="18" /><span>{{ errorDecision() }}</span></div>
+          }
+          <div class="botones">
+            <button type="button" class="btn btn-contorno" (click)="cerrarRevocacion()">Cancelar</button>
+            <button type="submit" class="btn btn-peligro" [disabled]="decidiendo()">
+              {{ decidiendo() ? 'Revocando…' : 'Revocar rol docente' }}
+            </button>
+          </div>
+        </form>
+      </app-modal>
+    }
   `,
   styles: `
     :host {
@@ -304,9 +365,36 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
         background: var(--verde-100);
         color: var(--verde-700);
       }
-      &.rechazada {
+      &.rechazada,
+      &.revocada {
         background: var(--rojo-050);
         color: var(--rojo-700);
+      }
+    }
+    .btn-contorno-peligro {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--rojo-200);
+      background: var(--blanco);
+      color: var(--rojo-700);
+      &:hover:not(:disabled) {
+        background: var(--rojo-050);
+      }
+    }
+    .revocacion {
+      display: grid;
+      gap: 16px;
+      p {
+        margin: 0;
+        line-height: 1.55;
+      }
+    }
+    .aviso.advertencia {
+      background: var(--ambar-100);
+      color: var(--ambar-800);
+      lucide-icon {
+        color: var(--ambar-800);
       }
     }
     .datos {
@@ -381,8 +469,15 @@ export class Solicitudes {
       ? 'No hay solicitudes pendientes. Cuando un estudiante pida ser docente, aparecerá aquí.'
       : this.estado() === 'APROBADA'
         ? 'Todavía no has aprobado solicitudes.'
-        : 'No hay solicitudes rechazadas.',
+        : this.estado() === 'REVOCADA'
+          ? 'No has revocado el rol docente a nadie.'
+          : 'No hay solicitudes rechazadas.',
   );
+  protected readonly nombreEstado = NOMBRE_ESTADO;
+  /** Solicitud aprobada cuyo rol se va a revocar (modal abierto). */
+  protected readonly revocando = signal<SolicitudDocente | null>(null);
+  protected readonly faltaMotivo = signal(false);
+  protected motivoRevocacion = '';
   protected observacion = '';
   protected readonly fecha = fechaCorta;
 
@@ -421,7 +516,8 @@ export class Solicitudes {
   }
 
   protected cuando(s: SolicitudDocente): string {
-    const f = new Date(this.estado() === 'PENDIENTE' ? s.enviadaEn : (s.revisadaEn ?? s.enviadaEn));
+    const f = new Date(this.estado() === 'PENDIENTE' ? s.enviadaEn
+      : (s.revocacion?.revocadaEn ?? s.revisadaEn ?? s.enviadaEn));
     return f.toDateString() === new Date().toDateString() ? `Hoy, ${hora.format(f)}` : fechaCorta(f.toISOString());
   }
 
@@ -455,6 +551,42 @@ export class Solicitudes {
     }
   }
 
+  protected abrirRevocacion(s: SolicitudDocente) {
+    this.limpiarDecision();
+    this.motivoRevocacion = '';
+    this.faltaMotivo.set(false);
+    this.revocando.set(s);
+  }
+  protected cerrarRevocacion() {
+    if (this.decidiendo()) return;
+    this.revocando.set(null);
+    this.errorDecision.set(null);
+  }
+  /** D3 · Retira el rol: la solicitud sale de «Aprobadas» y pasa a «Revocadas». */
+  protected async revocar(s: SolicitudDocente) {
+    const motivo = this.motivoRevocacion.trim();
+    if (!motivo) {
+      this.faltaMotivo.set(true);
+      return;
+    }
+    this.faltaMotivo.set(false);
+    this.errorDecision.set(null);
+    this.decidiendo.set(true);
+    try {
+      await this.api.revocar(s.id, motivo);
+      this.solicitudes.update((lista) => lista.filter((x) => x.id !== s.id));
+      this.seleccionada.set(null);
+      this.revocando.set(null);
+      this.aviso.set({
+        tipo: 'exito',
+        texto: `${s.solicitante.nombres} ya no es docente. Verá el motivo en su perfil y le enviamos un correo.`,
+      });
+    } catch (e) {
+      this.errorDecision.set(mensajeDeError(e, 'La revocación'));
+    } finally {
+      this.decidiendo.set(false);
+    }
+  }
   private limpiarDecision() {
     this.observacion = '';
     this.faltaObservacion.set(false);

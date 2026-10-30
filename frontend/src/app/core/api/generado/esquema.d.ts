@@ -1968,7 +1968,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    estado?: "PENDIENTE" | "APROBADA" | "RECHAZADA";
+                    estado?: "PENDIENTE" | "APROBADA" | "RECHAZADA" | "REVOCADA";
                 };
                 header?: never;
                 path?: never;
@@ -2017,6 +2017,103 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/solicitudes/{id}/revocacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revocar el rol docente de una solicitud aprobada (administrador)
+         * @description La solicitud pasa a REVOCADA con quién, cuándo y el motivo; se retira el rol DOCENTE (conserva los demás) y el perfil docente queda INACTIVO. Sus cursos publicados siguen publicados, pero sin el rol ya no puede editarlos (se aplica en su siguiente petición). La persona recibe un correo con el motivo y puede volver a solicitar el rol. Queda en la auditoría con el administrador como autor.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Se recortan los espacios de los extremos. */
+                        motivo: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Rol docente revocado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SolicitudDocente"];
+                    };
+                };
+                /** @description Motivo vacío o de más de 300 caracteres, o `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`). También, sin detalles, si el cuerpo no es un JSON válido (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No existe */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La solicitud no está APROBADA (SOLICITUD_NO_APROBADA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                413: components["responses"]["CuerpoDemasiadoGrande"];
+                415: components["responses"]["TipoNoAdmitido"];
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -6071,7 +6168,7 @@ export interface components {
             /** @example 4 */
             id: number;
             /** @enum {string} */
-            estado: "PENDIENTE" | "APROBADA" | "RECHAZADA";
+            estado: "PENDIENTE" | "APROBADA" | "RECHAZADA" | "REVOCADA";
             /** @example Programación web */
             especialidad: string;
             motivo: string;
@@ -6081,6 +6178,14 @@ export interface components {
             enviadaEn: string;
             /** Format: date-time */
             revisadaEn: string | null;
+            /** @description Solo REVOCADA: cuándo y por qué un administrador retiró el rol docente aprobado. */
+            revocacion: {
+                /** Format: date-time */
+                revocadaEn: string;
+                motivo: string;
+            } | null;
+            /** @description Cursos PUBLICADO del perfil docente de la persona. Siguen publicados si se revoca el rol. */
+            cursosPublicados: number;
             solicitante: {
                 nombres: string;
                 apellidos: string;

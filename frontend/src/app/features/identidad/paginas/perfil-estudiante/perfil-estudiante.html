@@ -117,6 +117,12 @@
               <blockquote class="observacion">{{ miSolicitud()!.observacion }}</blockquote>
             }
             <p>Puedes enviar una nueva solicitud con más detalles.</p>
+          } @else if (miSolicitud()?.estado === 'REVOCADA' && miSolicitud()!.revocacion; as revocacion) {
+            <span class="estado-solicitud rechazada">
+              <lucide-icon name="circle-x" [size]="16" /> Tu rol de docente fue retirado
+            </span>
+            <blockquote class="observacion">{{ revocacion.motivo }}</blockquote>
+            <p>Desde el {{ fechaCorta(revocacion.revocadaEn) }} ya no puedes editar tus cursos. Si quieres, envía una nueva solicitud.</p>
           } @else {
             <p>Solicita el rol de Docente para crear y publicar tus propios cursos. Conservarás tus cursos e inscripciones como estudiante.</p>
           }
