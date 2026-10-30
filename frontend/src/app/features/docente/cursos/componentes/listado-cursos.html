@@ -30,17 +30,32 @@
   <ng-content select="[pestanas-admin]" />
 
   @if (!admin()) {
-    <div class="filtros" aria-label="Filtrar cursos por estado">
-      @for (f of filtros; track f.valor) {
-        <button
-          type="button"
-          class="btn btn-contorno"
-          [attr.aria-pressed]="filtro() === f.valor"
-          (click)="filtro.set(f.valor)"
-        >
-          {{ f.texto }}
-        </button>
-      }
+    <div class="barra-filtros-cursos">
+      <div class="buscador-mis-cursos">
+        <app-buscador-curso
+          etiqueta="Buscar en mis cursos"
+          placeholder="Buscar curso por título…"
+          [cursos]="cursos()"
+          [cursoId]="filtroCursoId()"
+          [permitirTodos]="true"
+          textoTodos="Todos mis cursos"
+          (seleccion)="alSeleccionarCurso($event)"
+          (terminoCambio)="alCambiarTermino($event)"
+        />
+      </div>
+
+      <div class="filtros" aria-label="Filtrar cursos por estado">
+        @for (f of filtros; track f.valor) {
+          <button
+            type="button"
+            class="btn btn-contorno"
+            [attr.aria-pressed]="filtro() === f.valor"
+            (click)="filtro.set(f.valor)"
+          >
+            {{ f.texto }}
+          </button>
+        }
+      </div>
     </div>
   }
 

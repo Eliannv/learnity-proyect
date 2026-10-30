@@ -17,6 +17,8 @@ interface GrupoEmbudo {
   lecciones: (LeccionEmbudo & { pct: number; caida: number })[];
 }
 
+import { BuscadorCurso } from '../../../../../shared/ui/cursos/buscador-curso';
+
 const TIPO: Record<LeccionEmbudo['tipo'], { texto: string; icono: string }> = {
   VIDEO: { texto: 'Vídeo', icono: 'circle-play' },
   DOCUMENTO: { texto: 'PDF', icono: 'file-text' },
@@ -26,7 +28,7 @@ const TIPO: Record<LeccionEmbudo['tipo'], { texto: string; icono: string }> = {
 /** Rendimiento de los cursos del docente: actividad mensual, finalización, conversión y embudo por lección. */
 @Component({
   selector: 'app-analiticas-docente',
-  imports: [DecimalPipe, RouterLink, LucideAngularModule, Esqueleto, GraficoEcharts, Indicador],
+  imports: [DecimalPipe, RouterLink, LucideAngularModule, BuscadorCurso, Esqueleto, GraficoEcharts, Indicador],
   templateUrl: './analiticas.html',
   styleUrl: './analiticas.scss',
 })
@@ -87,10 +89,14 @@ export class AnaliticasDocente {
     void this.cargar();
   }
 
-  protected cambiarCurso(valor: string): void {
-    this.curso.set(valor ? Number(valor) : null);
-    void this.router.navigate([], { relativeTo: this.ruta, queryParams: { curso: this.curso() ?? undefined }, replaceUrl: true });
+  protected cambiarCursoId(id: number | null): void {
+    this.curso.set(id);
+    void this.router.navigate([], { relativeTo: this.ruta, queryParams: { curso: id ?? undefined }, replaceUrl: true });
     void this.cargar();
+  }
+
+  protected cambiarCurso(valor: string): void {
+    this.cambiarCursoId(valor ? Number(valor) : null);
   }
 
   protected async cargar(): Promise<void> {

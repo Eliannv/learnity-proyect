@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
+import { ICONOS } from '../../../../../shared/ui/marca/iconos';
 import type { CursoResumen, SeguimientoDocente } from '../../../../../core/api/contrato';
 import { DocenteCursosApi } from '../../../cursos/cursos.api';
 import { SeguimientoDocenteApi } from '../../estudiantes.api';
@@ -24,7 +26,8 @@ describe('seguimiento docente', () => {
     }) };
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: DocenteCursosApi, useValue: cursosApi },
-        { provide: SeguimientoDocenteApi, useValue: seguimientoApi }],
+        { provide: SeguimientoDocenteApi, useValue: seguimientoApi },
+        { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) }],
     });
     const fixture = TestBed.createComponent(EstudiantesCurso);
     fixture.detectChanges();
@@ -76,7 +79,8 @@ describe('seguimiento docente', () => {
     };
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: DocenteCursosApi, useValue: { misCursos: vi.fn().mockResolvedValue({ items: [curso] }) } },
-        { provide: SeguimientoDocenteApi, useValue: seguimientoApi }],
+        { provide: SeguimientoDocenteApi, useValue: seguimientoApi },
+        { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) }],
     });
     const fixture = TestBed.createComponent(EstudiantesCurso);
     fixture.detectChanges();
@@ -84,9 +88,11 @@ describe('seguimiento docente', () => {
       expect(seguimientoApi.listar).toHaveBeenCalledWith(null, 1);
       expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
     });
-    const selector = fixture.nativeElement.querySelector('select#curso-seguimiento') as HTMLSelectElement;
-    selector.value = '7';
-    selector.dispatchEvent(new Event('change'));
+    const input = fixture.nativeElement.querySelector('input#curso-seguimiento') as HTMLInputElement;
+    input.focus();
+    fixture.detectChanges();
+    const opcion = fixture.nativeElement.querySelector('#curso-seguimiento-opt-7') as HTMLElement;
+    opcion.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     fixture.detectChanges();
     await vi.waitFor(() => {
       expect(seguimientoApi.listar).toHaveBeenLastCalledWith(7, 1);

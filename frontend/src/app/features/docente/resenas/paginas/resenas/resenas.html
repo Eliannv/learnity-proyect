@@ -7,13 +7,18 @@
 </header>
 
 <form class="filtros" role="search" aria-label="Filtrar reseñas" (submit)="$event.preventDefault()">
-  <label class="campo">
-    <span>Curso</span>
-    <select class="control" [ngModel]="filtro().curso ?? ''" name="curso" (ngModelChange)="cambiar('curso', $event)">
-      <option value="">Todos los cursos</option>
-      @for (c of datos()?.cursos ?? []; track c.id) { <option [value]="c.id">{{ c.titulo }}</option> }
-    </select>
-  </label>
+  <div class="campo campo-buscador-curso">
+    <app-buscador-curso
+      etiqueta="Curso"
+      [mostrarEtiqueta]="true"
+      [cursos]="datos()?.cursos ?? []"
+      [cursoId]="filtro().curso ? +filtro().curso! : null"
+      [permitirTodos]="true"
+      textoTodos="Todos los cursos"
+      placeholder="Buscar curso…"
+      (seleccion)="cambiar('curso', $event ? '' + $event : '')"
+    />
+  </div>
   <label class="campo">
     <span>Calificación</span>
     <select class="control" [ngModel]="filtro().estrellas ?? ''" name="estrellas" (ngModelChange)="cambiar('estrellas', $event)">

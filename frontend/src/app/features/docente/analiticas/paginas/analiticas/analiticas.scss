@@ -2,6 +2,7 @@
 
 .cabecera { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
 .subtitulo { margin: 4px 0 0; color: var(--gris-500); }
+.selector-curso-analiticas { width: min(340px, 100%); }
 .selector { width: min(340px, 100%); span { font-size: 13px; font-weight: 600; color: var(--tinta-700); } }
 
 .contenido { display: grid; gap: 20px; }

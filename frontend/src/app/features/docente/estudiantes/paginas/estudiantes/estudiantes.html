@@ -22,13 +22,17 @@
     </div>
   } @else {
     <div class="selector-curso">
-      <label for="curso-seguimiento">Filtrar por curso</label>
-      <select id="curso-seguimiento" class="control" [value]="cursoId() ?? ''" (change)="cambiarCurso($event)">
-        <option value="">Todos los estudiantes (todos mis cursos)</option>
-        @for (curso of cursos(); track curso.id) {
-          <option [value]="curso.id">{{ curso.titulo }}</option>
-        }
-      </select>
+      <app-buscador-curso
+        idCampo="curso-seguimiento"
+        etiqueta="Filtrar por curso"
+        [mostrarEtiqueta]="true"
+        [cursos]="cursos()"
+        [cursoId]="cursoId()"
+        [permitirTodos]="true"
+        textoTodos="Todos los estudiantes (todos mis cursos)"
+        placeholder="Buscar curso o ver todos…"
+        (seleccion)="cambiarCursoId($event)"
+      />
     </div>
 
     @if (cargaEstudiantes.ocupada()) {

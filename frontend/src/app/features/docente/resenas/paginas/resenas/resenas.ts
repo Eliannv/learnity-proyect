@@ -18,6 +18,8 @@ import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.s
 import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
 import { DocenteResenasApi } from '../../resenas.api';
 
+import { BuscadorCurso } from '../../../../../shared/ui/cursos/buscador-curso';
+
 type Filtro = Required<Pick<FiltrosBandejaResenas, 'pagina'>> & Omit<FiltrosBandejaResenas, 'pagina' | 'limite'>;
 
 const MOTIVOS: { valor: MotivoReporte; texto: string; ayuda: string }[] = [
@@ -30,7 +32,7 @@ const MOTIVOS: { valor: MotivoReporte; texto: string; ayuda: string }[] = [
 @Component({
   selector: 'app-resenas-docente',
   imports: [
-    DatePipe, DecimalPipe, FormsModule, RouterLink, LucideAngularModule, Avatar, Esqueleto, Estrellas,
+    DatePipe, DecimalPipe, FormsModule, RouterLink, LucideAngularModule, Avatar, BuscadorCurso, Esqueleto, Estrellas,
     GraficoSeries, Indicador, Modal,
   ],
   templateUrl: './resenas.html',

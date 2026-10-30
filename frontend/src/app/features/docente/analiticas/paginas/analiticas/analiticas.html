@@ -3,13 +3,18 @@
     <h1 class="titulo-pagina">Analíticas</h1>
     <p class="subtitulo">Cómo avanzan tus estudiantes y dónde se detienen.</p>
   </div>
-  <label class="campo selector">
-    <span>Curso</span>
-    <select class="control" [value]="curso() ?? ''" (change)="cambiarCurso($any($event.target).value)">
-      <option value="">Todos mis cursos</option>
-      @for (c of datos()?.cursos ?? []; track c.id) { <option [value]="c.id" [selected]="c.id === curso()">{{ c.titulo }}</option> }
-    </select>
-  </label>
+  <div class="selector-curso-analiticas">
+    <app-buscador-curso
+      etiqueta="Curso"
+      [mostrarEtiqueta]="true"
+      [cursos]="datos()?.cursos ?? []"
+      [cursoId]="curso()"
+      [permitirTodos]="true"
+      textoTodos="Todos mis cursos"
+      placeholder="Buscar curso o seleccionar…"
+      (seleccion)="cambiarCursoId($event)"
+    />
+  </div>
 </header>
 
 @if (carga.ocupada() && !datos()) {

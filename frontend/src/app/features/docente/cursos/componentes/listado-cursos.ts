@@ -17,6 +17,7 @@ import {
 import type { CursoDelDocente, CursoRevision } from '../../../../core/api/contrato';
 import { Peticion } from '../../../../core/estado/peticion';
 import { EstadoCursoBadge } from '../../../../shared/ui/cursos/estado-curso';
+import { BuscadorCurso } from '../../../../shared/ui/cursos/buscador-curso';
 import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 
 /** En «Mis cursos» llegan también inscritos y valoración; en Revisión, inscritos y suspensión. */
@@ -35,7 +36,7 @@ const VACIO_ADMIN: Partial<Record<EstadoCurso, string>> = {
 
 @Component({
   selector: 'app-listado-cursos',
-  imports: [Esqueleto, DecimalPipe, RouterLink, EstadoCursoBadge, Estrellas],
+  imports: [Esqueleto, DecimalPipe, RouterLink, BuscadorCurso, EstadoCursoBadge, Estrellas],
   templateUrl: './listado-cursos.html',
   styleUrl: './listado-cursos.scss',
 })
@@ -48,8 +49,10 @@ export class ListadoCursos {
   protected readonly p = new Peticion();
   protected readonly editable = esEditable;
   protected readonly filtro = signal<EstadoCurso | 'TODOS'>('TODOS');
+  protected readonly filtroCursoId = signal<number | null>(null);
+  protected readonly textoBusqueda = signal('');
 
-  private readonly cursos = signal<CursoListado[]>([]);
+  readonly cursos = signal<CursoListado[]>([]);
   private readonly portadasFallidas = signal<ReadonlySet<number>>(new Set());
   private version = 0;
 
@@ -65,11 +68,21 @@ export class ListadoCursos {
     { valor: 'SUSPENDIDO', texto: 'Suspendidos' },
   ];
 
-  protected readonly visibles = computed(() =>
-    this.admin()
-      ? this.cursos()
-      : this.cursos().filter((curso) => this.filtro() === 'TODOS' || curso.estado === this.filtro()),
-  );
+  protected readonly visibles = computed(() => {
+    let lista = this.cursos();
+    if (!this.admin()) {
+      if (this.filtro() !== 'TODOS') {
+        lista = lista.filter((curso) => curso.estado === this.filtro());
+      }
+      if (this.filtroCursoId() !== null) {
+        lista = lista.filter((curso) => curso.id === this.filtroCursoId());
+      } else if (this.textoBusqueda().trim()) {
+        const q = this.textoBusqueda().trim().toLowerCase();
+        lista = lista.filter((curso) => curso.titulo.toLowerCase().includes(q));
+      }
+    }
+    return lista;
+  });
 
   protected readonly textoVacio = computed(() =>
     this.admin()
@@ -85,6 +98,14 @@ export class ListadoCursos {
         void this.cargar();
       });
     });
+  }
+
+  protected alSeleccionarCurso(id: number | null): void {
+    this.filtroCursoId.set(id);
+  }
+
+  protected alCambiarTermino(termino: string): void {
+    this.textoBusqueda.set(termino);
   }
 
   protected async cargar(): Promise<void> {

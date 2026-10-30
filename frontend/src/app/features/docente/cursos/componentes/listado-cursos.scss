@@ -13,6 +13,25 @@
     color: var(--gris-600, #475569);
   }
 
+  .barra-filtros-cursos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 16px 0 20px;
+
+    .buscador-mis-cursos {
+      width: min(380px, 100%);
+    }
+
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  }
+
   .lista-cursos {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));

@@ -8,13 +8,14 @@ import { DocenteCursosApi } from '../../../cursos/cursos.api';
 import { SeguimientoDocenteApi } from '../../estudiantes.api';
 import { Avatar } from '../../../../../shared/ui/marca/avatar';
 import { BarraProgreso } from '../../../../../shared/ui/datos/barra-progreso';
+import { BuscadorCurso } from '../../../../../shared/ui/cursos/buscador-curso';
 import { Indicador } from '../../../../../shared/ui/datos/indicador';
 import { Estrellas } from '../../../../../shared/ui/datos/estrellas';
 
 /** Seguimiento paginado: permite filtrar por un curso específico o ver todos los estudiantes. */
 @Component({
   selector: 'app-estudiantes-curso',
-  imports: [Esqueleto, DatePipe, DecimalPipe, RouterLink, Avatar, BarraProgreso, Indicador, Estrellas],
+  imports: [Esqueleto, DatePipe, DecimalPipe, RouterLink, Avatar, BarraProgreso, BuscadorCurso, Indicador, Estrellas],
   templateUrl: './estudiantes.html',
   styleUrl: './estudiantes.scss',
 })
@@ -61,9 +62,7 @@ export class EstudiantesCurso {
     }
   }
 
-  protected cambiarCurso(evento: Event): void {
-    const valor = (evento.target as HTMLSelectElement).value;
-    const id = valor === '' ? null : Number(valor);
+  protected cambiarCursoId(id: number | null): void {
     if (id !== null && !this.cursos().some((curso) => curso.id === id)) return;
     this.cursoId.set(id);
     void this.router.navigate([], {
@@ -72,6 +71,12 @@ export class EstudiantesCurso {
       replaceUrl: true,
     });
     void this.cargarEstudiantes(id, 1);
+  }
+
+  protected cambiarCurso(evento: Event): void {
+    const valor = (evento.target as HTMLSelectElement).value;
+    const id = valor === '' ? null : Number(valor);
+    this.cambiarCursoId(id);
   }
 
   protected cargarPagina(pagina: number): void {
