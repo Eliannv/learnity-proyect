@@ -11,7 +11,6 @@ import {
   type OrdenCatalogo,
   type PaginaCursos,
 } from '../../catalogo.api';
-import { BuscadorMovil } from '../../../../shared/ui/navegacion/buscador-movil';
 import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
 import { metaCurso } from '../../../../shared/ui/cursos/formato-curso';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
@@ -25,7 +24,7 @@ const NIVELES: { valor: NivelCurso; texto: string }[] = [
 
 @Component({
   selector: 'app-catalogo',
-  imports: [Esqueleto, NgTemplateOutlet, LucideAngularModule, TarjetaCurso, Modal, BuscadorMovil],
+  imports: [Esqueleto, NgTemplateOutlet, LucideAngularModule, TarjetaCurso, Modal],
   templateUrl: './catalogo.html',
   styleUrl: './catalogo.scss',
 })

@@ -3,7 +3,6 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { BuscadorMovil } from '../../../../shared/ui/navegacion/buscador-movil';
 import { metaCurso } from '../../../../shared/ui/cursos/formato-curso';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
 import type { Tono } from '../../../../shared/ui/tipos-ui';
@@ -15,7 +14,7 @@ import {
 
 @Component({
   selector: 'app-inicio',
-  imports: [Esqueleto, RouterLink, LucideAngularModule, TarjetaCurso, BuscadorMovil],
+  imports: [Esqueleto, RouterLink, LucideAngularModule, TarjetaCurso],
   templateUrl: './inicio.html',
   styleUrl: './inicio.scss',
 })

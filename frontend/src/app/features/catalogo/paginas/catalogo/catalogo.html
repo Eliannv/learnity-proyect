@@ -24,9 +24,6 @@
   </div>
 </ng-template>
 
-<!-- Buscador (solo teléfono; en escritorio está en el header) -->
-<app-buscador-movil [valor]="q() ?? ''" />
-
 <div class="contenedor catalogo">
   <aside class="lateral oculto-movil" aria-label="Filtros del catálogo">
     <ng-container [ngTemplateOutlet]="filtros" />

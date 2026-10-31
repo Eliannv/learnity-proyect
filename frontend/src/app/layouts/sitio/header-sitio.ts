@@ -22,7 +22,7 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
   host: { '(document:keydown.escape)': 'cerrarMenus()', '(window:scroll)': 'alDesplazar()' },
   template: `
     <header [class.desplazado]="desplazado()">
-      <div class="barra">
+      <div class="barra" [class.oculta-movil-busqueda]="buscadorMovilActivo()">
 
         <a routerLink="/" class="logo-enlace" aria-label="Learnity, inicio"><app-logo [tamano]="24" /></a>
 
@@ -53,6 +53,16 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
         </div>
 
         <div class="acciones">
+          <button
+            type="button"
+            class="btn-lupa-movil solo-movil"
+            (click)="abrirBuscadorMovil()"
+            aria-label="Buscar cursos"
+            title="Buscar"
+          >
+            <lucide-icon name="search" [size]="20" aria-hidden="true" />
+          </button>
+
           @if (auth.autenticado()) {
             @if (!auth.esDocente() && !auth.esAdmin()) {
               <a class="enlace-marca oculto-movil" routerLink="/perfil" [queryParams]="{ solicitud: 1 }">Enseña en Learnity</a>
@@ -67,6 +77,34 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
           }
         </div>
       </div>
+
+      @if (buscadorMovilActivo()) {
+        <div class="barra-busqueda-movil solo-movil" role="search">
+          <button
+            type="button"
+            class="btn-volver-busqueda"
+            (click)="cerrarBuscadorMovil()"
+            aria-label="Cerrar búsqueda y volver"
+            title="Atrás"
+          >
+            <lucide-icon name="arrow-left" [size]="20" aria-hidden="true" />
+          </button>
+          <div class="contenedor-buscador-movil">
+            <app-buscador-curso
+              variante="header"
+              etiqueta="Buscar cursos"
+              placeholder="Buscar cursos…"
+              [permitirTodos]="false"
+              [mostrarBotonVerTodos]="true"
+              [autoEnfocar]="true"
+              [buscarRemoto]="buscarCatalogo"
+              (cursoSeleccionado)="alElegirCurso($event); cerrarBuscadorMovil()"
+              (buscarTodos)="alBuscarTodos($event); cerrarBuscadorMovil()"
+            />
+          </div>
+        </div>
+        <div class="telon-busqueda-movil solo-movil" (click)="cerrarBuscadorMovil()" aria-hidden="true"></div>
+      }
 
       @if (menuMovil()) {
         <nav class="menu-movil solo-movil" aria-label="Menú">
@@ -109,6 +147,7 @@ export class HeaderSitio {
   protected readonly categorias = signal<string[]>([]);
   protected readonly menuMovil = signal(false);
   protected readonly menuCategorias = signal(false);
+  protected readonly buscadorMovilActivo = signal(false);
   /** La regla inferior de la cabecera solo aparece cuando el contenido pasa por debajo. */
   protected readonly desplazado = signal(false);
 
@@ -125,6 +164,11 @@ export class HeaderSitio {
 
   constructor() {
     void this.cargarCategorias();
+    this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe(() => {
+        this.cerrarMenus();
+      });
   }
 
   protected readonly buscarCatalogo = async (termino: string): Promise<OpcionCursoBusqueda[]> => {
@@ -162,8 +206,18 @@ export class HeaderSitio {
     if (desplazado !== this.desplazado()) this.desplazado.set(desplazado);
   }
 
+  protected abrirBuscadorMovil(): void {
+    this.cerrarMenus();
+    this.buscadorMovilActivo.set(true);
+  }
+
+  protected cerrarBuscadorMovil(): void {
+    this.buscadorMovilActivo.set(false);
+  }
+
   protected cerrarMenus() {
     this.menuMovil.set(false);
     this.menuCategorias.set(false);
+    this.buscadorMovilActivo.set(false);
   }
 }

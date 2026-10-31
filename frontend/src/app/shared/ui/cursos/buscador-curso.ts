@@ -1,11 +1,13 @@
 import {
   Component,
   ElementRef,
+  afterNextRender,
   computed,
   inject,
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { LUCIDE_ICONS, LucideAngularModule, LucideIconProvider } from 'lucide-angular';
 import { ICONOS } from '../marca/iconos';
@@ -63,6 +65,7 @@ function normalizar(texto: string): string {
           #campo
           [id]="idCampo()"
           type="search"
+          [autofocus]="autoEnfocar()"
           [placeholder]="placeholderActual()"
           [attr.aria-label]="etiqueta()"
           autocomplete="off"
@@ -166,6 +169,7 @@ export class BuscadorCurso {
   readonly permitirTodos = input<boolean>(true);
   readonly textoTodos = input<string>('Todos los cursos');
   readonly mostrarBotonVerTodos = input<boolean>(false);
+  readonly autoEnfocar = input<boolean>(false);
   readonly buscarRemoto = input<((termino: string) => Promise<OpcionCursoBusqueda[]>) | null>(null);
   /** Qué se elige, para los mensajes del desplegable («Buscando categorías…»). */
   readonly nombre = input<{ singular: string; plural: string }>({ singular: 'curso', plural: 'cursos' });
@@ -178,7 +182,21 @@ export class BuscadorCurso {
   readonly terminoCambio = output<string>();
 
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
+  readonly campoRef = viewChild<ElementRef<HTMLInputElement>>('campo');
   private espera: ReturnType<typeof setTimeout> | undefined;
+
+  constructor() {
+    afterNextRender(() => {
+      if (this.autoEnfocar()) {
+        this.enfocar();
+      }
+    });
+  }
+
+  enfocar(): void {
+    const el = this.campoRef()?.nativeElement ?? this.elemento.nativeElement.querySelector('input');
+    el?.focus();
+  }
 
   protected readonly consulta = signal('');
   protected readonly escribiendo = signal(false);
@@ -314,6 +332,22 @@ export class BuscadorCurso {
   }
 
   protected alTeclar(evento: KeyboardEvent, campo: HTMLInputElement): void {
+    if (evento.key === 'Enter') {
+      evento.preventDefault();
+      const opciones = this.opcionesVisibles();
+      const idx = this.indiceActivo();
+      if (idx >= 0 && idx < opciones.length) {
+        this.seleccionar(opciones[idx]!);
+      } else if (idx === opciones.length && this.mostrarBotonVerTodos()) {
+        this.ejecutarBuscarTodos();
+      } else if (opciones.length === 1) {
+        this.seleccionar(opciones[0]!);
+      } else if (this.mostrarBotonVerTodos() && this.consulta().trim()) {
+        this.ejecutarBuscarTodos();
+      }
+      return;
+    }
+
     if (!this.desplegado()) {
       return;
     }

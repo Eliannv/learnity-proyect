@@ -19,6 +19,12 @@ header {
   height: var(--alto-header);
   /* A todo el ancho de la ventana, como Udemy; el contenido de las páginas sigue centrado. */
   padding: 0 24px;
+
+  &.oculta-movil-busqueda {
+    @media (max-width: 900px) {
+      display: none !important;
+    }
+  }
 }
 
 .logo-enlace {
@@ -68,6 +74,136 @@ header {
   align-items: center;
   gap: 12px;
   margin-left: auto;
+}
+
+/* Botón de lupa en versión móvil (estilo YouTube) */
+.btn-lupa-movil {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tinta);
+  cursor: pointer;
+  transition:
+    background-color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
+
+  &:hover {
+    background: var(--activo);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+/* Barra de búsqueda móvil estilo YouTube */
+.barra-busqueda-movil {
+  position: relative;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--alto-header);
+  padding: 0 12px 0 6px;
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde);
+  animation: deslizar-abajo var(--t-micro) var(--curva-salida);
+}
+
+@keyframes deslizar-abajo {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.btn-volver-busqueda {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tinta);
+  cursor: pointer;
+  transition:
+    background-color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
+
+  &:hover {
+    background: var(--activo);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.contenedor-buscador-movil {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+
+  app-buscador-curso {
+    display: block;
+    width: 100%;
+
+    .campo-contenedor {
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      background: var(--gris-100);
+      border-color: transparent;
+
+      &:focus-within {
+        background: var(--blanco);
+        border-color: var(--azul-700);
+        box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
+      }
+    }
+
+    .desplegable-sugerencias {
+      position: fixed;
+      top: var(--alto-header);
+      left: 0;
+      right: 0;
+      z-index: 70;
+      max-height: calc(100dvh - var(--alto-header) - 16px);
+      border-radius: 0 0 var(--radio) var(--radio);
+      border-top: 1px solid var(--borde);
+      border-left: 0;
+      border-right: 0;
+      background: var(--superficie);
+      box-shadow: 0 16px 32px rgb(0 0 0 / 0.15);
+    }
+  }
+}
+
+.telon-busqueda-movil {
+  position: fixed;
+  top: var(--alto-header);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  animation: aparecer-suave var(--t-micro) var(--curva-salida);
+}
+
+@keyframes aparecer-suave {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .enlace-marca {
