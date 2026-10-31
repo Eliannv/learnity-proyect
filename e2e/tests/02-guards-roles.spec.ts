@@ -73,6 +73,7 @@ test.describe('E2E-02: guards de ruta por rol', () => {
 
     await page.goto('/admin/revision');
     await expect(page).toHaveURL(/\/admin\/revision$/);
+    await expect(page.getByRole('heading', { name: 'Revisión de cursos' })).toBeVisible();
     await page.goto('/admin/solicitudes');
     await expect(page.getByRole('heading', { name: 'Solicitudes de docente' })).toBeVisible();
 
