@@ -367,9 +367,10 @@ export const esquemasGestionCursos = {
       ref('CursoResumen'),
       {
         type: 'object',
-        required: ['estudiantes', 'calificacion'],
+        required: ['estudiantes', 'categoria', 'calificacion'],
         properties: {
           estudiantes: { type: 'integer', minimum: 0, description: 'Inscripciones en el curso.' },
+          categoria: { type: 'string', nullable: true, description: 'Nombre de la categoría; null si aún no la eligió.' },
           calificacion: ref('CalificacionCurso'),
         },
       },

@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { consultar } from '../../shared/database/pool.js';
-import type { DatosReporte, FiltrosBandeja, FiltrosResenasAdmin } from './resenas.esquemas.js';
+import type { DatosReporte, FiltrosBandeja, FiltrosReportes, FiltrosResenasAdmin } from './resenas.esquemas.js';
 import type {
   AccionHistorial, EntradaHistorial, EstadoReporte, EvolucionMes, MotivoReporte, Ocultacion, ReporteAdmin, Resena,
   ResenaAdmin, ResenaDocente, ResumenResenas, ValoracionDocente,
@@ -71,6 +71,15 @@ function condicionesBandeja(filtros: FiltrosBandeja): { sql: string; valores: un
   if (filtros.comentario === 'sin') partes.push('r.comentario IS NULL');
   if (filtros.respuesta === 'respondidas') partes.push('r.respuesta_docente IS NOT NULL');
   if (filtros.respuesta === 'sin-responder') partes.push('r.respuesta_docente IS NULL');
+  if (filtros.categoria !== undefined) {
+    agregar((n) => `EXISTS (SELECT 1 FROM curso cc JOIN categoria cat ON cat.id_categoria = cc.id_categoria
+                             WHERE cc.id_curso = i.id_curso AND cat.nombre ILIKE $${n})`, literalLike(filtros.categoria));
+  }
+  if (filtros.q !== undefined) {
+    agregar((n) => `(r.comentario ILIKE $${n} OR r.respuesta_docente ILIKE $${n}
+                     OR EXISTS (SELECT 1 FROM persona pq WHERE pq.id_persona = i.id_persona
+                                  AND concat_ws(' ', pq.nombres, pq.apellidos) ILIKE $${n}))`, literalLike(filtros.q));
+  }
   return { sql: partes.map((p) => ` AND ${p}`).join(''), valores };
 }
 
@@ -146,7 +155,9 @@ const deAdmin = (f: FilaAdmin): Omit<ResenaAdmin, 'historial'> => ({
 const literalLike = (texto: string) => `%${texto.replace(/[\\%_]/g, '\\$&')}%`;
 
 /** Filtros del administrador como condiciones parametrizadas a partir de $1 (usan los alias r e i). */
-function condicionesAdmin(filtros: FiltrosResenasAdmin): { sql: string; valores: unknown[] } {
+function condicionesAdmin(
+  filtros: Pick<FiltrosResenasAdmin, 'curso' | 'estrellas' | 'categoria' | 'q'> & { estado?: FiltrosResenasAdmin['estado'] },
+): { sql: string; valores: unknown[] } {
   const partes: string[] = [];
   const valores: unknown[] = [];
   const agregar = (sql: (n: number) => string, valor: unknown) => {
@@ -163,7 +174,9 @@ function condicionesAdmin(filtros: FiltrosResenasAdmin): { sql: string; valores:
                              WHERE cc.id_curso = i.id_curso AND cat.nombre ILIKE $${n})`, literalLike(filtros.categoria));
   }
   if (filtros.q !== undefined) {
-    agregar((n) => `(r.comentario ILIKE $${n} OR r.respuesta_docente ILIKE $${n})`, literalLike(filtros.q));
+    agregar((n) => `(r.comentario ILIKE $${n} OR r.respuesta_docente ILIKE $${n}
+                     OR EXISTS (SELECT 1 FROM persona pq WHERE pq.id_persona = i.id_persona
+                                  AND concat_ws(' ', pq.nombres, pq.apellidos) ILIKE $${n}))`, literalLike(filtros.q));
   }
   return { sql: partes.length ? partes.join(' AND ') : 'TRUE', valores };
 }
@@ -469,7 +482,9 @@ export const resenasRepository = {
     return rows;
   },
 
-  async reportes(estado: EstadoReporte): Promise<Omit<ReporteAdmin, 'historial'>[]> {
+  async reportes(filtros: FiltrosReportes): Promise<Omit<ReporteAdmin, 'historial'>[]> {
+    // El estado del reporte va aparte ($n); de la reseña solo cuentan los filtros de contenido.
+    const { sql, valores } = condicionesAdmin({ ...filtros, estado: 'todas' });
     const { rows } = await consultar<{
       id: number; motivo: MotivoReporte; detalle: string | null; estado: EstadoReporte; creadoEn: Date;
       resueltoEn: Date | null; reportadoPor: string; resenaId: number; cursoId: number; cursoTitulo: string;
@@ -489,10 +504,10 @@ export const resenasRepository = {
          JOIN curso c ON c.id_curso = i.id_curso
          JOIN persona pe ON pe.id_persona = i.id_persona
          LEFT JOIN persona po ON po.id_persona = r.ocultada_por
-        WHERE x.estado = $1
+        WHERE x.estado = $${valores.length + 1} AND ${sql}
         ORDER BY x.creado_en DESC, x.id_reporte DESC
         LIMIT 100`,
-      [estado],
+      [...valores, filtros.estado],
     );
     return rows.map((f) => ({
       id: f.id, motivo: f.motivo, detalle: f.detalle, estado: f.estado, creadoEn: f.creadoEn.toISOString(),

@@ -57,10 +57,10 @@ describe('visor de auditoría', () => {
     const { fixture, api } = montar();
     await esperar(fixture, '1 cambios');
     const fila = (fixture.nativeElement.querySelector('tbody tr') as HTMLElement).textContent!.replace(/\s+/g, ' ');
-    expect(fila).toContain('categoria');
-    expect(fila).toContain('UPDATE');
+    expect(fila).toContain('Categorías');
+    expect(fila).toContain('Modificación');
     expect(fila).toContain('Ada Admin');
-    expect(fila).toContain('learnity_app');
+    expect(fila).toContain('Aplicación web');
     expect(fila).toContain('nombre, actualizado_en');
     expect(api.listar).toHaveBeenCalledWith(BASE);
 
@@ -113,7 +113,7 @@ describe('visor de auditoría', () => {
     const { fixture, api } = montar({ ver: '77' });
     await vi.waitFor(() => expect(api.detalle).toHaveBeenCalledWith(77));
     await esperar(fixture, '9911');
-    expect(fixture.nativeElement.querySelector('app-modal').textContent).toContain('Cambio 77 · categoria');
+    expect(fixture.nativeElement.querySelector('app-modal').textContent).toContain('Cambio 77 · Categorías');
   });
 
   it('el detalle muestra los metadatos y el antes y después, con texto además del color', async () => {
@@ -124,7 +124,7 @@ describe('visor de auditoría', () => {
     await esperar(fixture, '9911');
     const modal = fixture.nativeElement.querySelector('app-modal') as HTMLElement;
     const texto = modal.textContent!.replace(/\s+/g, ' ');
-    expect(texto).toContain('Cambio 77 · categoria');
+    expect(texto).toContain('Cambio 77 · Categorías');
     expect(texto).toContain('Ada Admin · ada@learnity.test');
     expect(texto).toContain('Mostrar solo las columnas que cambiaron (2 de 3)');
 

@@ -19,6 +19,17 @@
       (seleccion)="cambiar('curso', $event ? '' + $event : '')"
     />
   </div>
+  <div class="campo campo-buscador-curso">
+    <app-buscador-curso idCampo="categoria-resenas-docente" etiqueta="Categoría" [mostrarEtiqueta]="true"
+      [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="true"
+      [cursos]="categorias()" [cursoId]="idCategoria()" textoTodos="Todas las categorías" placeholder="Buscar categoría…"
+      (seleccion)="elegirCategoria($event)" />
+  </div>
+  <label class="campo campo-texto">
+    <span>Buscar</span>
+    <input class="control" type="search" name="q" maxlength="100" placeholder="Estudiante, comentario o respuesta"
+      [value]="filtro().q ?? ''" (input)="buscarTexto($any($event.target).value)" />
+  </label>
   <label class="campo">
     <span>Calificación</span>
     <select class="control" [ngModel]="filtro().estrellas ?? ''" name="estrellas" (ngModelChange)="cambiar('estrellas', $event)">

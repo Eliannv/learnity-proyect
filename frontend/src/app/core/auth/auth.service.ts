@@ -48,7 +48,7 @@ export class AuthService {
   });
   /**
    * A dónde lleva el clic en la foto de perfil: el Estudiante va a su perfil (/perfil);
-   * Docente y Administrador van directo a su panel, a Ajustes y perfil.
+   * Docente y Administrador van directo a su panel, a Mi perfil.
    */
   readonly rutaPerfil = computed(() => {
     if (this.esAdmin()) return '/admin/perfil';

@@ -26,7 +26,6 @@ interface Filtros {
 const FILTROS_INICIALES: Filtros = { tabla: '', operacion: '', usuarioBd: '', actor: '', desde: '', hasta: '' };
 const LIMITE = 25;
 
-const OPERACION: Record<Operacion, string> = { INSERT: 'Alta', UPDATE: 'Cambio', DELETE: 'Borrado' };
 
 /** Medianoche local del día indicado (+ días), en ISO: el servidor la compara con cambiado_en. */
 function medianoche(dia: string, mas = 0): string {
@@ -40,6 +39,8 @@ function medianoche(dia: string, mas = 0): string {
  */
 import { AdminUsuariosApi } from '../../../usuarios/usuarios.api';
 
+import { nombreOperacion, nombreRolBd, nombreTabla } from '../../etiquetas-auditoria';
+
 @Component({
   selector: 'app-admin-auditoria',
   imports: [DatePipe, FormsModule, LucideAngularModule, EstadoVistaComponent, Modal, DiffCambio],
@@ -51,7 +52,15 @@ export class AdminAuditoria {
   private readonly router = inject(Router);
   private solicitud = 0;
 
-  protected readonly operaciones = OPERACION;
+  protected readonly tabla = nombreTabla;
+  protected readonly operacion = nombreOperacion;
+  protected readonly rolBd = nombreRolBd;
+  /** Un solo «Sistema / Mantenimiento» aunque haya varios roles internos (postgres, learnity_owner). */
+  protected readonly rolesBd = computed(() => {
+    const vistos = new Map<string, string>();
+    for (const r of this.opciones().usuariosBd) if (!vistos.has(nombreRolBd(r))) vistos.set(nombreRolBd(r), r);
+    return [...vistos].map(([texto, valor]) => ({ texto, valor }));
+  });
   protected readonly filtros = signal<Filtros>(FILTROS_INICIALES);
   protected readonly hayFiltros = computed(() => Object.values(this.filtros()).some((v) => v !== ''));
   protected readonly errorFechas = computed(() => {

@@ -36,14 +36,12 @@
         <input class="control" type="search" placeholder="Título del curso o nombre del docente"
           [value]="busquedaAdmin()" (input)="busquedaAdmin.set($any($event.target).value)" />
       </label>
-      <label class="campo-filtro">
-        <span>Categoría</span>
-        <input class="control" type="search" list="categorias-revision" placeholder="Todas las categorías"
-          [value]="categoriaAdmin()" (input)="categoriaAdmin.set($any($event.target).value)" />
-        <datalist id="categorias-revision">
-          @for (c of categoriasAdmin(); track c) { <option [value]="c"></option> }
-        </datalist>
-      </label>
+      <div class="campo-filtro">
+        <app-buscador-curso idCampo="categoria-revision" etiqueta="Categoría" [mostrarEtiqueta]="true"
+          [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="true"
+          [cursos]="opcionesCategoriaAdmin()" [cursoId]="idCategoriaAdmin()" textoTodos="Todas las categorías"
+          placeholder="Buscar categoría…" (seleccion)="elegirCategoriaAdmin($event)" />
+      </div>
       @if (busquedaAdmin() || categoriaAdmin()) {
         <button type="button" class="btn btn-texto btn-sm" (click)="busquedaAdmin.set(''); categoriaAdmin.set('')">Limpiar filtros</button>
       }
@@ -63,6 +61,13 @@
           (seleccion)="alSeleccionarCurso($event)"
           (terminoCambio)="alCambiarTermino($event)"
         />
+      </div>
+
+      <div class="buscador-mis-cursos">
+        <app-buscador-curso idCampo="categoria-mis-cursos" etiqueta="Categoría"
+          [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="true"
+          [cursos]="opcionesCategoriaAdmin()" [cursoId]="idCategoriaAdmin()" textoTodos="Todas las categorías"
+          placeholder="Buscar categoría…" (seleccion)="elegirCategoriaAdmin($event)" />
       </div>
 
       <div class="filtros" role="group" aria-label="Filtrar cursos por estado">

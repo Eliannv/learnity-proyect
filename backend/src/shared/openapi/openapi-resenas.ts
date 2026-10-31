@@ -255,6 +255,14 @@ export const rutasResenas = {
         { in: 'query', name: 'estrellas', schema: { type: 'integer', minimum: 1, maximum: 5 } },
         { in: 'query', name: 'comentario', schema: { type: 'string', enum: ['con', 'sin'] } },
         { in: 'query', name: 'respuesta', schema: { type: 'string', enum: ['respondidas', 'sin-responder'] } },
+        {
+          in: 'query', name: 'categoria', description: 'Parte del nombre de la categoría del curso (sin distinguir mayúsculas).',
+          schema: { type: 'string', maxLength: 80 },
+        },
+        {
+          in: 'query', name: 'q', description: 'Nombre del estudiante, comentario o respuesta (sin distinguir mayúsculas).',
+          schema: { type: 'string', maxLength: 100 },
+        },
         { in: 'query', name: 'pagina', schema: { type: 'integer', minimum: 1, maximum: 10_000, default: 1 } },
         { in: 'query', name: 'limite', schema: { type: 'integer', minimum: 1, maximum: 50, default: 10 } },
       ],
@@ -326,7 +334,8 @@ export const rutasResenas = {
           schema: { type: 'string', maxLength: 80 },
         },
         {
-          in: 'query', name: 'q', description: 'Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas).',
+          in: 'query', name: 'q',
+          description: 'Texto en el comentario, en la respuesta del docente o en el nombre del estudiante (sin distinguir mayúsculas).',
           schema: { type: 'string', maxLength: 100 },
         },
         { in: 'query', name: 'pagina', schema: { type: 'integer', minimum: 1, maximum: 10_000, default: 1 } },
@@ -342,7 +351,20 @@ export const rutasResenas = {
     get: {
       tags: ['Reseñas'], summary: 'Reportes de reseñas con el historial completo de cada una (hasta 100)',
       security: seguridad,
-      parameters: [{ in: 'query', name: 'estado', schema: { ...estadoReporte, default: 'PENDIENTE' } }],
+      parameters: [
+        { in: 'query', name: 'estado', schema: { ...estadoReporte, default: 'PENDIENTE' } },
+        { in: 'query', name: 'curso', schema: { type: 'integer', minimum: 1 } },
+        { in: 'query', name: 'estrellas', schema: { type: 'integer', minimum: 1, maximum: 5 } },
+        {
+          in: 'query', name: 'categoria', description: 'Parte del nombre de la categoría del curso (sin distinguir mayúsculas).',
+          schema: { type: 'string', maxLength: 80 },
+        },
+        {
+          in: 'query', name: 'q',
+          description: 'Texto en el comentario, en la respuesta del docente o en el nombre del estudiante (sin distinguir mayúsculas).',
+          schema: { type: 'string', maxLength: 100 },
+        },
+      ],
       responses: {
         200: json({ type: 'array', items: ref('ReporteResena') }), 400: error('Estado inválido'),
         401: error('Sin sesión'), 403: error('Sin rol ADMIN'), 500: errorInterno,

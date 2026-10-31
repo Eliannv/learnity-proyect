@@ -101,6 +101,8 @@ export interface CursoRevision extends CursoResumen {
 /** Curso en «Mis cursos»: además, cuántos se inscribieron y cómo lo valoran. */
 export interface CursoDelDocente extends CursoResumen {
   estudiantes: number;
+  /** Nombre de la categoría (null en un borrador que aún no la eligió): el docente filtra por ella. */
+  categoria: string | null;
   calificacion: { promedio: number | null; total: number };
 }
 

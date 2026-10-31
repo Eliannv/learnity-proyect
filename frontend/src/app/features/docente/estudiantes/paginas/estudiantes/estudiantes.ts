@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { CursoResumen, SeguimientoDocente } from '../../../../../core/api/contrato';
 import { Peticion } from '../../../../../core/estado/peticion';
 import { DocenteCursosApi } from '../../../cursos/cursos.api';
-import { SeguimientoDocenteApi } from '../../estudiantes.api';
+import { SeguimientoDocenteApi, type FiltrosSeguimiento } from '../../estudiantes.api';
 import { Avatar } from '../../../../../shared/ui/marca/avatar';
 import { BarraProgreso } from '../../../../../shared/ui/datos/barra-progreso';
 import { BuscadorCurso } from '../../../../../shared/ui/cursos/buscador-curso';
@@ -35,6 +35,38 @@ export class EstudiantesCurso {
   protected readonly cursoSeleccionado = computed(
     () => this.cursos().find((c) => c.id === this.cursoId()),
   );
+  /** Filtros de la lista: categoría (selector buscable compartido), estudiante y estado. */
+  protected readonly filtros = signal<FiltrosSeguimiento>({ categoria: '', q: '', estado: '' });
+  private espera: ReturnType<typeof setTimeout> | undefined;
+  protected readonly categorias = computed(() =>
+    [...new Set(this.cursos().map((c) => (c as { categoria?: string | null }).categoria).filter((c): c is string => !!c))]
+      .sort((a, b) => a.localeCompare(b, 'es'))
+      .map((titulo, id) => ({ id, titulo })));
+  protected readonly idCategoria = computed(() => this.categorias().find((c) => c.titulo === this.filtros().categoria)?.id ?? null);
+  protected readonly hayFiltros = computed(() => {
+    const f = this.filtros();
+    return !!(f.categoria || f.q.trim() || f.estado);
+  });
+
+  protected elegirCategoria(id: number | null): void {
+    this.filtrar({ categoria: this.categorias().find((c) => c.id === id)?.titulo ?? '' });
+  }
+
+  /** La búsqueda por estudiante espera a que se deje de escribir; el resto filtra al momento. */
+  protected buscarEstudiante(q: string): void {
+    this.filtros.update((f) => ({ ...f, q }));
+    clearTimeout(this.espera);
+    this.espera = setTimeout(() => void this.cargarEstudiantes(this.cursoId(), 1), 300);
+  }
+
+  protected filtrar(cambio: Partial<FiltrosSeguimiento>): void {
+    this.filtros.update((f) => ({ ...f, ...cambio }));
+    void this.cargarEstudiantes(this.cursoId(), 1);
+  }
+
+  protected limpiarFiltros(): void {
+    this.filtrar({ categoria: '', q: '', estado: '' });
+  }
 
   constructor() {
     void this.cargarCursos();
@@ -104,7 +136,7 @@ export class EstudiantesCurso {
     this.cargaEstudiantes.ocupada.set(true);
     this.seguimiento.set(null);
     try {
-      const datos = await this.seguimientoApi.listar(id, pagina);
+      const datos = await this.seguimientoApi.listar(id, pagina, 20, this.filtros());
       if (version === this.version) this.seguimiento.set(datos);
     } catch (error) {
       if (version === this.version) this.cargaEstudiantes.fallar(error);

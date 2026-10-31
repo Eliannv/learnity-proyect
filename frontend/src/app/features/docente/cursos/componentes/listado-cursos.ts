@@ -23,7 +23,8 @@ import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 /** En «Mis cursos» llegan también inscritos y valoración; en Revisión, inscritos y suspensión. */
 type CursoListado = CursoResumen
   & Partial<Pick<CursoDelDocente, 'estudiantes' | 'calificacion'>>
-  & Partial<Pick<CursoRevision, 'inscritos' | 'suspension' | 'categoria'>>;
+  & Partial<Pick<CursoRevision, 'inscritos' | 'suspension'>>
+  & { categoria?: string | null };
 
 /** Minúsculas y sin tildes: «diseño» encuentra «Diseño» y «matematicas», «Matemáticas». */
 const normalizar = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -59,6 +60,16 @@ export class ListadoCursos {
   protected readonly categoriaAdmin = signal('');
   protected readonly categoriasAdmin = computed(() =>
     [...new Set(this.cursos().map((c) => c.categoria).filter((c): c is string => !!c))].sort((a, b) => a.localeCompare(b, 'es')));
+  /** Las categorías de la pestaña como opciones del selector buscable compartido (id = posición). */
+  protected readonly opcionesCategoriaAdmin = computed(() => this.categoriasAdmin().map((titulo, id) => ({ id, titulo })));
+  protected readonly idCategoriaAdmin = computed(() => {
+    const id = this.categoriasAdmin().indexOf(this.categoriaAdmin());
+    return id >= 0 ? id : null;
+  });
+
+  protected elegirCategoriaAdmin(id: number | null): void {
+    this.categoriaAdmin.set(id === null ? '' : (this.categoriasAdmin()[id] ?? ''));
+  }
 
   readonly cursos = signal<CursoListado[]>([]);
   private readonly portadasFallidas = signal<ReadonlySet<number>>(new Set());
@@ -78,11 +89,12 @@ export class ListadoCursos {
 
   protected readonly visibles = computed(() => {
     let lista = this.cursos();
+    // La categoría filtra igual en Revisión (admin) y en Mis cursos (docente).
+    const cat = normalizar(this.categoriaAdmin());
+    if (cat) lista = lista.filter((c) => normalizar(c.categoria ?? '') === cat);
     if (this.admin()) {
       const q = normalizar(this.busquedaAdmin());
-      const cat = normalizar(this.categoriaAdmin());
       if (q) lista = lista.filter((c) => normalizar(c.titulo).includes(q) || normalizar(c.docente).includes(q));
-      if (cat) lista = lista.filter((c) => normalizar(c.categoria ?? '').includes(cat));
     } else {
       if (this.filtro() !== 'TODOS') {
         lista = lista.filter((curso) => curso.estado === this.filtro());

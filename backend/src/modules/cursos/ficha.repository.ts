@@ -34,7 +34,9 @@ export interface BasePrivada extends ContextoCurso {
 
 export const fichaRepository = {
   async listarDelDocente(idPersona: number): Promise<CursoDelDocente[]> {
-    const { rows } = await consultar<CursoResumen & { estudiantes: number; promedio: string | null; resenas: number }>(
+    const { rows } = await consultar<CursoResumen & {
+      estudiantes: number; categoria: string | null; promedio: string | null; resenas: number;
+    }>(
       `
         SELECT
           c.id_curso AS id,
@@ -53,6 +55,7 @@ export const fichaRepository = {
             FROM inscripcion i
             WHERE i.id_curso = c.id_curso
           ) AS estudiantes,
+          cat.nombre AS categoria,
           v.promedio,
           v.resenas
         FROM curso c
@@ -60,6 +63,8 @@ export const fichaRepository = {
           ON d.id_docente = c.id_docente
         JOIN persona p
           ON p.id_persona = d.id_persona
+        LEFT JOIN categoria cat
+          ON cat.id_categoria = c.id_categoria
         CROSS JOIN LATERAL (
           -- Solo reseñas visibles: las borradas y las ocultadas no cuentan en el promedio.
           SELECT round(avg(r.estrellas), 1) AS promedio, count(r.id_resena)::int AS resenas

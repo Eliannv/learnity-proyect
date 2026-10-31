@@ -95,10 +95,11 @@ describe('reseñas del administrador', () => {
     expect(fixture.nativeElement.querySelector('.historial')?.textContent).toContain('Historial completo (2)');
     expect(api.todas).toHaveBeenCalledWith(FILTROS, 1);
 
-    const [estado, estrellas] = fixture.nativeElement.querySelectorAll('.filtros select') as NodeListOf<HTMLSelectElement>;
-    estado!.value = 'ocultadas';
-    estado!.dispatchEvent(new Event('change'));
+    // El estado lo da la pestaña: la fila de filtros no cambia.
+    boton(fixture.nativeElement, 'Ocultadas')!.click();
     await vi.waitFor(() => expect(api.todas).toHaveBeenLastCalledWith({ ...FILTROS, estado: 'ocultadas' }, 1));
+    fixture.detectChanges();
+    const [estrellas] = fixture.nativeElement.querySelectorAll('.filtros select') as NodeListOf<HTMLSelectElement>;
     estrellas!.selectedIndex = 1;
     estrellas!.dispatchEvent(new Event('change'));
     await vi.waitFor(() => expect(api.todas).toHaveBeenLastCalledWith({ ...FILTROS, estado: 'ocultadas', estrellas: 5 }, 1));
@@ -219,7 +220,7 @@ describe('reseñas del administrador', () => {
 
   it('con ?vista=PENDIENTE (desde el resumen) abre directamente los reportes pendientes', async () => {
     const { fixture, api } = montar(true, [resena], { vista: 'PENDIENTE' });
-    await vi.waitFor(() => expect(api.reportes).toHaveBeenCalledWith('PENDIENTE'));
+    await vi.waitFor(() => expect(api.reportes).toHaveBeenCalledWith('PENDIENTE', { curso: null, estrellas: null, categoria: '', q: '' }));
     expect(api.todas).not.toHaveBeenCalled();
     fixture.detectChanges();
     expect(boton(fixture.nativeElement, 'Reportes pendientes').getAttribute('aria-selected')).toBe('true');

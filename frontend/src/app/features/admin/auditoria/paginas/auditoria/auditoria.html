@@ -10,26 +10,26 @@
 
 <form class="filtros" role="search" aria-label="Filtrar la auditoría" (submit)="$event.preventDefault()">
   <label class="campo">
-    <span>Tabla</span>
+    <span>Sección</span>
     <select class="control" name="tabla" [ngModel]="filtros().tabla" (ngModelChange)="filtrar({ tabla: $event })">
       <option value="">Todas</option>
-      @for (t of opciones().tablas; track t) { <option [value]="t">{{ t }}</option> }
+      @for (t of opciones().tablas; track t) { <option [value]="t">{{ tabla(t) }}</option> }
     </select>
   </label>
   <label class="campo">
     <span>Operación</span>
     <select class="control" name="operacion" [ngModel]="filtros().operacion" (ngModelChange)="filtrar({ operacion: $event })">
       <option value="">Todas</option>
-      <option value="INSERT">INSERT (alta)</option>
-      <option value="UPDATE">UPDATE (cambio)</option>
-      <option value="DELETE">DELETE (borrado)</option>
+      <option value="INSERT">Creación</option>
+      <option value="UPDATE">Modificación</option>
+      <option value="DELETE">Eliminación</option>
     </select>
   </label>
   <label class="campo">
-    <span>Rol de la base</span>
+    <span>Origen del cambio</span>
     <select class="control" name="usuarioBd" [ngModel]="filtros().usuarioBd" (ngModelChange)="filtrar({ usuarioBd: $event })">
       <option value="">Todos</option>
-      @for (r of opciones().usuariosBd; track r) { <option [value]="r">{{ r }}</option> }
+      @for (r of rolesBd(); track r.valor) { <option [value]="r.valor">{{ r.texto }}</option> }
     </select>
   </label>
   <!-- Buscador de actor: consulta las cuentas en el backend por nombre o correo y filtra por la elegida. -->
@@ -76,11 +76,11 @@
         <thead>
           <tr>
             <th scope="col">Fecha y hora</th>
-            <th scope="col">Tabla</th>
+            <th scope="col">Sección</th>
             <th scope="col">Operación</th>
             <th scope="col">Registro</th>
             <th scope="col">Actor</th>
-            <th scope="col">Rol de la base</th>
+            <th scope="col">Origen</th>
             <th scope="col">Columnas cambiadas</th>
             <th scope="col"><span class="visualmente-oculto">Acciones</span></th>
           </tr>
@@ -89,8 +89,8 @@
           @for (c of d.items; track c.id) {
             <tr>
               <td><time [attr.datetime]="c.fecha">{{ c.fecha | date: 'd MMM y, HH:mm:ss' }}</time></td>
-              <td><code>{{ c.tabla }}</code></td>
-              <td><span class="operacion" [attr.data-op]="c.operacion">{{ c.operacion }}</span></td>
+              <td>{{ tabla(c.tabla) }}</td>
+              <td><span class="operacion" [attr.data-op]="c.operacion">{{ operacion(c.operacion) }}</span></td>
               <td>{{ c.registro ?? '—' }}</td>
               <td>
                 @if (c.actor; as a) {
@@ -99,11 +99,11 @@
                   <span class="texto-suave">Sin actor (proceso de la base)</span>
                 }
               </td>
-              <td><code>{{ c.usuarioBd }}</code></td>
+              <td>{{ rolBd(c.usuarioBd) }}</td>
               <td class="columnas" [title]="(c.columnasCambiadas ?? []).join(', ')">{{ resumenColumnas(c) }}</td>
               <td>
                 <button type="button" class="btn btn-contorno btn-sm" (click)="abrir(c)"
-                  [attr.aria-label]="'Ver el detalle del cambio ' + c.id + ' en ' + c.tabla">Ver detalle</button>
+                  [attr.aria-label]="'Ver el detalle del cambio ' + c.id + ' en ' + tabla(c.tabla)">Ver detalle</button>
               </td>
             </tr>
           }
@@ -127,14 +127,14 @@
 }
 
 @if (abierto(); as c) {
-  <app-modal [titulo]="'Cambio ' + c.id + ' · ' + c.tabla" icono="history" [ancho]="880" (cerrar)="cerrar()">
+  <app-modal [titulo]="'Cambio ' + c.id + ' · ' + tabla(c.tabla)" icono="history" [ancho]="880" (cerrar)="cerrar()">
     <dl class="metadatos">
       <div><dt>Fecha</dt><dd><time [attr.datetime]="c.fecha">{{ c.fecha | date: 'd MMM y, HH:mm:ss' }}</time></dd></div>
-      <div><dt>Tabla</dt><dd><code>{{ c.tabla }}</code></dd></div>
-      <div><dt>Operación</dt><dd><span class="operacion" [attr.data-op]="c.operacion">{{ c.operacion }}</span> {{ operaciones[c.operacion] }}</dd></div>
+      <div><dt>Sección</dt><dd>{{ tabla(c.tabla) }}</dd></div>
+      <div><dt>Operación</dt><dd><span class="operacion" [attr.data-op]="c.operacion">{{ operacion(c.operacion) }}</span></dd></div>
       <div><dt>Registro (clave)</dt><dd>{{ c.registro ?? '—' }}</dd></div>
       <div><dt>Actor de la aplicación</dt><dd>{{ c.actor ? c.actor.nombre + (c.actor.correo ? ' · ' + c.actor.correo : '') : 'Sin actor' }}</dd></div>
-      <div><dt>Rol de la base</dt><dd><code>{{ c.usuarioBd }}</code></dd></div>
+      <div><dt>Origen del cambio</dt><dd>{{ rolBd(c.usuarioBd) }}</dd></div>
       <div><dt>Transacción</dt><dd>@if (detalle(); as d) { <code>{{ d.idTransaccion }}</code> } @else { … }</dd></div>
     </dl>
     <h3 class="titulo-diff">Datos antes y después</h3>

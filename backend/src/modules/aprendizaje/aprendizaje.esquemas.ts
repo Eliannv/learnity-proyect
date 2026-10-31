@@ -15,8 +15,17 @@ export const paginacionEstudiantesSchema = z.strictObject({
   limite: z.coerce.number().int().min(1).max(50).default(20),
 });
 
+/** Texto libre opcional: vacío o solo espacios es «sin filtro». */
+const textoFiltro = (max: number) =>
+  z.preprocess((v) => (typeof v === 'string' ? v.normalize('NFC').trim() || undefined : v), z.string().max(max).optional());
+
 export const filtrosEstudiantesDocenteSchema = z.strictObject({
   curso: z.coerce.number().int().positive().optional(),
+  /** Parte del nombre de la categoría del curso. */
+  categoria: textoFiltro(80),
+  /** Parte del nombre o del correo del estudiante. */
+  q: textoFiltro(100),
+  estado: z.enum(['ACTIVA', 'COMPLETADA']).optional(),
   pagina: z.coerce.number().int().min(1).max(10_000).default(1),
   limite: z.coerce.number().int().min(1).max(50).default(20),
 });

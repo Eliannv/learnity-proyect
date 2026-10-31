@@ -127,9 +127,9 @@ export const resenasService = {
     };
   },
 
-  async reportes({ estado }: FiltrosReportes, usuario: UsuarioSesion): Promise<ReporteAdmin[]> {
+  async reportes(filtros: FiltrosReportes, usuario: UsuarioSesion): Promise<ReporteAdmin[]> {
     exigirAdmin(usuario);
-    const reportes = await repo.reportes(estado);
+    const reportes = await repo.reportes(filtros);
     const historial = await repo.historial([...new Set(reportes.map((r) => r.resena.id))]);
     return reportes.map((r) => ({ ...r, historial: historial.get(r.resena.id) ?? [] }));
   },

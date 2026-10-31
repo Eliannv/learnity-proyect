@@ -46,17 +46,18 @@ export const rutasPerfilEstudiante: Routes = [
     path: '',
     canActivate: [autenticadoGuard, perfilEstudianteGuard],
     title: 'Mi perfil · Learnity',
+    data: { marco: 'pagina' },
     loadComponent: () =>
-      import('./paginas/perfil-estudiante/perfil-estudiante').then((m) => m.PerfilEstudiante),
+      import('./paginas/ajustes-perfil/ajustes-perfil').then((m) => m.AjustesPerfil),
   },
 ];
 
-/** Ajustes y perfil de Docente y Administrador, dentro de su panel (docente/perfil y admin/perfil). */
+/** Mi perfil de Docente y Administrador, dentro de su panel (docente/perfil y admin/perfil). */
 export const rutasAjustesPerfil: Routes = [
   {
     path: '',
-    title: 'Ajustes y perfil · Learnity',
-    data: { seccion: 'Ajustes y perfil' },
+    title: 'Mi perfil · Learnity',
+    data: { seccion: 'Mi perfil' },
     loadComponent: () =>
       import('./paginas/ajustes-perfil/ajustes-perfil').then((m) => m.AjustesPerfil),
   },

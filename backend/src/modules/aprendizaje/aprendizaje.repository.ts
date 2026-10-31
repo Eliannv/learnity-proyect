@@ -85,6 +85,31 @@ const CAMPOS_CURSO = `
       AND ${LECCION_DISPONIBLE} AND pl.completada) AS "leccionesCompletadas"`;
 
 /** Toda consulta SQL de Aprendizaje reside aquí; los valores externos siempre usan parámetros. */
+/** Filtros de la lista de estudiantes del docente (además del curso). */
+export interface FiltrosLista {
+  categoria?: string | undefined;
+  q?: string | undefined;
+  estado?: 'ACTIVA' | 'COMPLETADA' | undefined;
+}
+
+/** $1 docente, $2 curso, $3 categoría, $4 texto del estudiante, $5 estado (alias i, p y c). */
+const DONDE_ESTUDIANTES = `
+  (($2::int IS NOT NULL AND i.id_curso = $2)
+     OR ($2::int IS NULL AND ($1::int IS NULL OR c.id_docente IN (
+          SELECT d.id_docente FROM docente d WHERE d.id_persona = $1 AND d.estado = 'ACTIVO'
+        ))))
+  AND ($3::text IS NULL OR EXISTS (SELECT 1 FROM categoria cat WHERE cat.id_categoria = c.id_categoria AND cat.nombre ILIKE $3))
+  AND ($4::text IS NULL OR concat_ws(' ', p.nombres, p.apellidos) ILIKE $4
+       OR EXISTS (SELECT 1 FROM usuario u WHERE u.id_persona = p.id_persona AND u.correo ILIKE $4))
+  AND ($5::text IS NULL OR i.estado = $5)`;
+
+/** Texto buscado tal cual: los comodines de LIKE se escapan. */
+const comoLike = (texto: string | undefined) => (texto ? `%${texto.replace(/[\\%_]/g, '\\$&')}%` : null);
+
+function parametrosEstudiantes(idDocentePersona: number | null, idCurso: number | null, f: FiltrosLista): unknown[] {
+  return [idDocentePersona, idCurso, comoLike(f.categoria), comoLike(f.q), f.estado ?? null];
+}
+
 export const aprendizajeRepository = {
   /** FOR SHARE impide que el curso cambie de estado mientras se inscribe al estudiante. */
   async cursoPublicado(cliente: PoolClient, idCurso: number): Promise<boolean> {
@@ -290,6 +315,7 @@ export const aprendizajeRepository = {
 
   async estudiantesDelDocente(
     idDocentePersona: number | null, idCurso: number | null, limite: number, offset: number,
+    filtros: FiltrosLista = {},
   ): Promise<FilaEstudiante[]> {
     const { rows } = await consultar<FilaEstudiante>(
       `SELECT p.id_persona AS "idPersona", concat_ws(' ', p.nombres, p.apellidos) AS nombre,
@@ -301,15 +327,25 @@ export const aprendizajeRepository = {
          JOIN persona p ON p.id_persona = i.id_persona
          JOIN curso c ON c.id_curso = i.id_curso
          LEFT JOIN resena r ON r.id_inscripcion = i.id_inscripcion AND r.eliminado_en IS NULL AND r.ocultada_en IS NULL
-        WHERE ($2::int IS NOT NULL AND i.id_curso = $2)
-           OR ($2::int IS NULL AND ($1::int IS NULL OR c.id_docente IN (
-                SELECT d.id_docente FROM docente d WHERE d.id_persona = $1 AND d.estado = 'ACTIVO'
-              )))
+        WHERE ${DONDE_ESTUDIANTES}
         ORDER BY i.inscrito_en DESC, i.id_inscripcion DESC
-        LIMIT $3 OFFSET $4`,
-      [idDocentePersona, idCurso, limite, offset],
+        LIMIT $6 OFFSET $7`,
+      [...parametrosEstudiantes(idDocentePersona, idCurso, filtros), limite, offset],
     );
     return rows;
+  },
+
+  /** Inscritos que cumplen los filtros (el total de la lista; el resumen no depende de ellos). */
+  async contarEstudiantes(idDocentePersona: number | null, idCurso: number | null, filtros: FiltrosLista): Promise<number> {
+    const { rows } = await consultar<{ total: number }>(
+      `SELECT count(*)::int AS total
+         FROM inscripcion i
+         JOIN persona p ON p.id_persona = i.id_persona
+         JOIN curso c ON c.id_curso = i.id_curso
+        WHERE ${DONDE_ESTUDIANTES}`,
+      parametrosEstudiantes(idDocentePersona, idCurso, filtros),
+    );
+    return rows[0]!.total;
   },
 
   async estudiantesDelCurso(idCurso: number, limite: number, offset: number): Promise<FilaEstudiante[]> {

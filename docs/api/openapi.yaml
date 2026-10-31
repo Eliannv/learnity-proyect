@@ -957,6 +957,7 @@
             "type": "object",
             "required": [
               "estudiantes",
+              "categoria",
               "calificacion"
             ],
             "properties": {
@@ -964,6 +965,11 @@
                 "type": "integer",
                 "minimum": 0,
                 "description": "Inscripciones en el curso."
+              },
+              "categoria": {
+                "type": "string",
+                "nullable": true,
+                "description": "Nombre de la categoría; null si aún no la eligió."
               },
               "calificacion": {
                 "$ref": "#/components/schemas/CalificacionCurso"
@@ -8668,6 +8674,36 @@
           },
           {
             "in": "query",
+            "name": "categoria",
+            "description": "Parte del nombre de la categoría del curso.",
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "description": "Parte del nombre o del correo del estudiante.",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "estado",
+            "description": "ACTIVA: en curso; COMPLETADA: terminó el curso.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVA",
+                "COMPLETADA"
+              ]
+            }
+          },
+          {
+            "in": "query",
             "name": "pagina",
             "schema": {
               "type": "integer",
@@ -9800,6 +9836,24 @@
           },
           {
             "in": "query",
+            "name": "categoria",
+            "description": "Parte del nombre de la categoría del curso (sin distinguir mayúsculas).",
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "description": "Nombre del estudiante, comentario o respuesta (sin distinguir mayúsculas).",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
             "name": "pagina",
             "schema": {
               "type": "integer",
@@ -10283,7 +10337,7 @@
           {
             "in": "query",
             "name": "q",
-            "description": "Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas).",
+            "description": "Texto en el comentario, en la respuesta del docente o en el nombre del estudiante (sin distinguir mayúsculas).",
             "schema": {
               "type": "string",
               "maxLength": 100
@@ -10380,6 +10434,41 @@
                 "DESESTIMADA"
               ],
               "default": "PENDIENTE"
+            }
+          },
+          {
+            "in": "query",
+            "name": "curso",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "estrellas",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            }
+          },
+          {
+            "in": "query",
+            "name": "categoria",
+            "description": "Parte del nombre de la categoría del curso (sin distinguir mayúsculas).",
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "description": "Texto en el comentario, en la respuesta del docente o en el nombre del estudiante (sin distinguir mayúsculas).",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
             }
           }
         ],

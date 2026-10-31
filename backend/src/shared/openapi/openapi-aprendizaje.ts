@@ -164,6 +164,15 @@ export const rutasAprendizaje = {
       parameters: [{
         in: 'query', name: 'curso', schema: { type: 'integer', minimum: 1 }, required: false,
       }, {
+        in: 'query', name: 'categoria', description: 'Parte del nombre de la categoría del curso.',
+        schema: { type: 'string', maxLength: 80 },
+      }, {
+        in: 'query', name: 'q', description: 'Parte del nombre o del correo del estudiante.',
+        schema: { type: 'string', maxLength: 100 },
+      }, {
+        in: 'query', name: 'estado', description: 'ACTIVA: en curso; COMPLETADA: terminó el curso.',
+        schema: { type: 'string', enum: ['ACTIVA', 'COMPLETADA'] },
+      }, {
         in: 'query', name: 'pagina', schema: { type: 'integer', minimum: 1, default: 1 },
       }, {
         in: 'query', name: 'limite', schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 },

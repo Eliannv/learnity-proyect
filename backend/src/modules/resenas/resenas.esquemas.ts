@@ -32,6 +32,12 @@ export const filtrosBandeja = z.strictObject({
   estrellas: opcional(z.coerce.number().int().min(1).max(5)),
   comentario: opcional(z.enum(['con', 'sin'])),
   respuesta: opcional(z.enum(['respondidas', 'sin-responder'])),
+  /** Parte del nombre de la categoría del curso. */
+  categoria: z.preprocess((v) => (typeof v === 'string' ? v.normalize('NFC').trim() || undefined : v),
+    textoSeguro().pipe(z.string().max(80, 'La categoría debe tener como máximo 80 caracteres.')).optional()),
+  /** Nombre del estudiante, comentario o respuesta, sin distinguir mayúsculas. */
+  q: z.preprocess((v) => (typeof v === 'string' ? v.normalize('NFC').trim() || undefined : v),
+    textoSeguro().pipe(z.string().max(100, 'La búsqueda debe tener como máximo 100 caracteres.')).optional()),
   pagina: z.coerce.number().int().min(1).max(10_000).default(1),
   limite: z.coerce.number().int().min(1).max(50).default(10),
 });
@@ -53,8 +59,21 @@ export const datosReporte = z.strictObject({
 
 // ------------------------------------------------------------ administrador
 
+/** Los mismos filtros de contenido que «Todas las reseñas»: la barra de filtros no cambia entre pestañas. */
+const filtrosContenidoAdmin = {
+  curso: opcional(z.coerce.number().int().min(1).max(2_147_483_647)),
+  estrellas: opcional(z.coerce.number().int().min(1).max(5)),
+  /** Parte del nombre de la categoría del curso, sin distinguir mayúsculas. */
+  categoria: z.preprocess((v) => (typeof v === 'string' ? v.normalize('NFC').trim() || undefined : v),
+    textoSeguro().pipe(z.string().max(80, 'La categoría debe tener como máximo 80 caracteres.')).optional()),
+  /** Busca en el comentario, en la respuesta del docente y en el nombre del estudiante, sin distinguir mayúsculas. */
+  q: z.preprocess((v) => (typeof v === 'string' ? v.normalize('NFC').trim() || undefined : v),
+    textoSeguro().pipe(z.string().max(100, 'La búsqueda debe tener como máximo 100 caracteres.')).optional()),
+};
+
 export const filtrosReportes = z.strictObject({
   estado: z.enum(['PENDIENTE', 'OCULTADA', 'DESESTIMADA']).default('PENDIENTE'),
+  ...filtrosContenidoAdmin,
 });
 
 /** vigentes: se ven en el curso; borradas: por su autor; ocultadas: por un administrador. */

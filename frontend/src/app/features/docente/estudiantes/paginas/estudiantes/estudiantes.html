@@ -21,19 +21,43 @@
       <a routerLink="/docente/cursos/nuevo/editar" class="btn btn-primario">Crear curso</a>
     </div>
   } @else {
-    <div class="selector-curso">
-      <app-buscador-curso
-        idCampo="curso-seguimiento"
-        etiqueta="Filtrar por curso"
-        [mostrarEtiqueta]="true"
-        [cursos]="cursos()"
-        [cursoId]="cursoId()"
-        [permitirTodos]="true"
-        textoTodos="Todos los estudiantes (todos mis cursos)"
-        placeholder="Buscar curso o ver todos…"
-        (seleccion)="cambiarCursoId($event)"
-      />
-    </div>
+    <form class="filtros-seguimiento" role="search" aria-label="Filtrar estudiantes" (submit)="$event.preventDefault()">
+      <div class="selector-curso">
+        <app-buscador-curso
+          idCampo="curso-seguimiento"
+          etiqueta="Curso"
+          [mostrarEtiqueta]="true"
+          [cursos]="cursos()"
+          [cursoId]="cursoId()"
+          [permitirTodos]="true"
+          textoTodos="Todos mis cursos"
+          placeholder="Buscar curso…"
+          (seleccion)="cambiarCursoId($event)"
+        />
+      </div>
+      <div class="selector-curso">
+        <app-buscador-curso idCampo="categoria-seguimiento" etiqueta="Categoría" [mostrarEtiqueta]="true"
+          [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="true"
+          [cursos]="categorias()" [cursoId]="idCategoria()" textoTodos="Todas las categorías" placeholder="Buscar categoría…"
+          (seleccion)="elegirCategoria($event)" />
+      </div>
+      <label class="campo-filtro">
+        <span>Estudiante</span>
+        <input class="control" type="search" name="q" maxlength="100" placeholder="Nombre o correo"
+          [value]="filtros().q" (input)="buscarEstudiante($any($event.target).value)" />
+      </label>
+      <label class="campo-filtro">
+        <span>Estado</span>
+        <select class="control" name="estado" [value]="filtros().estado" (change)="filtrar({ estado: $any($event.target).value })">
+          <option value="">Todos</option>
+          <option value="ACTIVA">En curso</option>
+          <option value="COMPLETADA">Completado</option>
+        </select>
+      </label>
+      @if (hayFiltros()) {
+        <button type="button" class="btn btn-texto btn-sm limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
+      }
+    </form>
 
     @if (cargaEstudiantes.ocupada()) {
       <app-esqueleto forma="filas" [cantidad]="5" [etiqueta]="'Cargando estudiantes' + (cursoSeleccionado() ? ' de ' + cursoSeleccionado()!.titulo : '') + '…'" />

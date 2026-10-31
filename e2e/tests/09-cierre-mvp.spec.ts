@@ -146,7 +146,7 @@ test('cierre del MVP: categorías y usuarios del administrador, recursos, instru
     await alumna.locator('app-foto-perfil input[type=file]').setInputFiles({ name: 'yo.png', mimeType: 'image/png', buffer: PNG });
     await alumna.getByRole('button', { name: 'Guardar foto' }).click();
     await expect(alumna.getByText('Foto de perfil actualizada.')).toBeVisible();
-    await expect(alumna.locator('app-menu-cuenta img.foto').first()).toHaveAttribute('src', /^\/api\/fotos\/[0-9a-f-]{36}\.png$/);
+    await expect(alumna.locator('app-menu-cuenta img.foto').first()).toHaveAttribute('src', /^\/api\/fotos\/[0-9a-f-]{36}\.jpg$/); // el recortador sube un JPEG 1:1
   } finally {
     await ctxEstudiante.close();
   }

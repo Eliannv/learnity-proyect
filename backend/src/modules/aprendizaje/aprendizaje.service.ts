@@ -10,6 +10,7 @@ import type {
   RecursoAprendizaje, TipoLeccionAprendizaje,
 } from './aprendizaje.modelo.js';
 import { aprendizajeRepository as repo, type FilaCursoInscrito, type FilaInscripcion, type FilaLeccion } from './aprendizaje.repository.js';
+import type { FiltrosLista } from './aprendizaje.repository.js';
 
 function exigirEstudiante(usuario: UsuarioSesion): void {
   if (!usuario.roles.includes('ESTUDIANTE')) throw AppError.sinPermiso();
@@ -138,7 +139,7 @@ export const aprendizajeService = {
   },
 
   async seguimientoDocente(
-    idCurso: number | null, filtro: PaginacionEstudiantes, usuario: UsuarioSesion,
+    idCurso: number | null, filtro: PaginacionEstudiantes & FiltrosLista, usuario: UsuarioSesion,
   ): Promise<SeguimientoDocente> {
     if (!usuario.roles.includes('DOCENTE') && !usuario.roles.includes('ADMIN')) throw AppError.sinPermiso();
 
@@ -148,10 +149,12 @@ export const aprendizajeService = {
     }
 
     const idDocentePersona = usuario.roles.includes('DOCENTE') ? usuario.idPersona : null;
-    const resumen = await repo.resumenSeguimiento(idDocentePersona, idCurso);
-    const filas = await repo.estudiantesDelDocente(
-      idDocentePersona, idCurso, filtro.limite, (filtro.pagina - 1) * filtro.limite,
-    );
+    const filtrosLista: FiltrosLista = { categoria: filtro.categoria, q: filtro.q, estado: filtro.estado };
+    const [resumen, filas, total] = await Promise.all([
+      repo.resumenSeguimiento(idDocentePersona, idCurso),
+      repo.estudiantesDelDocente(idDocentePersona, idCurso, filtro.limite, (filtro.pagina - 1) * filtro.limite, filtrosLista),
+      repo.contarEstudiantes(idDocentePersona, idCurso, filtrosLista),
+    ]);
 
     return {
       curso: cursoInfo ? { id: cursoInfo.id, titulo: cursoInfo.titulo } : null,
@@ -169,8 +172,8 @@ export const aprendizajeService = {
       })),
       pagina: filtro.pagina,
       limite: filtro.limite,
-      total: resumen.inscritos,
-      totalPaginas: Math.ceil(resumen.inscritos / filtro.limite),
+      total,
+      totalPaginas: Math.ceil(total / filtro.limite),
       resumen,
     };
   },

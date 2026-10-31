@@ -1,4 +1,5 @@
-<h1 class="titulo">Ajustes y perfil</h1>
+<div class="marco" [class.contenedor]="marco() === 'pagina'" [class.pagina]="marco() === 'pagina'">
+<h1 class="titulo">Mi perfil</h1>
 
 <!-- Una sola página a dos columnas, como el perfil del estudiante: datos y contraseña a la izquierda; foto, vista
      pública (docente) y cuenta a la derecha. -->
@@ -124,60 +125,150 @@
       <app-foto-perfil [tamano]="120" />
     </section>
 
-          @if (auth.esDocente()) {
-            <section class="vista-docente" aria-label="Vista previa">
-              <span class="etiqueta-grupo">Así te ven tus estudiantes</span>
-              <div class="fila">
-                <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="48" />
-                <div>
-                  <strong>{{ valores().nombres }} {{ valores().apellidos }}</strong>
-                  <small>Docente en Learnity</small>
-                </div>
-              </div>
-              @if (valoracion(); as v) {
-                <p class="valoracion-docente">
-                  @if (v.promedio !== null) {
-                    <app-estrellas [valor]="v.promedio" />
-                    <strong>{{ v.promedio | number:'1.1-1' }}</strong>
-                    <span>Valoración como docente · {{ v.total }} {{ v.total === 1 ? 'reseña' : 'reseñas' }} en tus cursos publicados</span>
-                  } @else {
-                    <span>Todavía no tienes reseñas en tus cursos publicados.</span>
-                  }
-                </p>
-              }
-              <p>{{ valores().biografia || 'Aún no escribes tu biografía.' }}</p>
-            </section>
-          } @else {
-            <div class="aviso">
-              <lucide-icon name="lock" [size]="18" />
-              <span>Tu perfil es privado: nadie más ve qué cursos tomas ni tu avance.</span>
+    <section class="tarjeta seccion-perfil cuenta" aria-labelledby="t-roles">
+      <h2 id="t-roles">Tus roles</h2>
+      <p class="texto-suave">
+        @if (activaDesde()) { Cuenta activa desde el <span class="num">{{ activaDesde() }}</span>. }
+        Los roles se suman: toda cuenta es Estudiante.
+      </p>
+      <ul class="roles">
+        @for (r of roles(); track r.nombre) {
+          <li>
+            <lucide-icon name="circle-check" [size]="20" />
+            <div>
+              <strong>{{ r.nombre }}</strong>
+              <span class="texto-suave">{{ r.descripcion }}</span>
             </div>
-          }
-
-    <section class="tarjeta seccion-perfil cuenta" aria-label="Cuenta y roles">
-      <div class="bloque">
-        <h2>Tus roles</h2>
-        <p class="texto-suave">Los roles se suman: toda cuenta es Estudiante. Administración aprueba el rol de Docente.</p>
-        <ul class="roles">
-          @for (r of roles(); track r.nombre) {
-            <li>
-              <lucide-icon name="circle-check" [size]="20" />
-              <div>
-                <strong>{{ r.nombre }}</strong>
-                <span class="texto-suave">{{ r.descripcion }}</span>
-              </div>
-            </li>
-          }
-        </ul>
-      </div>
-
-      <div class="bloque">
-        <h2>Sesión</h2>
-        <p class="texto-suave">Cuenta activa{{ activaDesde() ? ' desde el ' + activaDesde() : '' }}. Cierra la sesión si usas una computadora compartida.</p>
-        <button type="button" class="btn btn-peligro salir" (click)="auth.cerrarSesion()">
-          <lucide-icon name="log-out" [size]="18" /> Cerrar sesión
-        </button>
-      </div>
+          </li>
+        }
+      </ul>
     </section>
+
+    @if (auth.esDocente()) {
+      <section class="tarjeta seccion-perfil vista-docente" aria-labelledby="t-vista">
+        <h2 id="t-vista">Así te ven tus estudiantes</h2>
+        <div class="fila">
+          <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="48" />
+          <div>
+            <strong>{{ valores().nombres }} {{ valores().apellidos }}</strong>
+            <small>Docente en Learnity</small>
+          </div>
+        </div>
+        @if (valoracion(); as v) {
+          <p class="valoracion-docente">
+            @if (v.promedio !== null) {
+              <app-estrellas [valor]="v.promedio" />
+              <strong class="num">{{ v.promedio | number:'1.1-1' }}</strong>
+              <span>Valoración como docente · <span class="num">{{ v.total }}</span> {{ v.total === 1 ? 'reseña' : 'reseñas' }} en tus cursos publicados</span>
+            } @else {
+              <span>Todavía no tienes reseñas en tus cursos publicados.</span>
+            }
+          </p>
+        }
+        <p>{{ valores().biografia || 'Aún no escribes tu biografía.' }}</p>
+      </section>
+    } @else {
+      <section class="tarjeta seccion-perfil ensenar" aria-labelledby="t-ensenar" aria-live="polite">
+        <h2 id="t-ensenar">¿Quieres enseñar?</h2>
+        @if (miSolicitud()?.estado === 'PENDIENTE') {
+          <span class="estado-solicitud pendiente"><lucide-icon name="clock" [size]="16" /> En revisión</span>
+          <p>
+            Enviaste tu solicitud el <span class="num">{{ fechaCorta(miSolicitud()!.enviadaEn) }}</span> ({{ miSolicitud()!.especialidad }}).
+            Un administrador la revisará y verás el resultado aquí.
+          </p>
+        } @else {
+          @if (miSolicitud()?.estado === 'RECHAZADA') {
+            <span class="estado-solicitud rechazada"><lucide-icon name="circle-x" [size]="16" /> No fue aprobada</span>
+            @if (miSolicitud()!.observacion) {
+              <blockquote class="observacion">{{ miSolicitud()!.observacion }}</blockquote>
+            }
+            <p>Puedes enviar una nueva solicitud con más detalles.</p>
+          } @else if (miSolicitud()?.estado === 'REVOCADA' && miSolicitud()!.revocacion; as revocacion) {
+            <span class="estado-solicitud rechazada"><lucide-icon name="circle-x" [size]="16" /> Tu rol de docente fue retirado</span>
+            <blockquote class="observacion">{{ revocacion.motivo }}</blockquote>
+            <p>Desde el <span class="num">{{ fechaCorta(revocacion.revocadaEn) }}</span> ya no puedes editar tus cursos. Si quieres, envía una nueva solicitud.</p>
+          } @else {
+            <p>Solicita el rol de Docente para crear y publicar tus propios cursos. Conservarás tus cursos e inscripciones como estudiante.</p>
+          }
+          <button type="button" class="btn btn-primario btn-bloque" (click)="modalSolicitud.set(true)">
+            {{ miSolicitud() ? 'Enviar una nueva solicitud' : 'Solicitar ser docente' }} <lucide-icon name="arrow-right" [size]="18" />
+          </button>
+        }
+      </section>
+    }
   </aside>
 </div>
+</div>
+
+@if (modalSolicitud()) {
+  <app-modal titulo="Solicitud para ser docente" icono="presentation" [ancho]="560" (cerrar)="cerrarSolicitud()">
+    @if (solicitudEnviada() || auth.esDocente() || miSolicitud()?.estado === 'PENDIENTE') {
+      <div class="aviso" [class.exito]="solicitudEnviada() || auth.esDocente()" role="status">
+        <lucide-icon [name]="solicitudEnviada() || auth.esDocente() ? 'circle-check' : 'clock'" [size]="18" />
+        <span>
+          @if (auth.esDocente()) {
+            Tu cuenta ya tiene el rol Docente.
+          } @else if (solicitudEnviada()) {
+            Solicitud enviada. Un administrador la revisará y verás el resultado en tu perfil.
+          } @else {
+            Ya tienes una solicitud en revisión. Verás el resultado en tu perfil.
+          }
+        </span>
+      </div>
+      <div class="acciones-modal">
+        <button type="button" class="btn btn-primario" (click)="cerrarSolicitud()">Entendido</button>
+      </div>
+    } @else {
+      <p class="texto-suave intro">
+        Cuéntanos qué te gustaría enseñar. Un administrador revisará tu solicitud y, si la aprueba, podrás crear cursos con esta misma cuenta.
+      </p>
+      <form class="form-solicitud" [formGroup]="formSolicitud" (ngSubmit)="enviarSolicitud()" novalidate>
+        <div class="campo">
+          <label class="etiqueta" for="especialidad">Especialidad o tema</label>
+          <div class="control-icono">
+            <lucide-icon name="briefcase" [size]="20" />
+            <input
+              id="especialidad"
+              class="control"
+              [class.invalido]="formSolicitud.controls.especialidad.invalid && formSolicitud.controls.especialidad.touched"
+              formControlName="especialidad"
+              maxlength="100"
+              placeholder="Ej.: Programación web, Diseño gráfico"
+            />
+          </div>
+          @if (formSolicitud.controls.especialidad.invalid && formSolicitud.controls.especialidad.touched) {
+            <span class="error-campo">Escribe la especialidad o el tema (entre 3 y 100 caracteres).</span>
+          }
+        </div>
+        <div class="campo">
+          <label class="etiqueta" for="motivo">¿Por qué quieres enseñar?</label>
+          <textarea
+            id="motivo"
+            class="control"
+            [class.invalido]="formSolicitud.controls.motivo.invalid && formSolicitud.controls.motivo.touched"
+            formControlName="motivo"
+            placeholder="Describe tu experiencia y el curso que te gustaría publicar…"
+          ></textarea>
+          <span class="ayuda">Mínimo 50 caracteres ({{ formSolicitud.controls.motivo.value.length }}/50).</span>
+        </div>
+        @if (errorSolicitud()) {
+          <div class="aviso error" role="alert">
+            <lucide-icon name="circle-alert" [size]="18" />
+            <span>{{ errorSolicitud() }}</span>
+          </div>
+        } @else {
+          <div class="aviso">
+            <lucide-icon name="info" [size]="18" />
+            <span>Conservarás tus cursos e inscripciones como estudiante.</span>
+          </div>
+        }
+        <div class="acciones-modal">
+          <button type="button" class="btn btn-suave" (click)="cerrarSolicitud()">Cancelar</button>
+          <button type="submit" class="btn btn-primario" [disabled]="enviandoSolicitud()">
+            {{ enviandoSolicitud() ? 'Enviando…' : 'Enviar solicitud' }} <lucide-icon name="arrow-right" [size]="18" />
+          </button>
+        </div>
+      </form>
+    }
+  </app-modal>
+}

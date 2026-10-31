@@ -222,3 +222,22 @@
   }
 }
 
+
+/* Sale de su campo (arriba) en una transición corta que arranca desde el valor actual: si se cierra y se vuelve a abrir
+   a mitad, no salta. Con movimiento reducido, solo aparece. */
+.desplegable-sugerencias {
+  transform-origin: top center;
+  transition:
+    opacity var(--t-micro) var(--curva-salida),
+    transform var(--t-micro) var(--curva-salida);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desplegable-sugerencias {
+    transition: none;
+  }
+}

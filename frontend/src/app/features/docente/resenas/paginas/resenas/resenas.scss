@@ -8,7 +8,8 @@
 
 .filtros {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  /* Seis filtros en dos filas de tres: curso, categoría y texto; calificación, contenido y respuesta. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
   gap: 12px;
   .campo span { font-size: 13px; font-weight: 600; color: var(--tinta-2); }

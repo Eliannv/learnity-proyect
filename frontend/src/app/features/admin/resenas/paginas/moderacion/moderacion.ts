@@ -17,21 +17,22 @@ import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.s
 import { CatalogoApi } from '../../../../catalogo/catalogo.api';
 import { AdminResenasApi, type EstadoResenasAdmin, type FiltrosResenasAdmin } from '../../resenas.api';
 
-type Vista = 'TODAS' | EstadoReporte;
+type Vista = 'TODAS' | 'VIGENTES' | 'BORRADAS' | EstadoReporte;
+
+/** Las pestañas que listan reseñas (con el estado de la reseña que piden); el resto lista reportes. */
+const ESTADO_DE_VISTA: Partial<Record<Vista, EstadoResenasAdmin>> = {
+  TODAS: 'todas', VIGENTES: 'vigentes', OCULTADA: 'ocultadas', BORRADAS: 'borradas',
+};
 
 const VISTAS: { valor: Vista; texto: string }[] = [
   { valor: 'TODAS', texto: 'Todas las reseñas' },
+  { valor: 'VIGENTES', texto: 'Visibles' },
   { valor: 'PENDIENTE', texto: 'Reportes pendientes' },
   { valor: 'OCULTADA', texto: 'Ocultadas' },
+  { valor: 'BORRADAS', texto: 'Borradas por el estudiante' },
   { valor: 'DESESTIMADA', texto: 'Desestimadas' },
 ];
 
-const ESTADOS: { valor: EstadoResenasAdmin; texto: string }[] = [
-  { valor: 'todas', texto: 'Todas' },
-  { valor: 'vigentes', texto: 'Visibles en el curso' },
-  { valor: 'ocultadas', texto: 'Ocultadas por moderación' },
-  { valor: 'borradas', texto: 'Borradas por el estudiante' },
-];
 
 const MOTIVO: Record<MotivoReporte, string> = { OFENSIVO: 'Lenguaje ofensivo', SPAM: 'Spam o publicidad', OTRO: 'Otro motivo' };
 
@@ -67,27 +68,31 @@ function estrellasTexto(n: number): string {
 export class ModeracionResenas {
   private readonly api = inject(AdminResenasApi);
   private readonly catalogo = inject(CatalogoApi);
-  /** Nombres de las categorías activas: sugerencias del filtro por categoría. */
-  protected readonly categorias = signal<string[]>([]);
+  /** Categorías activas como opciones del selector buscable (el filtro envía su nombre). */
+  protected readonly categorias = signal<{ id: number; titulo: string; iconoCategoria: string }[]>([]);
+  protected readonly idCategoria = computed(() => this.categorias().find((c) => c.titulo === this.filtros().categoria)?.id ?? null);
+
+  protected elegirCategoria(id: number | null): void {
+    this.filtrar({ categoria: this.categorias().find((c) => c.id === id)?.titulo ?? '' });
+  }
   private readonly toasts = inject(ToastService);
   private readonly confirmacion = inject(ConfirmacionService);
   private version = 0;
   private temporizador: ReturnType<typeof setTimeout> | undefined;
 
   protected readonly vistas = VISTAS;
-  protected readonly estados = ESTADOS;
   protected readonly motivo = MOTIVO;
   protected readonly maxMotivo = MAX_MOTIVO;
   protected readonly vista = signal<Vista>('TODAS');
   protected readonly filtros = signal<FiltrosResenasAdmin>(FILTROS_INICIALES);
   protected readonly hayFiltros = computed(() => {
     const f = this.filtros();
-    return f.estado !== 'todas' || f.curso !== null || f.estrellas !== null || !!f.categoria.trim() || !!f.q.trim();
+    return f.curso !== null || f.estrellas !== null || !!f.categoria.trim() || !!f.q.trim();
   });
   protected readonly carga = new Peticion();
   protected readonly todas = signal<PaginaResenasAdmin | null>(null);
   /** Las vistas que muestran reseñas (con sus acciones) en lugar de reportes. */
-  protected readonly vistaResenas = computed(() => this.vista() === 'TODAS' || this.vista() === 'OCULTADA');
+  protected readonly vistaResenas = computed(() => ESTADO_DE_VISTA[this.vista()] !== undefined);
   protected readonly cursos = computed(() => this.todas()?.cursos ?? []);
   protected readonly reportes = signal<ReporteResena[]>([]);
   protected readonly resolviendo = signal<number | null>(null);
@@ -100,7 +105,10 @@ export class ModeracionResenas {
   protected readonly ocultacion = new Peticion();
 
   constructor() {
-    this.catalogo.categorias().then((lista) => this.categorias.set(lista.map((c) => c.nombre)), () => undefined);
+    this.catalogo.categorias().then(
+      (lista) => this.categorias.set(lista.map((c) => ({ id: c.id, titulo: c.nombre, iconoCategoria: c.icono }))),
+      () => undefined,
+    );
     inject(DestroyRef).onDestroy(() => clearTimeout(this.temporizador));
     // El resumen enlaza con ?vista=PENDIENTE para abrir directamente los reportes pendientes.
     const vista = inject(ActivatedRoute).snapshot.queryParamMap.get('vista');
@@ -136,13 +144,14 @@ export class ModeracionResenas {
     this.carga.limpiar();
     this.carga.ocupada.set(true);
     try {
-      if (vista === 'TODAS' || vista === 'OCULTADA') {
-        // «Ocultadas» lista todas las reseñas ocultas (por reporte o directamente desde «Todas»), no solo los reportes.
-        const filtros = vista === 'OCULTADA' ? { ...this.filtros(), estado: 'ocultadas' as const } : this.filtros();
-        const datos = await this.api.todas(filtros, pagina);
+      const estado = ESTADO_DE_VISTA[vista];
+      if (estado) {
+        // El estado de la reseña lo da la pestaña («Ocultadas» incluye también las ocultadas sin reporte previo).
+        const datos = await this.api.todas({ ...this.filtros(), estado }, pagina);
         if (version === this.version) this.todas.set(datos);
       } else {
-        const lista = await this.api.reportes(vista);
+        const { estado: _estado, ...contenido } = this.filtros();
+        const lista = await this.api.reportes(vista as EstadoReporte, contenido);
         if (version === this.version) this.reportes.set(lista);
       }
     } catch (error) {

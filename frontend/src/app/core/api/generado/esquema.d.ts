@@ -2615,7 +2615,77 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Eliminar una cuenta creada por error (administrador)
+         * @description Solo cuentas sin actividad: sin cursos creados, sin inscripciones y sin registros a su nombre. Si la tiene, responde 409 y la cuenta debe desactivarse. No se puede eliminar la propia ni al único administrador. Queda en la auditoría con el administrador como autor (migración 039).
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Cuenta eliminada */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Usuario no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description NO_AUTOELIMINAR, ULTIMO_ADMIN, CUENTA_CON_CURSOS, CUENTA_CON_ACTIVIDAD o CUENTA_CON_REGISTROS */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -2783,6 +2853,97 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/usuarios/{id}/invitacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reenviar la invitación de una cuenta que aún no entró (administrador)
+         * @description Genera un enlace nuevo de 72 horas para crear la contraseña, invalida el anterior y lo envía por correo. Solo para cuentas activas que nunca han iniciado sesión.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Invitación reenviada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: date-time */
+                            invitacionPendienteHasta: string;
+                        };
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Usuario no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La cuenta está desactivada o ya entró (CUENTA_INACTIVA, INVITACION_NO_APLICA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3293,6 +3454,12 @@ export interface paths {
             parameters: {
                 query?: {
                     curso?: number;
+                    /** @description Parte del nombre de la categoría del curso. */
+                    categoria?: string;
+                    /** @description Parte del nombre o del correo del estudiante. */
+                    q?: string;
+                    /** @description ACTIVA: en curso; COMPLETADA: terminó el curso. */
+                    estado?: "ACTIVA" | "COMPLETADA";
                     pagina?: number;
                     limite?: number;
                 };
@@ -4208,6 +4375,10 @@ export interface paths {
                     estrellas?: number;
                     comentario?: "con" | "sin";
                     respuesta?: "respondidas" | "sin-responder";
+                    /** @description Parte del nombre de la categoría del curso (sin distinguir mayúsculas). */
+                    categoria?: string;
+                    /** @description Nombre del estudiante, comentario o respuesta (sin distinguir mayúsculas). */
+                    q?: string;
                     pagina?: number;
                     limite?: number;
                 };
@@ -4605,7 +4776,7 @@ export interface paths {
                     estrellas?: number;
                     /** @description Parte del nombre de la categoría del curso (sin distinguir mayúsculas). */
                     categoria?: string;
-                    /** @description Texto en el comentario o en la respuesta del docente (sin distinguir mayúsculas). */
+                    /** @description Texto en el comentario, en la respuesta del docente o en el nombre del estudiante (sin distinguir mayúsculas). */
                     q?: string;
                     pagina?: number;
                     limite?: number;
@@ -4675,6 +4846,12 @@ export interface paths {
             parameters: {
                 query?: {
                     estado?: "PENDIENTE" | "OCULTADA" | "DESESTIMADA";
+                    curso?: number;
+                    estrellas?: number;
+                    /** @description Parte del nombre de la categoría del curso (sin distinguir mayúsculas). */
+                    categoria?: string;
+                    /** @description Texto en el comentario, en la respuesta del docente o en el nombre del estudiante (sin distinguir mayúsculas). */
+                    q?: string;
                 };
                 header?: never;
                 path?: never;
@@ -7426,6 +7603,8 @@ export interface components {
         CursoDelDocente: components["schemas"]["CursoResumen"] & {
             /** @description Inscripciones en el curso. */
             estudiantes: number;
+            /** @description Nombre de la categoría; null si aún no la eligió. */
+            categoria: string | null;
             calificacion: components["schemas"]["CalificacionCurso"];
         };
         CursoDetalle: {

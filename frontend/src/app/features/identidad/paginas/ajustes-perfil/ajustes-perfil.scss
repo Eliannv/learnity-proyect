@@ -340,3 +340,64 @@ textarea.control {
     padding: 20px 16px;
   }
 }
+
+/* Tarjeta «¿Quieres enseñar?» y modal de solicitud. */
+.ensenar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid var(--azul-200);
+  strong {
+    font-size: 18px;
+  }
+  p {
+    font-size: 14px;
+  }
+}
+
+.estado-solicitud {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  &.pendiente {
+    background: var(--ambar-100);
+    color: var(--ambar-800);
+  }
+  &.rechazada {
+    background: var(--rojo-050);
+    color: var(--rojo-700);
+  }
+}
+
+.observacion {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--rojo-700);
+  border-radius: 0 var(--radio) var(--radio) 0;
+  background: var(--blanco);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.intro {
+  margin-bottom: 16px;
+}
+
+.form-solicitud {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.acciones-modal {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}

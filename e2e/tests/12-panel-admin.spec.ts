@@ -276,7 +276,7 @@ test('el administrador busca una reseña, la oculta con motivo, retira la respue
 
   await iniciarSesionPorUI(page, admin.correo);
   await page.goto('/admin/resenas');
-  await page.getByLabel('Buscar en comentarios y respuestas').fill(MARCA);
+  await page.getByLabel('Buscar en comentarios, respuestas o estudiante').fill(comentario);
   const tarjeta = page.getByRole('article').filter({ hasText: comentario });
   await expect(page.getByText('1 reseña ·')).toBeVisible();
   await expect(tarjeta).toContainText('Publicada');
@@ -340,13 +340,13 @@ test('el administrador revisa la auditoría con su diff y el estado de la base, 
 
   await iniciarSesionPorUI(page, admin.correo);
   await page.goto('/admin/auditoria');
-  await page.getByLabel('Tabla').selectOption('categoria');
+  await page.getByRole('combobox', { name: 'Sección', exact: true }).selectOption('categoria');
   await page.getByLabel('Operación').selectOption('UPDATE');
   const fila = page.getByRole('row').filter({ hasText: admin.correo }).filter({ hasText: String(id) }).first();
-  await expect(fila).toContainText('learnity_app');
+  await expect(fila).toContainText('Aplicación web');
   await revisarAccesibilidad(page);
   await fila.getByRole('button', { name: /Ver el detalle/ }).click();
-  const detalle = page.getByRole('dialog', { name: /^Cambio \d+ · categoria$/ });
+  const detalle = page.getByRole('dialog', { name: /^Cambio \d+ · Categorías$/ });
   await expect(detalle.getByRole('heading', { name: 'Datos antes y después' })).toBeVisible();
   const nombre = detalle.getByRole('row').filter({ has: page.getByRole('rowheader', { name: /nombre/ }) });
   await expect(nombre.locator('td.antes')).toContainText(`Valor anterior: ${categoria}`);
@@ -420,7 +420,7 @@ test('el administrador ejecuta el análisis de alertas, sigue la evidencia y mar
     await page.getByLabel('Tipo').selectOption('CAMBIO_PRIVILEGIOS');
     const rol = page.getByRole('article').filter({ hasText: 'Cambio de privilegios' }).first();
     await rol.getByRole('link', { name: /Ver el cambio \d+ en la auditoría/ }).first().click();
-    await expect(page.getByRole('dialog', { name: /^Cambio \d+ · usuario_rol$/ })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: /^Cambio \d+ · Roles asignados$/ })).toBeVisible();
     await page.goBack();
 
     await page.getByLabel('Tipo').selectOption('INTENTOS_FALLIDOS');

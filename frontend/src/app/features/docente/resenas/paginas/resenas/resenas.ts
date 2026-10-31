@@ -17,6 +17,7 @@ import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
 import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
 import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
 import { DocenteResenasApi } from '../../resenas.api';
+import { CatalogoApi } from '../../../../catalogo/catalogo.api';
 
 import { BuscadorCurso } from '../../../../../shared/ui/cursos/buscador-curso';
 
@@ -64,8 +65,25 @@ export class ResenasDocente {
 
   protected readonly hayFiltros = computed(() => {
     const f = this.filtro();
-    return f.curso !== undefined || f.estrellas !== undefined || f.comentario !== undefined || f.respuesta !== undefined;
+    return f.curso !== undefined || f.estrellas !== undefined || f.comentario !== undefined || f.respuesta !== undefined
+      || f.categoria !== undefined || f.q !== undefined;
   });
+
+  /** Categorías activas como opciones del selector buscable compartido (el filtro envía su nombre). */
+  private readonly catalogo = inject(CatalogoApi);
+  protected readonly categorias = signal<{ id: number; titulo: string; iconoCategoria: string }[]>([]);
+  protected readonly idCategoria = computed(() => this.categorias().find((c) => c.titulo === this.filtro().categoria)?.id ?? null);
+  private espera: ReturnType<typeof setTimeout> | undefined;
+
+  protected elegirCategoria(id: number | null): void {
+    this.cambiar('categoria', this.categorias().find((c) => c.id === id)?.titulo ?? '');
+  }
+
+  /** La búsqueda espera a que se deje de escribir (estudiante, comentario o respuesta). */
+  protected buscarTexto(texto: string): void {
+    clearTimeout(this.espera);
+    this.espera = setTimeout(() => this.cambiar('q', texto.trim()), 300);
+  }
 
   protected readonly evolucion = computed(() => {
     const puntos = this.datos()?.evolucion ?? [];
@@ -81,6 +99,10 @@ export class ResenasDocente {
 
   constructor() {
     void this.cargar();
+    this.catalogo.categorias().then(
+      (lista) => this.categorias.set(lista.map((c) => ({ id: c.id, titulo: c.nombre, iconoCategoria: c.icono }))),
+      () => undefined,
+    );
   }
 
   protected cambiar<K extends keyof Filtro>(clave: K, valor: string): void {
@@ -111,6 +133,8 @@ export class ResenasDocente {
         estrellas: filtro.estrellas,
         comentario: filtro.comentario,
         respuesta: filtro.respuesta,
+        categoria: filtro.categoria,
+        q: filtro.q,
         pagina: filtro.pagina > 1 ? filtro.pagina : undefined,
       },
       replaceUrl: true,
@@ -233,6 +257,8 @@ export class ResenasDocente {
       estrellas: numero('estrellas'),
       comentario: comentario === 'con' || comentario === 'sin' ? comentario : undefined,
       respuesta: respuesta === 'respondidas' || respuesta === 'sin-responder' ? respuesta : undefined,
+      categoria: q.get('categoria')?.trim() || undefined,
+      q: q.get('q')?.trim() || undefined,
     };
   }
 }

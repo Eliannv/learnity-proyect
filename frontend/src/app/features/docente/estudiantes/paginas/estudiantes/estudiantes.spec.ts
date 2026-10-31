@@ -33,7 +33,7 @@ describe('seguimiento docente', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Cargando tus cursos');
     await vi.waitFor(() => {
-      expect(seguimientoApi.listar).toHaveBeenCalledWith(null, 1);
+      expect(seguimientoApi.listar).toHaveBeenCalledWith(null, 1, 20, { categoria: '', q: '', estado: '' });
       expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
     });
     expect(fixture.nativeElement.textContent).toContain('21');
@@ -47,7 +47,7 @@ describe('seguimiento docente', () => {
     siguiente.click();
     fixture.detectChanges();
     await vi.waitFor(() => {
-      expect(seguimientoApi.listar).toHaveBeenLastCalledWith(null, 2);
+      expect(seguimientoApi.listar).toHaveBeenLastCalledWith(null, 2, 20, { categoria: '', q: '', estado: '' });
       expect(fixture.nativeElement.textContent).toContain('No hay estudiantes en esta página');
     });
   });
@@ -85,7 +85,7 @@ describe('seguimiento docente', () => {
     const fixture = TestBed.createComponent(EstudiantesCurso);
     fixture.detectChanges();
     await vi.waitFor(() => {
-      expect(seguimientoApi.listar).toHaveBeenCalledWith(null, 1);
+      expect(seguimientoApi.listar).toHaveBeenCalledWith(null, 1, 20, { categoria: '', q: '', estado: '' });
       expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
     });
     const input = fixture.nativeElement.querySelector('input#curso-seguimiento') as HTMLInputElement;
@@ -97,7 +97,7 @@ describe('seguimiento docente', () => {
     opcion.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     fixture.detectChanges();
     await vi.waitFor(() => {
-      expect(seguimientoApi.listar).toHaveBeenLastCalledWith(7, 1);
+      expect(seguimientoApi.listar).toHaveBeenLastCalledWith(7, 1, 20, { categoria: '', q: '', estado: '' });
     });
   });
 });

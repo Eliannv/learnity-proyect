@@ -7,7 +7,7 @@ import { Avatar } from '../../shared/ui/marca/avatar';
 /**
  * Foto de perfil del header (sitio y paneles).
  *  - Pasar el mouse (o enfocarla con el teclado): muestra el menú con todo lo que puede hacer la cuenta.
- *  - Clic: Estudiante → Mi perfil (/perfil); Docente o Administrador → Ajustes y perfil dentro de su panel.
+ *  - Clic: Estudiante → Mi perfil (/perfil); Docente o Administrador → Mi perfil dentro de su panel.
  * El menú es la única entrada a los paneles de Docente y Administración.
  */
 @Component({

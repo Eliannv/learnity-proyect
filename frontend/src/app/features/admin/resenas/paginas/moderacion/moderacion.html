@@ -43,16 +43,8 @@
   </p>
 </ng-template>
 
-@if (vistaResenas()) {
+<!-- La misma fila de cuatro filtros en todas las pestañas: no salta ni se reordena al cambiar. -->
   <form class="filtros" role="search" aria-label="Filtrar reseñas" (submit)="$event.preventDefault()">
-    @if (vista() === 'TODAS') {
-    <label class="campo">
-      <span>Estado</span>
-      <select class="control" name="estado" [ngModel]="filtros().estado" (ngModelChange)="filtrar({ estado: $event })">
-        @for (e of estados; track e.valor) { <option [value]="e.valor">{{ e.texto }}</option> }
-      </select>
-    </label>
-    }
     <div class="campo curso">
       <app-buscador-curso
         idCampo="curso-resenas-admin"
@@ -66,14 +58,12 @@
         (seleccion)="filtrar({ curso: $event })"
       />
     </div>
-    <label class="campo">
-      <span>Categoría del curso</span>
-      <input class="control" type="search" name="categoria" list="categorias-resenas" maxlength="80"
-        placeholder="Todas las categorías" [ngModel]="filtros().categoria" (change)="filtrar({ categoria: $any($event.target).value })" />
-      <datalist id="categorias-resenas">
-        @for (c of categorias(); track c) { <option [value]="c"></option> }
-      </datalist>
-    </label>
+    <div class="campo">
+      <app-buscador-curso idCampo="categoria-resenas-admin" etiqueta="Categoría del curso" [mostrarEtiqueta]="true"
+        [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="true"
+        [cursos]="categorias()" [cursoId]="idCategoria()" textoTodos="Todas las categorías" placeholder="Buscar categoría…"
+        (seleccion)="elegirCategoria($event)" />
+    </div>
     <label class="campo">
       <span>Calificación</span>
       <select class="control" name="estrellas" [ngModel]="filtros().estrellas"
@@ -83,7 +73,7 @@
       </select>
     </label>
     <label class="campo texto">
-      <span>Buscar en comentarios y respuestas</span>
+      <span>Buscar en comentarios, respuestas o estudiante</span>
       <input class="control" type="search" name="q" maxlength="100" placeholder="Palabra o frase…"
         [ngModel]="filtros().q" (ngModelChange)="buscar($event)" />
     </label>
@@ -91,7 +81,6 @@
       <button type="button" class="btn btn-texto btn-sm limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
     }
   </form>
-}
 
 @if (carga.ocupada()) {
   <app-esqueleto forma="filas" [cantidad]="3" etiqueta="Cargando reseñas…" />

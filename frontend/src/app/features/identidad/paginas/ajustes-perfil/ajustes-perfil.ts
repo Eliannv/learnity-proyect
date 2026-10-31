@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import type { CalificacionCurso } from '../../../../core/api/contrato';
 import { DocenteResenasApi } from '../../../docente/resenas/resenas.api';
@@ -11,6 +11,8 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { PerfilService, fechaCorta } from '../../../../core/auth/perfil.service';
 import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api';
 import { Avatar } from '../../../../shared/ui/marca/avatar';
+import { SolicitudesDocenteService, type SolicitudDocente } from '../../../../core/solicitudes/solicitudes-docente.service';
+import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../../shared/validadores/contrasena';
 
 const NOMBRES_ROL = { ESTUDIANTE: 'Estudiante', DOCENTE: 'Docente', ADMIN: 'Administrador' } as const;
@@ -29,12 +31,28 @@ function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-ajustes-perfil',
-  imports: [ReactiveFormsModule, LucideAngularModule, Avatar, FotoPerfil, DecimalPipe, Estrellas],
+  imports: [ReactiveFormsModule, LucideAngularModule, Avatar, FotoPerfil, DecimalPipe, Estrellas, Modal],
   templateUrl: './ajustes-perfil.html',
   styleUrl: './ajustes-perfil.scss',
 })
 export class AjustesPerfil {
   protected readonly auth = inject(AuthService);
+  private readonly solicitudes = inject(SolicitudesDocenteService);
+
+  /** `data.marco` de la ruta: «pagina» en /perfil (sitio público, con contenedor); «panel» dentro del panel. */
+  readonly marco = input<'pagina' | 'panel'>('panel');
+  /** `?solicitud=1` abre directamente el formulario para ser docente. */
+  readonly solicitud = input<string>();
+  protected readonly fechaCorta = fechaCorta;
+  protected readonly modalSolicitud = linkedSignal(() => !!this.solicitud());
+  protected readonly solicitudEnviada = signal(false);
+  protected readonly miSolicitud = signal<SolicitudDocente | null>(null);
+  protected readonly enviandoSolicitud = signal(false);
+  protected readonly errorSolicitud = signal<string | null>(null);
+  protected readonly formSolicitud = inject(FormBuilder).nonNullable.group({
+    especialidad: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+    motivo: ['', [Validators.required, Validators.minLength(50), Validators.maxLength(2000)]],
+  });
   private readonly perfiles = inject(PerfilService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
@@ -61,6 +79,44 @@ export class AjustesPerfil {
   constructor() {
     void this.cargar();
     if (this.auth.esDocente()) void this.cargarValoracion();
+    else void this.cargarSolicitud();
+  }
+
+  private async cargarSolicitud() {
+    try {
+      const s = await this.solicitudes.miSolicitud();
+      this.miSolicitud.set(s);
+      if (s?.estado === 'APROBADA' && !this.auth.esDocente()) await this.auth.renovar();
+    } catch {
+      // La tarjeta conserva el botón para solicitar; el envío mostrará el error si persiste.
+    }
+  }
+
+  /** RF-05 · POST /api/solicitudes-docente. */
+  protected async enviarSolicitud() {
+    this.errorSolicitud.set(null);
+    if (this.formSolicitud.invalid) {
+      this.formSolicitud.markAllAsTouched();
+      return;
+    }
+    const { especialidad, motivo } = this.formSolicitud.getRawValue();
+    this.enviandoSolicitud.set(true);
+    try {
+      this.miSolicitud.set(await this.solicitudes.enviar(especialidad, motivo));
+      this.solicitudEnviada.set(true);
+      this.formSolicitud.reset();
+    } catch (error) {
+      this.errorSolicitud.set(mensajeDeError(error, 'El envío de la solicitud'));
+      void this.cargarSolicitud();
+    } finally {
+      this.enviandoSolicitud.set(false);
+    }
+  }
+
+  protected cerrarSolicitud() {
+    this.modalSolicitud.set(false);
+    this.solicitudEnviada.set(false);
+    this.errorSolicitud.set(null);
   }
 
   private async cargarValoracion(): Promise<void> {

@@ -33,8 +33,14 @@ export class AdminResenasApi {
     return firstValueFrom(this.http.get<PaginaResenasAdmin>(this.base, { params }));
   }
 
-  reportes(estado: EstadoReporte): Promise<ReporteResena[]> {
-    return firstValueFrom(this.http.get<ReporteResena[]>(`${this.base}/reportes`, { params: new HttpParams().set('estado', estado) }));
+  /** Reportes de un estado con los mismos filtros de contenido que «Todas las reseñas» (sin el estado de la reseña). */
+  reportes(estado: EstadoReporte, filtros?: Omit<FiltrosResenasAdmin, 'estado'>): Promise<ReporteResena[]> {
+    let params = new HttpParams().set('estado', estado);
+    if (filtros?.curso != null) params = params.set('curso', filtros.curso);
+    if (filtros?.estrellas != null) params = params.set('estrellas', filtros.estrellas);
+    if (filtros?.categoria.trim()) params = params.set('categoria', filtros.categoria.trim());
+    if (filtros?.q.trim()) params = params.set('q', filtros.q.trim());
+    return firstValueFrom(this.http.get<ReporteResena[]>(`${this.base}/reportes`, { params }));
   }
 
   /** OCULTAR oculta la reseña (se conserva en el historial); DESESTIMAR la deja publicada. */

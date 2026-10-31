@@ -36,9 +36,9 @@ function normalizar(texto: string): string {
 }
 
 /**
- * Buscador y selector accesible de cursos con autocompletado y previsualización.
- * No despliega lista previa al enfocar: solo muestra cursos al escribir una búsqueda.
- * El estado por defecto (sin búsqueda activa) es "Todos los cursos".
+ * Selector buscable accesible (combobox) de la app: sirve para cursos y para categorías (`nombre`), con búsqueda
+ * local o remota, limpieza rápida y la opción «Todos». Por defecto solo despliega al escribir; con `listarAlEnfocar`
+ * (listas cortas como las categorías) muestra todas las opciones al enfocar.
  */
 @Component({
   selector: 'app-buscador-curso',
@@ -94,10 +94,10 @@ function normalizar(texto: string): string {
       @if (desplegado()) {
         <div class="desplegable-sugerencias" [id]="idLista()" role="listbox" (mouseleave)="indiceActivo.set(-1)">
           @if (cargando()) {
-            <p class="estado-sugerencias" role="status">Buscando cursos…</p>
+            <p class="estado-sugerencias" role="status">Buscando {{ nombre().plural }}…</p>
           } @else if (opcionesVisibles().length === 0) {
             <p class="estado-sugerencias" role="status">
-              Ningún curso coincide con «{{ consulta() }}».
+              @if (consulta()) { Ninguna opción coincide con «{{ consulta() }}». } @else { No hay {{ nombre().plural }} para elegir. }
             </p>
           } @else {
             <ul class="lista-opciones">
@@ -167,6 +167,10 @@ export class BuscadorCurso {
   readonly textoTodos = input<string>('Todos los cursos');
   readonly mostrarBotonVerTodos = input<boolean>(false);
   readonly buscarRemoto = input<((termino: string) => Promise<OpcionCursoBusqueda[]>) | null>(null);
+  /** Qué se elige, para los mensajes del desplegable («Buscando categorías…»). */
+  readonly nombre = input<{ singular: string; plural: string }>({ singular: 'curso', plural: 'cursos' });
+  /** Muestra todas las opciones al enfocar, sin escribir (listas cortas). */
+  readonly listarAlEnfocar = input(false);
 
   readonly seleccion = output<number | null>();
   readonly cursoSeleccionado = output<OpcionCursoBusqueda | null>();
@@ -191,6 +195,7 @@ export class BuscadorCurso {
     if (this.cerradoManual()) return false;
     if (!this.enfocado()) return false;
     const q = this.consulta().trim();
+    if (this.listarAlEnfocar() && !this.buscarRemoto()) return true;
     const minLongitud = this.buscarRemoto() ? 2 : 1;
     return q.length >= minLongitud;
   });
@@ -222,7 +227,7 @@ export class BuscadorCurso {
   protected readonly opcionesVisibles = computed<OpcionCursoBusqueda[]>(() => {
     const q = normalizar(this.consulta().trim());
     if (!q) {
-      return [];
+      return this.listarAlEnfocar() && !this.buscarRemoto() ? this.cursos() : [];
     }
 
     if (this.buscarRemoto()) {
