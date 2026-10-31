@@ -1,20 +1,62 @@
 <!-- Menú lateral claro con etiquetas (≥ 1200 px) o riel de 64 px con tooltip (901-1199 px). En el móvil, la barra
      inferior. Las etiquetas siempre están en el DOM: son el nombre accesible de cada enlace en el riel. -->
 <aside class="lateral oculto-movil">
-  <a class="marca" [routerLink]="config().inicio" [attr.aria-label]="'Inicio del panel ' + config().etiqueta">
-    <app-logo [tamano]="24" [soloIcono]="true" />
-    <span class="marca-texto">Learnity <span class="ambito">{{ config().etiqueta }}</span></span>
-  </a>
+  <div class="cabecera-lateral">
+    <a class="marca" [routerLink]="config().inicio" [attr.aria-label]="'Inicio del panel ' + config().etiqueta">
+      <app-logo [tamano]="24" [soloIcono]="true" />
+      <span class="marca-texto">Learnity</span>
+    </a>
 
-  @if (ambitos().length) {
-  <nav class="conmutador" aria-label="Cambiar de panel">
-    @for (a of ambitos(); track a.rol) {
-    <a class="opcion" [routerLink]="a.ruta" [class.activa]="a.activo" [attr.aria-current]="a.activo ? 'page' : null">{{ a.etiqueta }}</a>
+    @if (ambitos().length) {
+      <div class="selector-panel-contenedor">
+        <button
+          type="button"
+          class="btn-rol-selector"
+          (click)="alternarConmutador('lateral', $event)"
+          [class.activo]="conmutadorAbierto('lateral')"
+          [attr.aria-expanded]="conmutadorAbierto('lateral')"
+          aria-haspopup="menu"
+          aria-label="Cambiar de panel"
+        >
+          <span class="rol-texto">{{ config().etiqueta }}</span>
+          <lucide-icon
+            name="chevron-down"
+            [size]="13"
+            class="flecha-selector"
+            [class.rotada]="conmutadorAbierto('lateral')"
+            aria-hidden="true"
+          />
+        </button>
+      </div>
+
+      @if (conmutadorAbierto('lateral')) {
+        <div class="menu-desplegable-paneles menu-lateral" role="menu" (click)="$event.stopPropagation()">
+          <div class="menu-cabecera">Cambiar panel</div>
+          @for (a of ambitos(); track a.rol) {
+            <a
+              class="opcion-panel"
+              [routerLink]="a.ruta"
+              [class.activa]="a.activo"
+              role="menuitem"
+              (click)="cerrarConmutador()"
+            >
+              <span class="opcion-icono-wrap">
+                <lucide-icon [name]="a.icono" [size]="16" aria-hidden="true" />
+              </span>
+              <span class="opcion-texto">{{ a.nombreCompleto }}</span>
+              @if (a.activo) {
+                <lucide-icon name="check" [size]="15" class="opcion-check" aria-hidden="true" />
+              }
+            </a>
+          }
+        </div>
+      }
+    } @else {
+      <span class="rol-estatico">{{ config().etiqueta }}</span>
     }
-  </nav>
-  }
+  </div>
 
-  <nav aria-label="Menú del panel">
+  <nav class="menu-navegacion" aria-label="Menú del panel">
     @for (grupo of grupos(); track grupo.nombre) {
     <div class="grupo" role="group" [attr.aria-label]="grupo.nombre">
       <span class="grupo-nombre" aria-hidden="true">{{ grupo.nombre }}</span>
@@ -51,20 +93,117 @@
 
 <div class="marco">
   <header class="barra-superior">
-    <a class="marca-movil solo-movil" [routerLink]="config().inicio">
-      <app-logo [tamano]="22" [etiqueta]="config().etiqueta" />
-    </a>
+    <div class="marca-movil solo-movil">
+      <a class="marca-enlace" [routerLink]="config().inicio" [attr.aria-label]="'Inicio del panel ' + config().etiqueta">
+        <app-logo [tamano]="22" [soloIcono]="true" />
+        <span class="marca-texto">Learnity</span>
+      </a>
+
+      @if (ambitos().length) {
+        <div class="selector-panel-contenedor">
+          <button
+            type="button"
+            class="btn-rol-selector"
+            (click)="alternarConmutador('barra', $event)"
+            [class.activo]="conmutadorAbierto('barra')"
+            [attr.aria-expanded]="conmutadorAbierto('barra')"
+            aria-haspopup="menu"
+            aria-label="Cambiar de panel"
+          >
+            <span class="rol-texto">{{ config().etiqueta }}</span>
+            <lucide-icon
+              name="chevron-down"
+              [size]="13"
+              class="flecha-selector"
+              [class.rotada]="conmutadorAbierto('barra')"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+
+        @if (conmutadorAbierto('barra')) {
+          <div class="menu-desplegable-paneles menu-barra" role="menu" (click)="$event.stopPropagation()">
+            <div class="menu-cabecera">Cambiar panel</div>
+            @for (a of ambitos(); track a.rol) {
+              <a
+                class="opcion-panel"
+                [routerLink]="a.ruta"
+                [class.activa]="a.activo"
+                role="menuitem"
+                (click)="cerrarConmutador()"
+              >
+                <span class="opcion-icono-wrap">
+                  <lucide-icon [name]="a.icono" [size]="16" aria-hidden="true" />
+                </span>
+                <span class="opcion-texto">{{ a.nombreCompleto }}</span>
+                @if (a.activo) {
+                  <lucide-icon name="check" [size]="15" class="opcion-check" aria-hidden="true" />
+                }
+              </a>
+            }
+          </div>
+        }
+      } @else {
+        <span class="rol-estatico">{{ config().etiqueta }}</span>
+      }
+    </div>
+
     <span class="seccion oculto-movil">
-      <strong>{{ config().etiqueta }}</strong>
+      @if (ambitos().length) {
+        <div class="selector-panel-contenedor seccion-conmutador">
+          <button
+            type="button"
+            class="btn-rol-breadcrumb"
+            (click)="alternarConmutador('barra', $event)"
+            [class.activo]="conmutadorAbierto('barra')"
+            [attr.aria-expanded]="conmutadorAbierto('barra')"
+            aria-haspopup="menu"
+            aria-label="Cambiar de panel"
+          >
+            <strong>{{ config().etiqueta }}</strong>
+            <lucide-icon
+              name="chevron-down"
+              [size]="13"
+              class="flecha-selector"
+              [class.rotada]="conmutadorAbierto('barra')"
+              aria-hidden="true"
+            />
+          </button>
+
+          @if (conmutadorAbierto('barra')) {
+            <div class="menu-desplegable-paneles menu-barra" role="menu" (click)="$event.stopPropagation()">
+              <div class="menu-cabecera">Cambiar panel</div>
+              @for (a of ambitos(); track a.rol) {
+                <a
+                  class="opcion-panel"
+                  [routerLink]="a.ruta"
+                  [class.activa]="a.activo"
+                  role="menuitem"
+                  (click)="cerrarConmutador()"
+                >
+                  <span class="opcion-icono-wrap">
+                    <lucide-icon [name]="a.icono" [size]="16" aria-hidden="true" />
+                  </span>
+                  <span class="opcion-texto">{{ a.nombreCompleto }}</span>
+                  @if (a.activo) {
+                    <lucide-icon name="check" [size]="15" class="opcion-check" aria-hidden="true" />
+                  }
+                </a>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <strong>{{ config().etiqueta }}</strong>
+      }
+
       @if (seccion()) {
-      <lucide-icon name="chevron-right" [size]="16" aria-hidden="true" />
-      {{ seccion() }}
+        <lucide-icon name="chevron-right" [size]="16" aria-hidden="true" />
+        {{ seccion() }}
       }
     </span>
-    @if (otroAmbito(); as otro) {
-    <a class="otro-panel" [routerLink]="otro.ruta">Panel {{ otro.etiqueta === 'Admin' ? 'de administración' : 'docente' }}</a>
-    }
-    <a class="vista-estudiante" [class.junto]="otroAmbito()" routerLink="/">Vista estudiante</a>
+
+    <a class="vista-estudiante" routerLink="/">Vista estudiante</a>
     <app-menu-cuenta />
   </header>
 

@@ -27,15 +27,27 @@
   border-right: 1px solid var(--borde);
 }
 
-.marca {
+.cabecera-lateral {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: 40px;
-  padding: 0 8px;
-  margin-bottom: 20px;
+  padding: 0 4px;
+  margin-bottom: 18px;
+}
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   border-radius: var(--radio-sm);
   color: var(--tinta);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--azul-700);
+  }
 }
 
 .marca-texto {
@@ -45,14 +57,228 @@
   white-space: nowrap;
 }
 
-.ambito {
-  margin-left: 4px;
-  font-size: 14px;
+/* Badge selector de panel (Docente / Admin) */
+.selector-panel-contenedor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-rol-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  height: 24px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--tinta-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--t-micro) var(--curva-salida),
+    border-color var(--t-micro) var(--curva-salida),
+    color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
+
+  &:hover {
+    background: var(--activo);
+    border-color: var(--gris-300);
+    color: var(--tinta);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &.activo {
+    background: var(--acento-suave);
+    border-color: var(--acento);
+    color: var(--acento-tinta);
+  }
+}
+
+.rol-texto {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.flecha-selector {
+  color: var(--tinta-3);
+  transition: transform var(--t-micro) var(--curva-salida);
+
+  &.rotada {
+    transform: rotate(180deg);
+  }
+}
+
+.rol-estatico {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--gris-100);
+  color: var(--tinta-3);
+  font-size: 12px;
   font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Breadcrumb selector en barra superior */
+.seccion-conmutador {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-rol-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  margin: -4px 0;
+  border: 1px solid transparent;
+  border-radius: var(--radio-sm);
+  background: transparent;
+  color: var(--tinta);
+  cursor: pointer;
+  transition:
+    background-color var(--t-micro) var(--curva-salida),
+    border-color var(--t-micro) var(--curva-salida);
+
+  strong {
+    color: var(--tinta);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  &:hover {
+    background: var(--activo);
+    border-color: var(--borde);
+  }
+
+  &.activo {
+    background: var(--acento-suave);
+    border-color: var(--acento);
+
+    strong {
+      color: var(--acento-tinta);
+    }
+
+    .flecha-selector {
+      color: var(--acento);
+    }
+  }
+}
+
+/* Menú flotante de selección de panel */
+.menu-desplegable-paneles {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 80;
+  width: 220px;
+  padding: 6px;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flotante, 0 8px 24px rgb(0 0 0 / 0.1));
+  animation: aparecer var(--t-micro) var(--curva-salida);
+
+  &.menu-lateral {
+    top: calc(100% + 4px);
+    left: 4px;
+    right: 4px;
+    width: auto;
+  }
+
+  &.menu-barra {
+    left: 0;
+  }
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-cabecera {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--tinta-3);
 }
 
-nav {
+.opcion-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radio-sm);
+  color: var(--tinta);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color var(--t-micro) var(--curva-salida),
+    transform var(--t-pulsar) var(--curva-salida);
+
+  &:hover {
+    background: var(--activo);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.activa {
+    background: var(--acento-suave);
+    color: var(--acento-tinta);
+    font-weight: 600;
+
+    .opcion-icono-wrap {
+      color: var(--acento);
+    }
+
+    .opcion-check {
+      color: var(--acento);
+    }
+  }
+}
+
+.opcion-icono-wrap {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--tinta-3);
+}
+
+.opcion-texto {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.opcion-check {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+nav.menu-navegacion {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -167,12 +393,19 @@ nav {
     overflow: visible;
   }
 
+  .cabecera-lateral {
+    justify-content: center;
+    padding: 0;
+  }
+
   .marca {
     justify-content: center;
     padding: 0;
   }
 
   .marca-texto,
+  .cabecera-lateral .selector-panel-contenedor,
+  .cabecera-lateral .rol-estatico,
   .grupo-nombre,
   .numero,
   .contador {
@@ -283,55 +516,6 @@ nav {
   }
 }
 
-/* Conmutador Admin | Docente: control segmentado bajo la marca, solo si la cuenta tiene ambos roles. */
-.conmutador {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
-  padding: 3px;
-  margin: -8px 0 20px;
-  border-radius: var(--radio-sm);
-  background: var(--gris-100);
-
-  .opcion {
-    padding: 6px 8px;
-    border-radius: calc(var(--radio-sm) - 2px);
-    color: var(--tinta-2);
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    transition: background-color var(--t-micro) var(--curva-salida), color var(--t-micro) var(--curva-salida);
-
-    &:hover { color: var(--tinta); }
-    &.activa {
-      background: var(--blanco);
-      color: var(--tinta);
-      box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
-    }
-    &:focus-visible { outline: 3px solid var(--azul-600); outline-offset: 1px; }
-  }
-}
-
-/* En la barra superior, el otro panel solo en tableta y móvil (en escritorio está el conmutador). */
-.otro-panel {
-  display: none;
-  margin-left: auto;
-  padding: 8px 12px;
-  border-radius: var(--radio-sm);
-  color: var(--azul-700);
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-
-  &:hover { background: var(--activo); }
-}
-
-@media (max-width: 1199px) {
-  .otro-panel { display: inline-flex; }
-  .vista-estudiante.junto { margin-left: 0; }
-  .conmutador { display: none; }
-}
-
 .contenido {
   flex: 1;
   padding: 28px 32px 48px;
@@ -344,12 +528,31 @@ nav {
     padding-bottom: var(--alto-tabbar);
   }
   .barra-superior {
-    gap: 8px;
+    gap: 12px;
     height: 56px;
     padding: 0 16px;
   }
   .marca-movil {
+    position: relative;
     display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .marca-enlace {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tinta);
+    text-decoration: none;
+
+    .marca-texto {
+      font-size: 16px;
+    }
+  }
+  .vista-estudiante {
+    margin-left: auto;
+    padding: 6px 10px;
+    font-size: 13px;
   }
   .contenido {
     padding: 20px 16px 32px;

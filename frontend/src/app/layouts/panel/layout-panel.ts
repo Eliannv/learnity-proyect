@@ -1,7 +1,9 @@
 import {
   Component,
+  ElementRef,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -37,11 +39,22 @@ import { GRUPO_CUENTA, MENU, type ItemMenu } from './menu-panel';
   ],
   templateUrl: './layout-panel.html',
   styleUrl: './layout-panel.scss',
+  host: {
+    '(document:click)': 'alHacerClicFuera($event)',
+    '(document:keydown.escape)': 'cerrarConmutador()',
+  },
 })
 export class LayoutPanel {
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly elementRef = inject(ElementRef);
+
+  constructor() {
+    this.router.events
+      .pipe(filter((evento) => evento instanceof NavigationEnd))
+      .subscribe(() => this.cerrarConmutador());
+  }
 
   private readonly rol = toSignal(
     this.ruta.data.pipe(
@@ -65,12 +78,46 @@ export class LayoutPanel {
   protected readonly ambitos = computed(() =>
     this.auth.esAdmin() && this.auth.esDocente()
       ? [
-          { rol: 'ADMIN' as const, etiqueta: 'Admin', ruta: '/admin', activo: this.rol() === 'ADMIN' },
-          { rol: 'DOCENTE' as const, etiqueta: 'Docente', ruta: '/docente', activo: this.rol() === 'DOCENTE' },
+          {
+            rol: 'ADMIN' as const,
+            etiqueta: 'Admin',
+            nombreCompleto: 'Panel Administrador',
+            icono: 'shield-check',
+            ruta: '/admin',
+            activo: this.rol() === 'ADMIN',
+          },
+          {
+            rol: 'DOCENTE' as const,
+            etiqueta: 'Docente',
+            nombreCompleto: 'Panel Docente',
+            icono: 'presentation',
+            ruta: '/docente',
+            activo: this.rol() === 'DOCENTE',
+          },
         ]
       : [],
   );
-  protected readonly otroAmbito = computed(() => this.ambitos().find((a) => !a.activo) ?? null);
+
+  protected readonly conmutadorActivo = signal<'lateral' | 'barra' | null>(null);
+
+  protected alternarConmutador(origen: 'lateral' | 'barra', evento: MouseEvent): void {
+    evento.stopPropagation();
+    this.conmutadorActivo.update((actual) => (actual === origen ? null : origen));
+  }
+
+  protected cerrarConmutador(): void {
+    this.conmutadorActivo.set(null);
+  }
+
+  protected conmutadorAbierto(origen: 'lateral' | 'barra'): boolean {
+    return this.conmutadorActivo() === origen;
+  }
+
+  protected alHacerClicFuera(evento: MouseEvent): void {
+    if (this.conmutadorActivo() && !this.elementRef.nativeElement.contains(evento.target as Node)) {
+      this.cerrarConmutador();
+    }
+  }
 
   /** Secciones del menú lateral que no están en la barra inferior: van en su pestaña «Más». */
   protected readonly mas = computed(() => {
