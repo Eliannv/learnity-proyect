@@ -103,6 +103,9 @@ describe('Sprint 3: inscripción y aprendizaje', () => {
       c.como(estudiante, 'PUT', ruta, { segundosVistos: 60 }),
     ]);
     assert.ok(concurrentes.every((r) => r.status === 200), concurrentes.map((r) => r.texto).join('\n'));
+    // La posición guarda la última escritura (se puede rebobinar): con dos a la vez, cuál llega última es azar.
+    // Se fija con una escritura en orden antes de comprobar que la lectura posterior la conserva.
+    assert.equal((await c.como(estudiante, 'PUT', ruta, { segundosVistos: 60 })).status, 200);
     const nuevoToken = await iniciarSesion(srv, estudiante.correo);
     const detalle = await srv.pedir(`/api/mi-aprendizaje/cursos/${idCurso}`, { token: nuevoToken });
     assert.equal(detalle.status, 200, detalle.texto);
