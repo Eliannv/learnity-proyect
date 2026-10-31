@@ -122,7 +122,9 @@ export const resenasService = {
     const historial = await repo.historial(items.map((r) => r.id));
     return {
       cursos,
-      items: items.map((r) => ({ ...r, historial: historial.get(r.id) ?? [] })),
+      items: items.map(({ participantes, ...r }) => ({
+        ...r, propia: participantes.includes(usuario.idPersona), historial: historial.get(r.id) ?? [],
+      })),
       pagina: filtros.pagina, limite: filtros.limite, total, totalPaginas: Math.ceil(total / filtros.limite),
     };
   },
@@ -131,15 +133,18 @@ export const resenasService = {
     exigirAdmin(usuario);
     const reportes = await repo.reportes(filtros);
     const historial = await repo.historial([...new Set(reportes.map((r) => r.resena.id))]);
-    return reportes.map((r) => ({ ...r, historial: historial.get(r.resena.id) ?? [] }));
+    return reportes.map(({ participantes, ...r }) => ({
+      ...r, propia: participantes.includes(usuario.idPersona), historial: historial.get(r.resena.id) ?? [],
+    }));
   },
 
   async resolverReporte(idReporte: number, { decision }: DecisionReporte, usuario: UsuarioSesion): Promise<void> {
     exigirAdmin(usuario);
-    const idResena = await enTransaccion(
-      (cliente) => repo.resolverReporte(cliente, idReporte, usuario.idPersona, decision === 'OCULTAR'),
-      { actor: usuario.idPersona },
-    );
+    const idResena = await enTransaccion(async (cliente) => {
+      const partes = await repo.partesDeReportePendiente(cliente, idReporte);
+      if (partes) exigirAjeno(partes, usuario);
+      return repo.resolverReporte(cliente, idReporte, usuario.idPersona, decision === 'OCULTAR');
+    }, { actor: usuario.idPersona });
     if (idResena === null) throw AppError.noEncontrado('El reporte no existe o ya fue resuelto.');
     registrarEvento('reporte_resena_resuelto', { idReporte, decision });
   },
@@ -156,7 +161,7 @@ export const resenasService = {
       await repo.ocultar(cliente, idResena, usuario.idPersona, motivo);
     });
     registrarEvento('resena_ocultada', { idResena });
-    return resenaAdmin(idResena);
+    return resenaAdmin(idResena, usuario);
   },
 
   async restaurar(idResena: number, usuario: UsuarioSesion): Promise<ResenaAdmin> {
@@ -165,7 +170,7 @@ export const resenasService = {
       await repo.restaurar(cliente, idResena);
     });
     registrarEvento('resena_restaurada', { idResena });
-    return resenaAdmin(idResena);
+    return resenaAdmin(idResena, usuario);
   },
 
   /** Retira la respuesta pública del docente; queda en el historial como RESPUESTA_RETIRADA. */
@@ -175,7 +180,7 @@ export const resenasService = {
       await repo.retirarRespuesta(cliente, idResena);
     });
     registrarEvento('resena_respuesta_retirada_admin', { idResena });
-    return resenaAdmin(idResena);
+    return resenaAdmin(idResena, usuario);
   },
 };
 
@@ -188,13 +193,22 @@ async function moderar(
   await enTransaccion(async (cliente) => {
     const estado = await repo.bloquearParaModerar(cliente, idResena);
     if (!estado) throw AppError.noEncontrado('La reseña no existe.');
+    exigirAjeno(estado, usuario);
     await accion(cliente, estado);
   }, { actor: usuario.idPersona });
 }
 
-async function resenaAdmin(idResena: number): Promise<ResenaAdmin> {
-  const [resena, historial] = await Promise.all([repo.resenaAdminPorId(idResena), repo.historial([idResena])]);
-  return { ...resena!, historial: historial.get(idResena) ?? [] };
+/** Segregación de funciones: nadie modera reseñas de sus propios cursos ni las que escribió. */
+function exigirAjeno(partes: { idPersonaDocente: number; idPersonaAutor: number }, usuario: UsuarioSesion): void {
+  if (partes.idPersonaDocente === usuario.idPersona || partes.idPersonaAutor === usuario.idPersona) {
+    throw AppError.sinPermiso('No puedes moderar reseñas de tus propios cursos ni tus propias reseñas. Otro administrador debe hacerlo.');
+  }
+}
+
+async function resenaAdmin(idResena: number, usuario: UsuarioSesion): Promise<ResenaAdmin> {
+  const [fila, historial] = await Promise.all([repo.resenaAdminPorId(idResena), repo.historial([idResena])]);
+  const { participantes, ...resena } = fila!;
+  return { ...resena, propia: participantes.includes(usuario.idPersona), historial: historial.get(idResena) ?? [] };
 }
 
 function exigirDocente(usuario: UsuarioSesion): void {

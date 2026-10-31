@@ -14,9 +14,11 @@
           <a class="btn btn-primario btn-lg" routerLink="/cursos">Explorar cursos</a>
           @if (auth.esDocente()) {
             <a class="btn btn-contorno btn-lg" routerLink="/docente/cursos">Ir a mis cursos</a>
-          } @else if (auth.esAdmin()) {
+          }
+          @if (auth.esAdmin()) {
             <a class="btn btn-contorno btn-lg" routerLink="/admin/revision">Panel de administración</a>
-          } @else {
+          }
+          @if (!auth.esDocente() && !auth.esAdmin()) {
             <a class="btn btn-contorno btn-lg" routerLink="/perfil">Mi perfil</a>
           }
         </div>

@@ -400,11 +400,23 @@ export const usuariosRepository = {
 
     // Si tiene DOCENTE, asegurar perfil activo
     if (roles.includes('DOCENTE')) {
+      // La especialidad sale de su última solicitud, si la hay; una solicitud pendiente queda aprobada con el rol.
       await cliente.query(
         `INSERT INTO docente (id_persona, especialidad)
-         SELECT id_persona, 'Docente' FROM usuario WHERE id_usuario = $1
+         SELECT u.id_persona,
+                COALESCE((SELECT s.especialidad FROM solicitud_docente s
+                           WHERE s.id_persona = u.id_persona
+                           ORDER BY s.id_solicitud DESC LIMIT 1), 'Docente')
+           FROM usuario u WHERE u.id_usuario = $1
          ON CONFLICT (id_persona) DO UPDATE SET estado = 'ACTIVO'`,
         [idUsuario],
+      );
+      await cliente.query(
+        `UPDATE solicitud_docente
+            SET estado = 'APROBADA', revisada_por = $2, revisada_en = now()
+          WHERE estado = 'PENDIENTE'
+            AND id_persona = (SELECT id_persona FROM usuario WHERE id_usuario = $1)`,
+        [idUsuario, asignadoPor],
       );
     } else {
       // Si se retiró el rol docente, inactivar registro docente

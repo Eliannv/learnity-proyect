@@ -180,6 +180,8 @@ export class AdminUsuarios {
     this.ocupadoId.set(u.id);
     try {
       this.reemplazar(await this.api.cambiarRoles(u.id, roles));
+      // Tus propios roles: renovar la sesión muestra al instante el conmutador Admin | Docente y los permisos.
+      if (this.esYo(u)) await this.auth.renovar();
       this.editando.set(null);
       this.toast.exito(`Roles de ${u.nombre} actualizados.`);
     } catch (error) {

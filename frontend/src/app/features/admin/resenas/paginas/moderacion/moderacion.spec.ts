@@ -9,6 +9,7 @@ import { AdminResenasApi } from '../../resenas.api';
 import { ModeracionResenas } from './moderacion';
 
 const reporte: ReporteResena = {
+  propia: false,
   id: 3, motivo: 'OFENSIVO', detalle: 'Insulta al docente.', estado: 'PENDIENTE',
   creadoEn: '2026-10-20T10:00:00.000Z', resueltoEn: null, reportadoPor: 'Carlos Docente',
   resena: {
@@ -25,6 +26,7 @@ const reporte: ReporteResena = {
 };
 
 const resena: ResenaAdmin = {
+  propia: false,
   ...reporte.resena, creadoEn: reporte.historial[0]!.fecha, reportesPendientes: 1, historial: reporte.historial,
 };
 

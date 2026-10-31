@@ -129,6 +129,8 @@ export interface Ocultacion {
 
 /** Cualquier reseña, también las borradas, con su historial completo (vista del administrador). */
 export interface ResenaAdmin {
+  /** El administrador es el docente del curso o el autor: otro administrador debe moderarla. */
+  propia: boolean;
   id: number;
   curso: { id: number; titulo: string };
   estudiante: string;
@@ -155,6 +157,8 @@ export interface PaginaResenasAdmin {
 }
 
 export interface ReporteAdmin {
+  /** El administrador es el docente del curso o el autor: otro administrador debe moderarla. */
+  propia: boolean;
   id: number;
   motivo: MotivoReporte;
   detalle: string | null;

@@ -109,3 +109,13 @@
   .mensaje.error { padding: 12px 14px; }
 }
 .error-campo { min-height: 0; font-size: 13px; color: var(--negativo); &:empty { display: none; } }
+
+/* Segregación de funciones: sin acciones sobre reseñas de sus propios cursos o escritas por quien modera. */
+.nota-propia {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  color: var(--tinta-2);
+  font-size: 13px;
+}

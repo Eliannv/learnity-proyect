@@ -270,6 +270,13 @@ export async function detallePrivado(
   return c;
 }
 
+/** Segregación de funciones: un administrador que también es docente no decide sobre sus propios cursos. */
+function exigirAjeno(idPersonaDocente: number, usuario: UsuarioSesion): void {
+  if (idPersonaDocente === usuario.idPersona) {
+    throw AppError.sinPermiso('No puedes revisar ni cambiar el estado administrativo de tu propio curso. Otro administrador debe hacerlo.');
+  }
+}
+
 export const detallePrivadoService = {
   detallePrivado,
 
@@ -288,6 +295,7 @@ export const detallePrivadoService = {
     return enTransaccion(async (cliente) => {
       const base = await fichaRepository.base(cliente, id, true);
       if (!base) throw AppError.noEncontrado('Curso no disponible.');
+      exigirAjeno(base.idPersonaDocente, usuario);
       if (!politicaCurso.puedePasar(base.estado, 'SUSPENDIDO')) {
         throw AppError.conflicto('Solo se puede suspender un curso publicado. Actualiza la lista.', 'CURSO_NO_PUBLICADO');
       }
@@ -304,6 +312,7 @@ export const detallePrivadoService = {
     return enTransaccion(async (cliente) => {
       const base = await fichaRepository.base(cliente, id, true);
       if (!base) throw AppError.noEncontrado('Curso no disponible.');
+      exigirAjeno(base.idPersonaDocente, usuario);
       if (!politicaCurso.puedePasar(base.estado, 'PUBLICADO') || base.estado !== 'SUSPENDIDO') {
         throw AppError.conflicto('Este curso no está suspendido. Actualiza la lista.', 'CURSO_NO_SUSPENDIDO');
       }
@@ -322,7 +331,7 @@ export const detallePrivadoService = {
       if (!base) {
         throw AppError.noEncontrado('Curso no disponible.');
       }
-      return detallePrivado(cliente, id, prevalidados);
+      return { ...(await detallePrivado(cliente, id, prevalidados)), propio: base.idPersonaDocente === usuario.idPersona };
     });
   },
 
@@ -436,6 +445,7 @@ export const detallePrivadoService = {
       if (!base) {
         throw AppError.noEncontrado('Curso no disponible.');
       }
+      exigirAjeno(base.idPersonaDocente, usuario);
       if (base.estado !== 'EN_REVISION') {
         throw AppError.conflicto('Este curso ya no está pendiente de revisión.');
       }

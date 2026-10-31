@@ -7608,6 +7608,8 @@ export interface components {
             calificacion: components["schemas"]["CalificacionCurso"];
         };
         CursoDetalle: {
+            /** @description Solo en la revisión del administrador: el curso es suyo y otro administrador debe decidir. */
+            propio?: boolean;
             id: number;
             titulo: string;
             /** @description Cadena vacía si no tiene. */
@@ -8126,6 +8128,8 @@ export interface components {
             motivo: string | null;
         };
         ResenaAdmin: {
+            /** @description El administrador es el docente del curso o el autor: debe moderarla otro administrador. */
+            propia: boolean;
             id: number;
             curso: {
                 id: number;
@@ -8174,6 +8178,8 @@ export interface components {
             totalPaginas: number;
         };
         ReporteResena: {
+            /** @description El administrador es el docente del curso o el autor: debe moderarla otro administrador. */
+            propia: boolean;
             id: number;
             /** @enum {string} */
             motivo: "SPAM" | "OFENSIVO" | "OTRO";

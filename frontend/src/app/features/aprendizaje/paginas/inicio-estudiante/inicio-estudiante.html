@@ -8,7 +8,8 @@
         @if (auth.esDocente()) {
           <span class="sep">·</span>
           <a class="enlace" routerLink="/docente/cursos">Panel docente</a>
-        } @else if (auth.esAdmin()) {
+        }
+        @if (auth.esAdmin()) {
           <span class="sep">·</span>
           <a class="enlace" routerLink="/admin/revision">Panel de administración</a>
         }

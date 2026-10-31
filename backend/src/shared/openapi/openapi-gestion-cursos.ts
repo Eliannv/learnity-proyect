@@ -398,6 +398,10 @@ export const esquemasGestionCursos = {
       'validacion',
     ],
     properties: {
+      propio: {
+        type: 'boolean',
+        description: 'Solo en la revisión del administrador: el curso es suyo y otro administrador debe decidir.',
+      },
       id: entero,
       titulo: texto,
       subtitulo: { ...texto, description: 'Cadena vacía si no tiene.' },

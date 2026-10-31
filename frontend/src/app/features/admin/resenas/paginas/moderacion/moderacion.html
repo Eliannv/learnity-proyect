@@ -123,6 +123,9 @@
             <ng-container *ngTemplateOutlet="ocultada; context: { $implicit: o }" />
           }
           <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial }" />
+          @if (r.propia) {
+            <p class="nota-propia" role="note"><lucide-icon name="info" [size]="16" aria-hidden="true" /> Es de tu curso o la escribiste tú: debe moderarla otro administrador.</p>
+          } @else {
           <footer class="acciones">
             @if (r.respuesta) {
               <button type="button" class="btn btn-texto btn-sm peligro" [disabled]="actuando() === r.id"
@@ -140,6 +143,7 @@
               </button>
             }
           </footer>
+          }
         </article>
       } @empty {
         <div class="mensaje">
@@ -194,7 +198,9 @@
 
         <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial }" />
 
-        @if (r.estado === 'PENDIENTE') {
+        @if (r.estado === 'PENDIENTE' && r.propia) {
+          <p class="nota-propia" role="note"><lucide-icon name="info" [size]="16" aria-hidden="true" /> Es de tu curso o la escribiste tú: debe moderarla otro administrador.</p>
+        } @else if (r.estado === 'PENDIENTE') {
           <footer class="acciones">
             <button type="button" class="btn btn-contorno btn-sm" [disabled]="resolviendo() === r.id" (click)="resolver(r, 'DESESTIMAR')">Desestimar reporte</button>
             <button type="button" class="btn btn-peligro btn-sm" [disabled]="resolviendo() === r.id" (click)="resolver(r, 'OCULTAR')">Ocultar reseña</button>

@@ -89,6 +89,9 @@ export const usuariosService = {
     await enTransaccion(async (cliente) => {
       const solicitud = await repo.bloquearSolicitud(cliente, id);
       if (!solicitud) throw AppError.noEncontrado('La solicitud no existe.');
+      if (solicitud.idPersona === admin.idPersona) {
+        throw AppError.sinPermiso('No puedes revocar tu propia solicitud.');
+      }
       if (solicitud.estado !== 'APROBADA') {
         throw AppError.conflicto('Solo se puede revocar una solicitud aprobada. Actualiza la lista.', 'SOLICITUD_NO_APROBADA');
       }

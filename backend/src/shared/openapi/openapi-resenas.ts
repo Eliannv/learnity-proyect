@@ -158,8 +158,9 @@ export const esquemasResenas = {
   ResenaAdmin: {
     type: 'object',
     required: ['id', 'curso', 'estudiante', 'estrellas', 'comentario', 'creadoEn', 'eliminadaEn', 'ocultacion',
-      'respuesta', 'reportesPendientes', 'historial'],
+      'respuesta', 'reportesPendientes', 'propia', 'historial'],
     properties: {
+      propia: { type: 'boolean', description: 'El administrador es el docente del curso o el autor: debe moderarla otro administrador.' },
       id: { type: 'integer' }, curso: cursoRef, estudiante: { type: 'string' },
       estrellas: { type: 'integer', minimum: 1, maximum: 5 }, comentario: { type: 'string', nullable: true },
       creadoEn: fecha, eliminadaEn: { ...fechaNula, description: 'Borrada por su autor.' }, ocultacion, respuesta,
@@ -178,8 +179,9 @@ export const esquemasResenas = {
   },
   ReporteResena: {
     type: 'object',
-    required: ['id', 'motivo', 'detalle', 'estado', 'creadoEn', 'resueltoEn', 'reportadoPor', 'resena', 'historial'],
+    required: ['id', 'motivo', 'detalle', 'estado', 'creadoEn', 'resueltoEn', 'reportadoPor', 'resena', 'propia', 'historial'],
     properties: {
+      propia: { type: 'boolean', description: 'El administrador es el docente del curso o el autor: debe moderarla otro administrador.' },
       id: { type: 'integer' }, motivo, detalle: { type: 'string', nullable: true }, estado: estadoReporte,
       creadoEn: fecha, resueltoEn: fechaNula, reportadoPor: { type: 'string' },
       resena: {

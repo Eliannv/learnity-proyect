@@ -999,6 +999,10 @@
           "validacion"
         ],
         "properties": {
+          "propio": {
+            "type": "boolean",
+            "description": "Solo en la revisión del administrador: el curso es suyo y otro administrador debe decidir."
+          },
           "id": {
             "type": "integer",
             "minimum": 1
@@ -2894,9 +2898,14 @@
           "ocultacion",
           "respuesta",
           "reportesPendientes",
+          "propia",
           "historial"
         ],
         "properties": {
+          "propia": {
+            "type": "boolean",
+            "description": "El administrador es el docente del curso o el autor: debe moderarla otro administrador."
+          },
           "id": {
             "type": "integer"
           },
@@ -3068,9 +3077,14 @@
           "resueltoEn",
           "reportadoPor",
           "resena",
+          "propia",
           "historial"
         ],
         "properties": {
+          "propia": {
+            "type": "boolean",
+            "description": "El administrador es el docente del curso o el autor: debe moderarla otro administrador."
+          },
           "id": {
             "type": "integer"
           },

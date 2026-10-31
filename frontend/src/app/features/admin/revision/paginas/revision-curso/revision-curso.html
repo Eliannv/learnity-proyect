@@ -102,6 +102,13 @@
         <button type="button" class="btn btn-contorno" (click)="cargar()">
           Actualizar curso
         </button>
+      } @else if (c.propio) {
+        <!-- Segregación de funciones: quien enseña el curso no lo juzga. -->
+        <div class="aviso propio" role="note">
+          <lucide-icon name="info" [size]="18" aria-hidden="true" />
+          <span>Eres el docente de este curso. Otro administrador debe revisarlo o cambiar su estado administrativo.</span>
+        </div>
+        <a class="btn btn-contorno" [routerLink]="['/docente/cursos', c.id, 'editar']">Ir a editar en Mis cursos</a>
       } @else if (c.estado === 'PUBLICADO') {
         <p class="mensaje">Este curso ya no está pendiente de revisión. Está publicado en el catálogo.</p>
         <form class="suspension" (submit)="$event.preventDefault(); suspender()" novalidate>

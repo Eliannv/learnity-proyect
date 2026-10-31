@@ -283,6 +283,55 @@ nav {
   }
 }
 
+/* Conmutador Admin | Docente: control segmentado bajo la marca, solo si la cuenta tiene ambos roles. */
+.conmutador {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  margin: -8px 0 20px;
+  border-radius: var(--radio-sm);
+  background: var(--gris-100);
+
+  .opcion {
+    padding: 6px 8px;
+    border-radius: calc(var(--radio-sm) - 2px);
+    color: var(--tinta-2);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    transition: background-color var(--t-micro) var(--curva-salida), color var(--t-micro) var(--curva-salida);
+
+    &:hover { color: var(--tinta); }
+    &.activa {
+      background: var(--blanco);
+      color: var(--tinta);
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+    }
+    &:focus-visible { outline: 3px solid var(--azul-600); outline-offset: 1px; }
+  }
+}
+
+/* En la barra superior, el otro panel solo en tableta y móvil (en escritorio está el conmutador). */
+.otro-panel {
+  display: none;
+  margin-left: auto;
+  padding: 8px 12px;
+  border-radius: var(--radio-sm);
+  color: var(--azul-700);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &:hover { background: var(--activo); }
+}
+
+@media (max-width: 1199px) {
+  .otro-panel { display: inline-flex; }
+  .vista-estudiante.junto { margin-left: 0; }
+  .conmutador { display: none; }
+}
+
 .contenido {
   flex: 1;
   padding: 28px 32px 48px;

@@ -107,6 +107,8 @@ export interface CursoDelDocente extends CursoResumen {
 }
 
 export interface CursoDetalle {
+  /** Solo en la revisión del administrador: el curso es suyo (segregación de funciones). */
+  propio?: boolean;
   id: number;
   titulo: string;
   subtitulo: string;

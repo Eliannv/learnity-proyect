@@ -6,6 +6,14 @@
     <span class="marca-texto">Learnity <span class="ambito">{{ config().etiqueta }}</span></span>
   </a>
 
+  @if (ambitos().length) {
+  <nav class="conmutador" aria-label="Cambiar de panel">
+    @for (a of ambitos(); track a.rol) {
+    <a class="opcion" [routerLink]="a.ruta" [class.activa]="a.activo" [attr.aria-current]="a.activo ? 'page' : null">{{ a.etiqueta }}</a>
+    }
+  </nav>
+  }
+
   <nav aria-label="Menú del panel">
     @for (grupo of grupos(); track grupo.nombre) {
     <div class="grupo" role="group" [attr.aria-label]="grupo.nombre">
@@ -53,7 +61,10 @@
       {{ seccion() }}
       }
     </span>
-    <a class="vista-estudiante" routerLink="/">Vista estudiante</a>
+    @if (otroAmbito(); as otro) {
+    <a class="otro-panel" [routerLink]="otro.ruta">Panel {{ otro.etiqueta === 'Admin' ? 'de administración' : 'docente' }}</a>
+    }
+    <a class="vista-estudiante" [class.junto]="otroAmbito()" routerLink="/">Vista estudiante</a>
     <app-menu-cuenta />
   </header>
 

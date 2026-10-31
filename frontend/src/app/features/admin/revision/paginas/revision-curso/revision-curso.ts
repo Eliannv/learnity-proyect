@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import type { CursoDetalle } from '../../../../../core/cursos/gestion-cursos.model';
 import { Peticion } from '../../../../../core/estado/peticion';
 import { EstadoCursoBadge } from '../../../../../shared/ui/cursos/estado-curso';
@@ -28,6 +29,7 @@ import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/
     DatePipe,
     EstadoCursoBadge,
     ArbolTemario,
+    LucideAngularModule,
   ],
   templateUrl: './revision-curso.html',
   styleUrl: './revision-curso.scss',

@@ -128,14 +128,22 @@ const ocultacion = (f: FilaOcultacion): Ocultacion | null => (f.ocultadaEn === n
 interface FilaAdmin extends FilaOcultacion {
   id: number; cursoId: number; cursoTitulo: string; estudiante: string; estrellas: number;
   comentario: string | null; creadoEn: Date; eliminadaEn: Date | null; respuestaTexto: string | null;
-  respondidaEn: Date | null; reportesPendientes: number;
+  respondidaEn: Date | null; reportesPendientes: number; docentePersona: number; autorPersona: number;
 }
+
+/** Docente del curso y autor de la reseña: el servicio los compara con el administrador y no los envía. */
+export interface Participantes { participantes: [docente: number, autor: number] }
+
+/** Docente dueño del curso (alias c) y autor de la reseña (alias i). */
+const CAMPOS_PARTICIPANTES = `(SELECT d.id_persona FROM docente d WHERE d.id_docente = c.id_docente) AS "docentePersona",
+         i.id_persona AS "autorPersona"`;
 
 const SELECT_ADMIN = `
   SELECT r.id_resena AS id, c.id_curso AS "cursoId", c.titulo AS "cursoTitulo",
          concat_ws(' ', p.nombres, p.apellidos) AS estudiante, r.estrellas, r.comentario,
          r.creado_en AS "creadoEn", r.eliminado_en AS "eliminadaEn",
          r.respuesta_docente AS "respuestaTexto", r.respondida_en AS "respondidaEn", ${CAMPOS_OCULTACION},
+         ${CAMPOS_PARTICIPANTES},
          (SELECT count(*)::int FROM reporte_resena x
            WHERE x.id_resena = r.id_resena AND x.estado = 'PENDIENTE') AS "reportesPendientes"
     FROM resena r
@@ -144,7 +152,8 @@ const SELECT_ADMIN = `
     JOIN persona p ON p.id_persona = i.id_persona
     LEFT JOIN persona po ON po.id_persona = r.ocultada_por`;
 
-const deAdmin = (f: FilaAdmin): Omit<ResenaAdmin, 'historial'> => ({
+const deAdmin = (f: FilaAdmin): Omit<ResenaAdmin, 'historial' | 'propia'> & Participantes => ({
+  participantes: [f.docentePersona, f.autorPersona],
   id: f.id, curso: { id: f.cursoId, titulo: f.cursoTitulo }, estudiante: f.estudiante, estrellas: f.estrellas,
   comentario: f.comentario, creadoEn: f.creadoEn.toISOString(), eliminadaEn: f.eliminadaEn?.toISOString() ?? null,
   ocultacion: ocultacion(f), respuesta: respuesta(f.respuestaTexto, f.respondidaEn),
@@ -449,7 +458,7 @@ export const resenasRepository = {
   // ------------------------------------------------------------ administrador
 
   /** Reseñas de la plataforma con los filtros del administrador, de la más reciente a la más antigua. */
-  async todas(filtros: FiltrosResenasAdmin): Promise<{ items: Omit<ResenaAdmin, 'historial'>[]; total: number }> {
+  async todas(filtros: FiltrosResenasAdmin): Promise<{ items: (Omit<ResenaAdmin, 'historial' | 'propia'> & Participantes)[]; total: number }> {
     const { sql, valores } = condicionesAdmin(filtros);
     const n = valores.length + 1;
     const [{ rows }, conteo] = await Promise.all([
@@ -466,7 +475,7 @@ export const resenasRepository = {
     return { total: conteo.rows[0]!.total, items: rows.map(deAdmin) };
   },
 
-  async resenaAdminPorId(idResena: number): Promise<Omit<ResenaAdmin, 'historial'> | null> {
+  async resenaAdminPorId(idResena: number): Promise<(Omit<ResenaAdmin, 'historial' | 'propia'> & Participantes) | null> {
     const { rows } = await consultar<FilaAdmin>(`${SELECT_ADMIN} WHERE r.id_resena = $1`, [idResena]);
     return rows[0] ? deAdmin(rows[0]) : null;
   },
@@ -482,21 +491,21 @@ export const resenasRepository = {
     return rows;
   },
 
-  async reportes(filtros: FiltrosReportes): Promise<Omit<ReporteAdmin, 'historial'>[]> {
+  async reportes(filtros: FiltrosReportes): Promise<(Omit<ReporteAdmin, 'historial' | 'propia'> & Participantes)[]> {
     // El estado del reporte va aparte ($n); de la reseña solo cuentan los filtros de contenido.
     const { sql, valores } = condicionesAdmin({ ...filtros, estado: 'todas' });
     const { rows } = await consultar<{
       id: number; motivo: MotivoReporte; detalle: string | null; estado: EstadoReporte; creadoEn: Date;
       resueltoEn: Date | null; reportadoPor: string; resenaId: number; cursoId: number; cursoTitulo: string;
       estudiante: string; estrellas: number; comentario: string | null; eliminadaEn: Date | null;
-      respuestaTexto: string | null; respondidaEn: Date | null;
+      respuestaTexto: string | null; respondidaEn: Date | null; docentePersona: number; autorPersona: number;
     } & FilaOcultacion>(
       `SELECT x.id_reporte AS id, x.motivo, x.detalle, x.estado, x.creado_en AS "creadoEn",
               x.resuelto_en AS "resueltoEn", concat_ws(' ', pr.nombres, pr.apellidos) AS "reportadoPor",
               r.id_resena AS "resenaId", c.id_curso AS "cursoId", c.titulo AS "cursoTitulo",
               concat_ws(' ', pe.nombres, pe.apellidos) AS estudiante, r.estrellas, r.comentario,
               r.eliminado_en AS "eliminadaEn", r.respuesta_docente AS "respuestaTexto", r.respondida_en AS "respondidaEn",
-              ${CAMPOS_OCULTACION}
+              ${CAMPOS_OCULTACION}, ${CAMPOS_PARTICIPANTES}
          FROM reporte_resena x
          JOIN persona pr ON pr.id_persona = x.id_persona_reporta
          JOIN resena r ON r.id_resena = x.id_resena
@@ -510,6 +519,7 @@ export const resenasRepository = {
       [...valores, filtros.estado],
     );
     return rows.map((f) => ({
+      participantes: [f.docentePersona, f.autorPersona] as [number, number],
       id: f.id, motivo: f.motivo, detalle: f.detalle, estado: f.estado, creadoEn: f.creadoEn.toISOString(),
       resueltoEn: f.resueltoEn?.toISOString() ?? null, reportadoPor: f.reportadoPor,
       resena: {
@@ -542,11 +552,33 @@ export const resenasRepository = {
   },
 
   /** Bloquea la reseña para moderarla: si está oculta y si tiene respuesta del docente (null si no existe). */
-  async bloquearParaModerar(cliente: PoolClient, idResena: number): Promise<{ ocultada: boolean; respondida: boolean } | null> {
-    const { rows } = await cliente.query<{ ocultada: boolean; respondida: boolean }>(
-      `SELECT ocultada_en IS NOT NULL AS ocultada, respuesta_docente IS NOT NULL AS respondida
-         FROM resena WHERE id_resena = $1 FOR UPDATE`,
+  async bloquearParaModerar(cliente: PoolClient, idResena: number): Promise<{ ocultada: boolean; respondida: boolean; idPersonaDocente: number; idPersonaAutor: number } | null> {
+    const { rows } = await cliente.query<{ ocultada: boolean; respondida: boolean; idPersonaDocente: number; idPersonaAutor: number }>(
+      `SELECT r.ocultada_en IS NOT NULL AS ocultada, r.respuesta_docente IS NOT NULL AS respondida,
+              d.id_persona AS "idPersonaDocente", i.id_persona AS "idPersonaAutor"
+         FROM resena r
+         JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+         JOIN curso c ON c.id_curso = i.id_curso
+         JOIN docente d ON d.id_docente = c.id_docente
+        WHERE r.id_resena = $1
+          FOR UPDATE OF r`,
       [idResena],
+    );
+    return rows[0] ?? null;
+  },
+
+  /** Docente del curso y autor de la reseña de un reporte pendiente (null si no existe o ya se resolvió). */
+  async partesDeReportePendiente(cliente: PoolClient, idReporte: number): Promise<{ idPersonaDocente: number; idPersonaAutor: number } | null> {
+    const { rows } = await cliente.query<{ idPersonaDocente: number; idPersonaAutor: number }>(
+      `SELECT d.id_persona AS "idPersonaDocente", i.id_persona AS "idPersonaAutor"
+         FROM reporte_resena x
+         JOIN resena r ON r.id_resena = x.id_resena
+         JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+         JOIN curso c ON c.id_curso = i.id_curso
+         JOIN docente d ON d.id_docente = c.id_docente
+        WHERE x.id_reporte = $1 AND x.estado = 'PENDIENTE'
+          FOR UPDATE OF x`,
+      [idReporte],
     );
     return rows[0] ?? null;
   },

@@ -21,6 +21,7 @@ import { filter, map } from 'rxjs';
 import { MenuCuenta } from '../comun/menu-cuenta';
 import { TabBar } from '../comun/tab-bar';
 import { Logo } from '../../shared/ui/marca/logo';
+import { AuthService } from '../../core/auth/auth.service';
 import { GRUPO_CUENTA, MENU, type ItemMenu } from './menu-panel';
 
 @Component({
@@ -40,6 +41,7 @@ import { GRUPO_CUENTA, MENU, type ItemMenu } from './menu-panel';
 export class LayoutPanel {
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
   private readonly rol = toSignal(
     this.ruta.data.pipe(
@@ -58,6 +60,17 @@ export class LayoutPanel {
   protected readonly config = computed(
     () => MENU[this.rol()],
   );
+
+  /** Quien es Admin y Docente cambia de panel en un clic; cada panel conserva sus propias páginas. */
+  protected readonly ambitos = computed(() =>
+    this.auth.esAdmin() && this.auth.esDocente()
+      ? [
+          { rol: 'ADMIN' as const, etiqueta: 'Admin', ruta: '/admin', activo: this.rol() === 'ADMIN' },
+          { rol: 'DOCENTE' as const, etiqueta: 'Docente', ruta: '/docente', activo: this.rol() === 'DOCENTE' },
+        ]
+      : [],
+  );
+  protected readonly otroAmbito = computed(() => this.ambitos().find((a) => !a.activo) ?? null);
 
   /** Secciones del menú lateral que no están en la barra inferior: van en su pestaña «Más». */
   protected readonly mas = computed(() => {
