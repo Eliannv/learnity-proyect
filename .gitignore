@@ -26,3 +26,9 @@ Thumbs.db
 
 # Resultados de Playwright si se ejecuta fuera de e2e/ (e2e/.gitignore cubre los suyos)
 test-results/
+
+# Documentación interna (prompts, briefs, planes y ADR): se conserva en local, fuera del repositorio
+*.md
+!/README.md
+!/database/README.md
+!/e2e/README.md

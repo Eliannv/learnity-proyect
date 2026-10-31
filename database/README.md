@@ -2,7 +2,7 @@
 
 La base **no** se crea con Prisma ni con el backend. Se crea con los scripts SQL de esta carpeta, ejecutados con `psql` o en pgAdmin.
 
-El diagnóstico, la matriz de privilegios, las decisiones pendientes y los riesgos están en [`docs/bd/PLAN_BD.md`](../docs/bd/PLAN_BD.md). Este documento explica **cómo** reconstruir, aplicar, probar y revertir.
+Este documento explica **cómo** reconstruir, aplicar, probar y revertir la base. La matriz de privilegios vigente está en `verificacion/matriz_privilegios.sql`.
 
 Hay dos caminos al mismo esquema final, con los mismos archivos y en el mismo orden:
 
