@@ -18,9 +18,10 @@ function montar(entradas: Record<string, unknown>) {
 }
 
 describe('TarjetaCurso', () => {
-  it('sigue la jerarquía de Udemy: título enlazado, docente, valoración y meta, sin el chip de categoría', () => {
+  it('muestra título enlazado, docente, nivel, categoría, valoración y meta', () => {
     const el = montar({
       categoria: 'Programación web',
+      nivel: 'PRINCIPIANTE',
       docente: 'Ana Torres',
       calificacion: { promedio: 4.5, total: 12 },
       meta: '95 min · 8 lecciones',
@@ -32,7 +33,8 @@ describe('TarjetaCurso', () => {
     expect(el.querySelector('app-estrellas')?.getAttribute('aria-label')).toBe('4,5 de 5 estrellas');
     expect(el.querySelector('.conteo')?.textContent?.replace(/\s+/g, ' ')).toBe('(12 reseñas)');
     expect(el.querySelector('.meta')?.textContent?.trim()).toBe('95 min · 8 lecciones');
-    expect(el.textContent).not.toContain('Programación web');
+    expect(el.querySelector('.clasificacion .categoria')?.textContent.trim(),).toBe('Programación web');
+    expect(el.querySelector('.nivel')?.textContent.trim(),).toBe('Principiante');
   });
 
   it('omite «0 min» de la meta y muestra la insignia «Nuevo»', () => {
@@ -41,11 +43,12 @@ describe('TarjetaCurso', () => {
     expect(el.textContent).not.toContain('0 min');
   });
 
-  it('sin reseñas calla la valoración pero guarda su fila; sin el dato no la dibuja', () => {
-    const sinResenas = montar({ calificacion: { promedio: null, total: 0 } }).querySelector('.valoracion');
-    expect(sinResenas?.getAttribute('aria-hidden')).toBe('true');
-    expect(sinResenas?.textContent?.trim()).toBe('');
+  it('sin reseñas o sin el dato omite la fila de valoración', () => {
+    const sinResenas = montar({calificacion: { promedio: null, total: 0 },}).querySelector('.valoracion');
+    expect(sinResenas).toBeNull();
     TestBed.resetTestingModule();
-    expect(montar({}).querySelector('.valoracion')).toBeNull();
+    expect(
+      montar({}).querySelector('.valoracion'),
+    ).toBeNull();
   });
 });

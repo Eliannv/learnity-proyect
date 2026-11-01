@@ -1,157 +1,178 @@
 <div class="contenedor pagina">
-  <header class="saludo">
-    <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="64" [solido]="true" />
-    <div class="saludo-texto">
-      <h1>Hola de nuevo, {{ auth.usuario()?.nombres }}</h1>
-      <div class="enlaces-saludo">
-        <a class="enlace" [routerLink]="auth.rutaPerfil()">Completa tu perfil</a>
-        @if (auth.esDocente()) {
-          <span class="sep">·</span>
-          <a class="enlace" routerLink="/docente/cursos">Panel docente</a>
-        }
-        @if (auth.esAdmin()) {
-          <span class="sep">·</span>
-          <a class="enlace" routerLink="/admin/revision">Panel de administración</a>
-        }
-      </div>
-    </div>
-  </header>
+    <header class="saludo">
+        <app-avatar [texto]="auth.iniciales()" [imagen]="auth.usuario()?.fotoUrl" [tamano]="64" [solido]="true" />
+        <div class="saludo-texto">
+            <h1>Hola de nuevo, {{ auth.usuario()?.nombres }}</h1>
+            <div class="enlaces-saludo">
+                <a class="enlace" [routerLink]="auth.rutaPerfil()">Completa tu perfil</a> @if (auth.esDocente()) {
+                <span class="sep">·</span>
+                <a class="enlace" routerLink="/docente/cursos">Panel docente</a> } @if (auth.esAdmin()) {
+                <span class="sep">·</span>
+                <a class="enlace" routerLink="/admin/revision">Panel de administración</a> }
+            </div>
+        </div>
+    </header>
 
-  <!-- Retomar: la última lección abierta de cada curso en curso -->
-  @if (continuar().length) {
+    <!-- Aprendizaje: carga, error, cursos disponibles o estado vacío. -->
+    @if (cargando()) {
+    <section class="seccion vacio tarjeta-suave" role="status" aria-live="polite">
+        <lucide-icon name="book-open" [size]="28" aria-hidden="true" />
+
+        <div>
+            <h2>Cargando tu aprendizaje</h2>
+            <p class="texto-suave">
+                Estamos consultando tus cursos.
+            </p>
+        </div>
+    </section>
+    } @else if (errorAprendizaje()) {
+    <section class="seccion vacio tarjeta-suave" role="alert">
+        <lucide-icon name="circle-alert" [size]="28" aria-hidden="true" />
+
+        <div>
+            <h2>No pudimos cargar tu aprendizaje</h2>
+            <p class="texto-suave">
+                Inténtalo de nuevo para consultar tus cursos y tu avance.
+            </p>
+        </div>
+
+        <button type="button" class="btn btn-primario" (click)="cargar()">
+      Reintentar
+    </button>
+    </section>
+    } @else if (continuar().length) {
     <section class="seccion" aria-labelledby="t-continuar">
-      <div class="cabecera-seccion">
-        <h2 class="titulo-seccion" id="t-continuar">Continúa donde lo dejaste</h2>
-        <a class="enlace oculto-movil" routerLink="/mi-aprendizaje">Mi aprendizaje</a>
-      </div>
-      <app-carrusel [columnas]="3" [columnasTableta]="2" etiqueta="Lecciones para retomar">
-        @for (i of continuar(); track i.curso.id) {
-          <div role="listitem">
-          <button type="button" class="continuar" (click)="abrir(i)" [attr.aria-busy]="navegando() === i.curso.id">
+        <div class="cabecera-seccion">
+            <h2 class="titulo-seccion" id="t-continuar">
+                Continúa donde lo dejaste
+            </h2>
+
+            <a class="enlace oculto-movil" routerLink="/mi-aprendizaje">
+        Mi aprendizaje
+      </a>
+        </div>
+
+        @if (errorNavegacion()) {
+        <p class="texto-rojo" role="alert">
+            {{ errorNavegacion() }}
+        </p>
+        }
+
+        <app-carrusel [columnas]="3" [columnasTableta]="2" etiqueta="Lecciones para retomar">
+            @for (i of continuar(); track i.curso.id) {
+            <div role="listitem">
+                <button type="button" class="continuar" (click)="abrir(i)" [attr.aria-busy]="navegando() === i.curso.id">
             <span class="continuar-portada">
-              <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [tono]="tonoDe(i.curso.categoria.id)" [compacta]="true" />
+              <app-portada-curso
+                [iconoCategoria]="i.curso.categoria.icono"
+                [tono]="tonoDe(i.curso.categoria.id)"
+                [compacta]="true"
+              />
             </span>
+
             <span class="continuar-texto">
               <small>{{ i.curso.categoria.nombre }}</small>
               <strong>{{ i.curso.titulo }}</strong>
+
               <span class="continuar-pie">
-                <span class="num">{{ i.leccionesCompletadas }} de {{ i.totalLecciones }} lecciones</span>
-                <span class="num texto-suave">{{ i.inscripcion.progresoPct === 0 ? 'Sin empezar' : i.inscripcion.progresoPct + ' %' }}</span>
+                <span class="num">
+                  {{ i.leccionesCompletadas }}
+                  de {{ i.totalLecciones }} lecciones
+                </span>
+
+                <span class="num texto-suave">
+                  {{
+                    i.inscripcion.progresoPct === 0
+                      ? 'Sin empezar'
+                      : i.inscripcion.progresoPct + ' %'
+                  }}
+                </span>
               </span>
-              <app-barra-progreso [valor]="i.inscripcion.progresoPct" />
+
+              <app-barra-progreso
+                [valor]="i.inscripcion.progresoPct"
+              />
             </span>
           </button>
-          </div>
-        }
-      </app-carrusel>
+            </div>
+            }
+        </app-carrusel>
     </section>
-  } @else {
+    } @else { @let mensaje = mensajeSinPendientes();
+
     <section class="seccion vacio tarjeta-suave">
-      <lucide-icon name="graduation-cap" [size]="28" aria-hidden="true" />
-      <div>
-        <h2>Empieza tu primer curso</h2>
-        <p class="texto-suave">Cuando te inscribas, aquí aparecerá la lección donde te quedaste.</p>
-      </div>
-      <a class="btn btn-primario" routerLink="/cursos">Explorar cursos</a>
+        <lucide-icon [name]="mensaje.icono" [size]="28" aria-hidden="true" />
+
+        <div>
+            <h2>{{ mensaje.titulo }}</h2>
+            <p class="texto-suave">{{ mensaje.descripcion }}</p>
+        </div>
+
+        <a class="btn btn-primario" [routerLink]="mensaje.ruta">
+      {{ mensaje.accion }}
+    </a>
     </section>
-  }
-
-  <section class="seccion" aria-labelledby="t-aprender">
-    <div class="cabecera-seccion">
-      <div>
-        <h2 class="titulo-seccion" id="t-aprender">Qué aprender ahora</h2>
-        <h3 class="subtitulo-seccion">Recomendados para ti</h3>
-      </div>
-      <a class="enlace" routerLink="/cursos">Explorar todos los cursos →</a>
-    </div>
-    @if (recomendados().length) {
-      <app-carrusel etiqueta="Cursos recomendados">
-        @for (c of recomendados(); track c.id) {
-          <app-tarjeta-curso
-            role="listitem"
-            [titulo]="c.titulo"
-            [categoria]="c.categoria.nombre"
-            [iconoCategoria]="c.categoria.icono"
-            [docente]="c.docente"
-            [calificacion]="c.calificacion"
-            [tono]="tonoDe(c.categoria.id)"
-            [enlace]="'/cursos/' + c.id"
-            [imagen]="c.portadaUrl"
-            [meta]="meta(c)"
-          />
-        }
-      </app-carrusel>
-    } @else {
-      <p class="texto-suave">Explora el catálogo para encontrar cursos según tus intereses.</p>
     }
 
-    @if (porCategoria().length && categoriaPrincipal()) {
-      <div class="cabecera-seccion" style="margin-top: 16px;">
-        <h3 class="subtitulo-seccion">
-          Porque estudias <a routerLink="/cursos" [queryParams]="{ categoria: categoriaPrincipal() }">{{ categoriaPrincipal() }}</a>
-        </h3>
-        <a class="enlace" routerLink="/cursos" [queryParams]="{ categoria: categoriaPrincipal() }">Ver más de {{ categoriaPrincipal() }} →</a>
-      </div>
-      <app-carrusel etiqueta="Cursos de la misma categoría">
-        @for (c of porCategoria(); track c.id) {
-          <app-tarjeta-curso
-            role="listitem"
-            [titulo]="c.titulo"
-            [categoria]="c.categoria.nombre"
-            [iconoCategoria]="c.categoria.icono"
-            [docente]="c.docente"
-            [calificacion]="c.calificacion"
-            [tono]="tonoDe(c.categoria.id)"
-            [enlace]="'/cursos/' + c.id"
-            [imagen]="c.portadaUrl"
-            [meta]="meta(c)"
-          />
+    <section class="seccion" aria-labelledby="t-aprender">
+        <div class="cabecera-seccion">
+            <div>
+                <h2 class="titulo-seccion" id="t-aprender">Qué aprender ahora</h2>
+                <h3 class="subtitulo-seccion">Recomendados para ti</h3>
+            </div>
+            <a class="enlace" routerLink="/cursos">Explorar todos los cursos →</a>
+        </div>
+        @if (recomendados().length) {
+        <app-carrusel etiqueta="Cursos recomendados">
+            @for (c of recomendados(); track c.id) {
+            <app-tarjeta-curso [retardoEntrada]="($index % 5) * 100" role="listitem" [titulo]="c.titulo" [categoria]="c.categoria.nombre" [nivel]="c.nivel" [iconoCategoria]="c.categoria.icono" [docente]="c.docente" [calificacion]="c.calificacion" [tono]="tonoDe(c.categoria.id)"
+                [enlace]="'/cursos/' + c.id" [imagen]="c.portadaUrl" [meta]="meta(c)" /> }
+        </app-carrusel>
+        } @else {
+        <p class="texto-suave">Explora el catálogo para encontrar cursos según tus intereses.</p>
+        } @if (porCategoria().length && categoriaPrincipal()) {
+        <div class="cabecera-seccion" style="margin-top: 16px;">
+            <h3 class="subtitulo-seccion">
+                Porque estudias <a routerLink="/cursos" [queryParams]="{ categoria: categoriaPrincipal() }">{{ categoriaPrincipal() }}</a>
+            </h3>
+            <a class="enlace" routerLink="/cursos" [queryParams]="{ categoria: categoriaPrincipal() }">Ver más de {{ categoriaPrincipal() }} →</a>
+        </div>
+        <app-carrusel etiqueta="Cursos de la misma categoría">
+            @for (c of porCategoria(); track c.id) {
+            <app-tarjeta-curso [retardoEntrada]="($index % 5) * 100" role="listitem" [titulo]="c.titulo" [categoria]="c.categoria.nombre" [nivel]="c.nivel" [iconoCategoria]="c.categoria.icono" [docente]="c.docente" [calificacion]="c.calificacion" [tono]="tonoDe(c.categoria.id)"
+                [enlace]="'/cursos/' + c.id" [imagen]="c.portadaUrl" [meta]="meta(c)" /> }
+        </app-carrusel>
         }
-      </app-carrusel>
-    }
-  </section>
+    </section>
 
-  <section class="seccion" aria-labelledby="t-destacados">
-    <h2 class="titulo-seccion" id="t-destacados">Cursos destacados</h2>
-    <div class="pestanas-linea" role="tablist" aria-label="Tipo de curso destacado">
-      @for (p of pestanas; track p.id) {
-        <button type="button" role="tab" [attr.aria-selected]="pestana() === p.id" [class.activa]="pestana() === p.id" (click)="pestana.set(p.id)">
+    <section class="seccion" aria-labelledby="t-destacados">
+        <h2 class="titulo-seccion" id="t-destacados">Cursos destacados</h2>
+        <div class="pestanas-linea" role="tablist" aria-label="Tipo de curso destacado">
+            @for (p of pestanas; track p.id) {
+            <button type="button" role="tab" [attr.aria-selected]="pestana() === p.id" [class.activa]="pestana() === p.id" (click)="pestana.set(p.id)">
           {{ p.texto }}
-        </button>
-      }
-    </div>
-    <!-- Se vuelve a crear al cambiar de pestaña para empezar desde el primer curso -->
-    @for (p of [pestana()]; track p) {
-      <app-carrusel role="tabpanel" etiqueta="Cursos destacados">
-        @for (c of destacados(); track c.id) {
-          <app-tarjeta-curso
-            role="listitem"
-            [titulo]="c.titulo"
-            [categoria]="c.categoria.nombre"
-            [iconoCategoria]="c.categoria.icono"
-            [docente]="c.docente"
-            [calificacion]="c.calificacion"
-            [tono]="tonoDe(c.categoria.id)"
-            [nuevo]="p === 'nuevos'"
-            [enlace]="'/cursos/' + c.id"
-            [imagen]="c.portadaUrl"
-            [meta]="meta(c)"
-          />
+        </button> }
+        </div>
+        <!-- Se vuelve a crear al cambiar de pestaña para empezar desde el primer curso -->
+        @for (p of [pestana()]; track p) {
+        <app-carrusel role="tabpanel" etiqueta="Cursos destacados">
+            @for (c of destacados(); track c.id) {
+            <app-tarjeta-curso [retardoEntrada]="($index % 5) * 100" role="listitem" [titulo]="c.titulo" [categoria]="c.categoria.nombre" [nivel]="c.nivel" [iconoCategoria]="c.categoria.icono" [docente]="c.docente" [calificacion]="c.calificacion" [tono]="tonoDe(c.categoria.id)"
+                [nuevo]="p === 'nuevos'" [enlace]="'/cursos/' + c.id" [imagen]="c.portadaUrl" [meta]="meta(c)" /> }
+        </app-carrusel>
         }
-      </app-carrusel>
-    }
-  </section>
+    </section>
 
-  <section class="seccion" aria-labelledby="t-temas">
-    <h2 class="titulo-seccion" id="t-temas">Explora por categoría</h2>
-    <div class="temas">
-      @for (cat of categorias(); track cat.id) {
-        <a class="tema" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
-          <lucide-icon class="tema-icono" [name]="cat.icono" [size]="20" aria-hidden="true" />
-          <span class="tema-nombre">{{ cat.nombre }}</span>
-          <lucide-icon class="tema-flecha" name="chevron-right" [size]="18" aria-hidden="true" />
-        </a>
-      }
-    </div>
-  </section>
+    <section class="seccion" aria-labelledby="t-temas">
+        <h2 class="titulo-seccion" id="t-temas">Explora por categoría</h2>
+        <div class="temas">
+            @for (cat of categorias(); track cat.id) {
+            <a class="tema" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
+                <lucide-icon class="tema-icono" [name]="cat.icono" [size]="20" aria-hidden="true" />
+                <span class="tema-nombre">{{ cat.nombre }}</span>
+                <lucide-icon class="tema-flecha" name="chevron-right" [size]="18" aria-hidden="true" />
+            </a>
+            }
+        </div>
+    </section>
 </div>

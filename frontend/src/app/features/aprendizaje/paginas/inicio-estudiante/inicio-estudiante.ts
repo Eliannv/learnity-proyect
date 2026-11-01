@@ -15,6 +15,11 @@ import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
 import { metaCurso } from '../../../../shared/ui/cursos/formato-curso';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
 import type { Tono } from '../../../../shared/ui/tipos-ui';
+import { mensajeDeError } from '../../../../core/http/error-api';
+import {
+  CURSO_SIN_LECCIONES,
+  leccionParaContinuar,
+} from '../../continuar-curso';
 
 type Pestana = 'populares' | 'nuevos' | 'avanzados';
 
@@ -36,7 +41,9 @@ export class InicioEstudiante {
   private readonly router = inject(Router);
 
   protected readonly cargando = signal(true);
+  protected readonly errorAprendizaje = signal(false);
   protected readonly navegando = signal<number | null>(null);
+  protected readonly errorNavegacion = signal('');
 
   protected readonly cursosInscritos = signal<CursoInscrito[]>([]);
   protected readonly categorias = signal<CategoriaPublica[]>([]);
@@ -45,9 +52,70 @@ export class InicioEstudiante {
 
   /** Cursos en progreso del estudiante (excluye los ya completados al 100%). */
   protected readonly continuar = computed(() =>
-    // Un curso suspendido (D2) no se puede abrir: se ve solo en «Mi aprendizaje», con su aviso.
-    this.cursosInscritos().filter((i) => i.inscripcion.estado !== 'COMPLETADA' && !i.suspendido)
+    this.cursosInscritos().filter(
+      (curso) =>
+        curso.inscripcion.estado !== 'COMPLETADA' &&
+        !curso.suspendido &&
+        curso.totalLecciones > 0,
+    ),
   );
+
+  protected readonly mensajeSinPendientes = computed(() => {
+    const cursos = this.cursosInscritos();
+
+    if (cursos.length === 0) {
+      return {
+        icono: 'graduation-cap',
+        titulo: 'Empieza a aprender',
+        descripcion:
+          'Explora el catálogo e inscríbete en un curso. Aquí podrás retomar tus lecciones.',
+        ruta: '/cursos',
+        accion: 'Explorar cursos',
+      };
+    }
+
+    if (
+      cursos.every(
+        (curso) => curso.inscripcion.estado === 'COMPLETADA',
+      )
+    ) {
+      return {
+        icono: 'trophy',
+        titulo: 'Has terminado tus cursos',
+        descripcion:
+          'Has completado tus cursos disponibles. Descubre qué aprender después.',
+        ruta: '/cursos',
+        accion: 'Descubrir cursos',
+      };
+    }
+
+    if (
+      cursos.some(
+        (curso) =>
+          curso.inscripcion.estado !== 'COMPLETADA' &&
+          !curso.suspendido &&
+          curso.totalLecciones === 0,
+      )
+    ) {
+      return {
+        icono: 'book-open',
+        titulo: 'Tus cursos aún no tienen lecciones disponibles',
+        descripcion:
+          'Conservas tus inscripciones. Revisa su disponibilidad en Mi aprendizaje.',
+        ruta: '/mi-aprendizaje',
+        accion: 'Ver mi aprendizaje',
+      };
+    }
+  
+    return {
+      icono: 'circle-pause',
+      titulo: 'No tienes cursos disponibles para continuar',
+      descripcion:
+        'Tus cursos pendientes están suspendidos temporalmente. Revisa su estado en Mi aprendizaje.',
+      ruta: '/mi-aprendizaje',
+      accion: 'Ver mi aprendizaje',
+    };
+  });
 
   protected readonly idsInscritos = computed(() =>
     new Set(this.cursosInscritos().map((i) => i.curso.id))
@@ -59,9 +127,18 @@ export class InicioEstudiante {
     return noInscritos.length > 0 ? noInscritos : this.cursosPopulares();
   });
 
-  /** "Porque estudias…": la categoría del curso con actividad más reciente. */
+  /** Categoría de un curso activo con actividad registrada. */
   protected readonly categoriaPrincipal = computed(() => {
-    return this.cursosInscritos()[0]?.curso.categoria.nombre ?? (this.categorias()[0]?.nombre || '');
+    if (this.cargando() || this.errorAprendizaje()) return '';
+  
+    const cursoConActividad = this.continuar().find(
+      (curso) =>
+        curso.inscripcion.progresoPct > 0 ||
+        curso.leccionesCompletadas > 0 ||
+        curso.inscripcion.ultimaLeccionId != null,
+    );
+  
+    return cursoConActividad?.curso.categoria.nombre ?? '';
   });
 
   protected readonly porCategoria = computed(() => {
@@ -95,9 +172,13 @@ export class InicioEstudiante {
 
   protected async cargar(): Promise<void> {
     this.cargando.set(true);
+    this.errorAprendizaje.set(false);
     try {
       const [inscritos, categorias, populares, recientes] = await Promise.all([
-        this.aprendizajeApi.listar().catch(() => ({ items: [] as CursoInscrito[] })),
+        this.aprendizajeApi.listar().catch(() => {
+          this.errorAprendizaje.set(true);
+          return { items: [] as CursoInscrito[] };
+        }),
         this.catalogoApi.categorias().catch(() => [] as CategoriaPublica[]),
         this.catalogoApi.listar({ orden: 'populares', limite: 8 }).catch(() => ({ items: [] as CursoPublico[] })),
         this.catalogoApi.listar({ orden: 'recientes', limite: 8 }).catch(() => ({ items: [] as CursoPublico[] })),
@@ -113,21 +194,31 @@ export class InicioEstudiante {
 
   protected async abrir(curso: CursoInscrito): Promise<void> {
     if (this.navegando() !== null) return;
+  
     this.navegando.set(curso.curso.id);
+    this.errorNavegacion.set('');
+  
     try {
       const detalle = await this.aprendizajeApi.detalle(curso.curso.id);
-      const primera = detalle.modulos.flatMap((modulo) => modulo.lecciones)[0];
-      const id = detalle.inscripcion.ultimaLeccionId ?? primera?.id;
-      await this.router.navigate(id ? ['/aprender', curso.curso.id, id] : ['/cursos', curso.curso.id]);
-    } catch {
-      await this.router.navigate(['/cursos', curso.curso.id]);
+      const id = leccionParaContinuar(detalle);
+  
+      if (id === null) {
+        this.errorNavegacion.set(
+          `${curso.curso.titulo}: ${CURSO_SIN_LECCIONES}`,
+        );
+        return;
+      }
+  
+      await this.router.navigate(['/aprender', curso.curso.id, id]);
+    } catch (error) {
+      this.errorNavegacion.set(mensajeDeError(error, 'Abrir el curso'));
     } finally {
       this.navegando.set(null);
     }
   }
 
-  /** Nivel, lecciones y duración (sin «0 min»). */
-  protected readonly meta = (c: CursoPublico) => metaCurso(c, true);
+  /** Lecciones y duración disponible. El nivel se muestra en la tarjeta. */
+  protected readonly meta = (c: CursoPublico) => metaCurso(c);
 
   protected tonoDe(id: number): Tono {
     return (id % 3 === 0 ? 3 : id % 3 === 1 ? 1 : 2) as Tono;

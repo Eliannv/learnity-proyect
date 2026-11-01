@@ -18,6 +18,7 @@ import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 import { ResenasCurso } from '../../componentes/resenas-curso';
 import { duracionCurso, leccionesTexto, NIVEL_TEXTO } from '../../../../shared/ui/cursos/formato-curso';
 import type { PaginaResenas } from '../../resenas.api';
+import {CURSO_SIN_LECCIONES, leccionParaContinuar, } from '../../../aprendizaje/continuar-curso';
 
 type ModuloTemario = DetalleCursoPublico['temario'][number];
 type LeccionTemario = ModuloTemario['lecciones'][number];
@@ -54,6 +55,10 @@ export class DetalleCurso {
   protected readonly consultandoInscripcion = signal(false);
   protected readonly procesando = signal(false);
   protected readonly errorInscripcion = signal('');
+  protected readonly sinLeccionesDisponibles = computed(() => {
+    const detalle = this.inscripcion();
+    return detalle !== null && leccionParaContinuar(detalle) === null;
+  });
   protected readonly puedeInscribirse = computed(() => this.auth.tieneRol('ESTUDIANTE'));
   protected readonly todosAbiertos = computed(() => {
     const temario = this.curso()?.temario ?? [];
@@ -153,9 +158,14 @@ export class DetalleCurso {
       if (!this.inscripcion()) await this.aprendizaje.inscribir(curso.id);
       const detalle = await this.aprendizaje.detalle(curso.id);
       this.inscripcion.set(detalle);
-      const primera = detalle.modulos.flatMap((modulo) => modulo.lecciones)[0];
-      const leccionId = detalle.inscripcion.ultimaLeccionId ?? primera?.id;
-      await this.router.navigate(leccionId ? ['/aprender', curso.id, leccionId] : ['/mi-aprendizaje']);
+      const leccionId = leccionParaContinuar(detalle);
+
+      if (leccionId === null) {
+        this.errorInscripcion.set(CURSO_SIN_LECCIONES);
+        return;
+      }
+        
+      await this.router.navigate(['/aprender', curso.id, leccionId]);
     } catch (error) {
       this.errorInscripcion.set(mensajeDeError(error, 'La inscripción'));
     } finally {

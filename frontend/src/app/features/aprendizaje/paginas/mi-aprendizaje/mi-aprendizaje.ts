@@ -8,6 +8,7 @@ import { AprendizajeApi, type CursoInscrito } from '../../aprendizaje.api';
 import { AnilloProgreso } from '../../../../shared/ui/datos/anillo-progreso';
 import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
 import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
+import {CURSO_SIN_LECCIONES, leccionParaContinuar, } from '../../continuar-curso';
 
 type FiltroProgreso = '' | 'en-curso' | 'sin-empezar' | 'completados';
 type Orden = 'reciente' | 'avance' | 'titulo';
@@ -43,7 +44,22 @@ export class MiAprendizaje {
   protected readonly completadas = computed(() => this.cursos().reduce((s, c) => s + c.leccionesCompletadas, 0));
   /** Siguiente curso para retomar: ni completado ni suspendido (D2: un curso suspendido no se puede abrir). */
   protected readonly principal = computed(() =>
-    this.cursos().find((c) => c.inscripcion.estado !== 'COMPLETADA' && !c.suspendido) ?? null);
+    this.cursos().find(
+      (curso) =>
+        curso.inscripcion.estado !== 'COMPLETADA' &&
+        !curso.suspendido &&
+        curso.totalLecciones > 0,
+    ) ?? null,
+  );
+  
+  protected readonly pendientesSinContenido = computed(() =>
+    this.cursos().some(
+      (curso) =>
+        curso.inscripcion.estado !== 'COMPLETADA' &&
+        !curso.suspendido &&
+        curso.totalLecciones === 0,
+    ),
+  );
   /** Quedan cursos sin terminar, pero todos están suspendidos: no se puede decir que los completó. */
   protected readonly pendientesSuspendidos = computed(() =>
     this.cursos().some((c) => c.inscripcion.estado !== 'COMPLETADA' && c.suspendido));
@@ -87,13 +103,22 @@ export class MiAprendizaje {
 
   protected async abrir(curso: CursoInscrito): Promise<void> {
     if (this.navegando() !== null) return;
+  
     this.navegando.set(curso.curso.id);
     this.errorNavegacion.set('');
+  
     try {
       const detalle = await this.api.detalle(curso.curso.id);
-      const primera = detalle.modulos.flatMap((modulo) => modulo.lecciones)[0];
-      const id = detalle.inscripcion.ultimaLeccionId ?? primera?.id;
-      await this.router.navigate(id ? ['/aprender', curso.curso.id, id] : ['/cursos', curso.curso.id]);
+      const id = leccionParaContinuar(detalle);
+  
+      if (id === null) {
+        this.errorNavegacion.set(
+          `${curso.curso.titulo}: ${CURSO_SIN_LECCIONES}`,
+        );
+        return;
+      }
+  
+      await this.router.navigate(['/aprender', curso.curso.id, id]);
     } catch (error) {
       this.errorNavegacion.set(mensajeDeError(error, 'Abrir el curso'));
     } finally {

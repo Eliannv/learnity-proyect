@@ -6,6 +6,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { metaCurso } from '../../../../shared/ui/cursos/formato-curso';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
 import type { Tono } from '../../../../shared/ui/tipos-ui';
+import { EntradaSuave } from '../../../../shared/ui/animaciones/entrada-suave';
 import {
   CatalogoApi,
   type CategoriaPublica,
@@ -14,7 +15,7 @@ import {
 
 @Component({
   selector: 'app-inicio',
-  imports: [Esqueleto, RouterLink, LucideAngularModule, TarjetaCurso],
+  imports: [Esqueleto, RouterLink, LucideAngularModule, TarjetaCurso, EntradaSuave],
   templateUrl: './inicio.html',
   styleUrl: './inicio.scss',
 })

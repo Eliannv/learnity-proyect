@@ -3,6 +3,8 @@ import { RouterLink } from '@angular/router';
 import { Estrellas } from '../datos/estrellas';
 import type { Tono } from '../tipos-ui';
 import { PortadaCurso } from './portada-curso';
+import { NIVEL_TEXTO } from './formato-curso';
+import { EntradaSuave } from '../animaciones/entrada-suave';
 
 /** Resumen de reseñas vigentes del curso (`CursoPublico.calificacion`). */
 export interface CalificacionTarjeta {
@@ -20,15 +22,18 @@ export interface CalificacionTarjeta {
 @Component({
   selector: 'app-tarjeta-curso',
   imports: [RouterLink, PortadaCurso, Estrellas],
+  hostDirectives: [{directive: EntradaSuave,
+    inputs: ['retardoEntrada'],
+  },],
   host: { '[class.horizontal]': 'horizontal()' },
   template: `
     <article class="tarjeta-curso">
       @if (enlace()) {
         <a class="portada" [routerLink]="enlace()" tabindex="-1" aria-hidden="true">
-          <app-portada-curso [iconoCategoria]="iconoCategoria()" [tono]="tono()" [imagen]="imagen()" />
+          <app-portada-curso [categoria]="categoria()" [iconoCategoria]="iconoCategoria()" [tono]="tono()" [imagen]="imagen()" />
         </a>
       } @else {
-        <div class="portada"><app-portada-curso [iconoCategoria]="iconoCategoria()" [tono]="tono()" [imagen]="imagen()" /></div>
+        <div class="portada"><app-portada-curso [categoria]="categoria()" [iconoCategoria]="iconoCategoria()" [tono]="tono()" [imagen]="imagen()" /></div>
       }
       <div class="cuerpo">
         @if (enlace()) {
@@ -42,16 +47,30 @@ export interface CalificacionTarjeta {
         @if (docente()) {
           <p class="docente">{{ docente() }}</p>
         }
+        @if (nivelTexto() || categoria()) {
+          <p class="clasificacion">
+            @if (nivelTexto()) {
+              <span class="nivel">{{ nivelTexto() }}</span>
+            }
+
+            @if (categoria()) {
+              <span class="categoria" [title]="categoria()">
+                {{ categoria() }}
+              </span>
+            }
+          </p>
+}
         @if (calificacion(); as cal) {
           @if (cal.total > 0 && cal.promedio !== null) {
             <p class="valoracion">
-              <span class="nota num" aria-hidden="true">{{ cifra(cal.promedio) }}</span>
+              <span class="nota num" aria-hidden="true">
+                {{ cifra(cal.promedio) }}
+              </span>
+        
               <app-estrellas [valor]="cal.promedio" />
+        
               <span class="conteo num">({{ cal.total }}<span class="visualmente-oculto"> {{ cal.total === 1 ? 'reseña' : 'reseñas' }}</span>)</span>
             </p>
-          } @else {
-            <!-- Sin reseñas todavía: se calla, pero guarda el alto de la fila para que las tarjetas vecinas cuadren. -->
-            <p class="valoracion" aria-hidden="true"></p>
           }
         }
         @if (metaVisible() || nuevo()) {
@@ -67,6 +86,7 @@ export interface CalificacionTarjeta {
   styles: `
     :host {
       display: block;
+      min-width: 0;
     }
     .tarjeta-curso {
       position: relative;
@@ -100,6 +120,7 @@ export interface CalificacionTarjeta {
       flex-direction: column;
       gap: 4px;
       padding-top: 10px;
+      min-width: 0;
     }
     .titulo {
       display: -webkit-box;
@@ -111,6 +132,7 @@ export interface CalificacionTarjeta {
       font-weight: 700;
       line-height: 1.3;
       color: var(--tinta);
+      min-block-size: 2.6em;
       text-underline-offset: 3px;
       &:focus-visible {
         outline: none;
@@ -120,6 +142,32 @@ export interface CalificacionTarjeta {
       overflow: hidden;
       font-size: 13px;
       color: var(--tinta-3);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .clasificacion {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      min-height: 26px;
+      font-size: 12px;
+      color: var(--tinta-2);
+    }
+
+    .nivel {
+      flex: none;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--acento-suave);
+      color: var(--acento-tinta);
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .categoria {
+      min-width: 0;
+      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
@@ -145,6 +193,9 @@ export interface CalificacionTarjeta {
       gap: 4px 8px;
       font-size: 13px;
       color: var(--tinta-3);
+      margin-top: auto;
+      padding-top: 0;
+      min-height: 24px;
     }
     .nuevo {
       padding: 2px 8px;
@@ -199,15 +250,17 @@ export interface CalificacionTarjeta {
 })
 export class TarjetaCurso {
   readonly titulo = input.required<string>();
-  /** Ya no se dibuja (la categoría vive en los filtros); se conserva mientras se migran las vistas del lote 3. */
-  readonly categoria = input<string>('');
+  /** Nombre visible en la tarjeta y en la portada de respaldo. */
+readonly categoria = input<string>('');
+
+readonly nivel = input<string | null>(null);
   /** Ícono de la categoría que devuelve la API (`categoria.icono`). */
   readonly iconoCategoria = input<string | null | undefined>(null);
   readonly docente = input<string>();
   /** Solo en la fila horizontal: el subtítulo del curso a dos líneas. */
   readonly subtitulo = input<string | null>(null);
   readonly horizontal = input(false);
-  /** Reseñas vigentes; sin reseñas la fila queda vacía con su alto. Sin el dato (null), la fila no existe. */
+  /** Reseñas vigentes; la fila solo aparece cuando existe una valoración real. */
   readonly calificacion = input<CalificacionTarjeta | null>(null);
   /** Duración y lecciones, separadas por « · ». Las partes «0 min» se omiten. */
   readonly meta = input<string>('');
@@ -216,6 +269,12 @@ export class TarjetaCurso {
   readonly enlace = input<string>();
   /** Portada que subió el docente; sin ella se dibuja el ícono de la categoría. */
   readonly imagen = input<string | null>(null);
+
+  protected readonly nivelTexto = computed(() => {
+    const nivel = this.nivel();
+
+    return nivel ? (NIVEL_TEXTO[nivel] ?? nivel) : '';
+  });
 
   protected readonly metaVisible = computed(() =>
     this.meta()

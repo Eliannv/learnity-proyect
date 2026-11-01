@@ -1,59 +1,61 @@
 <section class="banda">
-  <div class="contenedor">
-    <h1>Mi aprendizaje</h1>
-    <p>Continúa tus cursos y revisa el avance que has guardado.</p>
-  </div>
+    <div class="contenedor">
+        <h1>Mi aprendizaje</h1>
+        <p>Continúa tus cursos y revisa el avance que has guardado.</p>
+    </div>
 </section>
 
 <div class="contenedor pagina">
-  @if (cargando()) {
-    <app-esqueleto forma="tarjetas" [cantidad]="3" etiqueta="Cargando tus cursos…" />
-  } @else if (error()) {
+    @if (cargando()) {
+    <app-esqueleto forma="tarjetas" [cantidad]="3" etiqueta="Cargando tus cursos…" /> } @else if (error()) {
     <div class="tarjeta estado-carga" role="alert">
-      <h2>No se pudo cargar Mi aprendizaje</h2>
-      <p>{{ error() }}</p>
-      <button type="button" class="btn btn-contorno" (click)="reintentar()">Reintentar</button>
+        <h2>No se pudo cargar Mi aprendizaje</h2>
+        <p>{{ error() }}</p>
+        <button type="button" class="btn btn-contorno" (click)="reintentar()">Reintentar</button>
     </div>
-  } @else if (!cursos().length) {
+    } @else if (!cursos().length) {
     <div class="vacio">
-      <lucide-icon name="book-open" [size]="30" aria-hidden="true" />
-      <h2>Todavía no te has inscrito en un curso</h2>
-      <p>Elige uno del catálogo. Lo encontrarás aquí en cuanto te inscribas.</p>
-      <a class="btn btn-primario" routerLink="/cursos">Explorar cursos</a>
+        <lucide-icon name="book-open" [size]="30" aria-hidden="true" />
+        <h2>Todavía no te has inscrito en un curso</h2>
+        <p>Elige uno del catálogo. Lo encontrarás aquí en cuanto te inscribas.</p>
+        <a class="btn btn-primario" routerLink="/cursos">Explorar cursos</a>
     </div>
-  } @else {
+    } @else {
     <section class="tarjeta resumen" aria-labelledby="t-resumen">
-      <div class="resumen-texto">
-        <h2 id="t-resumen">Tu avance, {{ auth.usuario()?.nombres }}</h2>
-        @if (principal(); as p) {
-          <p>Tu siguiente paso está en <strong>{{ p.curso.titulo }}</strong>.</p>
-          <button type="button" class="enlace boton-enlace" (click)="abrir(p)" [disabled]="navegando() !== null">
+        <div class="resumen-texto">
+            <h2 id="t-resumen">Tu avance, {{ auth.usuario()?.nombres }}</h2>
+            @if (principal(); as p) {
+            <p>Tu siguiente paso está en <strong>{{ p.curso.titulo }}</strong>.</p>
+            <button type="button" class="enlace boton-enlace" (click)="abrir(p)" [disabled]="navegando() !== null">
             {{ navegando() === p.curso.id ? 'Abriendo curso…' : 'Retomar curso' }}
-          </button>
-        } @else if (pendientesSuspendidos()) {
-          <p>Tus cursos sin terminar están suspendidos temporalmente. Conservas tu avance para cuando vuelvan a estar disponibles.</p>
-        } @else {
-          <p>Completaste todos los cursos en los que te inscribiste.</p>
-        }
-      </div>
-      <div class="resumen-datos">
-        <app-anillo-progreso [valor]="completadas()" [total]="totalLecciones()" [tamano]="92"
-          [etiqueta]="completadas() + ' de ' + totalLecciones() + ' lecciones completadas'" />
-        <strong class="num">{{ completadas() }} de {{ totalLecciones() }} lecciones completadas</strong>
-      </div>
+          </button> } @else if (pendientesSinContenido()) {
+            <p>
+                Hay cursos pendientes que todavía no tienen lecciones disponibles para estudiar. Consulta su disponibilidad en las tarjetas.
+            </p>
+            } @else if (pendientesSuspendidos()) {
+            <p>Tus cursos sin terminar están suspendidos temporalmente. Conservas tu avance para cuando vuelvan a estar disponibles.</p>
+            } @else {
+            <p>Completaste todos los cursos en los que te inscribiste.</p>
+            }
+        </div>
+        <div class="resumen-datos">
+            <app-anillo-progreso [valor]="completadas()" [total]="totalLecciones()" [tamano]="92" [etiqueta]="completadas() + ' de ' + totalLecciones() + ' lecciones completadas'" />
+            <strong class="num">{{ completadas() }} de {{ totalLecciones() }} lecciones completadas</strong>
+        </div>
     </section>
 
-    @if (errorNavegacion()) { <p role="alert" class="error-navegacion">{{ errorNavegacion() }}</p> }
+    @if (errorNavegacion()) {
+    <p role="alert" class="error-navegacion">{{ errorNavegacion() }}</p> }
     <div class="herramientas">
-      <div class="filtros">
-        <label class="filtro">
+        <div class="filtros">
+            <label class="filtro">
           <span class="visualmente-oculto">Categoría</span>
           <select [value]="categoria()" (change)="categoria.set(valor($event))">
             <option value="">Categorías</option>
             @for (c of categorias(); track c) { <option [value]="c">{{ c }}</option> }
           </select>
         </label>
-        <label class="filtro">
+            <label class="filtro">
           <span class="visualmente-oculto">Progreso</span>
           <select [value]="progreso()" (change)="progreso.set($any(valor($event)))">
             <option value="">Progreso</option>
@@ -62,16 +64,15 @@
             <option value="completados">Completados</option>
           </select>
         </label>
-        <label class="filtro">
+            <label class="filtro">
           <span class="visualmente-oculto">Docente</span>
           <select [value]="docente()" (change)="docente.set(valor($event))">
             <option value="">Docente</option>
             @for (d of docentes(); track d) { <option [value]="d">{{ d }}</option> }
           </select>
-        </label>
-        @if (hayFiltros()) { <button type="button" class="btn btn-texto btn-sm" (click)="quitarFiltros()">Quitar filtros</button> }
-      </div>
-      <label class="buscar">
+        </label> @if (hayFiltros()) { <button type="button" class="btn btn-texto btn-sm" (click)="quitarFiltros()">Quitar filtros</button> }
+        </div>
+        <label class="buscar">
         <span class="visualmente-oculto">Buscar mis cursos</span>
         <input type="search" placeholder="Buscar mis cursos" [value]="busqueda()" (input)="busqueda.set(valor($event))" />
         <lucide-icon name="search" [size]="18" aria-hidden="true" />
@@ -79,8 +80,8 @@
     </div>
 
     <div class="resultados">
-      <strong class="num">{{ lista().length }} {{ lista().length === 1 ? 'curso' : 'cursos' }}</strong>
-      <label class="orden">
+        <strong class="num">{{ lista().length }} {{ lista().length === 1 ? 'curso' : 'cursos' }}</strong>
+        <label class="orden">
         <span>Ordenar por</span>
         <select [value]="orden()" (change)="orden.set($any(valor($event)))">
           <option value="reciente">Inscripción reciente</option>
@@ -91,51 +92,65 @@
     </div>
 
     @if (lista().length) {
-      <div class="grid">
+    <div class="grid">
         @for (i of lista(); track i.curso.id) {
-          <article class="curso tarjeta-curso" [class.suspendido]="i.suspendido">
+        <article class="curso tarjeta-curso" [class.suspendido]="i.suspendido">
             @if (i.suspendido) {
-              <!-- D2: suspendido por la administración. No se abre ni enlaza a su ficha (salió del catálogo); el avance se conserva. -->
-              <span class="curso-portada">
-                <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [tono]="tono(i.curso.categoria.id)"
+            <!-- D2: suspendido por la administración. No se abre ni enlaza a su ficha (salió del catálogo); el avance se conserva. -->
+            <span class="curso-portada">
+                <app-portada-curso [categoria]="i.curso.categoria.nombre" [iconoCategoria]="i.curso.categoria.icono" [tono]="tono(i.curso.categoria.id)"
                   [imagen]="i.curso.portadaUrl" />
               </span>
-              <span class="curso-titulo">{{ i.curso.titulo }}</span>
-            } @else {
-              <!-- La portada y el título abren la ficha del curso; «Continuar» va directo a la lección -->
-              <a class="curso-portada" [routerLink]="['/cursos', i.curso.id]" tabindex="-1" aria-hidden="true">
-                <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [tono]="tono(i.curso.categoria.id)"
-                  [imagen]="i.curso.portadaUrl" />
-              </a>
-              <a class="curso-titulo" [routerLink]="['/cursos', i.curso.id]">{{ i.curso.titulo }}</a>
-            }
-            <span class="curso-docente">{{ i.curso.docente }}</span>
+            <span class="curso-titulo">{{ i.curso.titulo }}</span> } @else {
+            <!-- La portada y el título abren la ficha del curso; «Continuar» va directo a la lección -->
+            <a class="curso-portada" [routerLink]="['/cursos', i.curso.id]" tabindex="-1" aria-hidden="true">
+                <app-portada-curso [categoria]="i.curso.categoria.nombre" [iconoCategoria]="i.curso.categoria.icono" [tono]="tono(i.curso.categoria.id)" [imagen]="i.curso.portadaUrl" />
+            </a>
+            <a class="curso-titulo" [routerLink]="['/cursos', i.curso.id]">{{ i.curso.titulo }}</a> }
+            <span class="curso-docente">{{ i.curso.docente }}</span> @if (i.totalLecciones > 0) {
             <div class="curso-avance">
-              <app-barra-progreso [valor]="i.inscripcion.progresoPct" [verde]="i.inscripcion.estado === 'COMPLETADA'" />
-              <span class="estado-texto num">{{ i.leccionesCompletadas }}/{{ i.totalLecciones }} lecciones ·
-                {{ i.inscripcion.estado === 'COMPLETADA' ? 'Completado' : i.inscripcion.progresoPct + '% completado' }}</span>
+                <app-barra-progreso [valor]="i.inscripcion.progresoPct" [verde]="i.inscripcion.estado === 'COMPLETADA'" />
+
+                <span class="estado-texto num">
+            {{ i.leccionesCompletadas }}/{{ i.totalLecciones }} lecciones ·
+            {{
+                i.inscripcion.estado === 'COMPLETADA'
+                    ? 'Completado'
+                    : i.inscripcion.progresoPct + '% completado'
+            }}
+        </span>
             </div>
-            @if (i.suspendido) {
-              <p class="aviso-suspendido" role="note">
+            } @else if (!i.suspendido) {
+            <p class="texto-suave">
+                Este curso todavía no tiene lecciones disponibles para estudiar.
+            </p>
+            } @if (i.suspendido) {
+            <p class="aviso-suspendido" role="note">
                 <lucide-icon name="circle-pause" [size]="16" aria-hidden="true" />
                 <span><strong>Curso suspendido.</strong> La administración lo suspendió temporalmente. Conservas tu avance
                   y podrás continuar cuando vuelva a estar disponible.</span>
-              </p>
+            </p>
             } @else {
-              <button type="button" class="btn btn-primario abrir-curso" [disabled]="navegando() !== null" (click)="abrir(i)">
-                {{ navegando() === i.curso.id ? 'Abriendo…' : i.inscripcion.ultimaLeccionId ? 'Continuar' : 'Empezar' }}
-              </button>
-            }
-          </article>
+            <button type="button" class="btn btn-primario abrir-curso" [disabled]="navegando() !== null" (click)="abrir(i)">
+                {{
+    navegando() === i.curso.id
+        ? 'Abriendo…'
+        : i.totalLecciones === 0
+            ? 'Consultar disponibilidad'
+            : i.inscripcion.ultimaLeccionId
+                ? 'Continuar'
+                : 'Empezar'
+}}
+              </button> }
+        </article>
         }
-      </div>
+    </div>
     } @else {
-      <div class="vacio">
+    <div class="vacio">
         <lucide-icon name="search" [size]="28" aria-hidden="true" />
         <strong>Ningún curso coincide con los filtros</strong>
         <p>Prueba otra búsqueda o quita los filtros.</p>
         <button type="button" class="btn btn-contorno" (click)="quitarFiltros()">Quitar filtros</button>
-      </div>
-    }
-  }
+    </div>
+    } }
 </div>

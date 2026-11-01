@@ -44,7 +44,7 @@ export class Catalogo {
   protected readonly nivelesSel = signal<NivelCurso[]>([]);
   protected readonly niveles = NIVELES;
   /** Nivel, lecciones y duración (sin «0 min»), como la línea de metadatos de Udemy. */
-  protected readonly meta = (c: CursoPublico) => metaCurso(c, true);
+  protected readonly meta = (c: CursoPublico) => metaCurso(c);
   protected readonly orden = signal<OrdenCatalogo>('recientes');
   protected readonly pagina = linkedSignal<number>(() => {
     this.q();

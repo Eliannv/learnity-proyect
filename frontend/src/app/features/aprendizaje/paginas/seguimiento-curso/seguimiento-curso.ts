@@ -152,8 +152,13 @@ export class SeguimientoCurso {
       const blob = await this.contenido.descargarPdf(archivoId);
       if (actual !== this.solicitud) return;
       // Sólo se permite mostrar el blob recién recibido del endpoint autenticado.
-      if (blob.size === 0 || (await blob.slice(0, 5).text()) !== '%PDF-') {
-        throw new Error('El archivo recibido no es un PDF válido.');
+      const cabecera = await blob.slice(0, 5).text();
+      if (actual !== this.solicitud) return;
+      if (blob.size === 0 || cabecera !== '%PDF-') {
+        this.errorPdf.set(
+          'El archivo recibido está vacío o no es un PDF válido. Consulta al docente.',
+        );
+        return;
       }
       this.liberarPdf();
       const url = URL.createObjectURL(blob);

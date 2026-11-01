@@ -1,127 +1,127 @@
 <!-- Hero: el texto a la izquierda y la fotografía ocupando la mitad derecha -->
 <section class="hero">
-  <div class="contenedor hero-interior">
-    <div class="hero-texto">
-      @if (auth.usuario(); as u) {
-        <h1>Qué bueno verte de nuevo, {{ u.nombres }}</h1>
-        <p class="subtitulo">
-          Explora los cursos publicados por nuestros docentes, revisa sus módulos y lecciones, o solicita enseñar tu propio curso.
-        </p>
-        <div class="hero-acciones">
-          <a class="btn btn-primario btn-lg" routerLink="/cursos">Explorar cursos</a>
-          @if (auth.esDocente()) {
-            <a class="btn btn-contorno btn-lg" routerLink="/docente/cursos">Ir a mis cursos</a>
-          }
-          @if (auth.esAdmin()) {
-            <a class="btn btn-contorno btn-lg" routerLink="/admin/revision">Panel de administración</a>
-          }
-          @if (!auth.esDocente() && !auth.esAdmin()) {
-            <a class="btn btn-contorno btn-lg" routerLink="/perfil">Mi perfil</a>
-          }
+    <div class="contenedor hero-interior">
+        <div class="hero-texto" appEntradaSuave origenEntrada="izquierda">
+            @if (auth.usuario(); as u) {
+            <h1>Qué bueno verte de nuevo, {{ u.nombres }}</h1>
+            <p class="subtitulo">
+                Explora los cursos publicados por nuestros docentes, revisa sus módulos y lecciones, o solicita enseñar tu propio curso.
+            </p>
+            <div class="hero-acciones">
+                <a class="btn btn-primario btn-lg" routerLink="/cursos">Explorar cursos</a> @if (auth.esDocente()) {
+                <a class="btn btn-contorno btn-lg" routerLink="/docente/cursos">Ir a mis cursos</a> } @if (auth.esAdmin()) {
+                <a class="btn btn-contorno btn-lg" routerLink="/admin/revision">Panel de administración</a> } @if (!auth.esDocente() && !auth.esAdmin()) {
+                <a class="btn btn-contorno btn-lg" routerLink="/perfil">Mi perfil</a> }
+            </div>
+            } @else {
+            <h1>Aprende habilidades prácticas con cursos cortos y claros</h1>
+            <p class="subtitulo">
+                Cursos organizados en módulos con videos breves, documentos descargables y evaluaciones por módulo. Avanza a tu ritmo y ve tu progreso en todo momento.
+            </p>
+            <div class="hero-acciones">
+                <a class="btn btn-primario btn-lg" routerLink="/cursos">Explorar cursos</a>
+                <a class="btn btn-contorno btn-lg" routerLink="/registro">Crear cuenta</a>
+            </div>
+            }
         </div>
-      } @else {
-        <h1>Aprende habilidades prácticas con cursos cortos y claros</h1>
-        <p class="subtitulo">
-          Cursos organizados en módulos con videos breves, documentos descargables y evaluaciones por módulo. Avanza a tu ritmo y ve tu progreso en todo momento.
-        </p>
-        <div class="hero-acciones">
-          <a class="btn btn-primario btn-lg" routerLink="/cursos">Explorar cursos</a>
-          <a class="btn btn-contorno btn-lg" routerLink="/registro">Crear cuenta</a>
-        </div>
-      }
+        <img class="hero-imagen" appEntradaSuave origenEntrada="derecha" [retardoEntrada]="90" src="/img/hero-estudiante.jpg" alt="Estudiante aprendiendo en línea" width="656" height="355" />
     </div>
-    <img class="hero-imagen" src="/img/hero-estudiante.jpg" alt="Estudiante aprendiendo en línea" width="656" height="444" />
-  </div>
 </section>
 
 <!-- Categorías -->
 <section class="contenedor seccion">
-  <div class="cabecera-seccion">
-    <h2 class="titulo-seccion">Explora por categoría</h2>
-  </div>
-  <div class="chips-scroll">
-    <a class="chip-filtro activo" routerLink="/cursos">Todas</a>
-    @for (cat of categorias(); track cat.id) {
-      <a class="chip-filtro" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
-        <lucide-icon [name]="cat.icono" [size]="18" />
-        {{ cat.nombre }}
-      </a>
-    }
-  </div>
+    <div class="cabecera-seccion" appEntradaSuave>
+        <h2 class="titulo-seccion">Explora por categoría</h2>
+    </div>
+    <div class="chips-scroll" appEntradaSuave [retardoEntrada]="60">
+        <a class="chip-filtro activo" routerLink="/cursos">Todas</a> @for (cat of categorias(); track cat.id) {
+        <a class="chip-filtro" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
+            <lucide-icon [name]="cat.icono" [size]="18" /> {{ cat.nombre }}
+        </a>
+        }
+    </div>
 </section>
 
 @if (cargando()) {
-  <section class="contenedor seccion">
+<section class="contenedor seccion">
     <app-esqueleto forma="tarjetas" [cantidad]="4" etiqueta="Cargando cursos…" />
-  </section>
+</section>
 } @else if (error()) {
-  <section class="contenedor seccion" role="alert">
+<section class="contenedor seccion" role="alert">
     <p class="texto-suave">No se pudieron cargar los cursos destacados en este momento.</p>
     <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
-  </section>
+</section>
 } @else {
-  <!-- Cursos destacados -->
-  <section class="contenedor seccion">
-    <div class="cabecera-seccion">
-      <h2 class="titulo-seccion">Cursos destacados</h2>
-      <a class="enlace" routerLink="/cursos" [queryParams]="{ orden: 'populares' }">Ver catálogo completo →</a>
+<!-- Cursos destacados -->
+<section class="contenedor seccion">
+    <div class="cabecera-seccion" appEntradaSuave>
+        <h2 class="titulo-seccion">Cursos destacados</h2>
+        <a class="enlace" routerLink="/cursos" [queryParams]="{ orden: 'populares' }">Ver catálogo completo →</a>
     </div>
     @if (destacados().length) {
-      <div class="grid-cursos">
+    <div class="grid-cursos">
         @for (c of destacados(); track c.id) {
-          <app-tarjeta-curso
-            [titulo]="c.titulo"
-            [categoria]="c.categoria.nombre"
-            [iconoCategoria]="c.categoria.icono"
-            [docente]="c.docente"
-            [calificacion]="c.calificacion"
-            [meta]="meta(c)"
-            [tono]="tonoDe(c.categoria.id)"
-            [enlace]="'/cursos/' + c.id"
-            [imagen]="c.portadaUrl"
-          />
-        }
-      </div>
+        <app-tarjeta-curso [retardoEntrada]="($index % 4) * 100" [titulo]="c.titulo" [categoria]="c.categoria.nombre" [nivel]="c.nivel" [iconoCategoria]="c.categoria.icono" [docente]="c.docente" [calificacion]="c.calificacion" [meta]="meta(c)" [tono]="tonoDe(c.categoria.id)"
+            [enlace]="'/cursos/' + c.id" [imagen]="c.portadaUrl" /> }
+    </div>
     } @else {
-      <p class="texto-suave">Aún no hay cursos publicados en el catálogo.</p>
+    <p class="texto-suave">Aún no hay cursos publicados en el catálogo.</p>
     }
-  </section>
+</section>
 
-  <!-- Recién publicados -->
-  <section class="contenedor seccion">
-    <div class="cabecera-seccion">
-      <h2 class="titulo-seccion">Recién publicados</h2>
-      <a class="enlace" routerLink="/cursos" [queryParams]="{ orden: 'recientes' }">Ver más recientes →</a>
+<!-- Recién publicados -->
+<section class="contenedor seccion">
+    <div class="cabecera-seccion" appEntradaSuave>
+        <h2 class="titulo-seccion">Recién publicados</h2>
+        <a class="enlace" routerLink="/cursos" [queryParams]="{ orden: 'recientes' }">Ver más recientes →</a>
     </div>
     @if (recientes().length) {
-      <div class="grid-cursos">
+    <div class="grid-cursos">
         @for (c of recientes(); track c.id) {
-          <app-tarjeta-curso
-            [titulo]="c.titulo"
-            [categoria]="c.categoria.nombre"
-            [iconoCategoria]="c.categoria.icono"
-            [docente]="c.docente"
-            [calificacion]="c.calificacion"
-            [meta]="meta(c)"
-            [tono]="tonoDe(c.categoria.id)"
-            [nuevo]="true"
-            [enlace]="'/cursos/' + c.id"
-            [imagen]="c.portadaUrl"
-          />
-        }
-      </div>
+        <app-tarjeta-curso [retardoEntrada]="($index % 4) * 100" [titulo]="c.titulo" [categoria]="c.categoria.nombre" [nivel]="c.nivel" [iconoCategoria]="c.categoria.icono" [docente]="c.docente" [calificacion]="c.calificacion" [meta]="meta(c)" [tono]="tonoDe(c.categoria.id)"
+            [nuevo]="true" [enlace]="'/cursos/' + c.id" [imagen]="c.portadaUrl" /> }
+    </div>
     } @else {
-      <p class="texto-suave">Todavía no hay cursos recién publicados.</p>
+    <p class="texto-suave">Todavía no hay cursos recién publicados.</p>
     }
-  </section>
+</section>
 }
 
 <!-- Cómo funciona: tres frases, el verbo en negrita (destino del enlace «Cómo funciona» del pie) -->
 <section id="como-funciona" class="contenedor como-funciona" aria-labelledby="t-como-funciona">
-  <h2 class="titulo-seccion" id="t-como-funciona">Cómo funciona Learnity</h2>
-  <ol class="pasos">
-    <li><strong>Elige</strong> un curso del catálogo por categoría o tema y revisa su contenido antes de inscribirte.</li>
-    <li><strong>Avanza</strong> por módulos con videos cortos de hasta 3 minutos y material descargable.</li>
-    <li><strong>Comprueba</strong> lo aprendido con la evaluación de cada módulo y sigue tu avance en tiempo real.</li>
-  </ol>
+    <h2 class="titulo-seccion" id="t-como-funciona" appEntradaSuave>
+        Cómo funciona Learnity
+    </h2>
+
+    <ol class="pasos" role="list">
+        <li appEntradaSuave>
+            <span class="paso-numero" aria-hidden="true">1</span>
+            <div>
+                <h3>Elige</h3>
+                <p>
+                    Busca un curso por categoría o tema y revisa su contenido antes de inscribirte.
+                </p>
+            </div>
+        </li>
+
+        <li appEntradaSuave>
+            <span class="paso-numero" aria-hidden="true">2</span>
+            <div>
+                <h3>Aprende</h3>
+                <p>
+                    Avanza por módulos con videos cortos de hasta 3 minutos y material descargable.
+                </p>
+            </div>
+        </li>
+
+        <li appEntradaSuave>
+            <span class="paso-numero" aria-hidden="true">3</span>
+            <div>
+                <h3>Comprueba</h3>
+                <p>
+                    Evalúa lo aprendido en cada módulo y sigue tu avance en tiempo real.
+                </p>
+            </div>
+        </li>
+    </ol>
 </section>

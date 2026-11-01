@@ -1,7 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
-import { filter, map } from 'rxjs';
+import { filter} from 'rxjs';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
 import { CatalogoApi } from '../../features/catalogo/catalogo.api';
@@ -128,15 +127,6 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
         </nav>
       }
     </header>
-
-    <!-- Fila de categorías como en Udemy: fuera del header fijo para no cambiar su altura -->
-    @if (mostrarCategorias() && categorias().length) {
-      <nav class="barra-categorias oculto-movil" aria-label="Categorías">
-        @for (c of categorias(); track c) {
-          <a routerLink="/cursos" [queryParams]="{ categoria: c }">{{ c }}</a>
-        }
-      </nav>
-    }
   `,
   styleUrl: './header-sitio.scss',
 })
@@ -150,17 +140,6 @@ export class HeaderSitio {
   protected readonly buscadorMovilActivo = signal(false);
   /** La regla inferior de la cabecera solo aparece cuando el contenido pasa por debajo. */
   protected readonly desplazado = signal(false);
-
-  private readonly url = toSignal(
-    this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)),
-    { initialValue: this.router.url },
-  );
-
-  /** La fila de categorías se ve en la portada y en el catálogo, como en Udemy. */
-  protected readonly mostrarCategorias = computed(() => {
-    const ruta = this.url().split('?')[0]!;
-    return ruta === '/' || ruta === '/cursos';
-  });
 
   constructor() {
     void this.cargarCategorias();

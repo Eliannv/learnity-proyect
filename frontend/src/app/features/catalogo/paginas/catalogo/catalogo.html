@@ -1,41 +1,37 @@
 <ng-template #filtros>
-  <h3 class="filtro-titulo">Categoría</h3>
-  <div class="opciones">
-    @for (c of categorias(); track c.id) {
-      <label class="casilla">
+    <h3 class="filtro-titulo">Categoría</h3>
+    <div class="opciones">
+        @for (c of categorias(); track c.id) {
+        <label class="casilla">
         <input type="checkbox" [checked]="seleccion().includes(c.nombre)" (change)="alternar('categoria', c.nombre)" />
         {{ c.nombre }}
-      </label>
-    }
-    @if (categoriasError()) {
-      <p class="texto-suave">No se pudieron cargar las categorías.</p>
-      <button type="button" class="btn btn-contorno btn-sm" (click)="reintentar()">Reintentar</button>
-    }
-  </div>
-  <hr class="separador" />
-  <h3 class="filtro-titulo">Nivel</h3>
-  <div class="opciones">
-    @for (n of niveles; track n.valor) {
-      <label class="casilla">
+      </label> } @if (categoriasError()) {
+        <p class="texto-suave">No se pudieron cargar las categorías.</p>
+        <button type="button" class="btn btn-contorno btn-sm" (click)="reintentar()">Reintentar</button> }
+    </div>
+    <hr class="separador" />
+    <h3 class="filtro-titulo">Nivel</h3>
+    <div class="opciones">
+        @for (n of niveles; track n.valor) {
+        <label class="casilla">
         <input type="checkbox" [checked]="nivelesSel().includes(n.valor)" (change)="alternar('nivel', n.valor)" />
         {{ n.texto }}
-      </label>
-    }
-  </div>
+      </label> }
+    </div>
 </ng-template>
 
 <div class="contenedor catalogo">
-  <aside class="lateral oculto-movil" aria-label="Filtros del catálogo">
-    <ng-container [ngTemplateOutlet]="filtros" />
-    <button type="button" class="btn btn-contorno btn-bloque" (click)="limpiar()">Limpiar filtros</button>
-  </aside>
+    <aside class="lateral oculto-movil" aria-label="Filtros del catálogo">
+        <ng-container [ngTemplateOutlet]="filtros" />
+        <button type="button" class="btn btn-contorno btn-bloque" (click)="limpiar()">Limpiar filtros</button>
+    </aside>
 
-  <section class="resultados">
-    <h1 class="titulo-pagina">Catálogo de cursos</h1>
+    <section class="resultados">
+        <h1 class="titulo-pagina">Catálogo de cursos</h1>
 
-    <div class="barra-resultados oculto-movil">
-      <span class="resumen num">{{ resumen() }}</span>
-      <label class="ordenar">
+        <div class="barra-resultados oculto-movil">
+            <span class="resumen num">{{ resumen() }}</span>
+            <label class="ordenar">
         <span class="texto-suave">Ordenar por</span>
         <select class="control" [value]="orden()" (change)="cambiarOrden($any($event.target).value)">
           <option value="recientes">Más recientes</option>
@@ -43,80 +39,64 @@
           <option value="az">Título A–Z</option>
         </select>
       </label>
-    </div>
+        </div>
 
-    <div class="barra-movil solo-movil">
-      <button type="button" class="btn btn-suave btn-sm" (click)="filtrosMovil.set(true)">
+        <div class="barra-movil solo-movil">
+            <button type="button" class="btn btn-suave btn-sm" (click)="filtrosMovil.set(true)">
         <lucide-icon name="sliders-horizontal" [size]="16" aria-hidden="true" /> Filtrar
       </button>
-      <select class="control control-sm" [value]="orden()" (change)="cambiarOrden($any($event.target).value)" aria-label="Ordenar">
+            <select class="control control-sm" [value]="orden()" (change)="cambiarOrden($any($event.target).value)" aria-label="Ordenar">
         <option value="recientes">Más recientes</option>
         <option value="populares">Más populares</option>
         <option value="az">Título A–Z</option>
       </select>
-    </div>
+        </div>
 
-    @if (seleccion().length) {
-      <div class="chips-activos">
-        @for (c of seleccion(); track c) {
-          <button type="button" class="chip-filtro activo" (click)="alternar('categoria', c)">
+        @if (seleccion().length) {
+        <div class="chips-activos">
+            @for (c of seleccion(); track c) {
+            <button type="button" class="chip-filtro activo" (click)="alternar('categoria', c)">
             {{ c }} <lucide-icon name="x" [size]="14" aria-hidden="true" />
-          </button>
-        }
-      </div>
-    }
-
-    @if (cargando()) {
-      <app-esqueleto forma="tarjetas" [cantidad]="6" etiqueta="Cargando cursos…" />
-    } @else if (error()) {
-      <div class="vacio" role="alert">
-        <p>No se pudo cargar el catálogo. Comprueba tu conexión e inténtalo de nuevo.</p>
-        <button type="button" class="btn btn-contorno" (click)="reintentar()">Reintentar</button>
-      </div>
-    } @else if (cursos().length) {
-      <!-- Filas al estilo de los resultados de búsqueda de Udemy; en el teléfono, tarjetas apiladas. -->
-      <ul class="lista-cursos">
-        @for (c of cursos(); track c.id) {
-          <li>
-            <app-tarjeta-curso
-              [horizontal]="true"
-              [titulo]="c.titulo"
-              [subtitulo]="c.subtitulo"
-              [categoria]="c.categoria.nombre"
-              [iconoCategoria]="c.categoria.icono"
-              [docente]="c.docente"
-              [calificacion]="c.calificacion"
-              [meta]="meta(c)"
-              [tono]="c.categoria.id % 3 === 0 ? 3 : c.categoria.id % 3 === 1 ? 1 : 2"
-              [enlace]="'/cursos/' + c.id"
-              [imagen]="c.portadaUrl"
-            />
-          </li>
-        }
-      </ul>
-      @if (totalPaginas() > 1) {
+          </button> }
+        </div>
+        } @if (cargando()) {
+        <app-esqueleto forma="tarjetas" [cantidad]="6" etiqueta="Cargando cursos…" /> } @else if (error()) {
+        <div class="vacio" role="alert">
+            <p>No se pudo cargar el catálogo. Comprueba tu conexión e inténtalo de nuevo.</p>
+            <button type="button" class="btn btn-contorno" (click)="reintentar()">Reintentar</button>
+        </div>
+        } @else if (cursos().length) {
+        <!-- Filas al estilo de los resultados de búsqueda de Udemy; en el teléfono, tarjetas apiladas. -->
+        <ul class="lista-cursos">
+            @for (c of cursos(); track c.id) {
+            <li>
+                <app-tarjeta-curso [horizontal]="true" [titulo]="c.titulo" [subtitulo]="c.subtitulo" [categoria]="c.categoria.nombre" [nivel]="c.nivel" [iconoCategoria]="c.categoria.icono" [docente]="c.docente" [calificacion]="c.calificacion" [meta]="meta(c)" [tono]="c.categoria.id % 3 === 0 ? 3 : c.categoria.id % 3 === 1 ? 1 : 2"
+                    [enlace]="'/cursos/' + c.id" [imagen]="c.portadaUrl" />
+            </li>
+            }
+        </ul>
+        @if (totalPaginas() > 1) {
         <nav class="mas" aria-label="Páginas del catálogo">
-          <button type="button" class="btn btn-contorno" [disabled]="pagina() <= 1" (click)="cambiarPagina(pagina() - 1)">Anterior</button>
-          <span class="num">Página {{ pagina() }} de {{ totalPaginas() }}</span>
-          <button type="button" class="btn btn-contorno" [disabled]="pagina() >= totalPaginas()" (click)="cambiarPagina(pagina() + 1)">Siguiente</button>
+            <button type="button" class="btn btn-contorno" [disabled]="pagina() <= 1" (click)="cambiarPagina(pagina() - 1)">Anterior</button>
+            <span class="num">Página {{ pagina() }} de {{ totalPaginas() }}</span>
+            <button type="button" class="btn btn-contorno" [disabled]="pagina() >= totalPaginas()" (click)="cambiarPagina(pagina() + 1)">Siguiente</button>
         </nav>
-      }
-    } @else {
-      <div class="vacio">
-        <lucide-icon name="search" [size]="28" aria-hidden="true" />
-        <p>No hay cursos con esos filtros.</p>
-        <button type="button" class="btn btn-contorno" (click)="limpiar()">Limpiar filtros</button>
-      </div>
-    }
-  </section>
+        } } @else {
+        <div class="vacio">
+            <lucide-icon name="search" [size]="28" aria-hidden="true" />
+            <p>No hay cursos con esos filtros.</p>
+            <button type="button" class="btn btn-contorno" (click)="limpiar()">Limpiar filtros</button>
+        </div>
+        }
+    </section>
 </div>
 
 @if (filtrosMovil()) {
-  <app-modal titulo="Filtrar cursos" (cerrar)="filtrosMovil.set(false)">
+<app-modal titulo="Filtrar cursos" (cerrar)="filtrosMovil.set(false)">
     <ng-container [ngTemplateOutlet]="filtros" />
     <div class="acciones-modal">
-      <button type="button" class="btn btn-contorno" (click)="limpiar()">Limpiar filtros</button>
-      <button type="button" class="btn btn-primario" (click)="filtrosMovil.set(false)">Aplicar</button>
+        <button type="button" class="btn btn-contorno" (click)="limpiar()">Limpiar filtros</button>
+        <button type="button" class="btn btn-primario" (click)="filtrosMovil.set(false)">Aplicar</button>
     </div>
-  </app-modal>
+</app-modal>
 }

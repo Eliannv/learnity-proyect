@@ -1,4 +1,4 @@
-import { HttpClient, HttpEvent } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpEvent } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -37,11 +37,34 @@ export class ContenidoApi {
   }
 
   /** PDF principal o recurso adjunto: se descarga con autorización, nunca por una URL pública. */
-  descargarPdf(id: number): Promise<Blob> {
-    return firstValueFrom(
-      this.http.get(`${this.base}/archivos/${id}`, {
-        responseType: 'blob',
-      }),
-    );
+  async descargarPdf(id: number): Promise<Blob> {
+    try {
+      return await firstValueFrom(
+        this.http.get(`${this.base}/archivos/${id}`, {
+          responseType: 'blob',
+        }),
+      );
+    } catch (error) {
+      // Las descargas fallidas también pueden entregar su error JSON como Blob.
+      if (!(error instanceof HttpErrorResponse) || !(error.error instanceof Blob)) {
+        throw error;
+      }
+  
+      let cuerpo: unknown;
+  
+      try {
+        cuerpo = JSON.parse(await error.error.text());
+      } catch {
+        throw error;
+      }
+  
+      throw new HttpErrorResponse({
+        error: cuerpo,
+        headers: error.headers,
+        status: error.status,
+        statusText: error.statusText,
+        url: error.url ?? undefined,
+      });
+    }
   }
 }
