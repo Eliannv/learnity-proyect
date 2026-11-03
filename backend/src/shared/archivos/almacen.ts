@@ -15,6 +15,7 @@ import path from 'node:path';
 
 import { env } from '../config/env.js';
 import { AppError } from '../http/app-error.js';
+import { binarioRepository } from './binario.repository.js';
 
 import {
   MAX_PDF_BYTES,
@@ -143,6 +144,7 @@ export const almacenLocal: AlmacenArchivos = {
         flag: 'wx',
         mode: 0o600,
       });
+      await binarioRepository.guardar(nombre, origen);
 
       return;
     }
@@ -159,6 +161,8 @@ export const almacenLocal: AlmacenArchivos = {
       }
 
       await rename(temporal, destino);
+      const bytes = await readFile(destino);
+      await binarioRepository.guardar(nombre, bytes);
 
       return;
     }
@@ -175,7 +179,23 @@ export const almacenLocal: AlmacenArchivos = {
     const ruta = rutaInterna(nombre);
 
     try {
-      const info = await lstat(ruta);
+      let info;
+      try {
+        info = await lstat(ruta);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          const respaldado = await binarioRepository.leer(nombre);
+          if (respaldado && respaldado.length === tamanoEsperado) {
+            await mkdir(directorio(), { recursive: true });
+            await writeFile(ruta, respaldado, { mode: 0o600 }).catch(() => undefined);
+            info = await lstat(ruta);
+          } else {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      }
 
       if (
         !info.isFile() ||
@@ -241,6 +261,7 @@ export const almacenLocal: AlmacenArchivos = {
 
   async eliminar(nombre: string): Promise<void> {
     await borrarSiExiste(rutaInterna(nombre));
+    await binarioRepository.eliminar(nombre).catch(() => undefined);
   },
 
   async reservarTemporal(): Promise<string> {

@@ -1,9 +1,20 @@
 :host {
   display: flex;
   flex-direction: column;
-  max-width: 840px;
+  max-width: 1040px;
   margin: 0 auto;
   width: 100%;
+}
+
+.marco {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.marco.pagina {
+  padding-top: 36px;
+  padding-bottom: 72px;
 }
 
 .titulo {
@@ -242,6 +253,10 @@ textarea.control {
 }
 
 @media (max-width: 900px) {
+  .marco.pagina {
+    padding-top: 24px;
+    padding-bottom: 48px;
+  }
   .titulo {
     font-size: 26px;
   }

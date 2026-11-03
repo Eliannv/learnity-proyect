@@ -62,6 +62,7 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_app', 'visita_curso_dia',          'INSERT,SELECT,UPDATE'),          -- 031
     ('learnity_app', 'evento_acceso',             'INSERT,SELECT'),                 -- 032: solo añade filas
     ('learnity_app', 'alerta_seguridad',          'SELECT'),                        -- 038; UPDATE solo por columna
+    ('learnity_app', 'archivo_binario',           'DELETE,INSERT,SELECT,UPDATE'),   -- 040
     ('learnity_app', 'catalogo_categoria',        'SELECT'),
     ('learnity_app', 'catalogo_curso',            'SELECT'),
     ('learnity_app', 'catalogo_temario',          'SELECT'),
@@ -93,7 +94,8 @@ esperado_tabla (rol, objeto, privilegios) AS (
     ('learnity_lectura', 'reporte_resena',            'SELECT'),                    -- 031
     ('learnity_lectura', 'visita_curso_dia',          'SELECT'),                    -- 031
     ('learnity_lectura', 'evento_acceso',             'SELECT'),                    -- 032
-    ('learnity_lectura', 'alerta_seguridad',          'SELECT')                     -- 038
+    ('learnity_lectura', 'alerta_seguridad',          'SELECT'),                    -- 038
+    ('learnity_lectura', 'archivo_binario',           'SELECT')                     -- 040
 ),
 esperado_columna (rol, objeto, privilegio, columna) AS (
   SELECT 'learnity_lectura', 'usuario', 'SELECT', unnest(ARRAY['id_usuario', 'id_persona', 'correo', 'estado',
@@ -122,6 +124,8 @@ esperado_pruebas (objeto, privilegios) AS (
   SELECT 'evento_acceso', 'DELETE,INSERT,SELECT'                                         -- 032
   UNION ALL
   SELECT 'alerta_seguridad', 'DELETE,SELECT'                                             -- 038: limpieza de las pruebas
+  UNION ALL
+  SELECT 'archivo_binario', 'DELETE,INSERT,SELECT,UPDATE'                                -- 040
 ),
 con_019b AS (
   SELECT current_database() ~ '_test$'

@@ -38,7 +38,7 @@
       </label>
       <div class="campo-filtro">
         <app-buscador-curso idCampo="categoria-revision" etiqueta="Categoría" [mostrarEtiqueta]="true"
-          [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="true"
+          [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="false"
           [cursos]="opcionesCategoriaAdmin()" [cursoId]="idCategoriaAdmin()" textoTodos="Todas las categorías"
           placeholder="Buscar categoría…" (seleccion)="elegirCategoriaAdmin($event)" />
       </div>
@@ -56,7 +56,7 @@
           placeholder="Buscar curso por título…"
           [cursos]="cursos()"
           [cursoId]="filtroCursoId()"
-          [permitirTodos]="true"
+          [permitirTodos]="false"
           textoTodos="Todos mis cursos"
           (seleccion)="alSeleccionarCurso($event)"
           (terminoCambio)="alCambiarTermino($event)"
@@ -65,7 +65,7 @@
 
       <div class="buscador-mis-cursos">
         <app-buscador-curso idCampo="categoria-mis-cursos" etiqueta="Categoría"
-          [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="true"
+          [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="false"
           [cursos]="opcionesCategoriaAdmin()" [cursoId]="idCategoriaAdmin()" textoTodos="Todas las categorías"
           placeholder="Buscar categoría…" (seleccion)="elegirCategoriaAdmin($event)" />
       </div>

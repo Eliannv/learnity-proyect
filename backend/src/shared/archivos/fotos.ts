@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { env } from '../config/env.js';
 import { AppError } from '../http/app-error.js';
+import { binarioRepository } from './binario.repository.js';
 
 /** Fotos de perfil: hasta 2 MiB, JPEG, PNG o WebP reconocidos por su contenido (no por la extensión). */
 export const MAX_FOTO_BYTES = 2 * 1024 * 1024;
@@ -48,13 +49,30 @@ export const almacenFotos = {
     const nombre = `${randomUUID()}.${extension}`;
     await mkdir(directorio(), { recursive: true });
     await writeFile(ruta(nombre), bytes, { flag: 'wx', mode: 0o600 });
+    await binarioRepository.guardar(`fotos/${nombre}`, bytes);
     return PREFIJO_URL_FOTO + nombre;
   },
 
   async leer(nombre: string): Promise<{ bytes: Buffer; tipo: string }> {
     const destino = ruta(nombre);
     try {
-      const info = await lstat(destino);
+      let info;
+      try {
+        info = await lstat(destino);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          const respaldado = await binarioRepository.leer(`fotos/${nombre}`);
+          if (respaldado && respaldado.length <= MAX_FOTO_BYTES) {
+            await mkdir(directorio(), { recursive: true });
+            await writeFile(destino, respaldado, { mode: 0o600 }).catch(() => undefined);
+            info = await lstat(destino);
+          } else {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      }
       if (!info.isFile() || info.size > MAX_FOTO_BYTES) throw new Error('No es una foto válida.');
       return { bytes: await readFile(destino), tipo: MIME[nombre.split('.').pop()!]! };
     } catch {
@@ -67,6 +85,7 @@ export const almacenFotos = {
     if (!url?.startsWith(PREFIJO_URL_FOTO)) return;
     const nombre = url.slice(PREFIJO_URL_FOTO.length);
     if (!NOMBRE_FOTO.test(nombre)) return;
+    await binarioRepository.eliminar(`fotos/${nombre}`).catch(() => undefined);
     try {
       await unlink(ruta(nombre));
     } catch (error) {

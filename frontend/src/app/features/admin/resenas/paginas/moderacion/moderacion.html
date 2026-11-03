@@ -60,7 +60,7 @@
     </div>
     <div class="campo">
       <app-buscador-curso idCampo="categoria-resenas-admin" etiqueta="Categoría del curso" [mostrarEtiqueta]="true"
-        [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="true"
+        [nombre]="{ singular: 'categoría', plural: 'categorías' }" [listarAlEnfocar]="false"
         [cursos]="categorias()" [cursoId]="idCategoria()" textoTodos="Todas las categorías" placeholder="Buscar categoría…"
         (seleccion)="elegirCategoria($event)" />
     </div>

@@ -44,16 +44,56 @@
     </section>
 
     @if (errorNavegacion()) { <p role="alert" class="error-navegacion">{{ errorNavegacion() }}</p> }
-    <div class="herramientas">
+    <div class="herramientas" role="search" aria-label="Filtrar mis cursos">
       <div class="filtros">
-        <label class="filtro">
-          <span class="visualmente-oculto">Categoría</span>
-          <select [value]="categoria()" (change)="categoria.set(valor($event))">
-            <option value="">Categorías</option>
-            @for (c of categorias(); track c) { <option [value]="c">{{ c }}</option> }
-          </select>
-        </label>
-        <label class="filtro">
+        <div class="buscar">
+          <app-buscador-curso
+            idCampo="buscar-mis-cursos"
+            etiqueta="Buscar mis cursos"
+            [nombre]="{ singular: 'curso', plural: 'cursos' }"
+            [listarAlEnfocar]="false"
+            [cursos]="opcionesCursos()"
+            [cursoId]="cursoId()"
+            [termino]="busqueda()"
+            textoTodos="Buscar mis cursos"
+            placeholder="Buscar mis cursos"
+            (seleccion)="elegirCurso($event)"
+            (terminoCambio)="cambiarBusqueda($event)"
+          />
+        </div>
+        <div class="filtro combobox">
+          <app-buscador-curso
+            idCampo="docente-aprendizaje"
+            etiqueta="Docente"
+            [nombre]="{ singular: 'docente', plural: 'docentes' }"
+            [listarAlEnfocar]="false"
+            [cursos]="opcionesDocentes()"
+            [cursoId]="idDocente()"
+            [termino]="busquedaDocente()"
+            textoTodos="Docente"
+            placeholder="Docente"
+            (seleccion)="elegirDocente($event)"
+            (terminoCambio)="cambiarBusquedaDocente($event)"
+          />
+        </div>
+        <div class="filtro combobox">
+          <app-buscador-curso
+            idCampo="categoria-aprendizaje"
+            etiqueta="Categoría"
+            [nombre]="{ singular: 'categoría', plural: 'categorías' }"
+            [listarAlEnfocar]="false"
+            [cursos]="opcionesCategorias()"
+            [cursoId]="idCategoria()"
+            [termino]="busquedaCategoria()"
+            textoTodos="Categorías"
+            placeholder="Categorías"
+            (seleccion)="elegirCategoria($event)"
+            (terminoCambio)="cambiarBusquedaCategoria($event)"
+          />
+        </div>
+        @if (hayFiltros()) { <button type="button" class="btn btn-texto btn-sm" (click)="quitarFiltros()">Quitar filtros</button> }
+      </div>
+      <label class="filtro">
           <span class="visualmente-oculto">Progreso</span>
           <select [value]="progreso()" (change)="progreso.set($any(valor($event)))">
             <option value="">Progreso</option>
@@ -62,20 +102,6 @@
             <option value="completados">Completados</option>
           </select>
         </label>
-        <label class="filtro">
-          <span class="visualmente-oculto">Docente</span>
-          <select [value]="docente()" (change)="docente.set(valor($event))">
-            <option value="">Docente</option>
-            @for (d of docentes(); track d) { <option [value]="d">{{ d }}</option> }
-          </select>
-        </label>
-        @if (hayFiltros()) { <button type="button" class="btn btn-texto btn-sm" (click)="quitarFiltros()">Quitar filtros</button> }
-      </div>
-      <label class="buscar">
-        <span class="visualmente-oculto">Buscar mis cursos</span>
-        <input type="search" placeholder="Buscar mis cursos" [value]="busqueda()" (input)="busqueda.set(valor($event))" />
-        <lucide-icon name="search" [size]="18" aria-hidden="true" />
-      </label>
     </div>
 
     <div class="resultados">

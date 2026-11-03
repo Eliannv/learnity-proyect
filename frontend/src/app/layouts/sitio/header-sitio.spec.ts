@@ -110,3 +110,4 @@ describe('HeaderSitio - Buscador móvil estilo YouTube', () => {
     expect(el.querySelector('.barra-busqueda-movil')).toBeNull();
   });
 });
+

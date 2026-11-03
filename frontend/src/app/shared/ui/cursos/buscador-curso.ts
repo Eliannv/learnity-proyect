@@ -3,6 +3,7 @@ import {
   ElementRef,
   afterNextRender,
   computed,
+  effect,
   inject,
   input,
   output,
@@ -175,6 +176,8 @@ export class BuscadorCurso {
   readonly nombre = input<{ singular: string; plural: string }>({ singular: 'curso', plural: 'cursos' });
   /** Muestra todas las opciones al enfocar, sin escribir (listas cortas). */
   readonly listarAlEnfocar = input(false);
+  /** Texto controlado opcional: si el padre restablece los filtros (`termino` pasa a `''`), limpia la consulta interna. */
+  readonly termino = input<string | undefined>(undefined);
 
   readonly seleccion = output<number | null>();
   readonly cursoSeleccionado = output<OpcionCursoBusqueda | null>();
@@ -186,6 +189,14 @@ export class BuscadorCurso {
   private espera: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
+    effect(() => {
+      const externo = this.termino();
+      if (externo !== undefined && externo !== this.consulta()) {
+        this.consulta.set(externo);
+        if (!externo) this.escribiendo.set(false);
+      }
+    });
+
     afterNextRender(() => {
       if (this.autoEnfocar()) {
         this.enfocar();
@@ -228,7 +239,7 @@ export class BuscadorCurso {
     if (this.escribiendo()) return this.consulta();
     const actual = this.cursoActual();
     if (actual) return actual.titulo;
-    return '';
+    return this.consulta();
   });
 
   /** Por defecto (sin búsqueda ni selección) muestra la opción predeterminada "Todos los cursos". */

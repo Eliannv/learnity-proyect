@@ -149,15 +149,37 @@
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
+
+  &.combobox {
+    width: 220px;
+  }
 }
 
 .filtro select {
   width: 100%;
-  max-width: 240px;
+  max-width: 220px;
+  height: 40px;
+  padding: 0 36px 0 14px;
+  border: 1px solid var(--azul-200);
+  border-radius: var(--radio);
+  background: var(--blanco)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%230F172A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tinta-900);
   text-overflow: ellipsis;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color var(--t-micro) var(--curva-salida), box-shadow var(--t-micro) var(--curva-salida);
+
+  &:focus {
+    outline: none;
+    border-color: var(--azul-700);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
+  }
 }
 
-.filtro select,
 .orden select {
   appearance: none;
   min-height: 44px;
@@ -179,33 +201,9 @@
 }
 
 .buscar {
-  position: relative;
-  display: flex;
   width: 340px;
   max-width: 100%;
-
-  input {
-    flex: 1;
-    min-width: 0;
-    min-height: 44px;
-    padding: 0 40px 0 14px;
-    border: 1px solid var(--borde-control);
-    border-radius: var(--radio-sm);
-    background: var(--superficie);
-    font-size: 14px;
-    &:focus {
-      border-color: var(--acento);
-    }
-  }
-  /* La lupa va dentro del campo, sin el bloque azul. */
-  > lucide-icon {
-    position: absolute;
-    top: 50%;
-    right: 12px;
-    transform: translateY(-50%);
-    color: var(--tinta-3);
-    pointer-events: none;
-  }
+  min-width: 0;
 }
 
 .resultados {
@@ -401,11 +399,13 @@
   .herramientas {
     align-items: stretch;
   }
-  .filtro {
+  .filtro,
+  .filtro.combobox {
     flex: 1 1 calc(50% - 8px);
+    width: auto;
   }
   .filtro select {
-    max-width: none;
+    max-width: 50%;
   }
   .pestanas {
     margin-top: 18px;

@@ -73,6 +73,10 @@ BEGIN
   IF to_regclass('public.alerta_seguridad') IS NOT NULL THEN
     GRANT SELECT, DELETE ON alerta_seguridad TO learnity_pruebas;
   END IF;
+  -- 040: respaldo binario de archivos y fotos.
+  IF to_regclass('public.archivo_binario') IS NOT NULL THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON archivo_binario TO learnity_pruebas;
+  END IF;
 END $$;
 
 COMMIT;
