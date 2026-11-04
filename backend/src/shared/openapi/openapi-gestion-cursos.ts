@@ -465,6 +465,37 @@ export const rutasGestionCursos = {
     },
   },
 
+  '/cursos/portada': {
+    post: {
+      tags: ['Gestión de cursos'],
+      summary: 'Subir la imagen de portada de un curso',
+      description: 'JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. Devuelve `portadaUrl` ' +
+        '(`/api/fotos/{nombre}`) para guardarla después con `POST /cursos` o `PUT /cursos/{id}`. ' +
+        'Hasta 20 subidas cada 15 minutos por IP.',
+      security: seguridad,
+      requestBody: {
+        required: true,
+        content: { 'multipart/form-data': { schema: {
+          type: 'object', additionalProperties: false, required: ['foto'],
+          properties: { foto: { type: 'string', format: 'binary' } },
+        } } },
+      },
+      responses: {
+        201: json({
+          type: 'object', additionalProperties: false, required: ['portadaUrl'],
+          properties: { portadaUrl: { type: 'string', pattern: '^/api/fotos/' } },
+        }),
+        400: error('Formulario sin imagen o ilegible (SOLICITUD_INVALIDA)'),
+        401: errores[401],
+        403: error('Sin rol DOCENTE (SIN_PERMISO)'),
+        413: error('La imagen supera 2 MiB (ARCHIVO_DEMASIADO_GRANDE)'),
+        415: error('No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO)'),
+        429: error('Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)'),
+        500: errorInterno,
+      },
+    },
+  },
+
   '/cursos': {
     post: operacion(
       'Crear curso en estado BORRADOR',

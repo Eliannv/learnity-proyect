@@ -14,6 +14,7 @@ const almacen = carpetaPdfPropia();
 let f: Fixtures;
 let srv: Servidor;
 let ana: Cuenta;
+let cuentas: ReturnType<typeof fabricaCuentas>;
 
 /** PNG de 1×1 válido. */
 const PNG = Buffer.from(
@@ -36,7 +37,8 @@ const fotosEnDisco = () => {
 before(async () => {
   f = await crearFixtures();
   srv = await iniciarServidor();
-  ana = await fabricaCuentas(f, srv, marca).crearCuenta(['ESTUDIANTE']);
+  cuentas = fabricaCuentas(f, srv, marca);
+  ana = await cuentas.crearCuenta(['ESTUDIANTE']);
 });
 
 after(async () => {
@@ -81,20 +83,67 @@ describe('Sprint 4 · foto de perfil', () => {
     }
   });
 
-  it('permite guardar una URL de imagen externa en el perfil y rechaza URLs inválidas', async () => {
-    const invalida = await srv.pedir('/api/perfil/foto', {
-      metodo: 'PUT',
-      token: ana.token,
-      cuerpo: { fotoUrl: 'javascript:alert(1)' },
-    });
-    assert.equal(invalida.status, 400);
+  it('acepta un enlace https:// externo, rechaza los demás y borra la foto subida que reemplaza', async () => {
+    const ponerUrl = (fotoUrl: unknown, quien: Cuenta = ana) =>
+      srv.pedir('/api/perfil/foto', { metodo: 'PUT', token: quien.token, cuerpo: { fotoUrl } });
 
-    const ok = await srv.pedir('/api/perfil/foto', {
-      metodo: 'PUT',
-      token: ana.token,
-      cuerpo: { fotoUrl: 'https://ejemplo.com/avatar-ana.jpg' },
-    });
+    for (const mala of [
+      'javascript:alert(1)',
+      'http://ejemplo.com/a.jpg',
+      'https://usuario:clave@ejemplo.com/a.jpg',
+      '/img/a.jpg',
+      '/api/fotos/00000000-0000-4000-8000-000000000000.jpg',
+      `https://ejemplo.com/${'a'.repeat(250)}.jpg`,
+      42,
+    ]) {
+      const r = await ponerUrl(mala);
+      assert.equal(r.status, 400, String(mala));
+      assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA');
+    }
+
+    const subida = await subir(PNG);
+    assert.equal(subida.status, 200, subida.texto);
+    const ok = await ponerUrl('  https://ejemplo.com/avatar-ana.jpg  ');
     assert.equal(ok.status, 200, ok.texto);
     assert.equal(ok.json.fotoUrl, 'https://ejemplo.com/avatar-ana.jpg');
+    assert.equal(fotosEnDisco().length, 0, 'la foto subida anterior se borró');
+    assert.equal((await srv.pedir(subida.json.fotoUrl)).status, 404);
+  });
+
+  it('nadie puede apuntar su perfil a la foto de otra persona para borrarla después', async () => {
+    const bea = await cuentas.crearCuenta(['ESTUDIANTE']);
+    const deBea = await subir(PNG, 'bea.png', bea);
+    assert.equal(deBea.status, 200, deBea.texto);
+
+    const robo = await srv.pedir('/api/perfil/foto', { metodo: 'PUT', token: ana.token, cuerpo: { fotoUrl: deBea.json.fotoUrl } });
+    assert.equal(robo.status, 400);
+    assert.equal((await srv.pedir('/api/perfil/foto', { metodo: 'DELETE', token: ana.token })).status, 200);
+    assert.equal((await srv.pedir(deBea.json.fotoUrl)).status, 200, 'la foto de Bea sigue disponible');
+  });
+});
+
+describe('Sprint 4 · portada del curso', () => {
+  function subirPortada(bytes: Buffer, quien: Cuenta | null) {
+    const fd = new FormData();
+    fd.append('foto', new Blob([new Uint8Array(bytes)]), 'portada.jpg');
+    return srv.pedir('/api/cursos/portada', { metodo: 'POST', token: quien?.token, crudo: fd });
+  }
+
+  it('solo un docente sube una imagen real y recibe su URL pública', async () => {
+    const docente = await cuentas.crearCuenta(['ESTUDIANTE', 'DOCENTE']);
+    assert.equal((await subirPortada(JPEG, null)).status, 401);
+    assert.equal((await subirPortada(JPEG, ana)).status, 403);
+    assert.equal((await subirPortada(Buffer.from('<svg/>'), docente)).status, 415);
+
+    const r = await subirPortada(JPEG, docente);
+    assert.equal(r.status, 201, r.texto);
+    assert.match(r.json.portadaUrl, /^\/api\/fotos\/[0-9a-f-]{36}\.jpg$/);
+    const servida = await srv.pedir(r.json.portadaUrl);
+    assert.equal(servida.status, 200);
+    assert.equal(servida.headers.get('content-type'), 'image/jpeg');
+    // La portada no pertenece a ninguna cuenta: se borra aquí para no dejarla en archivo_binario.
+    // Import dinámico: uno estático cargaría la configuración antes de que carpetaPdfPropia fije PDF_DIR.
+    const { almacenFotos } = await import('../src/shared/archivos/fotos.js');
+    await almacenFotos.eliminarPorUrl(r.json.portadaUrl);
   });
 });

@@ -5669,6 +5669,125 @@
         ]
       }
     },
+    "/cursos/portada": {
+      "post": {
+        "tags": [
+          "Gestión de cursos"
+        ],
+        "summary": "Subir la imagen de portada de un curso",
+        "description": "JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. Devuelve `portadaUrl` (`/api/fotos/{nombre}`) para guardarla después con `POST /cursos` o `PUT /cursos/{id}`. Hasta 20 subidas cada 15 minutos por IP.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "foto"
+                ],
+                "properties": {
+                  "foto": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Correcto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "portadaUrl"
+                  ],
+                  "properties": {
+                    "portadaUrl": {
+                      "type": "string",
+                      "pattern": "^/api/fotos/"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Formulario sin imagen o ilegible (SOLICITUD_INVALIDA)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sin sesión, token inválido o sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin rol DOCENTE (SIN_PERMISO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "La imagen supera 2 MiB (ARCHIVO_DEMASIADO_GRANDE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorApi"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        }
+      }
+    },
     "/cursos": {
       "post": {
         "tags": [
@@ -13142,8 +13261,8 @@
         "tags": [
           "Identidad"
         ],
-        "summary": "Subir o reemplazar mi foto de perfil",
-        "description": "JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. La foto anterior se borra. Queda en `fotoUrl` como `/api/fotos/{nombre}`. Hasta 20 subidas cada 15 minutos por IP.",
+        "summary": "Subir o reemplazar mi foto de perfil, o usar un enlace externo",
+        "description": "Con multipart: JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido; queda en `fotoUrl` como `/api/fotos/{nombre}`. Con JSON: `fotoUrl` es un enlace `https://` externo (no se aceptan rutas propias). En ambos casos la foto subida anterior se borra. Hasta 20 cambios cada 15 minutos por IP.",
         "security": [
           {
             "bearer": []
@@ -13163,6 +13282,23 @@
                   "foto": {
                     "type": "string",
                     "format": "binary"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "fotoUrl"
+                ],
+                "properties": {
+                  "fotoUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https://",
+                    "maxLength": 255
                   }
                 }
               }
@@ -13232,7 +13368,7 @@
             }
           },
           "400": {
-            "description": "Formulario sin foto o ilegible (SOLICITUD_INVALIDA)",
+            "description": "Formulario sin foto o ilegible, o enlace que no es https:// (SOLICITUD_INVALIDA)",
             "content": {
               "application/json": {
                 "schema": {
@@ -13272,7 +13408,7 @@
             }
           },
           "415": {
-            "description": "No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO)",
+            "description": "No es multipart ni JSON, o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO)",
             "content": {
               "application/json": {
                 "schema": {

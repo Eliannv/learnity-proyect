@@ -42,25 +42,16 @@ export const recibirArchivoFoto: RequestHandler = (req, res, next) => {
   });
 };
 
-/** Valida una URL o ruta pública de imagen (`https://...`, `/api/fotos/...` o `/img/...`). */
-export function esUrlImagenValida(valor: string): boolean {
-  if (!valor || valor.length > 255) return false;
-  if (valor.startsWith('/')) {
-    return (
-      !valor.startsWith('//') &&
-      !valor.includes('\\') &&
-      !valor.includes('..') &&
-      !/[\s?#]/.test(valor)
-    );
-  }
+/**
+ * Enlace externo para la foto de perfil: solo `https://` con host y sin credenciales, hasta 255 caracteres.
+ * Las rutas propias (`/api/fotos/...`) quedan fuera a propósito: solo las genera la subida y, al cambiar
+ * o quitar la foto, se borran; aceptarlas aquí permitiría borrar la foto o la portada de otra persona.
+ */
+export function esUrlFotoExterna(valor: string): boolean {
+  if (!valor || valor.length > 255 || /\s/.test(valor)) return false;
   try {
     const url = new URL(valor);
-    return (
-      ['http:', 'https:'].includes(url.protocol) &&
-      !!url.hostname &&
-      !url.username &&
-      !url.password
-    );
+    return url.protocol === 'https:' && !!url.hostname && !url.username && !url.password;
   } catch {
     return false;
   }

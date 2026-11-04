@@ -14,14 +14,12 @@ const TIPOS = ['image/jpeg', 'image/png', 'image/webp'];
 /** Tope del original: lo que se sube es el recorte (JPEG de 512 px), muy por debajo de los 2 MB del servidor. */
 const MAX_BYTES = 15 * 1024 * 1024;
 
+/** Igual que el servidor: solo enlaces `https://` externos, sin credenciales y de hasta 255 caracteres. */
 function esUrlImagenValida(valor: string): boolean {
-  if (!valor || valor.length > 255) return false;
-  if (valor.startsWith('/')) {
-    return !valor.startsWith('//') && !valor.includes('\\') && !valor.includes('..') && !/[\s?#]/.test(valor);
-  }
+  if (!valor || valor.length > 255 || /\s/.test(valor)) return false;
   try {
     const url = new URL(valor);
-    return ['http:', 'https:'].includes(url.protocol) && !!url.hostname && !url.username && !url.password;
+    return url.protocol === 'https:' && !!url.hostname && !url.username && !url.password;
   } catch {
     return false;
   }
