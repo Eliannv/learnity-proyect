@@ -80,4 +80,21 @@ describe('Sprint 4 · foto de perfil', () => {
       assert.equal((await srv.pedir(`/api/fotos/${nombre}`)).status, 404, nombre);
     }
   });
+
+  it('permite guardar una URL de imagen externa en el perfil y rechaza URLs inválidas', async () => {
+    const invalida = await srv.pedir('/api/perfil/foto', {
+      metodo: 'PUT',
+      token: ana.token,
+      cuerpo: { fotoUrl: 'javascript:alert(1)' },
+    });
+    assert.equal(invalida.status, 400);
+
+    const ok = await srv.pedir('/api/perfil/foto', {
+      metodo: 'PUT',
+      token: ana.token,
+      cuerpo: { fotoUrl: 'https://ejemplo.com/avatar-ana.jpg' },
+    });
+    assert.equal(ok.status, 200, ok.texto);
+    assert.equal(ok.json.fotoUrl, 'https://ejemplo.com/avatar-ana.jpg');
+  });
 });

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { firstValueFrom, map } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { firstValueFrom, map, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type { EstadoSolicitud, SolicitudDocente } from '../api/contrato';
 
@@ -15,17 +15,50 @@ export type DecisionSolicitud = { decision: 'APROBAR' } | { decision: 'RECHAZAR'
  */
 @Injectable({ providedIn: 'root' })
 export class SolicitudesDocenteService {
-  private readonly http = inject(HttpClient);
+  private readonly http = inject(HttpClient, { optional: true })!;
   private readonly api = environment.apiUrl;
 
+  /** Estado global del modal «Solicitud para ser docente» para abrirlo sin redirigir a /perfil. */
+  readonly modalAbierto = signal(false);
+  readonly solicitudActual = signal<SolicitudDocente | null>(null);
+  private readonly anfitriones = signal<symbol[]>([]);
+
+  abrirModal(): void {
+    this.modalAbierto.set(true);
+  }
+
+  cerrarModal(): void {
+    this.modalAbierto.set(false);
+  }
+
+  registrarAnfitrion(id: symbol): void {
+    this.anfitriones.update((lista) => (lista.includes(id) ? lista : [...lista, id]));
+  }
+
+  desregistrarAnfitrion(id: symbol): void {
+    this.anfitriones.update((lista) => lista.filter((item) => item !== id));
+  }
+
+  esAnfitrionActivo(id: symbol): boolean {
+    return this.anfitriones()[0] === id;
+  }
+
   miSolicitud(): Promise<SolicitudDocente | null> {
+    if (!this.http) return Promise.resolve(this.solicitudActual());
     return firstValueFrom(
-      this.http.get<{ solicitud: SolicitudDocente | null }>(`${this.api}/solicitudes-docente/mia`).pipe(map((r) => r.solicitud)),
+      this.http.get<{ solicitud: SolicitudDocente | null }>(`${this.api}/solicitudes-docente/mia`).pipe(
+        map((r) => r.solicitud),
+        tap((s) => this.solicitudActual.set(s)),
+      ),
     );
   }
 
   enviar(especialidad: string, motivo: string): Promise<SolicitudDocente> {
-    return firstValueFrom(this.http.post<SolicitudDocente>(`${this.api}/solicitudes-docente`, { especialidad, motivo }));
+    return firstValueFrom(
+      this.http.post<SolicitudDocente>(`${this.api}/solicitudes-docente`, { especialidad, motivo }).pipe(
+        tap((s) => this.solicitudActual.set(s)),
+      ),
+    );
   }
 
   listar(estado: EstadoSolicitud): Promise<SolicitudDocente[]> {

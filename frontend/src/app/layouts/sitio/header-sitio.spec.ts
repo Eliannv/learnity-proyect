@@ -109,5 +109,22 @@ describe('HeaderSitio - Buscador móvil estilo YouTube', () => {
     fixture.detectChanges();
     expect(el.querySelector('.barra-busqueda-movil')).toBeNull();
   });
+
+  it('estudiante autenticado: al pulsar «Enseña en Learnity» abre el modal directamente sin redirigir a /perfil', () => {
+    const { fixture } = montar(true);
+    const el = fixture.nativeElement as HTMLElement;
+
+    const btnEnsenar = Array.from(el.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Enseña en Learnity'),
+    ) as HTMLButtonElement;
+    expect(btnEnsenar).toBeTruthy();
+
+    btnEnsenar.click();
+    fixture.detectChanges();
+
+    const dialogo = el.querySelector('[role="dialog"]');
+    expect(dialogo).not.toBeNull();
+    expect(dialogo?.textContent).toContain('Solicitud para ser docente');
+  });
 });
 

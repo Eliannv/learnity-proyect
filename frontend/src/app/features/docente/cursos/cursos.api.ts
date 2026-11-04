@@ -17,6 +17,13 @@ export class DocenteCursosApi {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiUrl;
 
+  async subirPortada(archivo: File): Promise<string> {
+    const datos = new FormData();
+    datos.append('foto', archivo, archivo.name);
+    const r = await firstValueFrom(this.http.post<{ portadaUrl: string }>(`${this.base}/cursos/portada`, datos));
+    return r.portadaUrl;
+  }
+
   misCursos(): Promise<ListaCursos> {
     return firstValueFrom(
       this.http.get<ListaCursos>(`${this.base}/docente/cursos`),

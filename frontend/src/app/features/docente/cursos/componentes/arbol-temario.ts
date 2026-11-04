@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { LucideAngularModule } from 'lucide-angular';
 import { Observable } from 'rxjs';
 import {
   type CuestionarioDocente,
@@ -38,7 +39,7 @@ const NOMBRE_TIPO: Record<TipoContenido, string> = {
 
 @Component({
   selector: 'app-arbol-temario',
-  imports: [NgTemplateOutlet, FormsModule, PdfLeccion, CampoYoutube, ReproductorYoutube, EditorEvaluacion, RecursosLeccion],
+  imports: [NgTemplateOutlet, FormsModule, LucideAngularModule, PdfLeccion, CampoYoutube, ReproductorYoutube, EditorEvaluacion, RecursosLeccion],
   templateUrl: './arbol-temario.html',
   styleUrl: './arbol-temario.scss',
 })
@@ -91,6 +92,7 @@ export class ArbolTemario {
   readonly volver = output<void>();
 
   protected readonly p = new Peticion();
+  protected readonly ayudaVisible = signal(false);
   private readonly confirmacion = inject(ConfirmacionService);
   private readonly trabajo = signal(false);
 

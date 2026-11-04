@@ -1,17 +1,70 @@
 import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import type { RequestHandler } from 'express';
+import multer from 'multer';
 
 import { env } from '../config/env.js';
 import { AppError } from '../http/app-error.js';
 import { binarioRepository } from './binario.repository.js';
 
-/** Fotos de perfil: hasta 2 MiB, JPEG, PNG o WebP reconocidos por su contenido (no por la extensión). */
+/** Fotos de perfil y portadas: hasta 2 MiB, JPEG, PNG o WebP reconocidos por su contenido (no por la extensión). */
 export const MAX_FOTO_BYTES = 2 * 1024 * 1024;
 export const PREFIJO_URL_FOTO = '/api/fotos/';
 export const NOMBRE_FOTO = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png|webp)$/;
 
 const MIME: Readonly<Record<string, string>> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+
+const multerFoto = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_FOTO_BYTES, files: 1, fields: 0, parts: 2, fieldNameSize: 30, headerPairs: 30 },
+}).single('foto');
+
+/** Middleware multipart para recibir un único archivo de imagen en el campo `foto` (máx. 2 MiB). */
+export const recibirArchivoFoto: RequestHandler = (req, res, next) => {
+  if (!req.is('multipart/form-data')) {
+    next(new AppError(415, 'Utiliza multipart/form-data con el campo foto.', 'TIPO_ARCHIVO_INVALIDO'));
+    return;
+  }
+  multerFoto(req, res, (error: unknown) => {
+    if (error instanceof multer.MulterError) {
+      const grande = error.code === 'LIMIT_FILE_SIZE';
+      next(
+        grande
+          ? new AppError(413, 'La foto supera el máximo de 2 MB.', 'ARCHIVO_DEMASIADO_GRANDE')
+          : AppError.solicitudInvalida('Envía una única imagen en el campo foto.', [{ campo: 'foto', mensaje: 'Revisa el formulario.' }]),
+      );
+    } else if (error) {
+      next(AppError.solicitudInvalida('No se pudo leer la foto.', [{ campo: 'foto', mensaje: 'Vuelve a seleccionarla.' }]));
+    } else {
+      next();
+    }
+  });
+};
+
+/** Valida una URL o ruta pública de imagen (`https://...`, `/api/fotos/...` o `/img/...`). */
+export function esUrlImagenValida(valor: string): boolean {
+  if (!valor || valor.length > 255) return false;
+  if (valor.startsWith('/')) {
+    return (
+      !valor.startsWith('//') &&
+      !valor.includes('\\') &&
+      !valor.includes('..') &&
+      !/[\s?#]/.test(valor)
+    );
+  }
+  try {
+    const url = new URL(valor);
+    return (
+      ['http:', 'https:'].includes(url.protocol) &&
+      !!url.hostname &&
+      !url.username &&
+      !url.password
+    );
+  } catch {
+    return false;
+  }
+}
 
 /** Carpeta privada junto a los PDF: nunca dentro de frontend/public ni servida como estática. */
 function directorio(): string {

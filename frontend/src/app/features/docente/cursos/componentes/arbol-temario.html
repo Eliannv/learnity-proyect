@@ -1,11 +1,27 @@
 <section class="pagina temario-contenedor">
   <div class="cabecera-temario">
-    <div>
-      <h2>Módulos y contenido</h2>
-      <p class="instruccion-temario">Organiza el curso en módulos. Dentro de cada uno agrega hasta 12 contenidos (vídeos de YouTube, documentos PDF o evaluaciones de opción múltiple) en el orden en que los verá el estudiante.</p>
+    <div class="cabecera-temario-fila">
+      <div class="cabecera-temario-titulo">
+        <h2>Módulos y contenido</h2>
+        <button
+          type="button"
+          class="btn-ayuda-temario"
+          [attr.aria-expanded]="ayudaVisible()"
+          (click)="ayudaVisible.set(!ayudaVisible())"
+        >
+          <lucide-icon name="info" [size]="15" aria-hidden="true" />
+          <span>¿Cómo organizar el contenido?</span>
+          <lucide-icon [name]="ayudaVisible() ? 'chevron-up' : 'chevron-down'" [size]="14" aria-hidden="true" />
+        </button>
+      </div>
+      @if (editable()) {
+        <button type="button" class="btn btn-acento" [disabled]="deshabilitado() || hayFormulario() || curso().modulos.length >= 10" (click)="abrirModulo()">+ Agregar módulo</button>
+      }
     </div>
-    @if (editable()) {
-      <button type="button" class="btn btn-acento" [disabled]="deshabilitado() || hayFormulario() || curso().modulos.length >= 10" (click)="abrirModulo()">+ Agregar módulo</button>
+    @if (ayudaVisible()) {
+      <p class="instruccion-temario">
+        Organiza el curso en módulos. Dentro de cada uno agrega hasta 12 contenidos (vídeos de YouTube, documentos PDF o evaluaciones de opción múltiple) en el orden en que los verá el estudiante.
+      </p>
     }
   </div>
 
@@ -73,17 +89,19 @@
           } @else {
           <li class="contenido-fila" [class.contenido-video]="l.tipo === 'VIDEO'">
             <div class="contenido-cabecera">
-              <span class="contenido-orden">{{ l.orden }}</span>
-              <div class="contenido-identidad">
-                <strong>{{ l.titulo }}</strong>
-                <small>
-                  @switch (l.tipo) {
-                    @case ('VIDEO') { Vídeo de YouTube }
-                    @case ('EVALUACION') { Evaluación de opción múltiple · {{ l.preguntas }} preguntas }
-                    @default { Documento PDF }
-                  }
-                  @if (l.tipo === 'VIDEO' && l.archivo) { · con PDF de apoyo }
-                </small>
+              <div class="contenido-principal-fila">
+                <span class="contenido-orden">{{ l.orden }}</span>
+                <div class="contenido-identidad">
+                  <strong>{{ l.titulo }}</strong>
+                  <small>
+                    @switch (l.tipo) {
+                      @case ('VIDEO') { Vídeo de YouTube }
+                      @case ('EVALUACION') { Evaluación de opción múltiple · {{ l.preguntas }} preguntas }
+                      @default { Documento PDF }
+                    }
+                    @if (l.tipo === 'VIDEO' && l.archivo) { · con PDF de apoyo }
+                  </small>
+                </div>
               </div>
               @if (editable()) {
                 <div class="acciones contenido-acciones">
