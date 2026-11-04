@@ -31,6 +31,8 @@ export class FormularioFicha {
 
   readonly guardar = output<void>();
   readonly cambio = output<void>();
+  /** La portada ya está subida y puesta en el formulario: el editor la guarda en el curso al momento. */
+  readonly portadaSubida = output<void>();
   readonly continuar = output<void>();
 
   protected readonly modoPortada = signal<'archivo' | 'url'>('url');
@@ -85,8 +87,13 @@ export class FormularioFicha {
       this.errorCargaPortada.set(false);
       this.portadaCargada.set(true);
       this.archivoPortada.set(null);
-      this.cambio.emit();
-      this.toast?.exito('Imagen de portada lista. Guarda los cambios del curso para aplicarla.');
+      if (this.curso()) {
+        // Curso existente: el editor guarda la ficha enseguida y el temario no queda bloqueado.
+        this.portadaSubida.emit();
+      } else {
+        this.cambio.emit();
+        this.toast?.exito('Imagen de portada lista. Se guardará al crear el curso.');
+      }
     } catch (error) {
       this.errorSubidaPortada.set(mensajeDeError(error, 'Subir la portada'));
     } finally {

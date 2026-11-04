@@ -270,6 +270,16 @@ export class EditorCurso {
     );
   }
 
+  /**
+   * Tras subir la portada de un curso ya creado se guarda la ficha al momento, para que el temario
+   * no quede bloqueado esperando «Guardar cambios». Si otro campo es inválido, queda pendiente como
+   * cualquier cambio sin guardar.
+   */
+  protected async guardarPortada(): Promise<void> {
+    this.sucio.set(true);
+    await this.guardar();
+  }
+
   protected async enviar(): Promise<void> {
     const c = this.curso();
     if (
