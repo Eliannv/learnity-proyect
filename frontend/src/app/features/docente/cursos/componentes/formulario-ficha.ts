@@ -3,6 +3,7 @@ import { Component, inject, input, output, signal } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import type { CategoriaPublica, CursoDetalle } from '../../../../core/api/contrato';
 import { mensajeDeError } from '../../../../core/http/error-api';
+import { InfoAyuda } from '../../../../shared/ui/retroalimentacion/info-ayuda';
 import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
 import { RecortadorFoto } from '../../../../shared/ui/recortador/recortador-foto';
 import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
@@ -13,7 +14,7 @@ const MAX_PORTADA_BYTES = 15 * 1024 * 1024;
 
 @Component({
   selector: 'app-formulario-ficha',
-  imports: [ReactiveFormsModule, LucideAngularModule, Modal, RecortadorFoto],
+  imports: [ReactiveFormsModule, LucideAngularModule, InfoAyuda, Modal, RecortadorFoto],
   templateUrl: './formulario-ficha.html',
   styleUrl: './formulario-ficha.scss',
 })
@@ -31,6 +32,8 @@ export class FormularioFicha {
 
   readonly guardar = output<void>();
   readonly cambio = output<void>();
+  /** La portada ya está subida y puesta en el formulario: el editor la guarda en el curso al momento. */
+  readonly portadaSubida = output<void>();
   readonly continuar = output<void>();
 
   protected readonly modoPortada = signal<'archivo' | 'url'>('url');
@@ -85,8 +88,13 @@ export class FormularioFicha {
       this.errorCargaPortada.set(false);
       this.portadaCargada.set(true);
       this.archivoPortada.set(null);
-      this.cambio.emit();
-      this.toast?.exito('Imagen de portada lista. Guarda los cambios del curso para aplicarla.');
+      if (this.curso()) {
+        // Curso existente: el editor guarda la ficha enseguida y el temario no queda bloqueado.
+        this.portadaSubida.emit();
+      } else {
+        this.cambio.emit();
+        this.toast?.exito('Imagen de portada lista. Se guardará al crear el curso.');
+      }
     } catch (error) {
       this.errorSubidaPortada.set(mensajeDeError(error, 'Subir la portada'));
     } finally {

@@ -1,4 +1,6 @@
 import { Component, signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
@@ -39,6 +41,8 @@ describe('HeaderSitio - Buscador móvil estilo YouTube', () => {
           { path: 'cursos/:id', component: VistaPrueba },
           { path: '**', component: VistaPrueba },
         ]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: AuthService, useValue: authMock },
         { provide: CatalogoApi, useValue: catalogoApiMock },
         { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) },

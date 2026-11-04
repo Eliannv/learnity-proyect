@@ -432,24 +432,29 @@ export const openApi = {
     '/perfil/foto': {
       put: {
         tags: ['Identidad'],
-        summary: 'Subir o reemplazar mi foto de perfil',
-        description: 'JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. La foto anterior se borra. ' +
-          'Queda en `fotoUrl` como `/api/fotos/{nombre}`. Hasta 20 subidas cada 15 minutos por IP.',
+        summary: 'Subir o reemplazar mi foto de perfil, o usar un enlace externo',
+        description: 'Con multipart: JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido; queda en `fotoUrl` ' +
+          'como `/api/fotos/{nombre}`. Con JSON: `fotoUrl` es un enlace `https://` externo (no se aceptan rutas propias). ' +
+          'En ambos casos la foto subida anterior se borra. Hasta 20 cambios cada 15 minutos por IP.',
         security: [{ bearer: [] }],
         requestBody: {
           required: true,
           content: { 'multipart/form-data': { schema: {
             type: 'object', additionalProperties: false, required: ['foto'],
             properties: { foto: { type: 'string', format: 'binary' } },
+          } },
+          'application/json': { schema: {
+            type: 'object', additionalProperties: false, required: ['fotoUrl'],
+            properties: { fotoUrl: { type: 'string', format: 'uri', pattern: '^https://', maxLength: 255 } },
           } } },
         },
         responses: {
           200: json(perfil),
-          400: error('Formulario sin foto o ilegible (SOLICITUD_INVALIDA)'),
+          400: error('Formulario sin foto o ilegible, o enlace que no es https:// (SOLICITUD_INVALIDA)'),
           401: sinSesion,
           404: cuentaInexistente,
           413: error('La foto supera 2 MiB (ARCHIVO_DEMASIADO_GRANDE)'),
-          415: error('No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO)'),
+          415: error('No es multipart ni JSON, o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO)'),
           429: limite,
           500: errorInterno,
         },

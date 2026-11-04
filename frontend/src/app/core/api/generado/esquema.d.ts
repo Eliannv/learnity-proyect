@@ -981,6 +981,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cursos/portada": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subir la imagen de portada de un curso
+         * @description JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. Devuelve `portadaUrl` (`/api/fotos/{nombre}`) para guardarla después con `POST /cursos` o `PUT /cursos/{id}`. Hasta 20 subidas cada 15 minutos por IP.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        foto: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            portadaUrl: string;
+                        };
+                    };
+                };
+                /** @description Formulario sin imagen o ilegible (SOLICITUD_INVALIDA) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión, token inválido o sesión revocada */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol DOCENTE (SIN_PERMISO) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La imagen supera 2 MiB (ARCHIVO_DEMASIADO_GRANDE) */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO) */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Demasiadas peticiones desde esta IP (DEMASIADAS_PETICIONES, encabezado Retry-After) */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cursos": {
         parameters: {
             query?: never;
@@ -7070,8 +7173,8 @@ export interface paths {
         };
         get?: never;
         /**
-         * Subir o reemplazar mi foto de perfil
-         * @description JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido. La foto anterior se borra. Queda en `fotoUrl` como `/api/fotos/{nombre}`. Hasta 20 subidas cada 15 minutos por IP.
+         * Subir o reemplazar mi foto de perfil, o usar un enlace externo
+         * @description Con multipart: JPEG, PNG o WebP de hasta 2 MiB, reconocidos por su contenido; queda en `fotoUrl` como `/api/fotos/{nombre}`. Con JSON: `fotoUrl` es un enlace `https://` externo (no se aceptan rutas propias). En ambos casos la foto subida anterior se borra. Hasta 20 cambios cada 15 minutos por IP.
          */
         put: {
             parameters: {
@@ -7085,6 +7188,10 @@ export interface paths {
                     "multipart/form-data": {
                         /** Format: binary */
                         foto: string;
+                    };
+                    "application/json": {
+                        /** Format: uri */
+                        fotoUrl: string;
                     };
                 };
             };
@@ -7117,7 +7224,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Formulario sin foto o ilegible (SOLICITUD_INVALIDA) */
+                /** @description Formulario sin foto o ilegible, o enlace que no es https:// (SOLICITUD_INVALIDA) */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -7153,7 +7260,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorApi"];
                     };
                 };
-                /** @description No es multipart o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO) */
+                /** @description No es multipart ni JSON, o la imagen no es JPEG, PNG ni WebP (TIPO_ARCHIVO_INVALIDO) */
                 415: {
                     headers: {
                         [name: string]: unknown;

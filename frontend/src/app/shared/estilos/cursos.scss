@@ -144,7 +144,6 @@ fieldset:disabled {
 
 .modulo summary {
     cursor: pointer;
-    padding: 8px 0;
     font-weight: 700;
 }
 
@@ -225,9 +224,11 @@ textarea {
     .rejilla {
         grid-template-columns: 1fr;
     }
+
     .bloque {
         padding: 16px;
     }
+
     .acciones>.btn {
         flex: 1 1 auto;
     }

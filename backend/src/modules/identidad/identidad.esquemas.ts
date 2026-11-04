@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MAX_BYTES_BCRYPT } from '../../shared/auth/contrasena.js';
+import { esUrlFotoExterna } from '../../shared/archivos/fotos.js';
 import { textoSeguro } from '../../shared/http/esquemas.js';
 
 // Esquemas de entrada (DTO) del módulo Identidad. Se validan en routes con `validarCuerpo`.
@@ -51,6 +52,11 @@ export const actualizarPerfilSchema = z.object({
   apellidos: nombre('apellidos'),
   ciudad: textoSeguro().trim().max(60).nullable().optional(),
   biografia: textoSeguro().trim().max(300).nullable().optional(),
+});
+
+/** Foto de perfil por enlace: solo `https://` externo (ver `esUrlFotoExterna`). */
+export const fotoUrlSchema = z.strictObject({
+  fotoUrl: z.string().trim().max(255).refine(esUrlFotoExterna, 'Indica un enlace https:// a una imagen (máx. 255 caracteres).'),
 });
 
 export const cambiarContrasenaSchema = z.object({

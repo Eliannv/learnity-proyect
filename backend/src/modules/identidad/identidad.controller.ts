@@ -58,7 +58,10 @@ export const identidadController = {
   },
 
   async cambiarFoto(req: Request, res: Response) {
-    if (req.is('application/json')) { res.json(await identidadService.cambiarFotoUrl(req.usuario!, req.body)); return; }
+    if (req.is('application/json')) {
+      res.json(await identidadService.cambiarFotoUrl(req.usuario!, (req.body as { fotoUrl: string }).fotoUrl));
+      return;
+    }
     res.json(await identidadService.cambiarFoto(req.usuario!, req.file?.buffer));
   },
 

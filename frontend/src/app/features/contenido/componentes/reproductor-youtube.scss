@@ -15,7 +15,8 @@ p { margin: 0; overflow-wrap: anywhere; }
   .reanudar, .fallo { padding: 0 16px 12px; border: 0; background: none; }
   .btn-contorno { color: #fff; border-color: #94a3b8; background: transparent; }
   .btn-contorno:hover { background: #1e293b; }
-  .error { color: #fecaca; }
+  // Texto claro sobre fondo rojo oscuro: el fondo rosa global de .aviso.error no contrasta con #fecaca.
+  .aviso.error { color: #fecaca; background: rgba(127, 29, 29, 0.55); border: 1px solid rgba(248, 113, 113, 0.45); }
 }
 
 @media (max-width: 600px) { .reanudar { align-items: stretch; flex-direction: column; } }

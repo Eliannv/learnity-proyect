@@ -15,7 +15,7 @@ export type DecisionSolicitud = { decision: 'APROBAR' } | { decision: 'RECHAZAR'
  */
 @Injectable({ providedIn: 'root' })
 export class SolicitudesDocenteService {
-  private readonly http = inject(HttpClient, { optional: true })!;
+  private readonly http = inject(HttpClient);
   private readonly api = environment.apiUrl;
 
   /** Estado global del modal «Solicitud para ser docente» para abrirlo sin redirigir a /perfil. */
@@ -44,7 +44,6 @@ export class SolicitudesDocenteService {
   }
 
   miSolicitud(): Promise<SolicitudDocente | null> {
-    if (!this.http) return Promise.resolve(this.solicitudActual());
     return firstValueFrom(
       this.http.get<{ solicitud: SolicitudDocente | null }>(`${this.api}/solicitudes-docente/mia`).pipe(
         map((r) => r.solicitud),

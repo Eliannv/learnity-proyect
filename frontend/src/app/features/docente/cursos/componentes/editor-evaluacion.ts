@@ -1,5 +1,6 @@
 import { Component, OnInit, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { InfoAyuda } from '../../../../shared/ui/retroalimentacion/info-ayuda';
 import type {
   CuestionarioDocente,
   CursoDetalle,
@@ -23,7 +24,7 @@ interface PreguntaEditable {
 /** Preguntas de una lección EVALUACION: de 5 a 10, cuatro opciones y una correcta. */
 @Component({
   selector: 'app-editor-evaluacion',
-  imports: [FormsModule],
+  imports: [FormsModule, InfoAyuda],
   templateUrl: './editor-evaluacion.html',
   styleUrl: './editor-evaluacion.scss',
 })

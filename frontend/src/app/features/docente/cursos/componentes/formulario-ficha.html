@@ -6,11 +6,16 @@
   (change)="cambio.emit()"
 >
   <div class="ficha-cabecera">
-    <div>
+    <div class="ficha-titulo">
       <h2>1. Información del curso</h2>
-      <p class="instruccion-ficha">
-        Para crear el borrador solo necesitas <strong>título, categoría y nivel</strong>. Antes de enviar a revisión deberás completar la descripción, portada y objetivos.
-      </p>
+      <app-info-ayuda etiqueta="Ayuda: cómo completar la información del curso">
+        <li>Para crear el borrador solo necesitas <strong>título, categoría y nivel</strong>.</li>
+        <li>Los campos marcados <strong>Para revisión</strong> (descripción, portada y objetivos) son obligatorios antes de enviar el curso a revisión.</li>
+        <li><strong>Portada:</strong> sube una imagen JPG, PNG o WebP y la encuadras en 16:9 (960×540 px), o pega un enlace público <strong>https://</strong>. En un curso ya creado, la imagen subida se guarda al momento.</li>
+        <li><strong>Descripción:</strong> explica el enfoque didáctico, los temas principales y a quién va dirigido.</li>
+        <li><strong>Objetivos:</strong> al menos 3, uno por línea y hasta 200 caracteres cada uno.</li>
+        <li><strong>Requisitos previos:</strong> opcionales, hasta 10, uno por línea.</li>
+      </app-info-ayuda>
     </div>
     @if (curso()) {
       <span class="badge-estado-ficha">
@@ -139,10 +144,9 @@
                 type="file"
                 class="visualmente-oculto"
                 accept="image/jpeg,image/png,image/webp"
-                (change)="elegirArchivoPortada($event)"
+                (change)="elegirArchivoPortada($event); $event.stopPropagation()"
               />
             </label>
-            <small>Se abrirá el recortador panorámico 16:9 (960×540 px) antes de subirla.</small>
             @if (errorSubidaPortada()) {
               <small class="error-campo" role="alert">{{ errorSubidaPortada() }}</small>
             }
@@ -171,13 +175,12 @@
                   type="file"
                   class="visualmente-oculto"
                   accept="image/jpeg,image/png,image/webp"
-                  (change)="elegirArchivoPortada($event)"
+                  (change)="elegirArchivoPortada($event); $event.stopPropagation()"
                 />
               </label>
             }
           </div>
 
-          <small>Pega un enlace público (https://…) o sube una imagen horizontal en proporción 16:9.</small>
           @if (errorSubidaPortada() && modoPortada() === 'url') {
             <small class="error-campo" role="alert">{{ errorSubidaPortada() }}</small>
           }
@@ -241,7 +244,6 @@
             placeholder="Explica qué aprenderán los estudiantes, la metodología y a quién va dirigido."
           ></textarea>
 
-          <small class="texto-ayuda-campo">Describe el enfoque didáctico y los temas principales que se abordarán.</small>
           <small class="error-campo" role="alert">{{ errorCampo('descripcion') }}</small>
         </label>
       </div>
@@ -266,7 +268,6 @@
             placeholder="Un objetivo por línea. Ejemplo:&#10;Entender la sintaxis básica de TypeScript&#10;Configurar un proyecto con tsconfig&#10;Compilar código a JavaScript moderno"
           ></textarea>
 
-          <small>Escribe al menos 3 objetivos, uno por línea (máx. 200 caracteres por línea).</small>
           <small class="error-campo" role="alert">{{ errorCampo('objetivos') }}</small>
         </label>
 
@@ -283,7 +284,6 @@
             placeholder="Un requisito por línea. Ejemplo:&#10;Conocimientos básicos de HTML y JS&#10;Editor de código instalado"
           ></textarea>
 
-          <small>Hasta 10 requisitos, uno por línea (opcional).</small>
           <small class="error-campo" role="alert">{{ errorCampo('requisitos') }}</small>
         </label>
       </div>
