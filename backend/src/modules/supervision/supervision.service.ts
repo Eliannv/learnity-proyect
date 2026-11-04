@@ -27,8 +27,41 @@ const cambio = (f: FilaCambio): CambioAuditoria => ({
   usuarioBd: f.usuarioBd, columnasCambiadas: f.columnasCambiadas,
 });
 
+/**
+ * Traduce descripciones técnicas generadas por la base de datos (como «por el rol de la base postgres sin actor»)
+ * a un lenguaje claro y comprensible para el administrador.
+ */
+export function humanizarDescripcionAlerta(descripcion: string): string {
+  const mMasiva = /^(\d+) cambios \((\d+) borrados\) en el contenido de (\d+) curso\(s\) publicado\(s\) por (.+)\.$/.exec(
+    descripcion.trim(),
+  );
+  if (mMasiva) {
+    const cambios = Number(mMasiva[1]);
+    const borrados = Number(mMasiva[2]);
+    const cursos = Number(mMasiva[3]);
+    const autorRaw = mMasiva[4]!;
+    const esSistema = /^el rol de la base .+ sin actor$/i.test(autorRaw);
+    const textoCursos = cursos === 1 ? '1 curso publicado' : `${cursos} cursos publicados`;
+    const detalleBorrados =
+      borrados === 0
+        ? ''
+        : borrados === 1
+          ? ' (incluyendo 1 eliminación)'
+          : ` (incluyendo ${borrados} eliminaciones)`;
+    if (esSistema) {
+      return `Se detectaron ${cambios} actualizaciones masivas${detalleBorrados} en ${textoCursos} mediante mantenimiento del sistema.`;
+    }
+    return `Se detectaron ${cambios} modificaciones seguidas${detalleBorrados} en ${textoCursos} realizadas por ${autorRaw}.`;
+  }
+
+  return descripcion
+    .replace(/\bsin actor registrado \(rol de la base: [^)]+\)/gi, 'mediante mantenimiento del sistema')
+    .replace(/\bpor el rol de la base \S+ sin actor\b/gi, 'mediante mantenimiento del sistema')
+    .replace(/\bcurso\(s\) publicado\(s\)/gi, 'cursos publicados');
+}
+
 const alerta = (f: FilaAlerta): AlertaSeguridad => ({
-  id: Number(f.id), tipo: f.tipo, severidad: f.severidad, descripcion: f.descripcion,
+  id: Number(f.id), tipo: f.tipo, severidad: f.severidad, descripcion: humanizarDescripcionAlerta(f.descripcion),
   detectadaEn: f.detectadaEn.toISOString(),
   usuario: f.idUsuario === null ? null : { id: f.idUsuario, nombre: f.nombre ?? '', correo: f.correo ?? '' },
   evidencia: { auditoria: f.evidencia.auditoria ?? [], accesos: f.evidencia.accesos ?? [] },

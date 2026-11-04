@@ -104,12 +104,20 @@ const FUENTE_GRAFICO = "'DM Sans', system-ui, sans-serif";
     </figure>
   `,
   styles: `
+    :host {
+      display: block;
+      min-width: 0;
+      max-width: 100%;
+    }
+
     .grafico-echarts-contenedor {
       margin: 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
       width: 100%;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .cabecera-grafico {
@@ -167,6 +175,8 @@ const FUENTE_GRAFICO = "'DM Sans', system-ui, sans-serif";
     .tabla-datos {
       margin-top: 10px;
       font-size: 13px;
+      min-width: 0;
+      max-width: 100%;
 
       summary {
         cursor: pointer;
@@ -182,6 +192,8 @@ const FUENTE_GRAFICO = "'DM Sans', system-ui, sans-serif";
 
       .tabla-contenedor {
         margin-top: 10px;
+        width: 100%;
+        max-width: 100%;
         border: 1px solid var(--borde);
         border-radius: var(--radio-md, 8px);
         overflow-x: auto;
@@ -191,7 +203,7 @@ const FUENTE_GRAFICO = "'DM Sans', system-ui, sans-serif";
 
       .tabla {
         width: 100%;
-        min-width: 540px;
+        min-width: 100%;
         border-collapse: collapse;
         font-size: 14px;
 
@@ -282,6 +294,17 @@ const FUENTE_GRAFICO = "'DM Sans', system-ui, sans-serif";
 
       .lienzo-echarts {
         height: 280px;
+      }
+
+      .tabla-datos .tabla {
+        font-size: 13px;
+
+        th,
+        th[scope="row"],
+        td {
+          padding: 10px 12px;
+          white-space: normal;
+        }
       }
     }
   `,

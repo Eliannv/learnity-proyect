@@ -43,8 +43,68 @@
   border-radius: var(--radio);
   background: var(--superficie);
   &[data-severidad='ALTA'] { border-left: 3px solid var(--negativo); }
-  > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; }
+  > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 12px;
+    font-size: 14px;
+  }
+  .meta-cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    min-width: 0;
+  }
   time { font-variant-numeric: tabular-nums; }
+}
+.btn-acciones-movil {
+  display: none;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -6px -8px -6px 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  background: transparent;
+  color: var(--tinta-2);
+  cursor: pointer;
+  transition: background-color var(--t-micro) var(--curva-salida), transform var(--t-pulsar) var(--curva-salida);
+  &:hover:not(:disabled) {
+    background: var(--elevado);
+    color: var(--tinta);
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.94);
+  }
+}
+.lista-acciones-movil {
+  display: grid;
+  gap: 8px;
+}
+.opcion-accion-movil {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--tinta);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--t-micro) var(--curva-salida), transform var(--t-pulsar) var(--curva-salida);
+  lucide-icon { flex: none; color: var(--tinta-2); }
+  &:hover:not(:disabled) { background: var(--elevado); }
+  &:active:not(:disabled) { transform: scale(0.98); }
 }
 /* La severidad se lee por su texto (minúscula de frase); el par pálido solo la acompaña. */
 .severidad {
@@ -82,3 +142,32 @@
   .contador { align-self: flex-end; font-size: 12px; }
 }
 .error { margin: 0; color: var(--negativo); }
+
+@media (max-width: 760px) {
+  .cabecera .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .pestanas {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    button { flex-shrink: 0; white-space: nowrap; }
+  }
+  .filtros {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    .campo { min-width: 0; width: 100%; }
+  }
+  .alerta {
+    padding: 16px;
+    > footer.acciones {
+      display: none;
+    }
+  }
+  .btn-acciones-movil {
+    display: inline-grid;
+    place-items: center;
+  }
+}

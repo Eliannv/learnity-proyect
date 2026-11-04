@@ -196,6 +196,22 @@
         }
       </section>
     }
+
+    <section class="tarjeta seccion-perfil sesion-salida" aria-labelledby="t-sesion">
+      <div class="bloque">
+        <h2 id="t-sesion">Sesión</h2>
+        <p class="texto-suave">Cierra tu sesión actual en este dispositivo de forma segura.</p>
+        <button
+          type="button"
+          class="btn btn-cerrar-sesion"
+          [disabled]="cerrandoSesion()"
+          (click)="cerrarSesion()"
+        >
+          <lucide-icon name="log-out" [size]="18" aria-hidden="true" />
+          {{ cerrandoSesion() ? 'Cerrando sesión…' : 'Cerrar sesión' }}
+        </button>
+      </div>
+    </section>
   </aside>
 </div>
 </div>

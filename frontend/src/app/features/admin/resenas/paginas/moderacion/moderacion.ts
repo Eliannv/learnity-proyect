@@ -104,6 +104,10 @@ export class ModeracionResenas {
   protected motivoOcultacion = '';
   protected readonly ocultacion = new Peticion();
 
+  /** Hoja inferior de acciones rápidas en móvil («tres puntos»). */
+  protected readonly resenaMenuMovil = signal<ResenaAdmin | null>(null);
+  protected readonly reporteMenuMovil = signal<ReporteResena | null>(null);
+
   constructor() {
     this.catalogo.categorias().then(
       (lista) => this.categorias.set(lista.map((c) => ({ id: c.id, titulo: c.nombre, iconoCategoria: c.icono }))),
@@ -246,6 +250,25 @@ export class ModeracionResenas {
 
   protected textoAccion(h: EntradaHistorialResena): string {
     return ACCION[h.accion];
+  }
+
+  protected nombreActorHistorial(h: EntradaHistorialResena, autorResena?: string): string {
+    if (h.actor?.nombre) return h.actor.nombre;
+    if (h.accion === 'CREADA' || h.accion === 'EDITADA' || h.accion === 'ELIMINADA' || h.accion === 'REPUBLICADA') {
+      return autorResena || 'Estudiante del curso';
+    }
+    if (h.accion === 'RESPONDIDA_POR_DOCENTE') return 'Docente del curso';
+    return 'Administración';
+  }
+
+  protected desdeMenuResena(accion: () => void): void {
+    this.resenaMenuMovil.set(null);
+    accion();
+  }
+
+  protected desdeMenuReporte(accion: () => void): void {
+    this.reporteMenuMovil.set(null);
+    accion();
   }
 
   protected cambio(h: EntradaHistorialResena): string {

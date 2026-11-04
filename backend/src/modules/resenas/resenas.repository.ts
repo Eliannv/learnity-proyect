@@ -424,12 +424,31 @@ export const resenasRepository = {
       estrellasAnterior: number | null; estrellasNueva: number | null;
       comentarioAnterior: string | null; comentarioNuevo: string | null; motivo: string | null;
     }>(
-      `SELECT h.id_resena AS "idResena", h.accion, h.id_persona_actor AS "actorId",
+      `SELECT h.id_resena AS "idResena", h.accion,
+              COALESCE(
+                h.id_persona_actor,
+                CASE
+                  WHEN h.accion IN ('CREADA', 'EDITADA', 'ELIMINADA', 'REPUBLICADA') THEN i.id_persona
+                  WHEN h.accion = 'RESPONDIDA_POR_DOCENTE' THEN d.id_persona
+                  WHEN h.accion = 'OCULTADA' THEN r.ocultada_por
+                END
+              ) AS "actorId",
               concat_ws(' ', p.nombres, p.apellidos) AS "actorNombre", h.fecha,
               h.estrellas_anterior AS "estrellasAnterior", h.estrellas_nueva AS "estrellasNueva",
               h.comentario_anterior AS "comentarioAnterior", h.comentario_nuevo AS "comentarioNuevo", h.motivo
          FROM historial_resena($1::int[]) h
-         LEFT JOIN persona p ON p.id_persona = h.id_persona_actor`,
+         LEFT JOIN resena r ON r.id_resena = h.id_resena
+         LEFT JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+         LEFT JOIN curso c ON c.id_curso = i.id_curso
+         LEFT JOIN docente d ON d.id_docente = c.id_docente
+         LEFT JOIN persona p ON p.id_persona = COALESCE(
+           h.id_persona_actor,
+           CASE
+             WHEN h.accion IN ('CREADA', 'EDITADA', 'ELIMINADA', 'REPUBLICADA') THEN i.id_persona
+             WHEN h.accion = 'RESPONDIDA_POR_DOCENTE' THEN d.id_persona
+             WHEN h.accion = 'OCULTADA' THEN r.ocultada_por
+           END
+         )`,
       [ids],
     );
     for (const f of rows) {

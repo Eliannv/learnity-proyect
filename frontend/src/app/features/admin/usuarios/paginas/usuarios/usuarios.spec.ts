@@ -135,4 +135,17 @@ describe('usuarios del administrador', () => {
     await vi.waitFor(() => expect(toasts.exito).toHaveBeenCalledWith('Se cerró 1 sesión de Ana Pérez.'));
     expect(api.detalle).toHaveBeenCalledTimes(2);
   });
+
+  it('abre la hoja de acciones rápidas en móvil («tres puntos») y permite desbloquear o ver la ficha', async () => {
+    const { fixture, api, el } = montar();
+    await esperar(fixture, '1 cuentas');
+    el.querySelector<HTMLButtonElement>('.btn-acciones-movil')!.click();
+    fixture.detectChanges();
+    const hoja = el.querySelector('app-modal') as HTMLElement;
+    expect(hoja).not.toBeNull();
+    expect(hoja.textContent).toContain('Ver ficha completa');
+    expect(hoja.textContent).toContain('Desbloquear cuenta');
+    boton(hoja, 'Desbloquear cuenta').click();
+    await vi.waitFor(() => expect(api.desbloquear).toHaveBeenCalledWith(5));
+  });
 });

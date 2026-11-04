@@ -178,6 +178,7 @@ export const identidadService = {
       throw error;
     }
     const cuenta = (await repo.buscarCuentaPorId(idUsuario))!;
+    await repo.registrarAccesoCorrecto(idUsuario);
     registrarEvento('registro', { idUsuario, ip: ctx.ip });
     return abrirSesion(cuenta, ctx);
   },

@@ -63,6 +63,9 @@ export class AdminAlertas {
   protected nota = '';
   protected readonly atencion = new Peticion();
 
+  /** Hoja inferior de acciones rápidas en móvil («tres puntos»). */
+  protected readonly alertaMenuMovil = signal<AlertaSeguridad | null>(null);
+
   constructor() {
     void this.cargar();
   }
@@ -129,6 +132,43 @@ export class AdminAlertas {
 
   protected cerrarAtender(): void {
     if (!this.atencion.ocupada()) this.aAtender.set(null);
+  }
+
+  protected desdeMenuAlerta(accion: () => void): void {
+    this.alertaMenuMovil.set(null);
+    accion();
+  }
+
+  /**
+   * Traduce descripciones técnicas de base de datos («por el rol de la base postgres sin actor»)
+   * a un lenguaje claro y comprensible para el administrador.
+   */
+  protected descripcionLegible(a: AlertaSeguridad): string {
+    const raw = a.descripcion.trim();
+    const mMasiva = /^(\d+) cambios \((\d+) borrados\) en el contenido de (\d+) curso\(s\) publicado\(s\) por (.+)\.$/.exec(raw);
+    if (mMasiva) {
+      const cambios = Number(mMasiva[1]);
+      const borrados = Number(mMasiva[2]);
+      const cursos = Number(mMasiva[3]);
+      const autorRaw = mMasiva[4]!;
+      const esSistema = /^el rol de la base .+ sin actor$/i.test(autorRaw);
+      const textoCursos = cursos === 1 ? '1 curso publicado' : `${cursos} cursos publicados`;
+      const detalleBorrados =
+        borrados === 0
+          ? ''
+          : borrados === 1
+            ? ' (incluyendo 1 eliminación)'
+            : ` (incluyendo ${borrados} eliminaciones)`;
+      if (esSistema) {
+        return `Se detectaron ${cambios} actualizaciones masivas${detalleBorrados} en ${textoCursos} mediante mantenimiento del sistema.`;
+      }
+      return `Se detectaron ${cambios} modificaciones seguidas${detalleBorrados} en ${textoCursos} realizadas por ${autorRaw}.`;
+    }
+
+    return raw
+      .replace(/\bsin actor registrado \(rol de la base: [^)]+\)/gi, 'mediante mantenimiento del sistema')
+      .replace(/\bpor el rol de la base \S+ sin actor\b/gi, 'mediante mantenimiento del sistema')
+      .replace(/\bcurso\(s\) publicado\(s\)/gi, 'cursos publicados');
   }
 
   protected async atender(): Promise<void> {

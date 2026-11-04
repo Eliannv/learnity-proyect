@@ -11,15 +11,15 @@
 <div class="filtros">
   <label class="control-icono buscador">
     <lucide-icon name="search" [size]="18" aria-hidden="true" />
-    <input class="control" type="search" placeholder="Buscar por nombre o correo" aria-label="Buscar por nombre o correo"
-      [value]="busqueda()" (input)="buscar($any($event.target).value)" />
+    <input class="control" type="search" placeholder="Buscar por nombre o correo"
+      aria-label="Buscar por nombre o correo" [value]="busqueda()" (input)="buscar($any($event.target).value)" />
   </label>
   <div class="grupo" role="group" aria-label="Filtrar por rol">
     @for (f of filtrosRol(); track f.valor) {
-      <button type="button" class="chip-filtro" [class.activo]="rol() === f.valor" [attr.aria-pressed]="rol() === f.valor"
-        (click)="filtrarRol(f.valor)">
-        {{ f.texto }}@if (f.total !== undefined) { <span class="num conteo">{{ f.total }}</span> }
-      </button>
+    <button type="button" class="chip-filtro" [class.activo]="rol() === f.valor" [attr.aria-pressed]="rol() === f.valor"
+      (click)="filtrarRol(f.valor)">
+      {{ f.texto }}@if (f.total !== undefined) { <span class="num conteo">{{ f.total }}</span> }
+    </button>
     }
   </div>
   <label class="estado-select">
@@ -33,154 +33,233 @@
 </div>
 
 @if (error()) {
-  <app-estado-vista estado="error" titulo="No se pudieron cargar los usuarios" [mensaje]="error()" (reintentar)="cargar()" />
+<app-estado-vista estado="error" titulo="No se pudieron cargar los usuarios" [mensaje]="error()"
+  (reintentar)="cargar()" />
 } @else if (!datos() && cargando()) {
-  <div class="tabla-contenedor" role="status" aria-busy="true" aria-label="Cargando usuarios">
-    @for (i of [1, 2, 3, 4, 5]; track i) { <div class="fila-esqueleto esqueleto"></div> }
-  </div>
+<div class="tabla-contenedor" role="status" aria-busy="true" aria-label="Cargando usuarios">
+  @for (i of [1, 2, 3, 4, 5]; track i) { <div class="fila-esqueleto esqueleto"></div> }
+</div>
 } @else if (datos(); as d) {
-  @if (!d.items.length) {
-    <app-estado-vista estado="vacio" titulo="Ninguna cuenta coincide"
-      mensaje="Prueba con otro nombre, otro rol o todos los estados." />
-  } @else {
-    <!-- Se desplaza en horizontal en pantallas estrechas: con tabindex se recorre también con el teclado. -->
-    <div class="tabla-contenedor" [attr.aria-busy]="cargando()" tabindex="0" role="region" aria-label="Cuentas de Learnity">
-      <table class="tabla">
-        <caption class="visualmente-oculto">Cuentas de Learnity</caption>
-        <thead>
-          <tr>
-            <th scope="col">Nombre</th>
-            <th scope="col">Correo</th>
-            <th scope="col">Roles</th>
-            <th scope="col">Estado</th>
-            <th scope="col">Registro</th>
-            <th scope="col"><span class="visualmente-oculto">Acciones</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (u of d.items; track u.id) {
-            <tr [class.inactiva]="!u.activo">
-              <td>
-                <div class="persona">
-                  <app-avatar [texto]="iniciales(u)" [imagen]="u.fotoUrl" [tamano]="32" />
-                  <span class="persona-texto">
-                    <button type="button" class="enlace-nombre" (click)="abrirFicha(u)" [title]="u.nombre"
-                      [attr.aria-label]="'Ver la ficha de ' + u.nombre">{{ u.nombre }}</button>
-                    @if (esYo(u)) { <small class="texto-suave">(tú)</small> }
-                  </span>
-                </div>
-              </td>
-              <td class="texto-suave correo" [title]="u.correo">{{ u.correo }}</td>
-              <td>
-                <div class="roles">
-                  @for (r of u.roles; track r) {
-                    <span class="chip" [class.docente]="r === 'DOCENTE'" [class.admin]="r === 'ADMIN'">{{ nombreRol[r] }}</span>
-                  }
-                </div>
-              </td>
-              <td class="estado-cuenta">
-                <span class="punto-estado" [class.activo]="u.activo" [class.inactivo]="!u.activo">
-                  {{ u.activo ? 'Activa' : 'Inactiva' }}
-                </span>
-                @if (u.bloqueadoHasta) {
-                  <span class="chip chip-bloqueada" [title]="'Bloqueada hasta las ' + (u.bloqueadoHasta | date: 'HH:mm')">
-                    <lucide-icon name="lock" [size]="12" aria-hidden="true" /> Bloqueada
-                  </span>
-                }
-              </td>
-              <td class="texto-suave num">{{ u.creadoEn | date: 'd MMM y' }}</td>
-              <td>
-                <div class="acciones">
-                  @if (u.bloqueadoHasta) {
-                    <button type="button" class="btn btn-contorno btn-sm" [disabled]="ocupadoId() === u.id"
-                      (click)="desbloquear(u)" [attr.aria-label]="'Desbloquear la cuenta de ' + u.nombre">Desbloquear</button>
-                  }
-                  @if (!u.ultimoAcceso && u.activo) {
-                    <button type="button" class="btn btn-contorno btn-sm" [disabled]="ocupadoId() === u.id"
-                      (click)="reenviarInvitacion(u)" [attr.aria-label]="'Reenviar la invitación a ' + u.nombre">Reenviar invitación</button>
-                  }
-                  <button type="button" class="btn btn-suave btn-sm" [disabled]="ocupadoId() === u.id"
-                    (click)="abrirRoles(u)" [attr.aria-label]="'Editar roles de ' + u.nombre">Editar roles</button>
-                  <button type="button" class="btn btn-sm" [class.btn-contorno]="!u.activo" [class.btn-texto-peligro]="u.activo"
-                    [disabled]="ocupadoId() === u.id || esYo(u)" (click)="pedirCambioEstado(u)"
-                    [title]="esYo(u) ? 'No puedes desactivar tu propia cuenta' : ''"
-                    [attr.aria-label]="(u.activo ? 'Desactivar la cuenta de ' : 'Activar la cuenta de ') + u.nombre">
-                    {{ u.activo ? 'Desactivar' : 'Activar' }}
-                  </button>
-                  <button type="button" class="btn btn-sm btn-icono-peligro" [disabled]="ocupadoId() === u.id || esYo(u)"
-                    (click)="eliminar(u)" [attr.aria-label]="'Eliminar la cuenta de ' + u.nombre" title="Eliminar cuenta">
-                    <lucide-icon name="trash-2" [size]="16" aria-hidden="true" />
-                  </button>
-                </div>
-              </td>
-            </tr>
+@if (!d.items.length) {
+<app-estado-vista estado="vacio" titulo="Ninguna cuenta coincide"
+  mensaje="Prueba con otro nombre, otro rol o todos los estados." />
+} @else {
+<!-- Se desplaza en horizontal en pantallas estrechas: con tabindex se recorre también con el teclado. -->
+<div class="tabla-contenedor" [attr.aria-busy]="cargando()" tabindex="0" role="region" aria-label="Cuentas de Learnity">
+  <table class="tabla">
+    <caption class="visualmente-oculto">Cuentas de Learnity</caption>
+    <thead>
+      <tr>
+        <th scope="col">Foto</th>
+        <th scope="col">Nombre</th>
+        <th scope="col">Correo</th>
+        <th scope="col">Roles</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Registro</th>
+        <th scope="col"><span class="visualmente-oculto">Acciones</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (u of d.items; track u.id) {
+      <tr [class.inactiva]="!u.activo">
+        <td class="celda-foto">
+          <app-avatar [texto]="iniciales(u)" [imagen]="u.fotoUrl" [tamano]="36" />
+        </td>
+        <td class="celda-nombre">
+          <span class="persona-texto">
+            <button type="button" class="enlace-nombre" (click)="abrirFicha(u)" [title]="u.nombre"
+              [attr.aria-label]="'Ver la ficha de ' + u.nombre">{{ u.nombre }}</button>
+            @if (esYo(u)) { <small class="texto-suave">(tú)</small> }
+          </span>
+        </td>
+        <td class="texto-suave correo" [title]="u.correo">{{ u.correo }}</td>
+        <td class="celda-roles">
+          <div class="roles">
+            @for (r of u.roles; track r) {
+            <span class="chip" [class.docente]="r === 'DOCENTE'" [class.admin]="r === 'ADMIN'">{{ nombreRol[r] }}</span>
+            }
+          </div>
+        </td>
+        <td class="estado-cuenta">
+          <span class="punto-estado" [class.activo]="u.activo" [class.inactivo]="!u.activo">
+            {{ u.activo ? 'Activa' : 'Inactiva' }}
+          </span>
+          @if (u.bloqueadoHasta) {
+          <span class="chip chip-bloqueada" [title]="'Bloqueada hasta las ' + (u.bloqueadoHasta | date: 'HH:mm')">
+            <lucide-icon name="lock" [size]="12" aria-hidden="true" /> Bloqueada
+          </span>
           }
-        </tbody>
-      </table>
-    </div>
+          @if (!u.ultimoAcceso && u.activo) {
+          <span class="chip chip-pendiente">Invitación pendiente</span>
+          }
+        </td>
+        <td class="texto-suave num celda-registro" data-etiqueta="Registro">{{ u.creadoEn | date: 'd MMM y' }}</td>
+        <td class="celda-acciones">
+          <button
+            type="button"
+            class="btn-acciones-movil"
+            [disabled]="ocupadoId() === u.id"
+            (click)="abrirMenuMovil(u)"
+            [attr.aria-label]="'Acciones para ' + u.nombre"
+          >
+            <lucide-icon name="ellipsis-vertical" [size]="20" aria-hidden="true" />
+          </button>
+          <div class="acciones">
+            @if (u.bloqueadoHasta) {
+            <button type="button" class="btn btn-contorno btn-sm" [disabled]="ocupadoId() === u.id"
+              (click)="desbloquear(u)" [attr.aria-label]="'Desbloquear la cuenta de ' + u.nombre">Desbloquear</button>
+            }
+            @if (!u.ultimoAcceso && u.activo) {
+            <button type="button" class="btn btn-contorno btn-sm" [disabled]="ocupadoId() === u.id"
+              (click)="reenviarInvitacion(u)" [attr.aria-label]="'Reenviar la invitación a ' + u.nombre">Reenviar
+              invitación</button>
+            }
+            <button type="button" class="btn btn-suave btn-sm" [disabled]="ocupadoId() === u.id" (click)="abrirRoles(u)"
+              [attr.aria-label]="'Editar roles de ' + u.nombre">Editar roles</button>
+            <button type="button" class="btn btn-sm" [class.btn-contorno]="!u.activo"
+              [class.btn-texto-peligro]="u.activo" [disabled]="ocupadoId() === u.id || esYo(u)"
+              (click)="pedirCambioEstado(u)" [title]="esYo(u) ? 'No puedes desactivar tu propia cuenta' : ''"
+              [attr.aria-label]="(u.activo ? 'Desactivar la cuenta de ' : 'Activar la cuenta de ') + u.nombre">
+              {{ u.activo ? 'Desactivar' : 'Activar' }}
+            </button>
+            <button type="button" class="btn btn-sm btn-icono-peligro" [disabled]="ocupadoId() === u.id || esYo(u)"
+              (click)="eliminar(u)" [attr.aria-label]="'Eliminar la cuenta de ' + u.nombre" title="Eliminar cuenta">
+              <lucide-icon name="trash-2" [size]="16" aria-hidden="true" />
+            </button>
+          </div>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>
 
-    <nav class="paginacion" aria-label="Páginas de usuarios">
-      <span class="texto-suave num" aria-live="polite">
-        Página {{ d.paginacion.pagina }} de {{ d.paginacion.totalPaginas || 1 }} · {{ d.paginacion.total }} cuentas
-      </span>
-      <div class="botones">
-        <button type="button" class="btn btn-contorno btn-sm" [disabled]="d.paginacion.pagina <= 1 || cargando()"
-          (click)="irA(d.paginacion.pagina - 1)"><lucide-icon name="arrow-left" [size]="16" aria-hidden="true" /> Anterior</button>
-        <button type="button" class="btn btn-contorno btn-sm"
-          [disabled]="d.paginacion.pagina >= d.paginacion.totalPaginas || cargando()"
-          (click)="irA(d.paginacion.pagina + 1)">Siguiente <lucide-icon name="arrow-right" [size]="16" aria-hidden="true" /></button>
-      </div>
-    </nav>
-  }
+<nav class="paginacion" aria-label="Páginas de usuarios">
+  <span class="texto-suave num" aria-live="polite">
+    Página {{ d.paginacion.pagina }} de {{ d.paginacion.totalPaginas || 1 }} · {{ d.paginacion.total }} cuentas
+  </span>
+  <div class="botones">
+    <button type="button" class="btn btn-contorno btn-sm" [disabled]="d.paginacion.pagina <= 1 || cargando()"
+      (click)="irA(d.paginacion.pagina - 1)"><lucide-icon name="arrow-left" [size]="16" aria-hidden="true" />
+      Anterior</button>
+    <button type="button" class="btn btn-contorno btn-sm"
+      [disabled]="d.paginacion.pagina >= d.paginacion.totalPaginas || cargando()"
+      (click)="irA(d.paginacion.pagina + 1)">Siguiente <lucide-icon name="arrow-right" [size]="16"
+        aria-hidden="true" /></button>
+  </div>
+</nav>
+}
 }
 
 @if (editando(); as u) {
-  <app-modal [titulo]="'Roles de ' + u.nombre" icono="users" [ancho]="460" (cerrar)="editando.set(null)">
-    <form class="form-roles" (submit)="$event.preventDefault(); guardarRoles()">
-      <fieldset>
-        <legend class="texto-suave">Toda cuenta es Estudiante. Docente permite crear cursos; Administrador da acceso a este panel.</legend>
-        @for (r of rolesDisponibles; track r) {
-          <label class="casilla">
-            <input type="checkbox" [checked]="rolesElegidos().includes(r)"
-              [disabled]="r === 'ESTUDIANTE' || (r === 'ADMIN' && esYo(u))"
-              (change)="alternarRol(r, $any($event.target).checked)" />
-            <span>
-              <strong>{{ nombreRol[r] }}</strong>
-              @if (r === 'ADMIN' && esYo(u)) { <small class="texto-suave">No puedes quitarte este rol.</small> }
-            </span>
-          </label>
-        }
-      </fieldset>
-      @if (errorRoles()) { <p class="error" role="alert">{{ errorRoles() }}</p> }
-      <div class="pie">
-        <button type="button" class="btn btn-contorno" (click)="editando.set(null)">Cancelar</button>
-        <button type="submit" class="btn btn-primario" [disabled]="ocupadoId() === u.id">
-          {{ ocupadoId() === u.id ? 'Guardando…' : 'Guardar roles' }}
-        </button>
-      </div>
-    </form>
-  </app-modal>
+<app-modal [titulo]="'Roles de ' + u.nombre" icono="users" [ancho]="460" (cerrar)="editando.set(null)">
+  <form class="form-roles" (submit)="$event.preventDefault(); guardarRoles()">
+    <fieldset>
+      <legend class="texto-suave">Toda cuenta es Estudiante. Docente permite crear cursos; Administrador da acceso a
+        este panel.</legend>
+      @for (r of rolesDisponibles; track r) {
+      <label class="casilla">
+        <input type="checkbox" [checked]="rolesElegidos().includes(r)"
+          [disabled]="r === 'ESTUDIANTE' || (r === 'ADMIN' && esYo(u))"
+          (change)="alternarRol(r, $any($event.target).checked)" />
+        <span>
+          <strong>{{ nombreRol[r] }}</strong>
+          @if (r === 'ADMIN' && esYo(u)) { <small class="texto-suave">No puedes quitarte este rol.</small> }
+        </span>
+      </label>
+      }
+    </fieldset>
+    @if (errorRoles()) { <p class="error" role="alert">{{ errorRoles() }}</p> }
+    <div class="pie">
+      <button type="button" class="btn btn-contorno" (click)="editando.set(null)">Cancelar</button>
+      <button type="submit" class="btn btn-primario" [disabled]="ocupadoId() === u.id">
+        {{ ocupadoId() === u.id ? 'Guardando…' : 'Guardar roles' }}
+      </button>
+    </div>
+  </form>
+</app-modal>
 }
 
 @if (desactivando(); as u) {
-  <app-modal [titulo]="'¿Desactivar la cuenta de ' + u.nombre + '?'" icono="lock" [ancho]="460" (cerrar)="desactivando.set(null)">
-    <p class="texto-modal">No podrá iniciar sesión y se cerrarán sus sesiones abiertas. Sus cursos e inscripciones se conservan
-      y puedes reactivarla cuando quieras.</p>
-    <div class="pie">
-      <button type="button" class="btn btn-contorno" (click)="desactivando.set(null)">Cancelar</button>
-      <button type="button" class="btn btn-peligro" (click)="cambiarEstado(u, false)">Desactivar cuenta</button>
-    </div>
-  </app-modal>
+<app-modal [titulo]="'¿Desactivar la cuenta de ' + u.nombre + '?'" icono="lock" [ancho]="460"
+  (cerrar)="desactivando.set(null)">
+  <p class="texto-modal">No podrá iniciar sesión y se cerrarán sus sesiones abiertas. Sus cursos e inscripciones se
+    conservan
+    y puedes reactivarla cuando quieras.</p>
+  <div class="pie">
+    <button type="button" class="btn btn-contorno" (click)="desactivando.set(null)">Cancelar</button>
+    <button type="button" class="btn btn-peligro" (click)="cambiarEstado(u, false)">Desactivar cuenta</button>
+  </div>
+</app-modal>
 }
 
 @if (creando()) {
-  <app-alta-usuario [enviando]="enviandoAlta()" [errores]="erroresAlta()" [error]="errorAlta()"
-    (guardar)="crear($event)" (cerrar)="creando.set(false)" />
+<app-alta-usuario [enviando]="enviandoAlta()" [errores]="erroresAlta()" [error]="errorAlta()" (guardar)="crear($event)"
+  (cerrar)="creando.set(false)" />
 }
 
 @if (fichaDe(); as u) {
-  <app-ficha-usuario [titulo]="'Ficha de ' + u.nombre" [detalle]="ficha()" [error]="errorFicha()" [esYo]="esYo(u)"
-    [ocupado]="accionFicha()" (desbloquear)="desbloquear(u)" (cerrarSesiones)="cerrarSesiones(u)"
-    (reenviarInvitacion)="reenviarInvitacion(u)" (eliminar)="eliminar(u)"
-    (reintentar)="cargarFicha()" (cerrar)="cerrarFicha()" />
+<app-ficha-usuario [titulo]="'Ficha de ' + u.nombre" [detalle]="ficha()" [error]="errorFicha()" [esYo]="esYo(u)"
+  [ocupado]="accionFicha()" (desbloquear)="desbloquear(u)" (cerrarSesiones)="cerrarSesiones(u)"
+  (reenviarInvitacion)="reenviarInvitacion(u)" (eliminar)="eliminar(u)" (reintentar)="cargarFicha()"
+  (cerrar)="cerrarFicha()" />
+}
+
+@if (menuMovilDe(); as u) {
+<app-modal [titulo]="u.nombre" icono="user" [ancho]="440" (cerrar)="cerrarMenuMovil()">
+  <div class="hoja-acciones-movil">
+    <div class="resumen-cuenta-movil">
+      <app-avatar [texto]="iniciales(u)" [imagen]="u.fotoUrl" [tamano]="44" />
+      <div class="datos-cuenta-movil">
+        <span class="correo-movil">{{ u.correo }}</span>
+        <div class="roles">
+          @for (r of u.roles; track r) {
+          <span class="chip" [class.docente]="r === 'DOCENTE'" [class.admin]="r === 'ADMIN'">{{ nombreRol[r] }}</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="lista-acciones-movil" role="group" [attr.aria-label]="'Acciones para ' + u.nombre">
+      <button type="button" class="opcion-accion-movil" (click)="cerrarMenuMovil(); abrirFicha(u)">
+        <lucide-icon name="eye" [size]="18" aria-hidden="true" />
+        <span>Ver ficha completa</span>
+      </button>
+
+      <button type="button" class="opcion-accion-movil" [disabled]="ocupadoId() === u.id"
+        (click)="cerrarMenuMovil(); abrirRoles(u)">
+        <lucide-icon name="shield-check" [size]="18" aria-hidden="true" />
+        <span>Editar roles</span>
+      </button>
+
+      @if (!u.ultimoAcceso && u.activo) {
+      <button type="button" class="opcion-accion-movil" [disabled]="ocupadoId() === u.id"
+        (click)="cerrarMenuMovil(); reenviarInvitacion(u)">
+        <lucide-icon name="mail" [size]="18" aria-hidden="true" />
+        <span>Reenviar invitación</span>
+      </button>
+      }
+
+      @if (u.bloqueadoHasta) {
+      <button type="button" class="opcion-accion-movil" [disabled]="ocupadoId() === u.id"
+        (click)="cerrarMenuMovil(); desbloquear(u)">
+        <lucide-icon name="lock-open" [size]="18" aria-hidden="true" />
+        <span>Desbloquear cuenta</span>
+      </button>
+      }
+
+      <button type="button" class="opcion-accion-movil" [class.peligro]="u.activo"
+        [disabled]="ocupadoId() === u.id || esYo(u)" (click)="cerrarMenuMovil(); pedirCambioEstado(u)">
+        <lucide-icon [name]="u.activo ? 'user-x' : 'user-check'" [size]="18" aria-hidden="true" />
+        <span>{{ u.activo ? 'Desactivar cuenta' : 'Activar cuenta' }}</span>
+      </button>
+
+      <button type="button" class="opcion-accion-movil peligro" [disabled]="ocupadoId() === u.id || esYo(u)"
+        (click)="cerrarMenuMovil(); eliminar(u)">
+        <lucide-icon name="trash-2" [size]="18" aria-hidden="true" />
+        <span>Eliminar cuenta</span>
+      </button>
+    </div>
+  </div>
+</app-modal>
 }

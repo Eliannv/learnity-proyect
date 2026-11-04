@@ -140,4 +140,65 @@ tr.propia td {
   .buscador {
     flex-basis: 100%;
   }
+  .tabla-contenedor {
+    border: 0;
+    background: transparent;
+    overflow-x: visible;
+  }
+  .tabla,
+  .tabla tbody {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+  .tabla thead {
+    display: none;
+  }
+  .tabla tbody tr {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-md);
+    background: var(--superficie);
+    &.propia {
+      border-color: var(--acento-pista);
+      background: var(--acento-suave);
+    }
+  }
+  .tabla tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+    &::before {
+      content: attr(data-etiqueta);
+      color: var(--tinta-2);
+      font-weight: 500;
+      font-size: 13px;
+    }
+  }
+  .tabla tbody td.celda-usuario {
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--borde);
+    &::before {
+      display: none;
+    }
+  }
+  .tabla tbody td.celda-acciones {
+    padding-top: 8px;
+    border-top: 1px solid var(--borde);
+    &::before {
+      display: none;
+    }
+    .btn {
+      width: 100%;
+      justify-content: center;
+      min-height: 44px;
+    }
+  }
 }

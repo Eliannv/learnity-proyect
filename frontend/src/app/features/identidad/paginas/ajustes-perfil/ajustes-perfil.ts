@@ -1,5 +1,6 @@
 import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { Router } from '@angular/router';
 import type { CalificacionCurso } from '../../../../core/api/contrato';
 import { DocenteResenasApi } from '../../../docente/resenas/resenas.api';
 import { Estrellas } from '../../../../shared/ui/datos/estrellas';
@@ -37,7 +38,9 @@ function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
 })
 export class AjustesPerfil {
   protected readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly solicitudes = inject(SolicitudesDocenteService);
+  protected readonly cerrandoSesion = signal(false);
 
   /** `data.marco` de la ruta: «pagina» en /perfil (sitio público, con contenedor); «panel» dentro del panel. */
   readonly marco = input<'pagina' | 'panel'>('panel');
@@ -209,5 +212,16 @@ export class AjustesPerfil {
 
   protected invalido(control: AbstractControl): boolean {
     return control.invalid && control.touched;
+  }
+
+  protected async cerrarSesion(): Promise<void> {
+    if (this.cerrandoSesion()) return;
+    this.cerrandoSesion.set(true);
+    try {
+      await this.auth.cerrarSesion();
+      await this.router.navigateByUrl('/');
+    } finally {
+      this.cerrandoSesion.set(false);
+    }
   }
 }
