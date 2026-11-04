@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import { describe, expect, it, vi } from 'vitest';
+import { ICONOS } from '../../../../shared/ui/marca/iconos';
 import type { CuestionarioDocente, LeccionPrivada } from '../../../../core/cursos/gestion-cursos.model';
 import { EditorEvaluacion } from './editor-evaluacion';
 
@@ -12,6 +14,8 @@ describe('editor de evaluación del docente', () => {
   async function crear(preguntas: number, editable = true, cuestionario?: CuestionarioDocente) {
     const cargar = vi.fn().mockResolvedValue(cuestionario);
     const guardar = vi.fn().mockResolvedValue({ id: 1 });
+    // El ícono (i) de las reglas usa lucide.
+    TestBed.configureTestingModule({ providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider(ICONOS) }] });
     const f = TestBed.createComponent(EditorEvaluacion);
     f.componentRef.setInput('leccion', leccion(preguntas));
     f.componentRef.setInput('editable', editable);
@@ -68,7 +72,7 @@ describe('editor de evaluación del docente', () => {
     };
     const { f, cargar, el } = await crear(5, false, cuestionario);
     expect(el.querySelector('form')).toBeNull();
-    (el.querySelector('button') as HTMLButtonElement).click();
+    [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('Ver preguntas'))!.click();
     await f.whenStable();
     f.detectChanges();
     expect(cargar).toHaveBeenCalledWith(7);

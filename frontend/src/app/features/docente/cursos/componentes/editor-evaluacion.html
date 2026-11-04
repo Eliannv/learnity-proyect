@@ -1,13 +1,19 @@
 <div class="evaluacion">
   <div class="evaluacion-resumen">
-    <p>
-      @if (leccion().preguntas > 0) {
-        <strong>{{ leccion().preguntas }} preguntas</strong> · se aprueba con el 60 % de aciertos.
-        El estudiante puede repetirla las veces que quiera y nunca le bloquea el curso.
-      } @else {
-        Todavía no tiene preguntas. Añade entre {{ minimo }} y {{ maximo }} para que tus estudiantes puedan responderla.
-      }
-    </p>
+    <div class="resumen-texto">
+      <p>
+        @if (leccion().preguntas > 0) {
+          <strong>{{ leccion().preguntas }} preguntas</strong>
+        } @else {
+          Todavía no tiene preguntas.
+        }
+      </p>
+      <app-info-ayuda etiqueta="Ayuda: reglas de la evaluación" [tamano]="16">
+        <li>Lleva entre <strong>{{ minimo }} y {{ maximo }} preguntas</strong>, cada una con cuatro opciones y una sola correcta.</li>
+        <li>Se aprueba con el <strong>60 %</strong> de aciertos.</li>
+        <li>El estudiante puede repetirla las veces que quiera y nunca le bloquea el curso.</li>
+      </app-info-ayuda>
+    </div>
     @if (!abierto()) {
       <button type="button" class="btn btn-contorno btn-sm" [disabled]="bloqueado() || cargando()" (click)="abrir()">
         {{ editable() ? (leccion().preguntas > 0 ? 'Editar preguntas' : 'Añadir preguntas') : 'Ver preguntas' }}

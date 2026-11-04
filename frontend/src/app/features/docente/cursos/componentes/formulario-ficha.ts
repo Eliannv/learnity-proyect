@@ -3,6 +3,7 @@ import { Component, inject, input, output, signal } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import type { CategoriaPublica, CursoDetalle } from '../../../../core/api/contrato';
 import { mensajeDeError } from '../../../../core/http/error-api';
+import { InfoAyuda } from '../../../../shared/ui/retroalimentacion/info-ayuda';
 import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
 import { RecortadorFoto } from '../../../../shared/ui/recortador/recortador-foto';
 import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
@@ -13,7 +14,7 @@ const MAX_PORTADA_BYTES = 15 * 1024 * 1024;
 
 @Component({
   selector: 'app-formulario-ficha',
-  imports: [ReactiveFormsModule, LucideAngularModule, Modal, RecortadorFoto],
+  imports: [ReactiveFormsModule, LucideAngularModule, InfoAyuda, Modal, RecortadorFoto],
   templateUrl: './formulario-ficha.html',
   styleUrl: './formulario-ficha.scss',
 })

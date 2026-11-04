@@ -3,26 +3,18 @@
     <div class="cabecera-temario-fila">
       <div class="cabecera-temario-titulo">
         <h2>Módulos y contenido</h2>
-        <button
-          type="button"
-          class="btn-ayuda-temario"
-          [attr.aria-expanded]="ayudaVisible()"
-          (click)="ayudaVisible.set(!ayudaVisible())"
-        >
-          <lucide-icon name="info" [size]="15" aria-hidden="true" />
-          <span>¿Cómo organizar el contenido?</span>
-          <lucide-icon [name]="ayudaVisible() ? 'chevron-up' : 'chevron-down'" [size]="14" aria-hidden="true" />
-        </button>
+        <app-info-ayuda etiqueta="Ayuda: cómo organizar módulos y contenido">
+          <li>Organiza el curso en <strong>módulos</strong> (hasta 10) y, dentro de cada uno, hasta <strong>12 contenidos</strong> en el orden en que los verá el estudiante.</li>
+          <li>Cada contenido es un <strong>vídeo de YouTube</strong>, un <strong>documento PDF</strong> (hasta 10 MB) o una <strong>evaluación</strong> de opción múltiple.</li>
+          <li>Los vídeos admiten un PDF de apoyo y cualquier lección puede tener recursos descargables (ZIP, diapositivas o plantillas).</li>
+          <li>Cada evaluación lleva de <strong>5 a 10 preguntas</strong> con cuatro opciones y una correcta; se aprueba con el 60 % y el estudiante puede repetirla.</li>
+          <li>Para enviar a revisión, cada módulo necesita al menos un contenido, cada vídeo su enlace, cada documento su PDF y cada evaluación sus preguntas.</li>
+        </app-info-ayuda>
       </div>
       @if (editable()) {
         <button type="button" class="btn btn-acento" [disabled]="deshabilitado() || hayFormulario() || curso().modulos.length >= 10" (click)="abrirModulo()">+ Agregar módulo</button>
       }
     </div>
-    @if (ayudaVisible()) {
-      <p class="instruccion-temario">
-        Organiza el curso en módulos. Dentro de cada uno agrega hasta 12 contenidos (vídeos de YouTube, documentos PDF o evaluaciones de opción múltiple) en el orden en que los verá el estudiante.
-      </p>
-    }
   </div>
 
   @if (p.error()) {

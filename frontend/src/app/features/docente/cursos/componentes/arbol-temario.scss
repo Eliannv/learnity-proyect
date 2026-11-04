@@ -25,8 +25,7 @@
   .cabecera-temario-titulo {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 14px;
+    gap: 4px;
     min-width: 0;
   }
 
@@ -38,39 +37,6 @@
   .btn {
     flex: 0 0 auto;
   }
-}
-
-.btn-ayuda-temario {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border: 1px solid var(--borde);
-  border-radius: 999px;
-  background: var(--suelo);
-  color: var(--tinta-2);
-  font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color var(--t-micro) var(--curva-salida), color var(--t-micro) var(--curva-salida);
-
-  &:hover {
-    background: var(--acento-suave);
-    color: var(--acento-tinta);
-    border-color: var(--acento-pista);
-  }
-}
-
-.instruccion-temario {
-  max-width: 72ch;
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--radio-sm);
-  background: var(--suelo);
-  color: var(--tinta-2);
-  font-size: 0.9rem;
-  line-height: 1.5;
 }
 
 .modulo {
