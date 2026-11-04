@@ -2,6 +2,7 @@ import { Component, ElementRef, OnDestroy, inject, signal } from '@angular/core'
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
+import { SolicitudesDocenteService } from '../../core/solicitudes/solicitudes-docente.service';
 import { Avatar } from '../../shared/ui/marca/avatar';
 
 /**
@@ -59,9 +60,9 @@ import { Avatar } from '../../shared/ui/marca/avatar';
               </a>
             }
             @if (!auth.esDocente() && !auth.esAdmin()) {
-              <a routerLink="/perfil" [queryParams]="{ solicitud: 1 }" (click)="cerrar()" role="menuitem">
+              <button type="button" (click)="cerrar(); solicitudes.abrirModal()" role="menuitem">
                 <lucide-icon name="presentation" [size]="18" /> Enseña en Learnity
-              </a>
+              </button>
             }
           </div>
         }
@@ -188,6 +189,7 @@ import { Avatar } from '../../shared/ui/marca/avatar';
 })
 export class MenuCuenta implements OnDestroy {
   protected readonly auth = inject(AuthService);
+  protected readonly solicitudes = inject(SolicitudesDocenteService);
   private readonly elemento = inject(ElementRef<HTMLElement>);
   private temporizador?: ReturnType<typeof setTimeout>;
   protected readonly abierto = signal(false);

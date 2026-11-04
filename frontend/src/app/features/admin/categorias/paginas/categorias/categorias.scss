@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  padding-top: 8px;
 }
 .cabecera {
   display: flex;
@@ -116,4 +117,59 @@ td { white-space: nowrap; }
 
 @media (max-width: 900px) {
   .cabecera { flex-direction: column; .btn { width: 100%; justify-content: center; } }
+}
+
+@media (max-width: 760px) {
+  .tabla-contenedor {
+    border: 0;
+    background: transparent;
+    overflow-x: visible;
+  }
+  .tabla,
+  .tabla tbody {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+  .tabla thead {
+    display: none;
+  }
+  .tabla tbody tr {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-md);
+    background: var(--superficie);
+  }
+  .tabla tbody td {
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+  .tabla tbody td.celda-dato,
+  .tabla tbody td.celda-estado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    &::before {
+      content: attr(data-etiqueta);
+      color: var(--tinta-2);
+      font-weight: 500;
+    }
+  }
+  .tabla tbody td.celda-acciones {
+    padding-top: 10px;
+    border-top: 1px solid var(--borde);
+    .acciones {
+      justify-content: stretch;
+      .btn {
+        flex: 1;
+        justify-content: center;
+        min-height: 44px;
+      }
+    }
+  }
 }

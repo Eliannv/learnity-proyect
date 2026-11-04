@@ -292,7 +292,18 @@ export const usuariosRepository = {
     const queryParams = [...params, limite, offset];
     const itemsResult = await consultar<FilaUsuarioAdmin>(
       `SELECT u.id_usuario AS id, p.id_persona, p.nombres, p.apellidos, u.correo, p.ciudad, p.foto_url,
-              u.estado, p.creado_en, u.ultimo_acceso,
+              u.estado, p.creado_en,
+              CASE
+                WHEN u.ultimo_acceso IS NOT NULL THEN u.ultimo_acceso
+                WHEN EXISTS (
+                  SELECT 1 FROM token_recuperacion tr
+                   WHERE tr.id_usuario = u.id_usuario AND tr.proposito = 'INVITACION'
+                ) THEN NULL
+                ELSE COALESCE(
+                  (SELECT max(s.iniciada_en) FROM sesion s WHERE s.id_usuario = u.id_usuario),
+                  p.creado_en
+                )
+              END AS ultimo_acceso,
               CASE WHEN u.bloqueado_hasta > now() THEN u.bloqueado_hasta END AS bloqueado_hasta,
               COALESCE(array_agg(r.nombre ORDER BY r.id_rol) FILTER (WHERE r.nombre IS NOT NULL), '{}') AS roles
          FROM usuario u
@@ -323,7 +334,18 @@ export const usuariosRepository = {
   async buscarUsuarioAdmin(idUsuario: number, cliente?: PoolClient): Promise<UsuarioAdmin | null> {
     const sql = `
       SELECT u.id_usuario AS id, p.id_persona, p.nombres, p.apellidos, u.correo, p.ciudad, p.foto_url,
-             u.estado, p.creado_en, u.ultimo_acceso,
+             u.estado, p.creado_en,
+             CASE
+               WHEN u.ultimo_acceso IS NOT NULL THEN u.ultimo_acceso
+               WHEN EXISTS (
+                 SELECT 1 FROM token_recuperacion tr
+                  WHERE tr.id_usuario = u.id_usuario AND tr.proposito = 'INVITACION'
+               ) THEN NULL
+               ELSE COALESCE(
+                 (SELECT max(s.iniciada_en) FROM sesion s WHERE s.id_usuario = u.id_usuario),
+                 p.creado_en
+               )
+             END AS ultimo_acceso,
               CASE WHEN u.bloqueado_hasta > now() THEN u.bloqueado_hasta END AS bloqueado_hasta,
              COALESCE(array_agg(r.nombre ORDER BY r.id_rol) FILTER (WHERE r.nombre IS NOT NULL), '{}') AS roles
         FROM usuario u

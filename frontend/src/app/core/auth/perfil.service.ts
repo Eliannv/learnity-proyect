@@ -46,6 +46,12 @@ export class PerfilService {
     return perfil;
   }
 
+  async guardarFotoUrl(fotoUrl: string): Promise<Perfil> {
+    const perfil = await firstValueFrom(this.http.put<Perfil>(`${this.api}/foto`, { fotoUrl }));
+    this.auth.actualizarFoto(perfil.fotoUrl);
+    return perfil;
+  }
+
   async quitarFoto(): Promise<Perfil> {
     const perfil = await firstValueFrom(this.http.delete<Perfil>(`${this.api}/foto`));
     this.auth.actualizarFoto(null);

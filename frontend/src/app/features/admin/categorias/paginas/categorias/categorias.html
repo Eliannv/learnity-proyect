@@ -34,7 +34,7 @@
         <tbody>
           @for (c of lista; track c.id) {
             <tr [class.inactiva]="!c.activa">
-              <td>
+              <td class="celda-nombre">
                 <div class="nombre">
                   <span class="icono" aria-hidden="true"><lucide-icon [name]="c.icono" [size]="20" /></span>
                   <span>
@@ -43,12 +43,12 @@
                   </span>
                 </div>
               </td>
-              <td>{{ c.cursos }}</td>
-              <td>{{ c.cursosPublicados }}</td>
-              <td>
+              <td class="celda-dato num" data-etiqueta="Cursos">{{ c.cursos }}</td>
+              <td class="celda-dato num" data-etiqueta="Publicados">{{ c.cursosPublicados }}</td>
+              <td class="celda-estado" data-etiqueta="Estado">
                 <span class="punto-estado" [class.activo]="c.activa" [class.inactivo]="!c.activa">{{ c.activa ? 'Activa' : 'Inactiva' }}</span>
               </td>
-              <td>
+              <td class="celda-acciones">
                 <div class="acciones">
                   <button type="button" class="btn btn-suave btn-sm" (click)="editar(c)"
                     [attr.aria-label]="'Editar ' + c.nombre">Editar</button>

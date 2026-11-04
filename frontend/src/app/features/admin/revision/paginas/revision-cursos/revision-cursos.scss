@@ -1,5 +1,12 @@
 @use '../../../../../shared/estilos/cursos';
 
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 8px;
+}
+
 /* Pestañas por estado, como en Reseñas y Accesos; en pantallas estrechas se desplazan en horizontal. */
 .pestanas {
   display: flex;

@@ -120,4 +120,13 @@ describe('alertas de seguridad', () => {
     expect(fixture.nativeElement.querySelector('.pestanas').textContent.replace(/\s+/g, ' ')).toContain('Pendientes 1');
     expect(fixture.nativeElement.querySelector('app-modal')).toBeNull();
   });
+
+  it('traduce descripciones técnicas del sistema a un lenguaje claro y legible', async () => {
+    const { fixture } = montar();
+    await cargada(fixture);
+    const [, segunda] = fixture.nativeElement.querySelectorAll('article.alerta') as NodeListOf<HTMLElement>;
+    expect(segunda!.querySelector('.descripcion')?.textContent).toContain(
+      'Se detectaron 25 modificaciones seguidas en 1 curso publicado realizadas por Carla Docente.',
+    );
+  });
 });

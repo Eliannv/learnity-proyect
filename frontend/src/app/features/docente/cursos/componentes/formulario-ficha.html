@@ -98,30 +98,96 @@
       </label>
     </div>
 
-    <!-- Fila 3: el enlace arriba y, debajo, la vista previa de esa imagen -->
+    <!-- Fila 3: Portada del curso (Subir archivo con recorte 16:9 O pegar enlace URL) y vista previa 16:9 -->
     <div class="bloque-portada">
-      <label class="campo">
-        <span class="etiqueta-fila">
-          <span class="nombre-campo">URL de imagen de portada</span>
-          <span class="badge-etiqueta revision">Para revisión</span>
-          <span class="contador-campo">{{ longitud('portadaUrl') }}/255</span>
-        </span>
+      <div class="portada-controles">
+        <div class="portada-cabecera-modo">
+          <div class="etiqueta-fila">
+            <span class="nombre-campo">Imagen de portada</span>
+            <span class="badge-etiqueta revision">Para revisión</span>
+          </div>
+          @if (editable()) {
+            <div class="selector-modo-portada" role="group" aria-label="Método para definir la portada">
+              <button
+                type="button"
+                class="modo-portada-btn"
+                [class.activo]="modoPortada() === 'archivo'"
+                (click)="modoPortada.set('archivo')"
+              >
+                <lucide-icon name="upload" [size]="15" aria-hidden="true" />
+                Subir imagen
+              </button>
+              <button
+                type="button"
+                class="modo-portada-btn"
+                [class.activo]="modoPortada() === 'url'"
+                (click)="modoPortada.set('url')"
+              >
+                <lucide-icon name="globe" [size]="15" aria-hidden="true" />
+                Usar enlace (URL)
+              </button>
+            </div>
+          }
+        </div>
 
-        <input
-          class="control"
-          formControlName="portadaUrl"
-          maxlength="255"
-          placeholder="https://ejemplo.com/portada.jpg"
-          (input)="onUrlPortadaInput()"
-        />
+        @if (modoPortada() === 'archivo' && editable()) {
+          <div class="caja-subida-portada">
+            <label class="btn btn-contorno btn-subir-portada">
+              <lucide-icon name="upload" [size]="18" aria-hidden="true" />
+              {{ form().get('portadaUrl')?.value ? 'Cambiar imagen desde tu equipo' : 'Elegir imagen (JPG, PNG o WebP)' }}
+              <input
+                type="file"
+                class="visualmente-oculto"
+                accept="image/jpeg,image/png,image/webp"
+                (change)="elegirArchivoPortada($event)"
+              />
+            </label>
+            <small>Se abrirá el recortador panorámico 16:9 (960×540 px) antes de subirla.</small>
+            @if (errorSubidaPortada()) {
+              <small class="error-campo" role="alert">{{ errorSubidaPortada() }}</small>
+            }
+          </div>
+        }
 
-        <small>Usa una imagen horizontal en proporción 16:9 disponible públicamente.</small>
-        <small class="error-campo" role="alert">{{ errorCampo('portadaUrl') }}</small>
-      </label>
+        <label class="campo" [class.oculto-visual-portada]="modoPortada() === 'archivo' && editable()">
+          <span class="etiqueta-fila">
+            <span class="nombre-campo">URL de imagen de portada</span>
+            <span class="contador-campo">{{ longitud('portadaUrl') }}/255</span>
+          </span>
+
+          <div class="fila-input-portada">
+            <input
+              class="control"
+              formControlName="portadaUrl"
+              maxlength="255"
+              placeholder="https://ejemplo.com/portada.jpg o /img/portada.jpg"
+              (input)="onUrlPortadaInput()"
+            />
+            @if (editable()) {
+              <label class="btn btn-contorno btn-sm btn-atajo-subir" title="Subir y recortar imagen desde tu dispositivo">
+                <lucide-icon name="upload" [size]="16" aria-hidden="true" />
+                <span>Subir archivo</span>
+                <input
+                  type="file"
+                  class="visualmente-oculto"
+                  accept="image/jpeg,image/png,image/webp"
+                  (change)="elegirArchivoPortada($event)"
+                />
+              </label>
+            }
+          </div>
+
+          <small>Pega un enlace público (https://…) o sube una imagen horizontal en proporción 16:9.</small>
+          @if (errorSubidaPortada() && modoPortada() === 'url') {
+            <small class="error-campo" role="alert">{{ errorSubidaPortada() }}</small>
+          }
+          <small class="error-campo" role="alert">{{ errorCampo('portadaUrl') }}</small>
+        </label>
+      </div>
 
       <div class="campo campo-vista-previa">
         <span class="etiqueta-fila">
-          <span class="nombre-campo">Vista previa de la imagen</span>
+          <span class="nombre-campo">Vista previa de la imagen (16:9)</span>
           @if (portadaCargada()) {
             <span class="badge-preview-ok">Imagen cargada</span>
           }
@@ -151,7 +217,7 @@
         } @else {
           <div class="caja-portada-preview vacia">
             <lucide-icon class="icono-placeholder" name="image" [size]="28" aria-hidden="true" />
-            <small class="texto-placeholder">Escribe una URL para previsualizar aquí la portada (16:9)</small>
+            <small class="texto-placeholder">Sube una imagen o escribe una URL para previsualizar aquí la portada (16:9)</small>
           </div>
         }
       </div>
@@ -253,3 +319,25 @@
     </div>
   }
 </form>
+
+@if (archivoPortada(); as a) {
+  <app-modal titulo="Encuadrar portada del curso (16:9)" icono="image" [ancho]="480" (cerrar)="descartarRecortePortada()">
+    <app-recortador-foto #recortadorPortada [archivo]="a" proporcion="16:9" (listo)="recorteListo.set($event)" />
+    @if (errorSubidaPortada()) {
+      <p class="error-campo" role="alert">{{ errorSubidaPortada() }}</p>
+    }
+    <div class="acciones-modal-portada">
+      <button type="button" class="btn btn-suave" [disabled]="subiendoPortada()" (click)="descartarRecortePortada()">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="btn btn-primario"
+        [disabled]="!recorteListo() || subiendoPortada()"
+        (click)="guardarRecortePortada(recortadorPortada)"
+      >
+        {{ subiendoPortada() ? 'Subiendo…' : 'Usar como portada' }}
+      </button>
+    </div>
+  </app-modal>
+}

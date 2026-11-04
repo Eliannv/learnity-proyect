@@ -56,23 +56,23 @@
           <tbody>
             @for (s of d.items; track s.id) {
               <tr [class.propia]="s.actual">
-                <td>
+                <td class="celda-usuario">
                   <span class="quien">
                     <strong>{{ s.usuario.nombre }}</strong>
                     <span class="texto-suave">{{ s.usuario.correo }}</span>
                     @if (s.actual) { <span class="chip chip-propia">Tu sesión actual</span> }
                   </span>
                 </td>
-                <td>
+                <td data-etiqueta="Rol">
                   <span class="roles">
                     @for (r of s.usuario.roles; track r) { <span class="chip">{{ nombreRol[r] }}</span> }
                   </span>
                 </td>
-                <td [title]="s.agente ?? ''">{{ navegador(s.agente) }}</td>
-                <td><time [attr.datetime]="s.iniciadaEn">{{ s.iniciadaEn | date: 'd MMM y, HH:mm' }}</time></td>
-                <td><time [attr.datetime]="s.renovadaEn">{{ s.renovadaEn | date: 'd MMM y, HH:mm' }}</time></td>
-                <td><time [attr.datetime]="s.expiraEn">{{ s.expiraEn | date: 'd MMM y, HH:mm' }}</time></td>
-                <td>
+                <td data-etiqueta="Navegador" [title]="s.agente ?? ''">{{ navegador(s.agente) }}</td>
+                <td data-etiqueta="Inicio"><time [attr.datetime]="s.iniciadaEn">{{ s.iniciadaEn | date: 'd MMM y, HH:mm' }}</time></td>
+                <td data-etiqueta="Última actividad"><time [attr.datetime]="s.renovadaEn">{{ s.renovadaEn | date: 'd MMM y, HH:mm' }}</time></td>
+                <td data-etiqueta="Expira"><time [attr.datetime]="s.expiraEn">{{ s.expiraEn | date: 'd MMM y, HH:mm' }}</time></td>
+                <td class="celda-acciones">
                   <button type="button" class="btn btn-contorno btn-sm peligro" [disabled]="cerrando() === s.id" (click)="cerrar(s)"
                     [attr.aria-label]="(s.actual ? 'Cerrar tu sesión actual' : 'Cerrar la sesión de ' + s.usuario.nombre) + ' en ' + navegador(s.agente)">
                     <lucide-icon name="log-out" [size]="16" aria-hidden="true" />

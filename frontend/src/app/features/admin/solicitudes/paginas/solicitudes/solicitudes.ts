@@ -444,6 +444,10 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
         grid-template-columns: minmax(0, 1fr);
         min-height: 0;
       }
+      .lista {
+        overflow-y: visible;
+        overscroll-behavior: auto;
+      }
     }
     @media (max-width: 600px) {
       .datos {

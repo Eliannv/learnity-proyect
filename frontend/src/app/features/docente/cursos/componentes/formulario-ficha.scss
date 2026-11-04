@@ -105,12 +105,101 @@
   min-height: 120px;
 }
 
-// Portada: enlace a todo el ancho y, debajo, su vista previa 16:9 completa.
+// Portada: controles (subir archivo o enlace URL) arriba y vista previa 16:9 debajo.
 .bloque-portada {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: start;
+
+  .portada-controles {
+    display: grid;
+    gap: 10px;
+  }
+
+  .portada-cabecera-modo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .selector-modo-portada {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    background: var(--suelo);
+    gap: 4px;
+  }
+
+  .modo-portada-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 4px 12px;
+    border: 0;
+    border-radius: var(--radio-sm);
+    background: transparent;
+    color: var(--tinta-2);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background-color var(--t-micro) var(--curva-salida),
+      color var(--t-micro) var(--curva-salida);
+
+    &.activo {
+      background: var(--superficie);
+      color: var(--acento-tinta);
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+    }
+  }
+
+  .caja-subida-portada {
+    display: grid;
+    justify-items: start;
+    gap: 6px;
+    padding: 14px;
+    border: 1px dashed var(--borde-control);
+    border-radius: var(--radio);
+    background: var(--suelo);
+
+    .btn-subir-portada {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+  }
+
+  .fila-input-portada {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .control {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .btn-atajo-subir {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+  }
+
+  .oculto-visual-portada {
+    display: none;
+  }
 
   .campo-vista-previa {
     display: flex;
@@ -128,6 +217,13 @@
       border: 1px solid #bbf7d0;
     }
   }
+}
+
+.acciones-modal-portada {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .caja-portada-preview {
@@ -256,6 +352,21 @@
   .ficha-curso .campos > .rejilla,
   .ficha-curso .campos > .rejilla-mitades { grid-template-columns: minmax(0, 1fr); }
   .caja-portada-preview { max-width: none; }
+}
+
+@media (max-width: 760px) {
+  .ficha-curso.bloque {
+    padding: 14px 12px;
+  }
+
+  .bloque-portada .fila-input-portada {
+    flex-direction: column;
+    align-items: stretch;
+
+    .btn-atajo-subir {
+      justify-content: center;
+    }
+  }
 }
 
 .acciones-formulario {

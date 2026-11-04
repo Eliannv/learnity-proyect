@@ -1,9 +1,11 @@
-import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { Router } from '@angular/router';
 import type { CalificacionCurso } from '../../../../core/api/contrato';
 import { DocenteResenasApi } from '../../../docente/resenas/resenas.api';
 import { Estrellas } from '../../../../shared/ui/datos/estrellas';
 import { FotoPerfil } from '../../componentes/foto-perfil';
+import { ModalSolicitudDocente } from '../../componentes/modal-solicitud-docente';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
@@ -11,8 +13,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { PerfilService, fechaCorta } from '../../../../core/auth/perfil.service';
 import { erroresPorCampo, mensajeDeError } from '../../../../core/http/error-api';
 import { Avatar } from '../../../../shared/ui/marca/avatar';
-import { SolicitudesDocenteService, type SolicitudDocente } from '../../../../core/solicitudes/solicitudes-docente.service';
-import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
+import { SolicitudesDocenteService } from '../../../../core/solicitudes/solicitudes-docente.service';
 import { AYUDA_CONTRASENA, mensajeContrasena, politicaContrasena } from '../../../../shared/validadores/contrasena';
 
 const NOMBRES_ROL = { ESTUDIANTE: 'Estudiante', DOCENTE: 'Docente', ADMIN: 'Administrador' } as const;
@@ -31,28 +32,22 @@ function contrasenasIguales(grupo: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-ajustes-perfil',
-  imports: [ReactiveFormsModule, LucideAngularModule, Avatar, FotoPerfil, DecimalPipe, Estrellas, Modal],
+  imports: [ReactiveFormsModule, LucideAngularModule, Avatar, FotoPerfil, DecimalPipe, Estrellas, ModalSolicitudDocente],
   templateUrl: './ajustes-perfil.html',
   styleUrl: './ajustes-perfil.scss',
 })
 export class AjustesPerfil {
   protected readonly auth = inject(AuthService);
-  private readonly solicitudes = inject(SolicitudesDocenteService);
+  private readonly router = inject(Router);
+  protected readonly solicitudes = inject(SolicitudesDocenteService);
+  protected readonly cerrandoSesion = signal(false);
 
   /** `data.marco` de la ruta: «pagina» en /perfil (sitio público, con contenedor); «panel» dentro del panel. */
   readonly marco = input<'pagina' | 'panel'>('panel');
   /** `?solicitud=1` abre directamente el formulario para ser docente. */
   readonly solicitud = input<string>();
   protected readonly fechaCorta = fechaCorta;
-  protected readonly modalSolicitud = linkedSignal(() => !!this.solicitud());
-  protected readonly solicitudEnviada = signal(false);
-  protected readonly miSolicitud = signal<SolicitudDocente | null>(null);
-  protected readonly enviandoSolicitud = signal(false);
-  protected readonly errorSolicitud = signal<string | null>(null);
-  protected readonly formSolicitud = inject(FormBuilder).nonNullable.group({
-    especialidad: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
-    motivo: ['', [Validators.required, Validators.minLength(50), Validators.maxLength(2000)]],
-  });
+  protected readonly miSolicitud = this.solicitudes.solicitudActual;
   private readonly perfiles = inject(PerfilService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
@@ -80,43 +75,21 @@ export class AjustesPerfil {
     void this.cargar();
     if (this.auth.esDocente()) void this.cargarValoracion();
     else void this.cargarSolicitud();
+
+    effect(() => {
+      if (this.solicitud()) {
+        untracked(() => this.solicitudes.abrirModal());
+      }
+    });
   }
 
   private async cargarSolicitud() {
     try {
       const s = await this.solicitudes.miSolicitud();
-      this.miSolicitud.set(s);
       if (s?.estado === 'APROBADA' && !this.auth.esDocente()) await this.auth.renovar();
     } catch {
       // La tarjeta conserva el botón para solicitar; el envío mostrará el error si persiste.
     }
-  }
-
-  /** RF-05 · POST /api/solicitudes-docente. */
-  protected async enviarSolicitud() {
-    this.errorSolicitud.set(null);
-    if (this.formSolicitud.invalid) {
-      this.formSolicitud.markAllAsTouched();
-      return;
-    }
-    const { especialidad, motivo } = this.formSolicitud.getRawValue();
-    this.enviandoSolicitud.set(true);
-    try {
-      this.miSolicitud.set(await this.solicitudes.enviar(especialidad, motivo));
-      this.solicitudEnviada.set(true);
-      this.formSolicitud.reset();
-    } catch (error) {
-      this.errorSolicitud.set(mensajeDeError(error, 'El envío de la solicitud'));
-      void this.cargarSolicitud();
-    } finally {
-      this.enviandoSolicitud.set(false);
-    }
-  }
-
-  protected cerrarSolicitud() {
-    this.modalSolicitud.set(false);
-    this.solicitudEnviada.set(false);
-    this.errorSolicitud.set(null);
   }
 
   private async cargarValoracion(): Promise<void> {
@@ -209,5 +182,16 @@ export class AjustesPerfil {
 
   protected invalido(control: AbstractControl): boolean {
     return control.invalid && control.touched;
+  }
+
+  protected async cerrarSesion(): Promise<void> {
+    if (this.cerrandoSesion()) return;
+    this.cerrandoSesion.set(true);
+    try {
+      await this.auth.cerrarSesion();
+      await this.router.navigateByUrl('/');
+    } finally {
+      this.cerrandoSesion.set(false);
+    }
   }
 }

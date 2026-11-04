@@ -107,8 +107,10 @@ describe('Mi aprendizaje', () => {
     expect(el.querySelectorAll('article.curso').length).toBe(1);
     expect(el.textContent).toContain('Seguridad de datos');
 
-    // Al enfocar el buscador de cursos, las opciones del desplegable respetan el contexto activo.
+    // Al escribir en el buscador de cursos, las opciones del desplegable respetan el contexto activo.
     campoCurso.dispatchEvent(new Event('focus'));
+    campoCurso.value = 'seg';
+    campoCurso.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     const opcionesCurso = el.querySelectorAll('#buscar-mis-cursos-lista li[role="option"]');
     expect(opcionesCurso.length).toBe(1);
@@ -121,8 +123,10 @@ describe('Mi aprendizaje', () => {
     expect(el.querySelectorAll('article.curso').length).toBe(2);
     expect(campoCat.value).toBe('');
 
-    // Selección por combobox en Docente.
+    // Selección por combobox en Docente tras escribir.
     campoDoc.dispatchEvent(new Event('focus'));
+    campoDoc.value = 'luis';
+    campoDoc.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     const opcionLuis = Array.from(el.querySelectorAll<HTMLElement>('#docente-aprendizaje-lista li[role="option"]'))
       .find((li) => li.textContent?.includes('Luis Gómez'))!;

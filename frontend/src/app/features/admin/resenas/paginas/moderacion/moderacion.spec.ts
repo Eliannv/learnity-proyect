@@ -227,4 +227,27 @@ describe('reseñas del administrador', () => {
     fixture.detectChanges();
     expect(boton(fixture.nativeElement, 'Reportes pendientes').getAttribute('aria-selected')).toBe('true');
   });
+
+  it('nunca muestra «Sin autor registrado» en el historial si falta actor en un registro antiguo', async () => {
+    const sinActor: ResenaAdmin = {
+      ...resena,
+      historial: [
+        {
+          accion: 'CREADA',
+          fecha: '2026-10-01T10:00:00.000Z',
+          actor: null,
+          estrellasAnterior: null,
+          estrellasNueva: 5,
+          comentarioAnterior: null,
+          comentarioNuevo: 'Excelente curso',
+          motivo: null,
+        },
+      ],
+    };
+    const { fixture } = montar(true, [sinActor]);
+    await esperarTodas(fixture);
+    const historial = fixture.nativeElement.querySelector('.historial')?.textContent?.replace(/\s+/g, ' ');
+    expect(historial).toContain('Publicó la reseña · Beto Ruiz · 5 estrellas');
+    expect(historial).not.toContain('Sin autor registrado');
+  });
 });

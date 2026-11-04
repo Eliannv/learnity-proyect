@@ -4,7 +4,9 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth/auth.service';
+import { SolicitudesDocenteService } from '../../core/solicitudes/solicitudes-docente.service';
 import { CatalogoApi } from '../../features/catalogo/catalogo.api';
+import { ModalSolicitudDocente } from '../../features/identidad/componentes/modal-solicitud-docente';
 import { Logo } from '../../shared/ui/marca/logo';
 import { MenuCuenta } from '../comun/menu-cuenta';
 import { VistaPreviaAprendizaje } from './vista-previa-aprendizaje';
@@ -18,7 +20,7 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
  */
 @Component({
   selector: 'app-header-sitio',
-  imports: [RouterLink, LucideAngularModule, Logo, MenuCuenta, VistaPreviaAprendizaje, BuscadorCurso],
+  imports: [RouterLink, LucideAngularModule, Logo, MenuCuenta, VistaPreviaAprendizaje, BuscadorCurso, ModalSolicitudDocente],
   host: { '(document:keydown.escape)': 'cerrarMenus()', '(window:scroll)': 'alDesplazar()' },
   template: `
     <header [class.desplazado]="desplazado()">
@@ -65,7 +67,7 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
 
           @if (auth.autenticado()) {
             @if (!auth.esDocente() && !auth.esAdmin()) {
-              <a class="enlace-marca oculto-movil" routerLink="/perfil" [queryParams]="{ solicitud: 1 }">Enseña en Learnity</a>
+              <button type="button" class="enlace-marca oculto-movil" (click)="solicitudes.abrirModal()">Enseña en Learnity</button>
             }
             @if (auth.roles().includes('ESTUDIANTE')) {
               <app-vista-previa-aprendizaje class="oculto-movil" />
@@ -137,11 +139,14 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
         }
       </nav>
     }
+
+    <app-modal-solicitud-docente />
   `,
   styleUrl: './header-sitio.scss',
 })
 export class HeaderSitio {
   protected readonly auth = inject(AuthService);
+  protected readonly solicitudes = inject(SolicitudesDocenteService);
   private readonly router = inject(Router);
   private readonly catalogoApi = inject(CatalogoApi);
   protected readonly categorias = signal<string[]>([]);

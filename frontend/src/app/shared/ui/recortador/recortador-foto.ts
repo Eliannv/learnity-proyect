@@ -1,14 +1,19 @@
 import { Component, DestroyRef, ElementRef, afterNextRender, computed, inject, input, output, signal, viewChild } from '@angular/core';
 
-/** Lado visible del área de recorte (px CSS) y lado de la imagen que se genera. */
-const LADO = 280;
-const SALIDA = 512;
+/** Dimensiones visibles del área de recorte (px CSS) y dimensiones de la imagen JPEG generada. */
+const LADO_1_1 = 280;
+const SALIDA_1_1 = 512;
+const ANCHO_16_9 = 384;
+const ALTO_16_9 = 216;
+const SALIDA_16_9_ANCHO = 960;
+const SALIDA_16_9_ALTO = 540;
 const ZOOM_MAX = 4;
 
 /**
- * Recortador circular sobre un `<canvas>` nativo: arrastrar (puntero o flechas) para encuadrar,
- * deslizador o rueda para acercar. Emite un archivo JPEG cuadrado 1:1 listo para subir.
- * La imagen siempre cubre el círculo: no se puede dejar un borde vacío.
+ * Recortador sobre un `<canvas>` nativo: arrastrar (puntero o flechas) para encuadrar,
+ * deslizador o rueda para acercar. Soporta proporción `'1:1'` (circular 512×512 px para foto de perfil)
+ * y `'16:9'` (rectangular horizontal 960×540 px para portada de curso).
+ * La imagen siempre cubre el encuadre completo sin dejar bordes vacíos.
  */
 @Component({
   selector: 'app-recortador-foto',
@@ -18,11 +23,12 @@ const ZOOM_MAX = 4;
         #lienzo
         class="lienzo"
         [class.arrastrando]="arrastrando()"
+        [class.rectangular]="esPanoramico()"
         tabindex="0"
         role="img"
         aria-label="Área de recorte. Arrastra o usa las flechas para encuadrar; + y − para acercar o alejar."
-        [style.width.px]="lado"
-        [style.height.px]="lado"
+        [style.width.px]="anchoCss()"
+        [style.height.px]="altoCss()"
         (pointerdown)="empezar($event)"
         (pointermove)="mover($event)"
         (pointerup)="terminar($event)"
@@ -47,28 +53,36 @@ const ZOOM_MAX = 4;
     </div>
   `,
   styles: `
-    .recortador { display: grid; justify-items: center; gap: 16px; }
+    .recortador { display: grid; justify-items: center; gap: 16px; width: 100%; }
     .lienzo {
       max-width: 100%;
+      height: auto !important;
       aspect-ratio: 1;
       border-radius: var(--radio-md, 12px);
       background: var(--tinta-900, #111);
       cursor: grab;
       touch-action: none;
     }
+    .lienzo.rectangular {
+      aspect-ratio: 16 / 9;
+    }
     .lienzo.arrastrando { cursor: grabbing; }
     .lienzo:focus-visible { outline: 3px solid var(--azul-600); outline-offset: 3px; }
-    .zoom { display: flex; align-items: center; gap: 12px; width: min(280px, 100%); }
+    .zoom { display: flex; align-items: center; gap: 12px; width: min(320px, 100%); }
     .zoom input { flex: 1; accent-color: var(--azul-600); min-height: 44px; }
     .signo { font-size: 18px; font-weight: 600; color: var(--tinta-700); width: 1ch; text-align: center; }
   `,
 })
 export class RecortadorFoto {
   readonly archivo = input.required<File>();
+  /** Proporción del recorte: `'1:1'` circular (512×512) o `'16:9'` horizontal (960×540). */
+  readonly proporcion = input<'1:1' | '16:9'>('1:1');
   /** Se emite cada vez que cambia el encuadre (para habilitar «Guardar foto»). */
   readonly listo = output<boolean>();
 
-  protected readonly lado = LADO;
+  protected readonly esPanoramico = computed(() => this.proporcion() === '16:9');
+  protected readonly anchoCss = computed(() => (this.esPanoramico() ? ANCHO_16_9 : LADO_1_1));
+  protected readonly altoCss = computed(() => (this.esPanoramico() ? ALTO_16_9 : LADO_1_1));
   protected readonly zoomMax = ZOOM_MAX;
   protected readonly zoom = signal(1);
   protected readonly arrastrando = signal(false);
@@ -87,10 +101,11 @@ export class RecortadorFoto {
     inject(DestroyRef).onDestroy(() => this.url && URL.revokeObjectURL(this.url));
   }
 
-  /** Escala que hace que el lado corto de la imagen cubra el área, por el zoom elegido. */
+  /** Escala que hace que la imagen cubra todo el área de recorte (1:1 o 16:9), por el zoom elegido. */
   private escala(zoom = this.zoom()): number {
     const img = this.imagen!;
-    return (LADO / Math.min(img.naturalWidth, img.naturalHeight)) * zoom;
+    const base = Math.max(this.anchoCss() / img.naturalWidth, this.altoCss() / img.naturalHeight);
+    return base * zoom;
   }
 
   private async cargar(): Promise<void> {
@@ -107,51 +122,59 @@ export class RecortadorFoto {
     this.imagen = img;
     const c = this.lienzo().nativeElement;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    c.width = LADO * dpr;
-    c.height = LADO * dpr;
+    c.width = this.anchoCss() * dpr;
+    c.height = this.altoCss() * dpr;
     this.dibujar();
     this.listo.emit(true);
   }
 
-  /** Mantiene la imagen cubriendo todo el cuadrado (y por tanto el círculo). */
+  /** Mantiene la imagen cubriendo todo el área de recorte. */
   private limitar(): void {
     const img = this.imagen!;
     const s = this.escala();
-    const mx = Math.max(0, (img.naturalWidth * s - LADO) / 2);
-    const my = Math.max(0, (img.naturalHeight * s - LADO) / 2);
+    const mx = Math.max(0, (img.naturalWidth * s - this.anchoCss()) / 2);
+    const my = Math.max(0, (img.naturalHeight * s - this.altoCss()) / 2);
     this.x = Math.min(mx, Math.max(-mx, this.x));
     this.y = Math.min(my, Math.max(-my, this.y));
   }
 
-  private pintar(ctx: CanvasRenderingContext2D, lado: number): void {
+  private pintar(ctx: CanvasRenderingContext2D, ancho: number, alto: number): void {
     const img = this.imagen!;
-    const factor = lado / LADO;
+    const factor = ancho / this.anchoCss();
     const s = this.escala() * factor;
     const w = img.naturalWidth * s;
     const h = img.naturalHeight * s;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, lado / 2 + this.x * factor - w / 2, lado / 2 + this.y * factor - h / 2, w, h);
+    ctx.drawImage(img, ancho / 2 + this.x * factor - w / 2, alto / 2 + this.y * factor - h / 2, w, h);
   }
 
   private dibujar(): void {
     if (!this.imagen) return;
     const c = this.lienzo().nativeElement;
     const ctx = c.getContext('2d')!;
-    const lado = c.width;
-    ctx.clearRect(0, 0, lado, lado);
-    this.pintar(ctx, lado);
-    // Velo fuera del círculo: lo que queda dentro es exactamente la foto que se verá.
+    const ancho = c.width;
+    const alto = c.height;
+    ctx.clearRect(0, 0, ancho, alto);
+    this.pintar(ctx, ancho, alto);
     ctx.save();
-    ctx.fillStyle = 'rgba(15, 18, 25, 0.62)';
-    ctx.beginPath();
-    ctx.rect(0, 0, lado, lado);
-    ctx.arc(lado / 2, lado / 2, lado / 2 - 2, 0, Math.PI * 2);
-    ctx.fill('evenodd');
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.lineWidth = Math.max(1, lado / LADO) * 1.5;
-    ctx.beginPath();
-    ctx.arc(lado / 2, lado / 2, lado / 2 - 2, 0, Math.PI * 2);
-    ctx.stroke();
+    if (this.esPanoramico()) {
+      const grosor = Math.max(1, ancho / this.anchoCss()) * 1.5;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = grosor;
+      ctx.strokeRect(grosor, grosor, ancho - grosor * 2, alto - grosor * 2);
+    } else {
+      // Velo fuera del círculo: lo que queda dentro es exactamente la foto que se verá.
+      ctx.fillStyle = 'rgba(15, 18, 25, 0.62)';
+      ctx.beginPath();
+      ctx.rect(0, 0, ancho, alto);
+      ctx.arc(ancho / 2, alto / 2, ancho / 2 - 2, 0, Math.PI * 2);
+      ctx.fill('evenodd');
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = Math.max(1, ancho / LADO_1_1) * 1.5;
+      ctx.beginPath();
+      ctx.arc(ancho / 2, alto / 2, ancho / 2 - 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -177,7 +200,7 @@ export class RecortadorFoto {
   protected mover(e: PointerEvent): void {
     if (!this.agarre || this.agarre.id !== e.pointerId) return;
     // 1:1 con el puntero, respetando dónde se agarró.
-    const escalaCss = LADO / (e.target as HTMLElement).getBoundingClientRect().width;
+    const escalaCss = this.anchoCss() / (e.target as HTMLElement).getBoundingClientRect().width;
     this.x = this.agarre.ox + (e.clientX - this.agarre.x) * escalaCss;
     this.y = this.agarre.oy + (e.clientY - this.agarre.y) * escalaCss;
     this.limitar();
@@ -216,17 +239,20 @@ export class RecortadorFoto {
     e.preventDefault();
   }
 
-  /** La foto encuadrada como JPEG cuadrado de 512 px (fondo blanco bajo las transparencias). */
+  /** La imagen encuadrada como JPEG (512×512 en 1:1 o 960×540 en 16:9, con fondo blanco bajo transparencias). */
   async recortar(): Promise<File | null> {
     if (!this.imagen) return null;
+    const anchoSalida = this.esPanoramico() ? SALIDA_16_9_ANCHO : SALIDA_1_1;
+    const altoSalida = this.esPanoramico() ? SALIDA_16_9_ALTO : SALIDA_1_1;
+    const nombreArchivo = this.esPanoramico() ? 'portada-curso.jpg' : 'foto-perfil.jpg';
     const c = document.createElement('canvas');
-    c.width = SALIDA;
-    c.height = SALIDA;
+    c.width = anchoSalida;
+    c.height = altoSalida;
     const ctx = c.getContext('2d')!;
     ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, SALIDA, SALIDA);
-    this.pintar(ctx, SALIDA);
+    ctx.fillRect(0, 0, anchoSalida, altoSalida);
+    this.pintar(ctx, anchoSalida, altoSalida);
     const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.9));
-    return blob ? new File([blob], 'foto-perfil.jpg', { type: 'image/jpeg' }) : null;
+    return blob ? new File([blob], nombreArchivo, { type: 'image/jpeg' }) : null;
   }
 }

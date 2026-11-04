@@ -207,10 +207,15 @@ header {
 }
 
 .enlace-marca {
+  border: 0;
+  padding: 0;
+  background: none;
+  font-family: inherit;
   color: var(--tinta);
   font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
+  cursor: pointer;
   transition: color var(--t-micro) var(--curva-salida);
   &:hover { color: var(--acento); }
 }

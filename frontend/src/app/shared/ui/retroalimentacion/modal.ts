@@ -122,7 +122,7 @@ const SALIDA_MS = 380;
         transform: scale(0.94);
       }
     }
-    @media (max-width: 600px) {
+    @media (max-width: 760px) {
       :host {
         align-items: end;
         padding: 0;

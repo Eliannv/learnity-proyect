@@ -25,10 +25,77 @@
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   background: var(--superficie);
-  > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; }
+  > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 12px;
+    font-size: 14px;
+  }
+  .chips-cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    min-width: 0;
+  }
   time { font-variant-numeric: tabular-nums; }
   /* Solo un reporte pendiente pide atención (borde izquierdo de 3px); el resto de reseñas y los resueltos quedan neutros. */
   &:has(.chip-motivo):not(:has(.resuelto)) { border-left: 3px solid var(--pill-aviso-tinta); }
+}
+
+.btn-acciones-movil {
+  display: none;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -6px -8px -6px 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  background: transparent;
+  color: var(--tinta-2);
+  cursor: pointer;
+  transition: background-color var(--t-micro) var(--curva-salida), transform var(--t-pulsar) var(--curva-salida);
+  &:hover:not(:disabled) {
+    background: var(--elevado);
+    color: var(--tinta);
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.94);
+  }
+}
+
+.lista-acciones-movil {
+  display: grid;
+  gap: 8px;
+}
+.opcion-accion-movil {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--tinta);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--t-micro) var(--curva-salida), transform var(--t-pulsar) var(--curva-salida);
+  lucide-icon { flex: none; color: var(--tinta-2); }
+  &:hover:not(:disabled) { background: var(--elevado); }
+  &:active:not(:disabled) { transform: scale(0.98); }
+  &.peligro {
+    color: var(--negativo);
+    border-color: var(--pill-neg-fondo);
+    lucide-icon { color: var(--negativo); }
+    &:hover:not(:disabled) { background: var(--pill-neg-fondo); }
+  }
 }
 .chip-motivo { background: var(--pill-neg-fondo); color: var(--pill-neg-tinta); font-size: 12px; }
 .detalle { margin: 0; font-style: italic; color: var(--tinta-2); overflow-wrap: anywhere; }
@@ -79,7 +146,25 @@
   .texto { grid-column: span 2; }
   .limpiar { justify-self: start; }
 }
-@media (max-width: 600px) { .filtros .texto { grid-column: auto; } }
+@media (max-width: 760px) {
+  .filtros .texto { grid-column: auto; }
+  .pestanas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    button { flex-shrink: 0; white-space: nowrap; }
+  }
+  .reporte {
+    padding: 16px;
+    > footer.acciones {
+      display: none;
+    }
+  }
+  .btn-acciones-movil {
+    display: inline-grid;
+    place-items: center;
+  }
+}
 .total { margin: 0; font-size: 14px; }
 .chip-publicada { background: var(--pill-pos-fondo); color: var(--positivo); font-size: 12px; }
 .chip-borrada { background: var(--elevado); color: var(--tinta-2); font-size: 12px; }

@@ -75,6 +75,9 @@ export class AdminUsuarios {
   protected readonly errorFicha = signal('');
   protected readonly accionFicha = signal<AccionFicha>(null);
 
+  /** Hoja inferior de acciones rápidas en móvil («tres puntos»). */
+  protected readonly menuMovilDe = signal<UsuarioAdmin | null>(null);
+
   protected readonly filtrosRol = computed(() => {
     const c = this.datos()?.conteos;
     return [
@@ -218,6 +221,19 @@ export class AdminUsuarios {
   protected abrirFicha(u: UsuarioAdmin): void {
     this.fichaDe.set(u);
     void this.cargarFicha();
+  }
+
+  protected abrirMenuMovil(u: UsuarioAdmin): void {
+    this.menuMovilDe.set(u);
+  }
+
+  protected cerrarMenuMovil(): void {
+    this.menuMovilDe.set(null);
+  }
+
+  protected desdeMenuMovil(accion: () => void): void {
+    this.menuMovilDe.set(null);
+    accion();
   }
 
   protected cerrarFicha(): void {

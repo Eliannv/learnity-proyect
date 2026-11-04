@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { almacenFotos } from '../../shared/archivos/fotos.js';
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { datosValidados } from '../../shared/http/validar.js';
@@ -13,6 +14,15 @@ function usuario(req: Request): UsuarioSesion {
 }
 
 export const cursosController = {
+  async subirPortada(req: Request, res: Response) {
+    usuario(req);
+    const bytes = req.file?.buffer;
+    if (!bytes) {
+      throw AppError.solicitudInvalida('Selecciona una imagen de portada.', [{ campo: 'foto', mensaje: 'El campo foto es obligatorio.' }]);
+    }
+    const portadaUrl = await almacenFotos.guardar(bytes);
+    res.status(201).json({ portadaUrl });
+  },
   async crearCurso(req: Request, res: Response) {
     const curso = await cursosService.crearCurso(req.body as DatosCurso, usuario(req));
     res.status(201).json(curso);

@@ -56,13 +56,25 @@
     @for (a of d.items; track a.id) {
       <article class="alerta" [attr.data-severidad]="a.severidad" [attr.aria-label]="'Alerta ' + severidades[a.severidad] + ': ' + tipos[a.tipo]">
         <header>
-          <span class="severidad" [attr.data-severidad]="a.severidad">
-            <span class="visualmente-oculto">Severidad </span>{{ severidades[a.severidad] }}
-          </span>
-          <strong class="tipo">{{ tipos[a.tipo] }}</strong>
-          <time class="texto-suave" [attr.datetime]="a.detectadaEn">Detectada el {{ a.detectadaEn | date: 'd MMM y, HH:mm' }}</time>
+          <div class="meta-cabecera">
+            <span class="severidad" [attr.data-severidad]="a.severidad">
+              <span class="visualmente-oculto">Severidad </span>{{ severidades[a.severidad] }}
+            </span>
+            <strong class="tipo">{{ tipos[a.tipo] }}</strong>
+            <time class="texto-suave" [attr.datetime]="a.detectadaEn">Detectada el {{ a.detectadaEn | date: 'd MMM y, HH:mm' }}</time>
+          </div>
+          @if (!a.atencion) {
+            <button
+              type="button"
+              class="btn-acciones-movil"
+              (click)="alertaMenuMovil.set(a)"
+              [attr.aria-label]="'Acciones para la alerta ' + tipos[a.tipo]"
+            >
+              <lucide-icon name="ellipsis-vertical" [size]="20" aria-hidden="true" />
+            </button>
+          }
         </header>
-        <p class="descripcion">{{ a.descripcion }}</p>
+        <p class="descripcion">{{ descripcionLegible(a) }}</p>
         @if (a.usuario; as u) {
           <p class="usuario"><lucide-icon name="user" [size]="15" aria-hidden="true" /> <strong>{{ u.nombre }}</strong>
             <span class="texto-suave">{{ u.correo }}</span></p>
@@ -120,7 +132,7 @@
 @if (aAtender(); as a) {
   <app-modal titulo="Marcar alerta como atendida" icono="circle-check" [ancho]="520" (cerrar)="cerrarAtender()">
     <form class="form-atender" (submit)="$event.preventDefault(); atender()" novalidate>
-      <p><strong>{{ tipos[a.tipo] }}</strong> · {{ a.descripcion }}</p>
+      <p><strong>{{ tipos[a.tipo] }}</strong> · {{ descripcionLegible(a) }}</p>
       <label class="campo">
         <span>Nota (opcional): qué revisaste o qué decidiste</span>
         <textarea class="control" name="nota" rows="3" [maxlength]="maxNota" [(ngModel)]="nota" [disabled]="atencion.ocupada()"
@@ -135,5 +147,30 @@
         </button>
       </div>
     </form>
+  </app-modal>
+}
+
+@if (alertaMenuMovil(); as a) {
+  <app-modal [titulo]="tipos[a.tipo]" icono="shield-alert" [ancho]="440" (cerrar)="alertaMenuMovil.set(null)">
+    <div class="lista-acciones-movil" role="group" [attr.aria-label]="'Acciones para la alerta ' + tipos[a.tipo]">
+      <button type="button" class="opcion-accion-movil" (click)="alertaMenuMovil.set(null); abrirAtender(a)">
+        <lucide-icon name="check" [size]="18" aria-hidden="true" />
+        <span>Marcar como atendida</span>
+      </button>
+      @if (a.evidencia.auditoria.length) {
+        <a class="opcion-accion-movil" [routerLink]="['/admin/auditoria']" [queryParams]="{ ver: a.evidencia.auditoria[0] }"
+          (click)="alertaMenuMovil.set(null)">
+          <lucide-icon name="history" [size]="18" aria-hidden="true" />
+          <span>Inspeccionar evidencia en auditoría</span>
+        </a>
+      }
+      @if (a.evidencia.accesos.length) {
+        <a class="opcion-accion-movil" [routerLink]="['/admin/accesos']" [queryParams]="{ q: a.usuario?.correo ?? '' }"
+          (click)="alertaMenuMovil.set(null)">
+          <lucide-icon name="lock" [size]="18" aria-hidden="true" />
+          <span>Ver accesos fallidos en el registro</span>
+        </a>
+      }
+    </div>
   </app-modal>
 }

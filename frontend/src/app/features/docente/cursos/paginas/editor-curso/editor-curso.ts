@@ -8,7 +8,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import {
@@ -32,6 +32,23 @@ import { FormularioFicha } from '../../componentes/formulario-ficha';
 import { PanelPublicacion } from '../../componentes/panel-publicacion';
 import { DocenteCursosApi } from '../../cursos.api';
 import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
+
+function portadaUrlValida(control: AbstractControl): ValidationErrors | null {
+  const valor = typeof control.value === 'string' ? control.value.trim() : '';
+  if (!valor) return null;
+  if (valor.length > 255) return { maxlength: true };
+  if (valor.startsWith('/')) {
+    const ok = !valor.startsWith('//') && !valor.includes('\\') && !valor.includes('..') && !/[\s?#]/.test(valor);
+    return ok ? null : { portadaInvalida: true };
+  }
+  try {
+    const url = new URL(valor);
+    const ok = ['http:', 'https:'].includes(url.protocol) && !!url.hostname && !url.username && !url.password;
+    return ok ? null : { portadaInvalida: true };
+  } catch {
+    return { portadaInvalida: true };
+  }
+}
 
 @Component({
   selector: 'app-editor-curso',
@@ -133,7 +150,7 @@ export class EditorCurso {
     descripcion: ['', [Validators.maxLength(10_000)]],
     categoriaId: [0, [Validators.required, Validators.min(1)]],
     nivel: ['PRINCIPIANTE' as NivelCurso, [Validators.required]],
-    portadaUrl: ['', [Validators.maxLength(255)]],
+    portadaUrl: ['', [Validators.maxLength(255), portadaUrlValida]],
     objetivos: [''],
     requisitos: [''],
   });

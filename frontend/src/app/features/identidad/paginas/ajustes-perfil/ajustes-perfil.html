@@ -190,85 +190,30 @@
           } @else {
             <p>Solicita el rol de Docente para crear y publicar tus propios cursos. Conservarás tus cursos e inscripciones como estudiante.</p>
           }
-          <button type="button" class="btn btn-primario btn-bloque" (click)="modalSolicitud.set(true)">
+          <button type="button" class="btn btn-primario btn-bloque" (click)="solicitudes.abrirModal()">
             {{ miSolicitud() ? 'Enviar una nueva solicitud' : 'Solicitar ser docente' }} <lucide-icon name="arrow-right" [size]="18" />
           </button>
         }
       </section>
     }
+
+    <section class="tarjeta seccion-perfil sesion-salida" aria-labelledby="t-sesion">
+      <div class="bloque">
+        <h2 id="t-sesion">Sesión</h2>
+        <p class="texto-suave">Cierra tu sesión actual en este dispositivo de forma segura.</p>
+        <button
+          type="button"
+          class="btn btn-cerrar-sesion"
+          [disabled]="cerrandoSesion()"
+          (click)="cerrarSesion()"
+        >
+          <lucide-icon name="log-out" [size]="18" aria-hidden="true" />
+          {{ cerrandoSesion() ? 'Cerrando sesión…' : 'Cerrar sesión' }}
+        </button>
+      </div>
+    </section>
   </aside>
 </div>
 </div>
 
-@if (modalSolicitud()) {
-  <app-modal titulo="Solicitud para ser docente" icono="presentation" [ancho]="560" (cerrar)="cerrarSolicitud()">
-    @if (solicitudEnviada() || auth.esDocente() || miSolicitud()?.estado === 'PENDIENTE') {
-      <div class="aviso" [class.exito]="solicitudEnviada() || auth.esDocente()" role="status">
-        <lucide-icon [name]="solicitudEnviada() || auth.esDocente() ? 'circle-check' : 'clock'" [size]="18" />
-        <span>
-          @if (auth.esDocente()) {
-            Tu cuenta ya tiene el rol Docente.
-          } @else if (solicitudEnviada()) {
-            Solicitud enviada. Un administrador la revisará y verás el resultado en tu perfil.
-          } @else {
-            Ya tienes una solicitud en revisión. Verás el resultado en tu perfil.
-          }
-        </span>
-      </div>
-      <div class="acciones-modal">
-        <button type="button" class="btn btn-primario" (click)="cerrarSolicitud()">Entendido</button>
-      </div>
-    } @else {
-      <p class="texto-suave intro">
-        Cuéntanos qué te gustaría enseñar. Un administrador revisará tu solicitud y, si la aprueba, podrás crear cursos con esta misma cuenta.
-      </p>
-      <form class="form-solicitud" [formGroup]="formSolicitud" (ngSubmit)="enviarSolicitud()" novalidate>
-        <div class="campo">
-          <label class="etiqueta" for="especialidad">Especialidad o tema</label>
-          <div class="control-icono">
-            <lucide-icon name="briefcase" [size]="20" />
-            <input
-              id="especialidad"
-              class="control"
-              [class.invalido]="formSolicitud.controls.especialidad.invalid && formSolicitud.controls.especialidad.touched"
-              formControlName="especialidad"
-              maxlength="100"
-              placeholder="Ej.: Programación web, Diseño gráfico"
-            />
-          </div>
-          @if (formSolicitud.controls.especialidad.invalid && formSolicitud.controls.especialidad.touched) {
-            <span class="error-campo">Escribe la especialidad o el tema (entre 3 y 100 caracteres).</span>
-          }
-        </div>
-        <div class="campo">
-          <label class="etiqueta" for="motivo">¿Por qué quieres enseñar?</label>
-          <textarea
-            id="motivo"
-            class="control"
-            [class.invalido]="formSolicitud.controls.motivo.invalid && formSolicitud.controls.motivo.touched"
-            formControlName="motivo"
-            placeholder="Describe tu experiencia y el curso que te gustaría publicar…"
-          ></textarea>
-          <span class="ayuda">Mínimo 50 caracteres ({{ formSolicitud.controls.motivo.value.length }}/50).</span>
-        </div>
-        @if (errorSolicitud()) {
-          <div class="aviso error" role="alert">
-            <lucide-icon name="circle-alert" [size]="18" />
-            <span>{{ errorSolicitud() }}</span>
-          </div>
-        } @else {
-          <div class="aviso">
-            <lucide-icon name="info" [size]="18" />
-            <span>Conservarás tus cursos e inscripciones como estudiante.</span>
-          </div>
-        }
-        <div class="acciones-modal">
-          <button type="button" class="btn btn-suave" (click)="cerrarSolicitud()">Cancelar</button>
-          <button type="submit" class="btn btn-primario" [disabled]="enviandoSolicitud()">
-            {{ enviandoSolicitud() ? 'Enviando…' : 'Enviar solicitud' }} <lucide-icon name="arrow-right" [size]="18" />
-          </button>
-        </div>
-      </form>
-    }
-  </app-modal>
-}
+<app-modal-solicitud-docente />

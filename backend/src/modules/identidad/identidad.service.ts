@@ -30,7 +30,7 @@ import {
   identidadRepository as repo,
 } from './identidad.repository.js';
 import { exigirContrasenaSegura } from './politica-contrasena.js';
-import { almacenFotos } from '../../shared/archivos/fotos.js';
+import { almacenFotos, esUrlImagenValida } from '../../shared/archivos/fotos.js';
 import type { PoolClient } from 'pg';
 
 // Capa service: reglas del negocio del módulo Identidad (RF-01, RF-02, RF-04, RF-06).
@@ -178,6 +178,7 @@ export const identidadService = {
       throw error;
     }
     const cuenta = (await repo.buscarCuentaPorId(idUsuario))!;
+    await repo.registrarAccesoCorrecto(idUsuario);
     registrarEvento('registro', { idUsuario, ip: ctx.ip });
     return abrirSesion(cuenta, ctx);
   },
@@ -434,6 +435,25 @@ export const identidadService = {
       throw error;
     }
     await almacenFotos.eliminarPorUrl(anterior).catch(() => registrarEvento('foto_anterior_sin_borrar', {}, 'aviso'));
+    registrarEvento('foto_perfil_cambiada', { idUsuario: usuario.idUsuario });
+    return this.obtenerPerfil(usuario);
+  },
+
+  /** Foto de perfil mediante URL externa (`https://...`) o ruta pública válida (`/img/...`, `/api/fotos/...`). */
+  async cambiarFotoUrl(usuario: UsuarioSesion, cuerpo: unknown): Promise<Perfil> {
+    const objeto = typeof cuerpo === 'object' && cuerpo !== null ? (cuerpo as Record<string, unknown>) : {};
+    const crudo = typeof objeto['fotoUrl'] === 'string' ? objeto['fotoUrl'] : typeof objeto['url'] === 'string' ? objeto['url'] : '';
+    const urlLimpia = crudo.trim();
+    if (!esUrlImagenValida(urlLimpia)) {
+      const mensaje = 'Indica una URL de imagen válida (máx. 255 caracteres).';
+      throw AppError.solicitudInvalida(mensaje, [{ campo: 'fotoUrl', mensaje }]);
+    }
+    const anterior = await enTransaccion((cliente) => repo.cambiarFoto(usuario.idPersona, urlLimpia, cliente), {
+      actor: usuario.idPersona,
+    });
+    if (anterior && anterior !== urlLimpia) {
+      await almacenFotos.eliminarPorUrl(anterior).catch(() => registrarEvento('foto_anterior_sin_borrar', {}, 'aviso'));
+    }
     registrarEvento('foto_perfil_cambiada', { idUsuario: usuario.idUsuario });
     return this.obtenerPerfil(usuario);
   },

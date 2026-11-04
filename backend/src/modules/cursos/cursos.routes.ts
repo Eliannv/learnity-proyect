@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { recibirArchivoFoto } from '../../shared/archivos/fotos.js';
 import { autenticar, autorizar } from '../../shared/auth/middlewares.js';
+import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { validarCuerpo, validarParametros } from '../../shared/http/validar.js';
 import { cursosController } from './cursos.controller.js';
 import {
@@ -26,6 +28,15 @@ cursosRoutes.get(
   autorizar('DOCENTE'),
   validarParametros(idCursoRuta),
   cursosController.obtenerMiCurso,
+);
+
+cursosRoutes.post(
+  '/cursos/portada',
+  limitarPorIp('portada-curso', 20, 15),
+  autenticar,
+  autorizar('DOCENTE'),
+  recibirArchivoFoto,
+  cursosController.subirPortada,
 );
 
 cursosRoutes.post(

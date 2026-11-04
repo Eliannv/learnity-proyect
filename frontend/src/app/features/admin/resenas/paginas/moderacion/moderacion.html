@@ -13,14 +13,14 @@
 </div>
 
 <!-- Historial de una reseña: igual en las dos vistas. -->
-<ng-template #historial let-entradas>
+<ng-template #historial let-entradas let-autor="autor">
   <details class="historial">
     <summary><lucide-icon name="history" [size]="16" aria-hidden="true" /> Historial completo ({{ entradas.length }})</summary>
     <ol>
       @for (h of entradas; track $index) {
         <li>
           <time [attr.datetime]="h.fecha">{{ h.fecha | date: 'd MMM y, HH:mm' }}</time>
-          <span><strong>{{ textoAccion(h) }}</strong> · {{ h.actor?.nombre ?? 'Sin autor registrado' }}
+          <span><strong>{{ textoAccion(h) }}</strong> · {{ nombreActorHistorial(h, autor) }}
             @if (cambio(h)) { · {{ cambio(h) }} }</span>
           @if (h.motivo) { <span class="motivo-historial">Motivo: {{ h.motivo }}</span> }
           @if (h.accion === 'EDITADA' && h.comentarioAnterior !== h.comentarioNuevo) {
@@ -96,17 +96,30 @@
       @for (r of t.items; track r.id) {
         <article class="reporte" [attr.aria-label]="'Reseña de ' + r.estudiante">
           <header>
-            @if (r.ocultacion) {
-              <span class="chip chip-ocultada">Ocultada</span>
-            } @else if (r.eliminadaEn) {
-              <span class="chip chip-borrada">Borrada por el estudiante el {{ r.eliminadaEn | date: 'd MMM y' }}</span>
-            } @else {
-              <span class="chip chip-publicada">Publicada</span>
+            <div class="chips-cabecera">
+              @if (r.ocultacion) {
+                <span class="chip chip-ocultada">Ocultada</span>
+              } @else if (r.eliminadaEn) {
+                <span class="chip chip-borrada">Borrada por el estudiante el {{ r.eliminadaEn | date: 'd MMM y' }}</span>
+              } @else {
+                <span class="chip chip-publicada">Publicada</span>
+              }
+              @if (r.reportesPendientes) {
+                <span class="chip chip-motivo"><lucide-icon name="flag" [size]="13" aria-hidden="true" /> Reporte pendiente</span>
+              }
+              <span class="texto-suave">{{ r.creadoEn | date: 'd MMM y, HH:mm' }}</span>
+            </div>
+            @if (!r.propia) {
+              <button
+                type="button"
+                class="btn-acciones-movil"
+                [disabled]="actuando() === r.id"
+                (click)="resenaMenuMovil.set(r)"
+                [attr.aria-label]="'Acciones para la reseña de ' + r.estudiante"
+              >
+                <lucide-icon name="ellipsis-vertical" [size]="20" aria-hidden="true" />
+              </button>
             }
-            @if (r.reportesPendientes) {
-              <span class="chip chip-motivo"><lucide-icon name="flag" [size]="13" aria-hidden="true" /> Reporte pendiente</span>
-            }
-            <span class="texto-suave">{{ r.creadoEn | date: 'd MMM y, HH:mm' }}</span>
           </header>
           <div class="resena">
             <div class="quien">
@@ -122,7 +135,7 @@
           @if (r.ocultacion; as o) {
             <ng-container *ngTemplateOutlet="ocultada; context: { $implicit: o }" />
           }
-          <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial }" />
+          <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial, autor: r.estudiante }" />
           @if (r.propia) {
             <p class="nota-propia" role="note"><lucide-icon name="info" [size]="16" aria-hidden="true" /> Es de tu curso o la escribiste tú: debe moderarla otro administrador.</p>
           } @else {
@@ -170,8 +183,21 @@
     @for (r of reportes(); track r.id) {
       <article class="reporte" [attr.aria-label]="'Reporte sobre la reseña de ' + r.resena.estudiante">
         <header>
-          <span class="chip chip-motivo"><lucide-icon name="flag" [size]="13" aria-hidden="true" /> {{ motivo[r.motivo] }}</span>
-          <span class="texto-suave">Reportada por <strong>{{ r.reportadoPor }}</strong> el {{ r.creadoEn | date: 'd MMM y, HH:mm' }}</span>
+          <div class="chips-cabecera">
+            <span class="chip chip-motivo"><lucide-icon name="flag" [size]="13" aria-hidden="true" /> {{ motivo[r.motivo] }}</span>
+            <span class="texto-suave">Reportada por <strong>{{ r.reportadoPor }}</strong> el {{ r.creadoEn | date: 'd MMM y, HH:mm' }}</span>
+          </div>
+          @if (r.estado === 'PENDIENTE' && !r.propia) {
+            <button
+              type="button"
+              class="btn-acciones-movil"
+              [disabled]="resolviendo() === r.id"
+              (click)="reporteMenuMovil.set(r)"
+              [attr.aria-label]="'Acciones para el reporte sobre la reseña de ' + r.resena.estudiante"
+            >
+              <lucide-icon name="ellipsis-vertical" [size]="20" aria-hidden="true" />
+            </button>
+          }
         </header>
         @if (r.detalle) { <p class="detalle">«{{ r.detalle }}»</p> }
 
@@ -196,7 +222,7 @@
           <ng-container *ngTemplateOutlet="ocultada; context: { $implicit: o }" />
         }
 
-        <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial }" />
+        <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial, autor: r.resena.estudiante }" />
 
         @if (r.estado === 'PENDIENTE' && r.propia) {
           <p class="nota-propia" role="note"><lucide-icon name="info" [size]="16" aria-hidden="true" /> Es de tu curso o la escribiste tú: debe moderarla otro administrador.</p>
@@ -241,5 +267,49 @@
         </button>
       </div>
     </form>
+  </app-modal>
+}
+
+@if (resenaMenuMovil(); as r) {
+  <app-modal [titulo]="'Reseña de ' + r.estudiante" icono="message-square-text" [ancho]="440" (cerrar)="resenaMenuMovil.set(null)">
+    <div class="lista-acciones-movil" role="group" [attr.aria-label]="'Acciones para la reseña de ' + r.estudiante">
+      @if (r.respuesta) {
+        <button type="button" class="opcion-accion-movil peligro" [disabled]="actuando() === r.id"
+          (click)="resenaMenuMovil.set(null); retirarRespuesta(r)">
+          <lucide-icon name="message-square-x" [size]="18" aria-hidden="true" />
+          <span>Retirar respuesta del docente</span>
+        </button>
+      }
+      @if (r.ocultacion) {
+        <button type="button" class="opcion-accion-movil" [disabled]="actuando() === r.id"
+          (click)="resenaMenuMovil.set(null); restaurar(r)">
+          <lucide-icon name="eye" [size]="18" aria-hidden="true" />
+          <span>Restaurar reseña</span>
+        </button>
+      } @else {
+        <button type="button" class="opcion-accion-movil peligro" [disabled]="actuando() === r.id"
+          (click)="resenaMenuMovil.set(null); abrirOcultar(r)">
+          <lucide-icon name="eye-off" [size]="18" aria-hidden="true" />
+          <span>Ocultar reseña</span>
+        </button>
+      }
+    </div>
+  </app-modal>
+}
+
+@if (reporteMenuMovil(); as r) {
+  <app-modal [titulo]="'Reporte sobre ' + r.resena.estudiante" icono="flag" [ancho]="440" (cerrar)="reporteMenuMovil.set(null)">
+    <div class="lista-acciones-movil" role="group" [attr.aria-label]="'Acciones para el reporte de ' + r.resena.estudiante">
+      <button type="button" class="opcion-accion-movil" [disabled]="resolviendo() === r.id"
+        (click)="reporteMenuMovil.set(null); resolver(r, 'DESESTIMAR')">
+        <lucide-icon name="circle-check" [size]="18" aria-hidden="true" />
+        <span>Desestimar reporte</span>
+      </button>
+      <button type="button" class="opcion-accion-movil peligro" [disabled]="resolviendo() === r.id"
+        (click)="reporteMenuMovil.set(null); resolver(r, 'OCULTAR')">
+        <lucide-icon name="eye-off" [size]="18" aria-hidden="true" />
+        <span>Ocultar reseña</span>
+      </button>
+    </div>
   </app-modal>
 }
