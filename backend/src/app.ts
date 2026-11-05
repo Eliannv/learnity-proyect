@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { env } from './shared/config/env.js';
 import { registrarVerificadorSesion } from './shared/auth/middlewares.js';
+import { verificarOrigen } from './shared/http/cookies-sesion.js';
 import { correlacion, ENCABEZADO_ID_PETICION } from './shared/http/correlacion.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-errores.js';
 import { comprobarConexion } from './shared/database/salud.repository.js';
@@ -40,6 +41,8 @@ function registrarPuertos(): void {
   registrarLiberadorArchivos(liberadorArchivos);
 }
 
+const METODOS_ESCRITURA = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 export function crearApp() {
   const app = express();
 
@@ -48,7 +51,18 @@ export function crearApp() {
   app.disable('x-powered-by');
 
   app.use(correlacion);
-  app.use(helmet());
+  // La API solo responde JSON y archivos: su CSP no permite cargar nada ni incrustarla en marcos.
+  // Swagger (solo en desarrollo) necesita scripts y estilos, así que conserva la política por defecto de Helmet.
+  const helmetApi = helmet({
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] },
+    },
+    frameguard: { action: 'deny' },
+  });
+  const helmetDocs = helmet();
+  app.use((req, res, next) =>
+    env.NODE_ENV === 'development' && req.path.startsWith('/api/docs') ? helmetDocs(req, res, next) : helmetApi(req, res, next));
   app.use(cors({ origin: env.ORIGENES, credentials: true, exposedHeaders: [ENCABEZADO_ID_PETICION] }));
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
@@ -86,6 +100,9 @@ export function crearApp() {
   api.use(resenasRoutes);
   api.use(analiticasRoutes);
   api.use(supervisionRoutes);
+  // Defensa en profundidad: ninguna escritura se acepta desde otro sitio (Origin o Sec-Fetch-Site), aunque las rutas
+  // privadas usan Bearer en memoria (no cookies) y por eso no son vulnerables a CSRF por sí mismas.
+  app.use('/api', (req, res, next) => (METODOS_ESCRITURA.has(req.method) ? verificarOrigen(req, res, next) : next()));
   app.use('/api', api);
 
   app.use(rutaNoEncontrada);

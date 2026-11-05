@@ -18,6 +18,9 @@ const servidor = app.listen(
         ? { transporte: 'gmail', remitente: env.GMAIL_REMITENTE }
         : { transporte: 'buzon', carpeta: env.BUZON_DIR },
     );
+    if (env.DB_SSL && env.DB_SSL_SIN_VERIFICAR && !env.DB_SSL_CA) {
+      registrarEvento('postgresql_tls_sin_verificar', { ayuda: 'configura DB_SSL_CA con la CA de tu proveedor (Supabase: Database → SSL)' }, 'aviso');
+    }
     if (!env.COOKIE_SECURE) {
       registrarEvento('cookies_sin_secure', { motivo: 'solo para desarrollo local por HTTP' }, 'aviso');
     }

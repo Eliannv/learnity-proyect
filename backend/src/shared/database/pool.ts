@@ -2,6 +2,17 @@ import pg from 'pg';
 import { env } from '../config/env.js';
 import { registrarEvento } from '../log/registro.js';
 
+/**
+ * TLS hacia PostgreSQL. Por defecto se verifica el certificado: con la CA de DB_SSL_CA (Supabase la publica
+ * en su panel) o con las del sistema y NODE_EXTRA_CA_CERTS. DB_SSL_SIN_VERIFICAR=true cifra sin verificar
+ * (vulnerable a un intermediario) y se avisa al arrancar.
+ */
+function configuracionTls(): pg.PoolConfig['ssl'] {
+  if (!env.DB_SSL) return undefined;
+  if (env.DB_SSL_CA) return { ca: env.DB_SSL_CA, rejectUnauthorized: true };
+  return { rejectUnauthorized: !env.DB_SSL_SIN_VERIFICAR };
+}
+
 // Un solo pool de conexiones para toda la aplicación.
 // Se conecta con learnity_app: puede leer y modificar datos, pero no cambiar la estructura.
 export const pool = new pg.Pool({
@@ -10,7 +21,7 @@ export const pool = new pg.Pool({
   database: env.DB_NAME,
   user: env.DB_USER,
   password: env.DB_PASSWORD,
-  ssl: env.DB_SSL ? { rejectUnauthorized: false } : undefined,
+  ssl: configuracionTls(),
   max: 10,
 });
 

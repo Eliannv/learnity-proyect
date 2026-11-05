@@ -33,14 +33,15 @@ import { PanelPublicacion } from '../../componentes/panel-publicacion';
 import { DocenteCursosApi } from '../../cursos.api';
 import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
 
+const RUTA_IMG = /^\/img(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)+$/;
+const RUTA_FOTO_SUBIDA = /^\/api\/fotos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png|webp)$/;
+
 function portadaUrlValida(control: AbstractControl): ValidationErrors | null {
   const valor = typeof control.value === 'string' ? control.value.trim() : '';
   if (!valor) return null;
   if (valor.length > 255) return { maxlength: true };
-  if (valor.startsWith('/')) {
-    const ok = !valor.startsWith('//') && !valor.includes('\\') && !valor.includes('..') && !/[\s?#]/.test(valor);
-    return ok ? null : { portadaInvalida: true };
-  }
+  // Igual que el servidor: solo /img/… o portadas subidas /api/fotos/<uuid>.<ext>.
+  if (valor.startsWith('/')) return RUTA_IMG.test(valor) || RUTA_FOTO_SUBIDA.test(valor) ? null : { portadaInvalida: true };
   try {
     const url = new URL(valor);
     const ok = ['http:', 'https:'].includes(url.protocol) && !!url.hostname && !url.username && !url.password;

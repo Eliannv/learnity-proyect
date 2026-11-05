@@ -18,6 +18,10 @@ const listaTextos = z.array(
   z.string().trim().min(1).max(200),
 ).max(10).default([]);
 
+/** `/img/portada.jpg` o `/img/carpeta/portada.webp`: segmentos sin `..`, espacios, `?` ni `#`. */
+const RUTA_IMG = /^\/img(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)+$/;
+const RUTA_FOTO_SUBIDA = /^\/api\/fotos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png|webp)$/;
+
 /**
  * Regla única de portada (ADR-011, 11.8): la misma al guardar un curso y al comprobar
  * si está completo para enviarlo a revisión o aprobarlo.
@@ -25,12 +29,8 @@ const listaTextos = z.array(
 export function esPortadaValida(valor: string): boolean {
   if (!valor || valor.length > 255) return false;
 
-  if (valor.startsWith('/')) {
-    return !valor.startsWith('//')
-      && !valor.includes('\\')
-      && !valor.includes('..')
-      && !/[\s?#]/.test(valor);
-  }
+  // Rutas propias: solo imágenes estáticas del frontend (/img/…) o portadas subidas (/api/fotos/<uuid>.<ext>).
+  if (valor.startsWith('/')) return RUTA_IMG.test(valor) || RUTA_FOTO_SUBIDA.test(valor);
 
   try {
     const url = new URL(valor);

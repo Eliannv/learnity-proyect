@@ -9,6 +9,16 @@ dist/
 !.env.example
 !.env.test.example
 
+# Respaldos de base de datos y claves privadas (pg_dump, certificados, credenciales OAuth)
+*.dump
+*.backup
+*.sql.gz
+*.pem
+*.key
+*.p12
+*.pfx
+client_secret*.json
+
 # Archivos subidos por los docentes (videos, PDF, PowerPoint)
 backend/uploads/
 
@@ -32,3 +42,4 @@ test-results/
 !/README.md
 !/database/README.md
 !/e2e/README.md
+!/INFORME_AUDITORIA_SEGURIDAD.md
