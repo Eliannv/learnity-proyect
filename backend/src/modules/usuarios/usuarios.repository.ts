@@ -234,7 +234,8 @@ export const usuariosRepository = {
     const params: unknown[] = [];
 
     if (filtro.q) {
-      params.push(`%${filtro.q.toLowerCase()}%`);
+      // `%`, `_` y `\` se buscan como texto (la barra invertida es el escape por defecto de LIKE).
+      params.push(`%${filtro.q.toLowerCase().replace(/[\\%_]/g, '\\$&')}%`);
       condiciones.push(
         `(lower(concat_ws(' ', p.nombres, p.apellidos)) LIKE $${params.length} OR lower(u.correo) LIKE $${params.length})`,
       );

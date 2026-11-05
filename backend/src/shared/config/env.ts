@@ -12,6 +12,20 @@ const opcional = z
   .optional()
   .transform((v) => (v?.trim() ? v.trim() : undefined));
 
+/** Fragmentos de los JWT_SECRET de ejemplo y de pruebas: nunca deben llegar a producción. */
+const SECRETOS_DE_EJEMPLO = ['cambia', 'pruebas', 'ejemplo', 'secret', 'changeme'];
+
+/** Origen exacto `https://host[:puerto]`, sin comodines, rutas ni credenciales. */
+function esOrigenHttps(valor: string): boolean {
+  if (valor.includes('*')) return false;
+  try {
+    const url = new URL(valor);
+    return url.protocol === 'https:' && url.origin === valor && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 // Valida las variables de entorno al arrancar: si falta algo, el servidor no inicia y dice qué falta.
 const esquema = z
   .object({
@@ -29,6 +43,13 @@ const esquema = z
     DB_USER: z.string().min(1),
     DB_PASSWORD: z.string().min(1),
     DB_SSL: booleano('false'),
+    /**
+     * CA en PEM con la que se verifica el certificado de PostgreSQL (Supabase: «SSL certificate» del panel).
+     * Admite los saltos de línea escritos como \n para pegarla en una sola línea en Render.
+     */
+    DB_SSL_CA: opcional,
+    /** Solo como último recurso: TLS sin verificar el certificado (cifra, pero no protege de un intermediario). */
+    DB_SSL_SIN_VERIFICAR: booleano('false'),
     PDF_DIR: z.string().trim().min(1).default('uploads/pdf'),
 
     JWT_SECRET: z.string().min(32, 'JWT_SECRET debe tener al menos 32 caracteres aleatorios'),
@@ -71,6 +92,20 @@ const esquema = z
       if (e.COOKIE_SECURE === 'false') {
         ctx.addIssue({ code: 'custom', path: ['COOKIE_SECURE'], message: 'en producción las cookies exigen HTTPS (true)' });
       }
+      if (!e.DB_SSL) {
+        ctx.addIssue({ code: 'custom', path: ['DB_SSL'], message: 'en producción la conexión a PostgreSQL exige TLS (true)' });
+      }
+      for (const origen of e.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)) {
+        if (!esOrigenHttps(origen)) {
+          ctx.addIssue({ code: 'custom', path: ['CORS_ORIGIN'], message: `«${origen}» no es un origen https:// exacto (sin comodines ni rutas)` });
+        }
+      }
+      if (!e.FRONTEND_URL.startsWith('https://')) {
+        ctx.addIssue({ code: 'custom', path: ['FRONTEND_URL'], message: 'en producción debe ser https://' });
+      }
+      if (SECRETOS_DE_EJEMPLO.some((ejemplo) => e.JWT_SECRET.toLowerCase().includes(ejemplo)) || new Set(e.JWT_SECRET).size < 10) {
+        ctx.addIssue({ code: 'custom', path: ['JWT_SECRET'], message: 'usa un valor aleatorio propio (openssl rand -base64 48), no el de ejemplo' });
+      }
     }
   })
   .transform((e) => ({
@@ -78,6 +113,7 @@ const esquema = z
     COOKIE_SECURE: e.COOKIE_SECURE ? e.COOKIE_SECURE === 'true' : e.NODE_ENV === 'production',
     TRUST_PROXY: /^\d+$/.test(e.TRUST_PROXY) ? Number(e.TRUST_PROXY) : e.TRUST_PROXY === 'true',
     ORIGENES: e.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean),
+    DB_SSL_CA: e.DB_SSL_CA?.replace(/\\n/g, '\n'),
   }));
 
 const resultado = esquema.safeParse(process.env);

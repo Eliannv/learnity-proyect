@@ -96,6 +96,14 @@ describe('Sprint 4 · Gestión administrativa de usuarios (RF-21)', () => {
     assert.equal(res.json.items[0].id, estudiante.idUsuario);
   });
 
+  it('los comodines de LIKE en q se buscan como texto, no como patrón', async () => {
+    const buscar = (q: string) => srv.pedir(`/api/admin/usuarios?q=${encodeURIComponent(q)}`, { token: admin.token });
+    // Con comodines activos, «_» valdría por cualquier carácter y «%» por cualquier texto.
+    const conGuion = `_${estudiante.correo.slice(1)}`;
+    assert.equal((await buscar(conGuion)).json.items.length, 0);
+    assert.equal((await buscar(`${estudiante.correo.slice(0, 3)}%${estudiante.correo.slice(-6)}`)).json.items.length, 0);
+  });
+
   it('un administrador desactiva y reactiva una cuenta de usuario', async () => {
     // Desactivar estudiante
     const resDesactivar = await srv.pedir(`/api/admin/usuarios/${estudiante.idUsuario}/estado`, {

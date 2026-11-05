@@ -108,8 +108,12 @@ describe('transversales sobre POST /api/auth/login', () => {
     const r = await srv.pedir('/api/categorias');
     assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
     assert.equal(r.headers.get('x-powered-by'), null);
-    assert.match(r.headers.get('content-security-policy') ?? '', /^default-src 'self';/);
-    assert.match(r.headers.get('content-security-policy') ?? '', /script-src 'self'/);
+    // Auditoría de seguridad H-10: la API solo devuelve JSON y archivos, así que su CSP no permite cargar nada
+    // ni incrustarla en marcos (antes: la CSP genérica de Helmet con default-src 'self').
+    assert.match(r.headers.get('content-security-policy') ?? '', /^default-src 'none';/);
+    assert.match(r.headers.get('content-security-policy') ?? '', /frame-ancestors 'none'/);
+    assert.doesNotMatch(r.headers.get('content-security-policy') ?? '', /script-src/);
+    assert.equal(r.headers.get('x-frame-options'), 'DENY');
   });
 
   it('CAR-GEN-10: forma de todo error', async () => {
