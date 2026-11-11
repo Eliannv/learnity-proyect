@@ -1,8 +1,9 @@
-import { Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 /** Anillo de avance (por ejemplo, lecciones vistas de las totales). */
 @Component({
   selector: 'app-anillo-progreso',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <svg [attr.width]="tamano()" [attr.height]="tamano()" viewBox="0 0 100 100" role="img" [attr.aria-label]="etiqueta()">
       <circle class="fondo" cx="50" cy="50" r="42" />

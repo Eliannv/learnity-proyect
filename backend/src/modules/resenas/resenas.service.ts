@@ -4,11 +4,11 @@ import { enTransaccion } from '../../shared/database/pool.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { registrarEvento } from '../../shared/log/registro.js';
 import type {
-  DatosOcultacion, DatosReporte, DatosResena, DatosRespuesta, DecisionReporte, FiltrosBandeja, FiltrosReportes,
+  DatosOcultacion, DatosReporte, DatosResena, DatosRespuesta, DatosRespuestaHilo, DecisionReporte, FiltrosBandeja, FiltrosReportes,
   FiltrosResenasAdmin, PaginacionResenas,
 } from './resenas.esquemas.js';
 import type {
-  BandejaResenas, EntradaHistorial, MiResena, PaginaResenas, PaginaResenasAdmin, ReporteAdmin, Resena, ResenaAdmin,
+  BandejaResenas, EntradaHistorial, HiloRespuesta, MiResena, PaginaResenas, PaginaResenasAdmin, ReporteAdmin, Resena, ResenaAdmin,
   ResenaDocente, ValoracionDocente,
 } from './resenas.modelo.js';
 import { resenasRepository as repo } from './resenas.repository.js';
@@ -28,12 +28,17 @@ async function inscripcionObligatoria(idCurso: number, usuario: UsuarioSesion): 
 }
 
 export const resenasService = {
-  async listar(idCurso: number, { pagina, limite }: PaginacionResenas): Promise<PaginaResenas> {
+  async listar(idCurso: number, { pagina, limite }: PaginacionResenas, idPersonaActual: number | null = null): Promise<PaginaResenas> {
     if (!(await repo.cursoPublicado(idCurso))) throw AppError.noEncontrado('Curso no disponible.');
-    const resumen = await repo.resumen(idCurso);
+    const [resumen, baseItems] = await Promise.all([
+      repo.resumen(idCurso),
+      repo.pagina(idCurso, limite, (pagina - 1) * limite),
+    ]);
+    const hilos = await repo.respuestasDeResenas(baseItems.map((i) => i.id), idPersonaActual);
+    const items = baseItems.map((i) => ({ ...i, respuestas: hilos.get(i.id) ?? [] }));
     return {
       resumen,
-      items: await repo.pagina(idCurso, limite, (pagina - 1) * limite),
+      items,
       pagina, limite, total: resumen.total, totalPaginas: Math.ceil(resumen.total / limite),
     };
   },
@@ -73,11 +78,13 @@ export const resenasService = {
     if (filtros.curso !== undefined && !cursos.some((c) => c.id === filtros.curso)) {
       throw AppError.noEncontrado('Curso no disponible.');
     }
-    const [{ items, total }, resumen, evolucion] = await Promise.all([
+    const [{ items: baseItems, total }, resumen, evolucion] = await Promise.all([
       repo.bandeja(usuario.idPersona, filtros),
       repo.resumenDocente(usuario.idPersona, filtros.curso),
       repo.evolucion(usuario.idPersona, filtros.curso),
     ]);
+    const hilos = await repo.respuestasDeResenas(baseItems.map((i) => i.id), usuario.idPersona);
+    const items = baseItems.map((i) => ({ ...i, respuestas: hilos.get(i.id) ?? [] }));
     return {
       cursos, resumen, evolucion, items,
       pagina: filtros.pagina, limite: filtros.limite, total, totalPaginas: Math.ceil(total / filtros.limite),
@@ -97,7 +104,9 @@ export const resenasService = {
       await repo.responder(cliente, idResena, datos?.texto ?? null);
     }, { actor: usuario.idPersona });
     registrarEvento(datos ? 'resena_respondida' : 'resena_respuesta_retirada', { idResena });
-    return (await repo.resenaDocentePorId(usuario.idPersona, idResena))!;
+    const fila = (await repo.resenaDocentePorId(usuario.idPersona, idResena))!;
+    const hilos = await repo.respuestasDeResenas([idResena], usuario.idPersona);
+    return { ...fila, respuestas: hilos.get(idResena) ?? [] };
   },
 
   async reportar(idResena: number, datos: DatosReporte, usuario: UsuarioSesion): Promise<ResenaDocente> {
@@ -110,7 +119,42 @@ export const resenasService = {
       throw AppError.conflicto('Esta reseña ya tiene un reporte pendiente de revisión.', 'REPORTE_PENDIENTE');
     }
     registrarEvento('resena_reportada', { idResena, motivo: datos.motivo });
-    return (await repo.resenaDocentePorId(usuario.idPersona, idResena))!;
+    const fila = (await repo.resenaDocentePorId(usuario.idPersona, idResena))!;
+    const hilos = await repo.respuestasDeResenas([idResena], usuario.idPersona);
+    return { ...fila, respuestas: hilos.get(idResena) ?? [] };
+  },
+
+  // ---------------------------------------------------------------- hilos de conversación (estudiante + docente)
+
+  async crearRespuestaHilo(idResena: number, datos: DatosRespuestaHilo, usuario: UsuarioSesion): Promise<HiloRespuesta> {
+    const ctx = await repo.contextoHiloResena(idResena, usuario.idPersona);
+    if (!ctx || !ctx.visible) throw resenaNoDisponible();
+    if (!ctx.esDocente && !ctx.estaInscrito) {
+      throw AppError.sinPermiso(
+        'Solo el docente titular o los estudiantes inscritos en este curso pueden participar en el hilo de la reseña.',
+      );
+    }
+    const creada = await enTransaccion(
+      (cliente) => repo.crearRespuestaHilo(cliente, idResena, usuario.idPersona, datos.comentario, ctx.esDocente),
+      { actor: usuario.idPersona },
+    );
+    registrarEvento('resena_hilo_respondido', { idResena, idRespuesta: creada.id });
+    return creada;
+  },
+
+  async eliminarRespuestaHilo(idResena: number, idRespuesta: number, usuario: UsuarioSesion): Promise<void> {
+    await enTransaccion(
+      async (cliente) => {
+        const eliminada = await repo.eliminarRespuestaHilo(cliente, idResena, idRespuesta);
+        if (!eliminada) throw AppError.noEncontrado('La respuesta no existe.');
+        const esAutor = Number(eliminada.idPersonaAutor) === Number(usuario.idPersona);
+        if (!esAutor && !usuario.roles.includes('ADMIN')) {
+          throw AppError.sinPermiso('Solo puedes eliminar tus propias respuestas en el hilo.');
+        }
+      },
+      { actor: usuario.idPersona },
+    );
+    registrarEvento('resena_hilo_eliminado', { idResena, idRespuesta });
   },
 
   // ------------------------------------------------------------ administrador
@@ -119,12 +163,26 @@ export const resenasService = {
   async todas(filtros: FiltrosResenasAdmin, usuario: UsuarioSesion): Promise<PaginaResenasAdmin> {
     exigirAdmin(usuario);
     const [{ items, total }, cursos] = await Promise.all([repo.todas(filtros), repo.cursosConResenas()]);
-    const historial = await repo.historial(items.map((r) => r.id));
+    const ids = items.map((r) => r.id);
+    const [historial, hilos] = await Promise.all([
+      repo.historial(ids),
+      repo.respuestasDeResenas(ids, usuario.idPersona),
+    ]);
     return {
       cursos,
-      items: items.map(({ participantes, ...r }) => ({
-        ...r, propia: participantes.includes(usuario.idPersona), historial: historial.get(r.id) ?? [],
-      })),
+      items: items.map(({ participantes, ...r }) => {
+        const [docentePersona, autorPersona] = participantes;
+        const esDocenteCurso = Number(docentePersona) === Number(usuario.idPersona);
+        const esAutor = Number(autorPersona) === Number(usuario.idPersona);
+        return {
+          ...r,
+          propia: esDocenteCurso || esAutor,
+          esAutor,
+          esDocenteCurso,
+          respuestas: hilos.get(r.id) ?? [],
+          historial: historial.get(r.id) ?? [],
+        };
+      }),
       pagina: filtros.pagina, limite: filtros.limite, total, totalPaginas: Math.ceil(total / filtros.limite),
     };
   },
@@ -132,10 +190,27 @@ export const resenasService = {
   async reportes(filtros: FiltrosReportes, usuario: UsuarioSesion): Promise<ReporteAdmin[]> {
     exigirAdmin(usuario);
     const reportes = await repo.reportes(filtros);
-    const historial = await repo.historial([...new Set(reportes.map((r) => r.resena.id))]);
-    return reportes.map(({ participantes, ...r }) => ({
-      ...r, propia: participantes.includes(usuario.idPersona), historial: historial.get(r.resena.id) ?? [],
-    }));
+    const ids = [...new Set(reportes.map((r) => r.resena.id))];
+    const [historial, hilos] = await Promise.all([
+      repo.historial(ids),
+      repo.respuestasDeResenas(ids, usuario.idPersona),
+    ]);
+    return reportes.map(({ participantes, ...r }) => {
+      const [docentePersona, autorPersona] = participantes;
+      const esDocenteCurso = Number(docentePersona) === Number(usuario.idPersona);
+      const esAutor = Number(autorPersona) === Number(usuario.idPersona);
+      return {
+        ...r,
+        propia: esDocenteCurso || esAutor,
+        esAutor,
+        esDocenteCurso,
+        resena: {
+          ...r.resena,
+          respuestas: hilos.get(r.resena.id) ?? [],
+        },
+        historial: historial.get(r.resena.id) ?? [],
+      };
+    });
   },
 
   async resolverReporte(idReporte: number, { decision }: DecisionReporte, usuario: UsuarioSesion): Promise<void> {
@@ -200,15 +275,29 @@ async function moderar(
 
 /** Segregación de funciones: nadie modera reseñas de sus propios cursos ni las que escribió. */
 function exigirAjeno(partes: { idPersonaDocente: number; idPersonaAutor: number }, usuario: UsuarioSesion): void {
-  if (partes.idPersonaDocente === usuario.idPersona || partes.idPersonaAutor === usuario.idPersona) {
+  if (Number(partes.idPersonaDocente) === Number(usuario.idPersona) || Number(partes.idPersonaAutor) === Number(usuario.idPersona)) {
     throw AppError.sinPermiso('No puedes moderar reseñas de tus propios cursos ni tus propias reseñas. Otro administrador debe hacerlo.');
   }
 }
 
 async function resenaAdmin(idResena: number, usuario: UsuarioSesion): Promise<ResenaAdmin> {
-  const [fila, historial] = await Promise.all([repo.resenaAdminPorId(idResena), repo.historial([idResena])]);
+  const [fila, historial, hilos] = await Promise.all([
+    repo.resenaAdminPorId(idResena),
+    repo.historial([idResena]),
+    repo.respuestasDeResenas([idResena], usuario.idPersona),
+  ]);
   const { participantes, ...resena } = fila!;
-  return { ...resena, propia: participantes.includes(usuario.idPersona), historial: historial.get(idResena) ?? [] };
+  const [docentePersona, autorPersona] = participantes;
+  const esDocenteCurso = Number(docentePersona) === Number(usuario.idPersona);
+  const esAutor = Number(autorPersona) === Number(usuario.idPersona);
+  return {
+    ...resena,
+    propia: esDocenteCurso || esAutor,
+    esAutor,
+    esDocenteCurso,
+    respuestas: hilos.get(idResena) ?? [],
+    historial: historial.get(idResena) ?? [],
+  };
 }
 
 function exigirDocente(usuario: UsuarioSesion): void {

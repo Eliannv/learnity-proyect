@@ -129,7 +129,12 @@ export interface ResumenAdmin {
 
 // ------------------------------------------------------------------ alertas (038)
 
-export type TipoAlerta = 'INTENTOS_FALLIDOS' | 'CAMBIO_PRIVILEGIOS' | 'RAFAGA_RESENAS' | 'MODIFICACION_MASIVA';
+export type TipoAlerta =
+  | 'INTENTOS_FALLIDOS'
+  | 'CAMBIO_PRIVILEGIOS'
+  | 'RAFAGA_RESENAS'
+  | 'MODIFICACION_MASIVA'
+  | 'REPORTE_CURSO';
 export type SeveridadAlerta = 'ALTA' | 'MEDIA' | 'BAJA';
 
 export interface AlertaSeguridad {
@@ -140,8 +145,15 @@ export interface AlertaSeguridad {
   detectadaEn: string;
   /** Cuenta implicada (la atacada, la que recibió o perdió el rol, o la del actor); null si no hay o se borró. */
   usuario: { id: number; nombre: string; correo: string } | null;
-  /** Registros que la provocaron: ids del visor de auditoría y del registro de accesos. */
-  evidencia: { auditoria: number[]; accesos: number[] };
+  /** Registros que la provocaron: ids del visor de auditoría, del registro de accesos o curso reportado. */
+  evidencia: {
+    auditoria: number[];
+    accesos: number[];
+    curso?: number | null;
+    idCurso?: number | null;
+    cursoTitulo?: string | null;
+    motivo?: string | null;
+  };
   atencion: { fecha: string; por: { id: number; nombre: string } | null; nota: string | null } | null;
 }
 

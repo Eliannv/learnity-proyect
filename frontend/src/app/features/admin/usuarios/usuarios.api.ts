@@ -60,4 +60,10 @@ export class AdminUsuariosApi {
   eliminar(id: number): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`${this.base}/${id}`));
   }
+
+  /** Solicita el cambio de correo para la cuenta y envía enlace de confirmación al nuevo correo. */
+  solicitarCambioCorreo(id: number, nuevoCorreo: string): Promise<string> {
+    return firstValueFrom(this.http.post<{ mensaje: string }>(`${this.base}/${id}/correo`, { nuevoCorreo }))
+      .then((r) => r.mensaje);
+  }
 }

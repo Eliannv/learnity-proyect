@@ -3,6 +3,17 @@ export interface RespuestaDocente {
   fecha: string;
 }
 
+export interface HiloRespuesta {
+  id: number;
+  autor: { nombre: string; fotoUrl: string | null; esDocenteCurso: boolean };
+  fotoUrl: string | null;
+  comentario: string;
+  creadoEn: string;
+  esDocente: boolean;
+  esDocenteCurso: boolean;
+  propia: boolean;
+}
+
 export interface Resena {
   id: number;
   /** Nombre y la inicial del apellido: nunca el correo ni el nombre completo. */
@@ -15,6 +26,7 @@ export interface Resena {
   /** Cambió estrellas o comentario después de publicarla. */
   editado: boolean;
   respuesta: RespuestaDocente | null;
+  respuestas?: HiloRespuesta[];
 }
 
 export interface ResumenResenas {
@@ -62,6 +74,7 @@ export interface ResenaDocente {
   /** Avance (%) del estudiante cuando la publicó. */
   progresoAlResenar: number;
   respuesta: RespuestaDocente | null;
+  respuestas?: HiloRespuesta[];
   /** Último reporte del docente sobre esta reseña. */
   reporte: { estado: EstadoReporte; motivo: MotivoReporte } | null;
 }
@@ -131,6 +144,8 @@ export interface Ocultacion {
 export interface ResenaAdmin {
   /** El administrador es el docente del curso o el autor: otro administrador debe moderarla. */
   propia: boolean;
+  esAutor?: boolean;
+  esDocenteCurso?: boolean;
   id: number;
   curso: { id: number; titulo: string };
   estudiante: string;
@@ -141,6 +156,7 @@ export interface ResenaAdmin {
   eliminadaEn: string | null;
   ocultacion: Ocultacion | null;
   respuesta: RespuestaDocente | null;
+  respuestas?: HiloRespuesta[];
   /** Reportes pendientes de esta reseña. */
   reportesPendientes: number;
   historial: EntradaHistorial[];
@@ -159,6 +175,8 @@ export interface PaginaResenasAdmin {
 export interface ReporteAdmin {
   /** El administrador es el docente del curso o el autor: otro administrador debe moderarla. */
   propia: boolean;
+  esAutor?: boolean;
+  esDocenteCurso?: boolean;
   id: number;
   motivo: MotivoReporte;
   detalle: string | null;
@@ -175,6 +193,7 @@ export interface ReporteAdmin {
     eliminadaEn: string | null;
     ocultacion: Ocultacion | null;
     respuesta: RespuestaDocente | null;
+    respuestas?: HiloRespuesta[];
   };
   historial: EntradaHistorial[];
 }

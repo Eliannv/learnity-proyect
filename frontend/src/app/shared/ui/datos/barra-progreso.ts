@@ -1,7 +1,8 @@
-import { Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 @Component({
   selector: 'app-barra-progreso',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="barra" role="progressbar" [attr.aria-label]="etiqueta()" [attr.aria-valuenow]="valor()" aria-valuemin="0" aria-valuemax="100">
       <span [style.transform]="'scaleX(' + escala() + ')'" [class.verde]="verde()"></span>

@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   input,
@@ -28,6 +29,7 @@ const CLASE: Record<EstadoCurso, string> = {
 
 @Component({
   selector: 'app-estado-curso',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './estado-curso.html',
   styleUrl: './estado-curso.scss',
 })

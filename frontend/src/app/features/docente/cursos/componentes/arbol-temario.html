@@ -3,13 +3,15 @@
     <div class="cabecera-temario-fila">
       <div class="cabecera-temario-titulo">
         <h2>Módulos y contenido</h2>
-        <app-info-ayuda etiqueta="Ayuda: cómo organizar módulos y contenido">
-          <li>Organiza el curso en <strong>módulos</strong> (hasta 10) y, dentro de cada uno, hasta <strong>12 contenidos</strong> en el orden en que los verá el estudiante.</li>
-          <li>Cada contenido es un <strong>vídeo de YouTube</strong>, un <strong>documento PDF</strong> (hasta 10 MB) o una <strong>evaluación</strong> de opción múltiple.</li>
-          <li>Los vídeos admiten un PDF de apoyo y cualquier lección puede tener recursos descargables (ZIP, diapositivas o plantillas).</li>
-          <li>Cada evaluación lleva de <strong>5 a 10 preguntas</strong> con cuatro opciones y una correcta; se aprueba con el 60 % y el estudiante puede repetirla.</li>
-          <li>Para enviar a revisión, cada módulo necesita al menos un contenido, cada vídeo su enlace, cada documento su PDF y cada evaluación sus preguntas.</li>
-        </app-info-ayuda>
+        @if (editable()) {
+          <app-info-ayuda etiqueta="Ayuda: cómo organizar módulos y contenido">
+            <li>Organiza el curso en <strong>módulos</strong> (hasta 10) y, dentro de cada uno, hasta <strong>12 contenidos</strong> en el orden en que los verá el estudiante.</li>
+            <li>Cada contenido es un <strong>vídeo de YouTube</strong>, un <strong>documento PDF</strong> (hasta 10 MB) o una <strong>evaluación</strong> de opción múltiple.</li>
+            <li>Los vídeos admiten un PDF de apoyo y cualquier lección puede tener recursos descargables (ZIP, diapositivas o plantillas).</li>
+            <li>Cada evaluación lleva de <strong>5 a 10 preguntas</strong> con cuatro opciones y una correcta; se aprueba con el 60 % y el estudiante puede repetirla.</li>
+            <li>Para enviar a revisión, cada módulo necesita al menos un contenido, cada vídeo su enlace, cada documento su PDF y cada evaluación sus preguntas.</li>
+          </app-info-ayuda>
+        }
       </div>
       @if (editable()) {
         <button type="button" class="btn btn-acento" [disabled]="deshabilitado() || hayFormulario() || curso().modulos.length >= 10" (click)="abrirModulo()">+ Agregar módulo</button>
@@ -109,7 +111,7 @@
                   @if (l.youtubeVideoId) {
                     <app-reproductor-youtube [videoId]="l.youtubeVideoId" [leccionId]="l.id" [titulo]="l.titulo" />
                   } @else {
-                    <p class="contenido-sin-video">Falta el enlace de YouTube. Pulsa «Editar» para añadirlo.</p>
+                    <p class="contenido-sin-video">{{ editable() ? 'Falta el enlace de YouTube. Pulsa «Editar» para añadirlo.' : 'Sin enlace de YouTube configurado.' }}</p>
                   }
                 </div>
                 <div class="contenido-apoyo">
@@ -136,7 +138,7 @@
           }
         } @empty {
           @if (!(leccion && leccion.moduloId === m.id)) {
-            <li class="contenido-vacio">Este módulo todavía no tiene contenido. Agrega un vídeo, un PDF o una evaluación para empezar.</li>
+            <li class="contenido-vacio">{{ editable() ? 'Este módulo todavía no tiene contenido. Agrega un vídeo, un PDF o una evaluación para empezar.' : 'Este módulo no tiene contenido.' }}</li>
           }
         }
         @if (leccion && leccion.id === null && leccion.moduloId === m.id) {
@@ -150,8 +152,8 @@
   } @empty {
     @if (modulo === null) {
       <div class="tarjeta bloque temario-vacio">
-        <h3>Tu curso todavía no tiene módulos</h3>
-        <p>Crea un módulo y agrega vídeos o documentos en el orden de aprendizaje.</p>
+        <h3>{{ editable() ? 'Tu curso todavía no tiene módulos' : 'Este curso no tiene módulos' }}</h3>
+        <p>{{ editable() ? 'Crea un módulo y agrega vídeos o documentos en el orden de aprendizaje.' : 'El docente no ha añadido módulos a este curso.' }}</p>
       </div>
     }
   }

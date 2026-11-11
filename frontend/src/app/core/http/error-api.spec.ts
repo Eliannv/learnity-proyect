@@ -32,6 +32,6 @@ describe('error-api', () => {
 
     expect(erroresPorCampo(malFormado)).toEqual({});
     expect(mensajeDeError(malFormado, 'La carga')).toBe('La carga no se pudo completar. Inténtalo de nuevo.');
-    expect(mensajeDeError(sinConexion, 'La carga')).toContain('No se pudo conectar con el servidor.');
+    expect(mensajeDeError(sinConexion, 'La carga')).toContain('No pudimos conectarnos con el servidor');
   });
 });

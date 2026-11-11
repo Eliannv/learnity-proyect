@@ -37,6 +37,18 @@
         }
         <p class="creado">Creado por <strong>{{ c.docente }}</strong></p>
         <p class="meta num">{{ metaCabecera(c) }}</p>
+        <div class="acciones-curso-banda">
+          <button type="button" class="btn-banda" (click)="compartirCurso()">
+            <lucide-icon name="share-2" [size]="15" aria-hidden="true" />
+            <span>Compartir</span>
+          </button>
+          @if (auth.autenticado()) {
+            <button type="button" class="btn-banda" (click)="abrirModalReporte()">
+              <lucide-icon name="flag" [size]="15" aria-hidden="true" />
+              <span>Reportar curso</span>
+            </button>
+          }
+        </div>
     </header>
 
     <article class="principal">
@@ -191,4 +203,37 @@
       </ul>
     </div>
   </ng-template>
+
+  @if (modalReporteAbierto()) {
+    <app-modal titulo="Reportar curso" (cerrar)="modalReporteAbierto.set(false)">
+      <form class="form-reporte-curso" (ngSubmit)="enviarReporteCurso()">
+        <p class="texto-suave">
+          Indica por qué consideras que este curso incumple las normas o presenta problemas graves de contenido.
+          El equipo de administración lo revisará en el centro de alertas.
+        </p>
+        <label class="campo">
+          <span>Motivo del reporte</span>
+          <textarea
+            class="control"
+            rows="4"
+            maxlength="500"
+            placeholder="Describe el problema detectado (mínimo 5 caracteres)…"
+            [ngModel]="motivoReporte()"
+            (ngModelChange)="motivoReporte.set($event)"
+            name="motivoReporte"
+            required
+          ></textarea>
+        </label>
+        @if (errorReporte()) {
+          <p class="mensaje-error" role="alert">{{ errorReporte() }}</p>
+        }
+        <div class="acciones-modal-reporte">
+          <button type="button" class="btn btn-contorno" (click)="modalReporteAbierto.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-primario" [disabled]="enviandoReporte()">
+            {{ enviandoReporte() ? 'Enviando…' : 'Enviar reporte' }}
+          </button>
+        </div>
+      </form>
+    </app-modal>
+  }
 }

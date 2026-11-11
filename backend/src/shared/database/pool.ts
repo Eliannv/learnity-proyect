@@ -23,6 +23,10 @@ export const pool = new pg.Pool({
   password: env.DB_PASSWORD,
   ssl: configuracionTls(),
   max: 10,
+  connectionTimeoutMillis: 10_000,
+  idleTimeoutMillis: 30_000,
+  query_timeout: 15_000,
+  allowExitOnIdle: env.NODE_ENV === 'test',
 });
 
 pool.on('error', (error) => {

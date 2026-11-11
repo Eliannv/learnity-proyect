@@ -4,6 +4,7 @@ import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { validarConsulta, validarCuerpo, validarParametros } from '../../shared/http/validar.js';
 import { usuariosController as controller } from './usuarios.controller.js';
 import {
+  cambioCorreoUsuarioAdmin,
   cambioEstadoUsuario,
   cambioRolesUsuario,
   decisionSolicitud,
@@ -28,6 +29,15 @@ usuariosRoutes.post(
   autorizar('ESTUDIANTE'),
   validarCuerpo(nuevaSolicitudDocente),
   controller.solicitarDocencia,
+);
+
+usuariosRoutes.post(
+  '/solicitudes-docente/especialidad',
+  limitarPorIp('solicitud-docente', 10, 60),
+  autenticar,
+  autorizar('DOCENTE'),
+  validarCuerpo(nuevaSolicitudDocente),
+  controller.solicitarEspecialidadAdicional,
 );
 
 usuariosRoutes.get(
@@ -129,4 +139,14 @@ usuariosRoutes.put(
   validarParametros(parametrosUsuario),
   validarCuerpo(cambioRolesUsuario),
   controller.cambiarRoles,
+);
+
+usuariosRoutes.post(
+  '/admin/usuarios/:id/correo',
+  limitarPorIp('cambiar-correo-admin', 10, 15),
+  autenticar,
+  autorizar('ADMIN'),
+  validarParametros(parametrosUsuario),
+  validarCuerpo(cambioCorreoUsuarioAdmin),
+  controller.solicitarCambioCorreo,
 );

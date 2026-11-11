@@ -77,6 +77,10 @@ BEGIN
   IF to_regclass('public.archivo_binario') IS NOT NULL THEN
     GRANT SELECT, INSERT, UPDATE, DELETE ON archivo_binario TO learnity_pruebas;
   END IF;
+  -- 041: hilos de respuestas en reseñas.
+  IF to_regclass('public.resena_respuesta') IS NOT NULL THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON resena_respuesta TO learnity_pruebas;
+  END IF;
 END $$;
 
 COMMIT;

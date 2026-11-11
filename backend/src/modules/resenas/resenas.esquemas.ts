@@ -101,6 +101,22 @@ export const datosOcultacion = z.strictObject({
     .pipe(z.string().min(1, 'Escribe el motivo de la ocultación.').max(300, 'El motivo debe tener como máximo 300 caracteres.')),
 });
 
+export const idResenaRespuesta = z.object({
+  id: idRuta,
+  idRespuesta: idRuta,
+});
+
+export const datosRespuestaHilo = z.strictObject({
+  comentario: textoSeguro()
+    .transform((valor) => valor.normalize('NFC').trim())
+    .pipe(
+      z
+        .string()
+        .min(1, 'Escribe tu comentario o pregunta.')
+        .max(1000, 'El comentario debe tener como máximo 1000 caracteres.'),
+    ),
+});
+
 export type FiltrosBandeja = z.infer<typeof filtrosBandeja>;
 export type DatosRespuesta = z.infer<typeof datosRespuesta>;
 export type DatosReporte = z.infer<typeof datosReporte>;
@@ -108,3 +124,4 @@ export type FiltrosReportes = z.infer<typeof filtrosReportes>;
 export type FiltrosResenasAdmin = z.infer<typeof filtrosResenasAdmin>;
 export type DecisionReporte = z.infer<typeof decisionReporte>;
 export type DatosOcultacion = z.infer<typeof datosOcultacion>;
+export type DatosRespuestaHilo = z.infer<typeof datosRespuestaHilo>;

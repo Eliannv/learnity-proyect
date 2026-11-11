@@ -4,7 +4,9 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
 import { mensajeDeError } from '../../../core/http/error-api';
 import { SolicitudesDocenteService } from '../../../core/solicitudes/solicitudes-docente.service';
+import { BuscadorCurso, type OpcionCursoBusqueda } from '../../../shared/ui/cursos/buscador-curso';
 import { Modal } from '../../../shared/ui/retroalimentacion/modal';
+import { CatalogoApi } from '../../catalogo/catalogo.api';
 
 /**
  * Modal reutilizable «Solicitud para ser docente» (RF-05).
@@ -13,7 +15,7 @@ import { Modal } from '../../../shared/ui/retroalimentacion/modal';
  */
 @Component({
   selector: 'app-modal-solicitud-docente',
-  imports: [ReactiveFormsModule, LucideAngularModule, Modal],
+  imports: [ReactiveFormsModule, LucideAngularModule, Modal, BuscadorCurso],
   template: `
     @if (visible()) {
       <app-modal titulo="Solicitud para ser docente" icono="presentation" [ancho]="560" (cerrar)="cerrar()">
@@ -35,24 +37,28 @@ import { Modal } from '../../../shared/ui/retroalimentacion/modal';
           </div>
         } @else {
           <p class="texto-suave intro">
-            Cuéntanos qué te gustaría enseñar. Un administrador revisará tu solicitud y, si la aprueba, podrás crear cursos con esta misma cuenta.
+            Cuéntanos en qué categoría te gustaría enseñar. Un administrador revisará tu solicitud y, si la aprueba, podrás crear cursos con esta misma cuenta.
           </p>
           <form class="form-solicitud" [formGroup]="formSolicitud" (ngSubmit)="enviarSolicitud()" novalidate>
             <div class="campo">
-              <label class="etiqueta" for="especialidad">Especialidad o tema</label>
-              <div class="control-icono">
-                <lucide-icon name="briefcase" [size]="20" />
-                <input
-                  id="especialidad"
-                  class="control"
-                  [class.invalido]="formSolicitud.controls.especialidad.invalid && formSolicitud.controls.especialidad.touched"
-                  formControlName="especialidad"
-                  maxlength="100"
-                  placeholder="Ej.: Programación web, Diseño gráfico"
-                />
-              </div>
+              <label class="etiqueta" for="especialidad">Categoría, especialidad o tema</label>
+              <app-buscador-curso
+                idCampo="especialidad"
+                etiqueta="Categoría, especialidad o tema"
+                placeholder="Elige o busca una categoría (ej.: Programación, Diseño…)"
+                [cursos]="categoriasOpciones()"
+                [cursoId]="categoriaIdElegida()"
+                [permitirTodos]="false"
+                [listarAlEnfocar]="true"
+                [nombre]="{ singular: 'categoría', plural: 'categorías' }"
+                (cursoSeleccionado)="alElegirCategoria($event)"
+                (terminoCambio)="alEscribirEspecialidad($event)"
+              />
+              @if (formSolicitud.controls.especialidad.value) {
+                <span class="ayuda">Especialidad seleccionada: <strong>{{ formSolicitud.controls.especialidad.value }}</strong></span>
+              }
               @if (formSolicitud.controls.especialidad.invalid && formSolicitud.controls.especialidad.touched) {
-                <span class="error-campo">Escribe la especialidad o el tema (entre 3 y 100 caracteres).</span>
+                <span class="error-campo">Elige una categoría o escribe la especialidad (entre 3 y 100 caracteres).</span>
               }
             </div>
             <div class="campo">
@@ -112,6 +118,7 @@ import { Modal } from '../../../shared/ui/retroalimentacion/modal';
 export class ModalSolicitudDocente {
   protected readonly auth = inject(AuthService);
   protected readonly solicitudes = inject(SolicitudesDocenteService);
+  private readonly catalogo = inject(CatalogoApi, { optional: true });
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly instanciaId = Symbol('modal-solicitud-docente');
 
@@ -122,6 +129,8 @@ export class ModalSolicitudDocente {
   protected readonly solicitudEnviada = signal(false);
   protected readonly enviandoSolicitud = signal(false);
   protected readonly errorSolicitud = signal<string | null>(null);
+  protected readonly categoriasOpciones = signal<OpcionCursoBusqueda[]>([]);
+  protected readonly categoriaIdElegida = signal<number | null>(null);
 
   protected readonly formSolicitud = this.fb.group({
     especialidad: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
@@ -136,12 +145,42 @@ export class ModalSolicitudDocente {
       const abierto = this.visible();
       if (abierto) {
         untracked(() => {
+          void this.cargarCategorias();
           if (this.auth.autenticado() && !this.auth.esDocente()) {
             void this.sincronizarSolicitud();
           }
         });
       }
     });
+  }
+
+  private async cargarCategorias(): Promise<void> {
+    if (this.categoriasOpciones().length > 0 || !this.catalogo) return;
+    try {
+      const cats = await this.catalogo.categorias();
+      this.categoriasOpciones.set(
+        cats.map((c) => ({ id: c.id, titulo: c.nombre, iconoCategoria: c.icono })),
+      );
+    } catch {
+      // Si el catálogo no responde, el campo sigue admitiendo texto libre.
+    }
+  }
+
+  protected alElegirCategoria(op: OpcionCursoBusqueda | null): void {
+    this.categoriaIdElegida.set(op?.id ?? null);
+    this.formSolicitud.controls.especialidad.setValue(op?.titulo ?? '');
+    this.formSolicitud.controls.especialidad.markAsDirty();
+  }
+
+  protected alEscribirEspecialidad(texto: string): void {
+    const limpio = texto.trim();
+    if (limpio) {
+      this.categoriaIdElegida.set(null);
+      this.formSolicitud.controls.especialidad.setValue(limpio);
+      this.formSolicitud.controls.especialidad.markAsDirty();
+    } else if (this.categoriaIdElegida() === null) {
+      this.formSolicitud.controls.especialidad.setValue('');
+    }
   }
 
   private async sincronizarSolicitud(): Promise<void> {
@@ -167,6 +206,7 @@ export class ModalSolicitudDocente {
       await this.solicitudes.enviar(especialidad, motivo);
       this.solicitudEnviada.set(true);
       this.formSolicitud.reset();
+      this.categoriaIdElegida.set(null);
     } catch (error) {
       this.errorSolicitud.set(mensajeDeError(error, 'El envío de la solicitud'));
       void this.sincronizarSolicitud();

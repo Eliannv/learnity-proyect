@@ -53,9 +53,20 @@ function aIdCursoValido(id: string | number): number | null {
 export class CatalogoApi {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiUrl;
+  private categoriasCache?: Promise<CategoriaPublica[]>;
 
   categorias(): Promise<CategoriaPublica[]> {
-    return firstValueFrom(this.http.get<CategoriaPublica[]>(`${this.base}/categorias`));
+    this.categoriasCache ??= firstValueFrom(
+      this.http.get<CategoriaPublica[]>(`${this.base}/categorias`),
+    ).catch((error) => {
+      this.categoriasCache = undefined;
+      throw error;
+    });
+    return this.categoriasCache;
+  }
+
+  invalidarCategorias(): void {
+    this.categoriasCache = undefined;
   }
 
   async listar(filtros: FiltrosCatalogo = {}): Promise<PaginaCatalogo> {
@@ -87,6 +98,12 @@ export class CatalogoApi {
     );
     if ('estado' in curso && curso.estado !== 'PUBLICADO') return null;
     return curso;
+  }
+
+  reportarCurso(idCurso: number, motivo: string): Promise<{ mensaje: string }> {
+    return firstValueFrom(
+      this.http.post<{ mensaje: string }>(`${this.base}/cursos/${idCurso}/reportar`, { motivo }),
+    );
   }
 }
 

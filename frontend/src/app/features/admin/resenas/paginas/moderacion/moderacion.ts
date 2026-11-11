@@ -15,6 +15,7 @@ import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
 import { Estrellas } from '../../../../../shared/ui/datos/estrellas';
 import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
 import { CatalogoApi } from '../../../../catalogo/catalogo.api';
+import { ResenasApi } from '../../../../catalogo/resenas.api';
 import { AdminResenasApi, type EstadoResenasAdmin, type FiltrosResenasAdmin } from '../../resenas.api';
 
 type Vista = 'TODAS' | 'VIGENTES' | 'BORRADAS' | EstadoReporte;
@@ -67,6 +68,7 @@ function estrellasTexto(n: number): string {
 })
 export class ModeracionResenas {
   private readonly api = inject(AdminResenasApi);
+  private readonly resenasApi = inject(ResenasApi);
   private readonly catalogo = inject(CatalogoApi);
   /** Categorías activas como opciones del selector buscable (el filtro envía su nombre). */
   protected readonly categorias = signal<{ id: number; titulo: string; iconoCategoria: string }[]>([]);
@@ -277,5 +279,37 @@ export class ModeracionResenas {
     }
     const publicada = h.accion === 'CREADA' || h.accion === 'REPUBLICADA';
     return publicada && h.estrellasNueva !== null ? estrellasTexto(h.estrellasNueva) : '';
+  }
+
+  protected motivoConflicto(r: Pick<ResenaAdmin, 'esAutor' | 'esDocenteCurso' | 'curso'>): string {
+    if (r.esAutor && r.esDocenteCurso) {
+      return 'Escribiste esta reseña y eres docente de este curso: por imparcialidad debe moderarla otro administrador.';
+    }
+    if (r.esAutor) {
+      return 'Escribiste esta reseña como estudiante: por imparcialidad debe moderarla otro administrador.';
+    }
+    if (r.esDocenteCurso) {
+      return `Eres el docente titular de «${r.curso.titulo}»: por imparcialidad debe moderarla otro administrador.`;
+    }
+    return 'Es de tu curso o la escribiste tú: debe moderarla otro administrador.';
+  }
+
+  protected async eliminarRespuestaHilo(resenaId: number, idRespuesta: number): Promise<void> {
+    try {
+      await this.resenasApi.eliminarRespuestaHilo(resenaId, idRespuesta);
+      this.todas.update((t) =>
+        t && {
+          ...t,
+          items: t.items.map((item) =>
+            item.id === resenaId
+              ? { ...item, respuestas: (item.respuestas ?? []).filter((x) => x.id !== idRespuesta) }
+              : item,
+          ),
+        },
+      );
+      this.toasts.exito('Comentario eliminado del hilo.');
+    } catch (error) {
+      this.toasts.error(mensajeDeError(error, 'Eliminar el comentario'));
+    }
   }
 }

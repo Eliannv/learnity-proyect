@@ -239,12 +239,12 @@ export class RecortadorFoto {
     e.preventDefault();
   }
 
-  /** La imagen encuadrada como JPEG (512×512 en 1:1 o 960×540 en 16:9, con fondo blanco bajo transparencias). */
+  /** La imagen encuadrada como WebP (calidad 0.86) con fallback a JPEG (512×512 en 1:1 o 960×540 en 16:9). */
   async recortar(): Promise<File | null> {
     if (!this.imagen) return null;
     const anchoSalida = this.esPanoramico() ? SALIDA_16_9_ANCHO : SALIDA_1_1;
     const altoSalida = this.esPanoramico() ? SALIDA_16_9_ALTO : SALIDA_1_1;
-    const nombreArchivo = this.esPanoramico() ? 'portada-curso.jpg' : 'foto-perfil.jpg';
+    const prefijo = this.esPanoramico() ? 'portada-curso' : 'foto-perfil';
     const c = document.createElement('canvas');
     c.width = anchoSalida;
     c.height = altoSalida;
@@ -252,7 +252,11 @@ export class RecortadorFoto {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, anchoSalida, altoSalida);
     this.pintar(ctx, anchoSalida, altoSalida);
-    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.9));
-    return blob ? new File([blob], nombreArchivo, { type: 'image/jpeg' }) : null;
+    const blobWebp = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/webp', 0.86));
+    if (blobWebp && blobWebp.type === 'image/webp') {
+      return new File([blobWebp], `${prefijo}.webp`, { type: 'image/webp' });
+    }
+    const blobJpeg = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.9));
+    return blobJpeg ? new File([blobJpeg], `${prefijo}.jpg`, { type: 'image/jpeg' }) : null;
   }
 }

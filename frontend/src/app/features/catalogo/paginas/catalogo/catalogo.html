@@ -33,6 +33,29 @@
   <section class="resultados">
     <h1 class="titulo-pagina">Catálogo de cursos</h1>
 
+    @if (categorias().length) {
+      <div class="categorias-movil solo-movil" role="group" aria-label="Categorías rápidas">
+        <button
+          type="button"
+          class="chip-filtro"
+          [class.activo]="!seleccion().length"
+          (click)="limpiar()"
+        >
+          Todas
+        </button>
+        @for (c of categorias(); track c.id) {
+          <button
+            type="button"
+            class="chip-filtro"
+            [class.activo]="seleccion().includes(c.nombre)"
+            (click)="alternar('categoria', c.nombre)"
+          >
+            {{ c.nombre }}
+          </button>
+        }
+      </div>
+    }
+
     <div class="barra-resultados oculto-movil">
       <span class="resumen num">{{ resumen() }}</span>
       <label class="ordenar">

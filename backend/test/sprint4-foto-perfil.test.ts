@@ -65,6 +65,11 @@ describe('Sprint 4 · foto de perfil', () => {
     const servida = await srv.pedir(primera.json.fotoUrl);
     assert.equal(servida.status, 200);
     assert.equal(servida.headers.get('content-type'), 'image/png');
+    assert.equal(servida.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+    const etag = servida.headers.get('etag');
+    assert.ok(etag, 'incluye cabecera ETag');
+    const condicional = await srv.pedir(primera.json.fotoUrl, { headers: { 'If-None-Match': etag } });
+    assert.equal(condicional.status, 304, 'responde 304 Not Modified con If-None-Match coincidente');
 
     const segunda = await subir(JPEG, 'yo.jpg');
     assert.equal(segunda.status, 200, segunda.texto);

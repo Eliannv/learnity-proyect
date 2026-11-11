@@ -31,6 +31,9 @@ const ICONO: Record<Recurso['tipo'], string> = { PDF: 'file-text', PPT: 'present
           </button>
         }
       </div>
+      @if (editable()) {
+        <small class="texto-suave formatos-ayuda">Archivos PDF, PPT, PPTX o ZIP · Máximo 10 MB por archivo (hasta {{ maximo }} recursos).</small>
+      }
       @if (leccion().recursos.length) {
         <ul>
           @for (r of leccion().recursos; track r.id) {
@@ -51,6 +54,8 @@ const ICONO: Record<Recurso['tipo'], string> = { PDF: 'file-text', PPT: 'present
         </ul>
       } @else if (editable()) {
         <p class="texto-suave vacio">Añade código en ZIP, diapositivas o plantillas para que tus estudiantes las descarguen.</p>
+      } @else {
+        <p class="texto-suave vacio">Sin recursos descargables.</p>
       }
     </div>
 

@@ -64,28 +64,46 @@
 
     <!-- Fila 2: Categoría y nivel con la misma altura, sin huecos debajo -->
     <div class="rejilla rejilla-mitades">
-      <label class="campo">
-        <span class="etiqueta-fila">
+      <div class="campo">
+        <label class="etiqueta-fila" for="categoria-curso">
           <span class="nombre-campo">Categoría</span>
           <span class="badge-etiqueta obligatorio">Obligatorio</span>
-        </span>
+          @if (especialidadDocente(); as esp) {
+            <span class="badge-etiqueta especialidad" title="Categoría vinculada a tu especialidad docente aprobada">
+              Especialidad: {{ esp }}
+            </span>
+          }
+        </label>
 
-        <select class="control" formControlName="categoriaId">
+        <select id="categoria-curso" class="control" formControlName="categoriaId">
           <option [ngValue]="0">Selecciona una categoría</option>
 
           @if (curso(); as c) {
-            <option [ngValue]="c.categoriaId">{{ c.categoriaNombre }}</option>
+            <option [ngValue]="c.categoriaId">
+              {{ c.categoriaNombre }}{{ esCategoriaEspecialidad(c.categoriaNombre) ? ' ★ (Tu especialidad)' : '' }}
+            </option>
           }
 
           @for (c of categorias(); track c.id) {
             @if (c.id !== curso()?.categoriaId) {
-              <option [ngValue]="c.id">{{ c.nombre }}</option>
+              <option [ngValue]="c.id">
+                {{ c.nombre }}{{ esCategoriaEspecialidad(c.nombre) ? ' ★ (Tu especialidad)' : '' }}
+              </option>
             }
           }
         </select>
 
+        @if (editable()) {
+          <div class="fila-especialidad-extra">
+            <button type="button" class="btn-enlace-especialidad" (click)="abrirModalEspecialidad()">
+              <lucide-icon name="plus" [size]="14" aria-hidden="true" />
+              Solicitar otra especialidad o categoría
+            </button>
+          </div>
+        }
+
         <small class="error-campo" role="alert">{{ errorCampo('categoriaId') }}</small>
-      </label>
+      </div>
 
       <label class="campo">
         <span class="etiqueta-fila">
@@ -339,5 +357,53 @@
         {{ subiendoPortada() ? 'Subiendo…' : 'Usar como portada' }}
       </button>
     </div>
+  </app-modal>
+}
+
+@if (modalEspecialidadAbierto()) {
+  <app-modal titulo="Solicitar especialidad adicional" icono="award" [ancho]="520" (cerrar)="cerrarModalEspecialidad()">
+    <form class="form-especialidad-modal" (submit)="$event.preventDefault(); enviarSolicitudEspecialidad()" novalidate>
+      <p class="texto-suave">
+        Selecciona la categoría adicional en la que deseas impartir cursos y explica brevemente tu experiencia en esa área.
+      </p>
+      <div class="campo">
+        <label class="etiqueta" for="especialidad-extra">Categoría solicitada</label>
+        <app-buscador-curso
+          idCampo="especialidad-extra"
+          etiqueta="Categoría solicitada"
+          placeholder="Elige o busca una categoría…"
+          [cursos]="categoriasOpciones()"
+          [cursoId]="categoriaEspecialidadId()"
+          [permitirTodos]="false"
+          [listarAlEnfocar]="true"
+          [nombre]="{ singular: 'categoría', plural: 'categorías' }"
+          (cursoSeleccionado)="alElegirCategoriaEspecialidad($event)"
+          (terminoCambio)="alEscribirEspecialidad($event)"
+        />
+      </div>
+      <div class="campo">
+        <label class="etiqueta" for="motivo-especialidad-extra">Experiencia en esta categoría</label>
+        <textarea
+          id="motivo-especialidad-extra"
+          class="control"
+          name="motivoEspecialidad"
+          [(ngModel)]="motivoEspecialidad"
+          maxlength="2000"
+          placeholder="Describe tu formación o experiencia práctica en esta categoría (mínimo 20 caracteres)…"
+        ></textarea>
+        <small class="texto-suave">{{ motivoEspecialidad.length }}/20 caracteres mínimos</small>
+      </div>
+      @if (errorEspecialidad()) {
+        <p class="error-campo" role="alert">{{ errorEspecialidad() }}</p>
+      }
+      <div class="acciones-modal-portada">
+        <button type="button" class="btn btn-suave" [disabled]="enviandoEspecialidad()" (click)="cerrarModalEspecialidad()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primario" [disabled]="enviandoEspecialidad()">
+          {{ enviandoEspecialidad() ? 'Enviando…' : 'Enviar solicitud' }}
+        </button>
+      </div>
+    </form>
   </app-modal>
 }

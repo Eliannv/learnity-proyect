@@ -14,9 +14,13 @@
         Descargar PDF
       </button>
     </div>
-  } @else {
+  } @else if (editable()) {
     <p class="texto-suave">
       {{ complementario() ? 'Opcional: añade un PDF con lo que se explica en el vídeo.' : 'Esta lección todavía no tiene PDF.' }}
+    </p>
+  } @else {
+    <p class="texto-suave">
+      {{ complementario() ? 'Sin PDF de apoyo adjunto.' : 'Sin documento PDF adjunto.' }}
     </p>
   }
 
@@ -36,7 +40,7 @@
       />
       <span class="btn btn-contorno btn-sm boton-archivo" aria-hidden="true">Elegir archivo PDF</span>
 
-      <small>PDF de hasta 10 MB. El servidor comprobará el contenido.</small>
+      <small>Archivo PDF · Máximo 10 MB. El servidor comprobará el contenido.</small>
     </label>
   }
 

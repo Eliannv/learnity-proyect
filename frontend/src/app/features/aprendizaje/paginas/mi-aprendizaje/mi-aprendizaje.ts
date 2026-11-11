@@ -10,7 +10,7 @@ import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
 import { BuscadorCurso, type OpcionCursoBusqueda } from '../../../../shared/ui/cursos/buscador-curso';
 import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
 
-type FiltroProgreso = '' | 'en-curso' | 'sin-empezar' | 'completados';
+type FiltroProgreso = '' | 'sin-empezar' | 'completados';
 type Orden = 'reciente' | 'avance' | 'titulo';
 
 const normalizar = (texto: string) =>
@@ -119,7 +119,6 @@ export class MiAprendizaje {
       : !docQ || normalizar(i.curso.docente).includes(docQ);
     const coincideProg =
       this.progreso() === '' ||
-      (this.progreso() === 'en-curso' && i.inscripcion.progresoPct > 0 && i.inscripcion.estado !== 'COMPLETADA') ||
       (this.progreso() === 'sin-empezar' && i.inscripcion.progresoPct === 0) ||
       (this.progreso() === 'completados' && i.inscripcion.estado === 'COMPLETADA');
     return coincideCat && coincideDoc && coincideProg;

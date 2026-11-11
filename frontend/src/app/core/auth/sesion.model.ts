@@ -37,6 +37,10 @@ export interface DatosRegistro {
 /** GET/PUT /api/perfil */
 export interface Perfil extends UsuarioSesion {
   ciudad: string | null;
+  pais?: string | null;
+  provincia?: string | null;
+  fechaNacimiento?: string | null;
+  edad?: number | null;
   biografia: string | null;
   creadoEn: string;
 }

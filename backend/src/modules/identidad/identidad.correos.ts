@@ -48,3 +48,35 @@ export function correoContrasenaCambiada(datos: { para: string; nombres: string;
     ),
   };
 }
+
+export function correoConfirmacionCambioCorreo(datos: {
+  para: string;
+  nombres: string;
+  nuevoCorreo: string;
+  enlace: string;
+  horas: number;
+}): Correo {
+  const { para, nombres, nuevoCorreo, enlace, horas } = datos;
+  return {
+    para,
+    asunto: 'Confirma tu nuevo correo electrónico en Learnity',
+    texto: [
+      `Hola, ${nombres}:`,
+      '',
+      `Solicitaste cambiar el correo electrónico de tu cuenta de Learnity a ${nuevoCorreo}.`,
+      `Abre este enlace para confirmar el cambio (vence en ${horas} horas y solo funciona una vez):`,
+      '',
+      enlace,
+      '',
+      'Si no solicitaste este cambio, ignora este mensaje.',
+    ].join('\n'),
+    html: marco(
+      'Confirma tu nuevo correo electrónico',
+      `<p style="margin:0 0 12px;line-height:1.5">Hola, ${escapar(nombres)}:</p>
+<p style="margin:0 0 20px;line-height:1.5">Recibimos una solicitud para actualizar el correo electrónico de tu cuenta a <strong>${escapar(nuevoCorreo)}</strong>.
+El enlace vence en <strong>${horas} horas</strong> y solo funciona una vez.</p>
+<p style="margin:0 0 24px"><a href="${escapar(enlace)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px">Confirmar nuevo correo</a></p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#64748b">Si no solicitaste este cambio, ignora este correo.</p>`,
+    ),
+  };
+}

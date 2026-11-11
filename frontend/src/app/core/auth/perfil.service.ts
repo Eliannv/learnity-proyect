@@ -9,6 +9,9 @@ export interface DatosPerfil {
   nombres: string;
   apellidos: string;
   ciudad: string | null;
+  pais?: string | null;
+  provincia?: string | null;
+  fechaNacimiento?: string | null;
   biografia: string | null;
 }
 
@@ -19,7 +22,7 @@ export function fechaCorta(iso: string | null | undefined): string {
   return iso ? fecha.format(new Date(iso)).replace('.', '') : '';
 }
 
-/** RF-04 · Perfil de la cuenta (GET/PUT /api/perfil, /perfil/foto y /perfil/contrasena). */
+/** RF-04 · Perfil de la cuenta (GET/PUT /api/perfil, /perfil/foto, /perfil/contrasena y /perfil/correo). */
 @Injectable({ providedIn: 'root' })
 export class PerfilService {
   private readonly http = inject(HttpClient);
@@ -62,5 +65,22 @@ export class PerfilService {
   async cambiarContrasena(actual: string, nueva: string): Promise<string> {
     const r = await firstValueFrom(this.http.put<{ mensaje: string }>(`${this.api}/contrasena`, { actual, nueva }));
     return r.mensaje;
+  }
+
+  /** Solicita el cambio privado de correo; envía un enlace de confirmación al nuevo correo. */
+  async solicitarCambioCorreo(nuevoCorreo: string, contrasenaActual: string): Promise<string> {
+    const r = await firstValueFrom(
+      this.http.post<{ mensaje: string }>(`${this.api}/correo`, { nuevoCorreo, contrasenaActual }),
+    );
+    return r.mensaje;
+  }
+
+  /** Confirma el cambio de correo con el token enviado por correo. */
+  async confirmarCambioCorreo(token: string): Promise<{ mensaje: string; correo: string }> {
+    const r = await firstValueFrom(
+      this.http.post<{ mensaje: string; correo: string }>(`${environment.apiUrl}/auth/confirmar-correo`, { token }),
+    );
+    this.auth.actualizarCorreo(r.correo);
+    return r;
   }
 }

@@ -10,10 +10,10 @@
 /* Pestañas por estado, como en Reseñas y Accesos; en pantallas estrechas se desplazan en horizontal. */
 .pestanas {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--borde);
-  overflow-x: auto;
 
   button {
     display: inline-flex;

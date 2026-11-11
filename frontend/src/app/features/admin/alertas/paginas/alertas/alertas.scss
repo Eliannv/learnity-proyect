@@ -150,9 +150,8 @@
   }
   .pestanas {
     width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    button { flex-shrink: 0; white-space: nowrap; }
+    flex-wrap: wrap;
+    button { padding: 10px 10px; white-space: nowrap; }
   }
   .filtros {
     display: grid;

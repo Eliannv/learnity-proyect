@@ -1,6 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../core/auth/auth.service';
 import { mensajeDeError } from '../../../core/http/error-api';
 import { Avatar } from '../../../shared/ui/marca/avatar';
 import { Estrellas, TRAZO_ESTRELLA } from '../../../shared/ui/datos/estrellas';
@@ -23,6 +24,7 @@ const NOMBRE_NOTA = ['', 'Malo', 'Regular', 'Bueno', 'Muy bueno', 'Excelente'];
 export class ResenasCurso {
   private readonly api = inject(ResenasApi);
   private readonly toast = inject(ToastService);
+  protected readonly auth = inject(AuthService);
 
   readonly cursoId = input.required<number>();
   /** Estudiante con sesión: se consulta si puede reseñar. */
@@ -48,6 +50,12 @@ export class ResenasCurso {
   protected readonly guardando = signal(false);
   protected readonly errorForm = signal('');
   protected readonly confirmarBorrado = signal(false);
+  protected readonly respondiendoHiloId = signal<number | null>(null);
+  protected readonly textoHilo = signal('');
+  protected readonly enviandoHilo = signal(false);
+  protected readonly puedeParticiparHilo = computed(() =>
+    this.auth.autenticado() && (this.puedeResenar() || !!this.mia() || this.auth.esDocente()),
+  );
 
   protected readonly hayMas = computed(() => {
     const p = this.pagina();
@@ -149,5 +157,54 @@ export class ResenasCurso {
     await this.cargar();
     const resumen = this.pagina()?.resumen;
     if (resumen) this.cambio.emit(resumen);
+  }
+
+  protected abrirFormularioHilo(resenaId: number): void {
+    if (this.respondiendoHiloId() === resenaId) {
+      this.respondiendoHiloId.set(null);
+      this.textoHilo.set('');
+      return;
+    }
+    this.respondiendoHiloId.set(resenaId);
+    this.textoHilo.set('');
+  }
+
+  protected async enviarRespuestaHilo(resena: Resena): Promise<void> {
+    const comentario = this.textoHilo().trim();
+    if (!comentario || this.enviandoHilo()) return;
+    this.enviandoHilo.set(true);
+    try {
+      const nueva = await this.api.crearRespuestaHilo(resena.id, comentario);
+      this.items.update((lista) =>
+        lista.map((item) =>
+          item.id === resena.id
+            ? { ...item, respuestas: [...(item.respuestas ?? []), nueva] }
+            : item,
+        ),
+      );
+      this.respondiendoHiloId.set(null);
+      this.textoHilo.set('');
+      this.toast.exito('Comentario publicado en el hilo.');
+    } catch (error) {
+      this.toast.error(mensajeDeError(error, 'Publicar en el hilo'));
+    } finally {
+      this.enviandoHilo.set(false);
+    }
+  }
+
+  protected async eliminarRespuestaHilo(resena: Resena, idRespuesta: number): Promise<void> {
+    try {
+      await this.api.eliminarRespuestaHilo(resena.id, idRespuesta);
+      this.items.update((lista) =>
+        lista.map((item) =>
+          item.id === resena.id
+            ? { ...item, respuestas: (item.respuestas ?? []).filter((x) => x.id !== idRespuesta) }
+            : item,
+        ),
+      );
+      this.toast.exito('Comentario eliminado del hilo.');
+    } catch (error) {
+      this.toast.error(mensajeDeError(error, 'Eliminar el comentario'));
+    }
   }
 }

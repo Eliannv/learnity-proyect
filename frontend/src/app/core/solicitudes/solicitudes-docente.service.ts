@@ -10,7 +10,7 @@ export type { EstadoSolicitud, SolicitudDocente } from '../api/contrato';
 export type DecisionSolicitud = { decision: 'APROBAR' } | { decision: 'RECHAZAR'; observacion: string };
 
 /**
- * RF-05 y RF-22 · Solicitud para ser docente.
+ * RF-05 y RF-22 · Solicitud para ser docente y solicitud de especialidad adicional por categoría.
  * El estudiante la envía y consulta su estado; el administrador la aprueba, la rechaza o revoca el rol aprobado.
  */
 @Injectable({ providedIn: 'root' })
@@ -57,6 +57,13 @@ export class SolicitudesDocenteService {
       this.http.post<SolicitudDocente>(`${this.api}/solicitudes-docente`, { especialidad, motivo }).pipe(
         tap((s) => this.solicitudActual.set(s)),
       ),
+    );
+  }
+
+  /** Solicita una categoría/especialidad adicional cuando la cuenta ya tiene el rol Docente. */
+  solicitarEspecialidad(especialidad: string, motivo: string): Promise<SolicitudDocente> {
+    return firstValueFrom(
+      this.http.post<SolicitudDocente>(`${this.api}/solicitudes-docente/especialidad`, { especialidad, motivo }),
     );
   }
 

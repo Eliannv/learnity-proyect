@@ -47,7 +47,7 @@
         @if (l.tipo === 'VIDEO') {
         @if (videoDisponible() && l.youtubeVideoId; as videoId) {
         <app-reproductor-youtube [videoId]="videoId" [leccionId]="l.id" [titulo]="l.titulo" [oscuro]="true"
-          [posicionGuardada]="l.progreso.segundosVistos" [observarPosicion]="true"
+          [posicionGuardada]="posicionVideo(l)" [observarPosicion]="true"
           (posicion)="registrarPosicion($event)" (terminado)="alTerminarVideo($event)" />
         } @else {
         <div class="contenido-pendiente" role="status">
@@ -114,6 +114,16 @@
           <span class="texto-suave num">
             Módulo {{ modulo()?.orden }} · {{ l.tipo === 'VIDEO' ? 'vídeo' : l.tipo === 'EVALUACION' ? 'evaluación' : 'documento PDF' }} {{ posicionEnModulo() }}
           </span>
+        </div>
+        <div class="acciones-aula">
+          <button type="button" class="btn btn-contorno btn-sm" (click)="compartirCurso()">
+            <lucide-icon name="share-2" [size]="15" aria-hidden="true" />
+            <span>Compartir</span>
+          </button>
+          <button type="button" class="btn btn-contorno btn-sm" (click)="abrirModalReporte()">
+            <lucide-icon name="flag" [size]="15" aria-hidden="true" />
+            <span>Reportar curso</span>
+          </button>
         </div>
       </div>
 
@@ -255,6 +265,38 @@
       }
     </div>
   </aside>
+  }
+  @if (modalReporteAbierto()) {
+  <app-modal titulo="Reportar curso" (cerrar)="modalReporteAbierto.set(false)">
+    <form class="form-reporte-curso" (ngSubmit)="enviarReporteCurso()">
+      <p class="texto-suave">
+        Indica por qué consideras que este curso incumple las normas o presenta problemas graves de contenido.
+        El equipo de administración lo revisará en el centro de alertas.
+      </p>
+      <label class="campo">
+        <span>Motivo del reporte</span>
+        <textarea
+          class="control"
+          rows="4"
+          maxlength="500"
+          placeholder="Describe el problema detectado (mínimo 5 caracteres)…"
+          [ngModel]="motivoReporte()"
+          (ngModelChange)="motivoReporte.set($event)"
+          name="motivoReporte"
+          required
+        ></textarea>
+      </label>
+      @if (errorReporte()) {
+        <p class="mensaje-error" role="alert">{{ errorReporte() }}</p>
+      }
+      <div class="acciones-modal-reporte">
+        <button type="button" class="btn btn-contorno" (click)="modalReporteAbierto.set(false)">Cancelar</button>
+        <button type="submit" class="btn btn-primario" [disabled]="enviandoReporte()">
+          {{ enviandoReporte() ? 'Enviando…' : 'Enviar reporte' }}
+        </button>
+      </div>
+    </form>
+  </app-modal>
   }
 </div>
 }

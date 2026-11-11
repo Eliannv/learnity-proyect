@@ -4,12 +4,16 @@ import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { validarConsulta, validarCuerpo, validarParametros } from '../../shared/http/validar.js';
 import { supervisionController as controller } from './supervision.controller.js';
 import {
-  atencionAlerta, consultaVacia, filtroAccesos, filtroAlertas, filtroAuditoria, filtroSesiones, idAlerta, idCambio,
-  idSesion, revocacionSesion,
+  atencionAlerta, consultaVacia, datosReporteCurso, filtroAccesos, filtroAlertas, filtroAuditoria, filtroSesiones,
+  idAlerta, idCambio, idCursoReporte, idSesion, revocacionSesion,
 } from './supervision.esquemas.js';
 
 // Supervisión del administrador: resumen, accesos, cuentas bloqueadas, auditoría, salud de la base, sesiones y alertas.
 export const supervisionRoutes = Router();
+
+supervisionRoutes.post('/cursos/:id/reportar', limitarPorIp('reporte_curso', 15, 15), autenticar,
+  validarParametros(idCursoReporte), validarCuerpo(datosReporteCurso, 'Revisa el motivo del reporte.'),
+  controller.reportarCurso);
 
 supervisionRoutes.get('/admin/resumen', autenticar, autorizar('ADMIN'),
   validarConsulta(consultaVacia), controller.resumen);

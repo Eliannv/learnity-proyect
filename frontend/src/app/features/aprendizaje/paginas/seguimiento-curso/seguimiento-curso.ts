@@ -1,10 +1,14 @@
 import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
+import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
+import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { mensajeDeError } from '../../../../core/http/error-api';
+import { CatalogoApi } from '../../../catalogo/catalogo.api';
 import { ContenidoApi } from '../../../contenido/contenido.api';
 import { ReproductorYoutube } from '../../../contenido/componentes/reproductor-youtube';
 import { esIdYoutube, type PosicionYoutube } from '../../../contenido/youtube';
@@ -31,7 +35,7 @@ const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
  */
 @Component({
   selector: 'app-seguimiento-curso',
-  imports: [Esqueleto, RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube, EvaluacionEstudiante, RecursosEstudiante, ResenasCurso],
+  imports: [Esqueleto, Modal, FormsModule, RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube, EvaluacionEstudiante, RecursosEstudiante, ResenasCurso],
   templateUrl: './seguimiento-curso.html',
   styleUrl: './seguimiento-curso.scss',
 })
@@ -44,8 +48,10 @@ export class SeguimientoCurso {
   private readonly rutaActiva = inject(ActivatedRoute);
 
   private readonly api = inject(AprendizajeApi);
+  private readonly catalogoApi = inject(CatalogoApi);
   private readonly contenido = inject(ContenidoApi);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly toast = inject(ToastService);
   private solicitud = 0;
   private pdfObjeto: string | null = null;
   private guardandoPosicion = false;
@@ -69,6 +75,10 @@ export class SeguimientoCurso {
   protected readonly sidebarAbierto = signal(true);
   protected readonly descargandoId = signal<number | null>(null);
   protected readonly avisoDescarga = signal('');
+  protected readonly modalReporteAbierto = signal(false);
+  protected readonly motivoReporte = signal('');
+  protected readonly enviandoReporte = signal(false);
+  protected readonly errorReporte = signal('');
   protected readonly todas = computed(() => this.detalle()?.modulos.flatMap((m) => m.lecciones) ?? []);
   protected readonly indice = computed(() => this.todas().findIndex((l) => String(l.id) === this.leccionId()));
   protected readonly leccion = computed(() => this.todas()[this.indice()] ?? null);
@@ -240,8 +250,25 @@ export class SeguimientoCurso {
     this.guardando.set(true);
     this.errorProgreso.set('');
     this.confirmacion.set('');
+    const estadoPrevio = item.progreso.completada;
+    const nuevoEstado = !estadoPrevio;
+    const detallePrevio = this.detalle();
+    if (detallePrevio) {
+      const total = detallePrevio.totalLecciones || 1;
+      const nuevasCompletadas = Math.max(
+        0,
+        Math.min(detallePrevio.totalLecciones, detallePrevio.leccionesCompletadas + (nuevoEstado ? 1 : -1)),
+      );
+      this.aplicar({
+        leccionId: item.id,
+        segundosVistos: item.progreso.segundosVistos,
+        completada: nuevoEstado,
+        progresoPct: Math.round((nuevasCompletadas / total) * 100),
+        estado: nuevasCompletadas >= detallePrevio.totalLecciones ? 'COMPLETADA' : 'ACTIVA',
+        ultimaLeccionId: item.id,
+      });
+    }
     try {
-      const nuevoEstado = !item.progreso.completada;
       const resultado = await this.api.guardarProgreso(item.id, { completada: nuevoEstado });
       this.aplicar(resultado);
       if (nuevoEstado) {
@@ -251,6 +278,7 @@ export class SeguimientoCurso {
         this.confirmacion.set('');
       }
     } catch (error) {
+      if (detallePrevio) this.detalle.set(detallePrevio);
       this.errorProgreso.set(mensajeDeError(error, 'Guardar el avance'));
     } finally {
       this.guardando.set(false);
@@ -266,8 +294,64 @@ export class SeguimientoCurso {
     // Puede llegar justo después de cambiar de lección (al salir del vídeo): vale si es de este curso.
     const leccion = this.todas().find((l) => l.id === posicion.leccionId);
     if (!leccion || leccion.youtubeVideoId !== posicion.videoId) return;
+    try {
+      localStorage.setItem(`learnity:video:${this.cursoId()}:${posicion.leccionId}`, String(posicion.segundos));
+    } catch {
+      // Ignorar si localStorage no está disponible.
+    }
     this.posicionesPendientes.set(posicion.leccionId, posicion);
     if (!this.guardandoPosicion) void this.enviarPosiciones();
+  }
+
+  protected posicionVideo(leccion: LeccionAprendizaje): number {
+    let local = 0;
+    try {
+      const raw = localStorage.getItem(`learnity:video:${this.cursoId()}:${leccion.id}`);
+      const num = Number(raw);
+      if (Number.isFinite(num) && num > 0) local = Math.floor(num);
+    } catch {
+      local = 0;
+    }
+    return Math.max(leccion.progreso.segundosVistos || 0, local);
+  }
+
+  protected async compartirCurso(): Promise<void> {
+    const d = this.detalle();
+    if (!d) return;
+    const url = `${window.location.origin}/cursos/${d.curso.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.toast.exito('Enlace del curso copiado al portapapeles.');
+    } catch {
+      this.toast.info(`Enlace del curso: ${url}`);
+    }
+  }
+
+  protected abrirModalReporte(): void {
+    this.motivoReporte.set('');
+    this.errorReporte.set('');
+    this.modalReporteAbierto.set(true);
+  }
+
+  protected async enviarReporteCurso(): Promise<void> {
+    const d = this.detalle();
+    const motivo = this.motivoReporte().trim();
+    if (!d || this.enviandoReporte()) return;
+    if (motivo.length < 5) {
+      this.errorReporte.set('Describe brevemente el motivo del reporte (al menos 5 caracteres).');
+      return;
+    }
+    this.enviandoReporte.set(true);
+    this.errorReporte.set('');
+    try {
+      await this.catalogoApi.reportarCurso(d.curso.id, motivo);
+      this.modalReporteAbierto.set(false);
+      this.toast.exito('Reporte enviado al equipo de administración.');
+    } catch (error) {
+      this.errorReporte.set(mensajeDeError(error, 'Enviar el reporte'));
+    } finally {
+      this.enviandoReporte.set(false);
+    }
   }
 
   /** Ver el vídeo hasta el final completa la lección (sin deshacer nada si ya lo estaba). */
