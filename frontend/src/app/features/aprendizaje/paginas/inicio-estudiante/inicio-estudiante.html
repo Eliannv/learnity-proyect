@@ -17,19 +17,6 @@
     </div>
   </header>
 
-  <section class="seccion" aria-labelledby="t-temas">
-    <h2 class="titulo-seccion" id="t-temas">Explora por categoría</h2>
-    <div class="temas">
-      @for (cat of categorias(); track cat.id) {
-        <a class="tema" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
-          <lucide-icon class="tema-icono" [name]="cat.icono" [size]="20" aria-hidden="true" />
-          <span class="tema-nombre">{{ cat.nombre }}</span>
-          <lucide-icon class="tema-flecha" name="chevron-right" [size]="18" aria-hidden="true" />
-        </a>
-      }
-    </div>
-  </section>
-
   <!-- Retomar: la última lección abierta de cada curso en curso -->
   @if (continuar().length) {
     <section class="seccion" aria-labelledby="t-continuar">

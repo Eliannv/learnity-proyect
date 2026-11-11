@@ -15,7 +15,7 @@ class VistaPrueba {}
 describe('HeaderSitio - Buscador móvil estilo YouTube', () => {
   const vacia: PaginaCursos = { items: [], pagina: 1, limite: 5, total: 0, totalPaginas: 0 };
 
-  const montar = (autenticado = false) => {
+  const montar = (autenticado = false, categoriasMock: Array<{ id: number; nombre: string; icono: string }> = []) => {
     const authMock = {
       autenticado: signal(autenticado),
       esDocente: signal(false),
@@ -29,7 +29,7 @@ describe('HeaderSitio - Buscador móvil estilo YouTube', () => {
     };
 
     const catalogoApiMock = {
-      categorias: vi.fn().mockResolvedValue([]),
+      categorias: vi.fn().mockResolvedValue(categoriasMock),
       listar: vi.fn().mockResolvedValue(vacia),
     };
 
@@ -129,6 +129,30 @@ describe('HeaderSitio - Buscador móvil estilo YouTube', () => {
     const dialogo = el.querySelector('[role="dialog"]');
     expect(dialogo).not.toBeNull();
     expect(dialogo?.textContent).toContain('Solicitud para ser docente');
+  });
+
+  it('barra de categorías del navbar tiene clase oculto-movil y limita al top 6 de categorías con más cursos', async () => {
+    const ocho = [
+      { id: 1, nombre: 'Programación', icono: 'code' },
+      { id: 2, nombre: 'Diseño', icono: 'pen-tool' },
+      { id: 3, nombre: 'Idiomas', icono: 'languages' },
+      { id: 4, nombre: 'Marketing', icono: 'megaphone' },
+      { id: 5, nombre: 'Negocios', icono: 'briefcase' },
+      { id: 6, nombre: 'Ofimática', icono: 'monitor' },
+      { id: 7, nombre: 'Música', icono: 'music' },
+      { id: 8, nombre: 'Ciencias', icono: 'atom' },
+    ];
+    const { fixture } = montar(false, ocho);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const barraCat = el.querySelector('nav.barra-categorias') as HTMLElement;
+    expect(barraCat).not.toBeNull();
+    expect(barraCat.classList.contains('oculto-movil')).toBe(true);
+
+    const enlaces = Array.from(barraCat.querySelectorAll('a')).map((a) => a.textContent?.trim());
+    expect(enlaces).toEqual(['Programación', 'Diseño', 'Idiomas', 'Marketing', 'Negocios', 'Ofimática']);
   });
 });
 

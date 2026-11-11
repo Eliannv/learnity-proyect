@@ -131,9 +131,9 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
       }
     </header>
 
-    <!-- Fila de categorías como en Udemy: fuera del header fijo para no cambiar su altura -->
+    <!-- Fila de categorías como en Udemy: solo en escritorio, fuera del header fijo para no cambiar su altura -->
     @if (mostrarCategorias() && categorias().length) {
-      <nav class="barra-categorias" aria-label="Categorías">
+      <nav class="barra-categorias oculto-movil" aria-label="Categorías">
         @for (c of categorias(); track c) {
           <a routerLink="/cursos" [queryParams]="{ categoria: c }">{{ c }}</a>
         }
@@ -200,7 +200,7 @@ export class HeaderSitio {
   private async cargarCategorias(): Promise<void> {
     try {
       const lista = await this.catalogoApi.categorias();
-      this.categorias.set(lista.map((c) => c.nombre));
+      this.categorias.set(lista.slice(0, 6).map((c) => c.nombre));
     } catch {
       this.categorias.set([]);
     }

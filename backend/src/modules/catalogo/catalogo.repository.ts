@@ -55,6 +55,11 @@ const CTE_CATEGORIA = `
     SELECT cat.id_categoria AS id, cat.nombre, 'tags'::varchar AS icono
       FROM categoria cat
      WHERE cat.activa = TRUE
+  ),
+  catalogo_curso AS (
+    SELECT c.id_curso AS id, c.id_categoria AS categoria_id
+      FROM curso c
+     WHERE c.estado = 'PUBLICADO'
   )`;
 
 const CTE_CURSO = `
@@ -164,7 +169,15 @@ export const catalogoRepository = {
   async categoriasPublicas(): Promise<CategoriaPublica[]> {
     const pre = (await tieneVistasCatalogo()) ? '' : CTE_CATEGORIA;
     const { rows } = await consultar<CategoriaPublica>(
-      `${pre} SELECT id, nombre, icono FROM catalogo_categoria ORDER BY nombre ASC, id ASC`,
+      `${pre}
+       SELECT cat.id, cat.nombre, cat.icono
+         FROM catalogo_categoria cat
+         LEFT JOIN (
+           SELECT categoria_id, COUNT(*)::int AS total_cursos
+             FROM catalogo_curso
+            GROUP BY categoria_id
+         ) conteo ON conteo.categoria_id = cat.id
+        ORDER BY COALESCE(conteo.total_cursos, 0) DESC, cat.nombre ASC, cat.id ASC`,
     );
     return rows;
   },

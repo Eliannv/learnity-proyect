@@ -34,22 +34,6 @@
   </div>
 </section>
 
-<!-- Categorías -->
-<section class="contenedor seccion">
-  <div class="cabecera-seccion">
-    <h2 class="titulo-seccion">Explora por categoría</h2>
-  </div>
-  <div class="chips-scroll">
-    <a class="chip-filtro activo" routerLink="/cursos">Todas</a>
-    @for (cat of categorias(); track cat.id) {
-      <a class="chip-filtro" routerLink="/cursos" [queryParams]="{ categoria: cat.nombre }">
-        <lucide-icon [name]="cat.icono" [size]="18" />
-        {{ cat.nombre }}
-      </a>
-    }
-  </div>
-</section>
-
 @if (cargando()) {
   <section class="contenedor seccion">
     <app-esqueleto forma="tarjetas" [cantidad]="4" etiqueta="Cargando cursos…" />
