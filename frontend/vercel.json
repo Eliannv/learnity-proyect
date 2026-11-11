@@ -37,7 +37,7 @@
       ]
     },
     {
-      "source": "/:archivo(*.js|*.css)",
+      "source": "/(.+\\.(?:js|css))",
       "headers": [
         {
           "key": "Cache-Control",
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "source": "/:fuente(*.woff2|*.woff|*.ttf)",
+      "source": "/(.+\\.(?:woff2|woff|ttf))",
       "headers": [
         {
           "key": "Cache-Control",
