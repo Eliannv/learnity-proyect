@@ -70,6 +70,49 @@
   p { margin: 6px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
 }
 .responder { display: grid; gap: 10px; }
+.hilo-respuestas {
+  margin: 4px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 2px solid var(--borde);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hilo-item {
+  padding: 8px 12px;
+  border-radius: var(--radio-sm);
+  background: var(--elevado);
+}
+.hilo-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 13px;
+}
+.chip-docente {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--acento-suave);
+  color: var(--acento);
+  font-size: 11px;
+  font-weight: 700;
+}
+.btn-borrar-hilo {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--negativo);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  &:hover { text-decoration: underline; }
+}
 .acciones {
   display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;
   .btn { display: inline-flex; align-items: center; gap: 6px; }

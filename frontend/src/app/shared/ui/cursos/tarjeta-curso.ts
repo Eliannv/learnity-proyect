@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Estrellas } from '../datos/estrellas';
 import type { Tono } from '../tipos-ui';
@@ -19,6 +19,7 @@ export interface CalificacionTarjeta {
  */
 @Component({
   selector: 'app-tarjeta-curso',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, PortadaCurso, Estrellas],
   host: { '[class.horizontal]': 'horizontal()' },
   template: `

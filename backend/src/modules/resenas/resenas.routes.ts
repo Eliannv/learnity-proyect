@@ -4,8 +4,8 @@ import { limitarPorIp } from '../../shared/http/limite-peticiones.js';
 import { validarConsulta, validarCuerpo, validarParametros } from '../../shared/http/validar.js';
 import { resenasController as controller } from './resenas.controller.js';
 import {
-  datosOcultacion, datosReporte, datosResena, datosRespuesta, decisionReporte, filtrosBandeja, filtrosReportes, filtrosResenasAdmin,
-  idCursoResenas, idResena, paginacionResenas,
+  datosOcultacion, datosReporte, datosResena, datosRespuesta, datosRespuestaHilo, decisionReporte, filtrosBandeja,
+  filtrosReportes, filtrosResenasAdmin, idCursoResenas, idResena, idResenaRespuesta, paginacionResenas,
 } from './resenas.esquemas.js';
 
 // Reseñas de cursos: la lectura es pública; escribir exige estar inscrito en el curso publicado.
@@ -20,6 +20,11 @@ resenasRoutes.put('/cursos/:id/resena', limitarPorIp('resena', 30, 15), autentic
   validarParametros(idCursoResenas), validarCuerpo(datosResena, 'Revisa tu reseña.'), controller.guardar);
 resenasRoutes.delete('/cursos/:id/resena', autenticar, autorizar('ESTUDIANTE'),
   validarParametros(idCursoResenas), controller.eliminar);
+
+resenasRoutes.post('/resenas/:id/respuestas', limitarPorIp('respuesta_hilo', 60, 15), autenticar,
+  validarParametros(idResena), validarCuerpo(datosRespuestaHilo, 'Revisa tu comentario.'), controller.crearRespuestaHilo);
+resenasRoutes.delete('/resenas/:id/respuestas/:idRespuesta', autenticar,
+  validarParametros(idResenaRespuesta), controller.eliminarRespuestaHilo);
 
 resenasRoutes.get('/docente/resenas', autenticar, autorizar('DOCENTE'),
   validarConsulta(filtrosBandeja), controller.bandeja);

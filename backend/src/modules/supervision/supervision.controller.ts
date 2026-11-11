@@ -3,7 +3,8 @@ import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { datosValidados } from '../../shared/http/validar.js';
 import type {
-  AtencionAlerta, FiltroAccesosAdmin, FiltroAlertasAdmin, FiltroAuditoriaAdmin, FiltroSesionesAdmin, RevocacionSesion,
+  AtencionAlerta, DatosReporteCurso, FiltroAccesosAdmin, FiltroAlertasAdmin, FiltroAuditoriaAdmin,
+  FiltroSesionesAdmin, RevocacionSesion,
 } from './supervision.esquemas.js';
 import { supervisionService as service } from './supervision.service.js';
 
@@ -58,6 +59,12 @@ export const supervisionController = {
   async atenderAlerta(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
     res.json(await service.atenderAlerta(id, (req.body as AtencionAlerta).nota, usuario(req)));
+  },
+
+  async reportarCurso(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    const { motivo } = req.body as DatosReporteCurso;
+    res.status(201).json(await service.reportarCurso(id, motivo, usuario(req)));
   },
 
   async sesiones(req: Request, res: Response): Promise<void> {

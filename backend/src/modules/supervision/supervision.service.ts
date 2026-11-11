@@ -64,7 +64,15 @@ const alerta = (f: FilaAlerta): AlertaSeguridad => ({
   id: Number(f.id), tipo: f.tipo, severidad: f.severidad, descripcion: humanizarDescripcionAlerta(f.descripcion),
   detectadaEn: f.detectadaEn.toISOString(),
   usuario: f.idUsuario === null ? null : { id: f.idUsuario, nombre: f.nombre ?? '', correo: f.correo ?? '' },
-  evidencia: { auditoria: f.evidencia.auditoria ?? [], accesos: f.evidencia.accesos ?? [] },
+  evidencia: {
+    auditoria: f.evidencia.auditoria ?? [],
+    accesos: f.evidencia.accesos ?? [],
+    ...(f.evidencia.curso !== undefined || f.evidencia.idCurso !== undefined
+      ? { curso: f.evidencia.curso ?? f.evidencia.idCurso, idCurso: f.evidencia.idCurso ?? f.evidencia.curso }
+      : {}),
+    ...(f.evidencia.cursoTitulo !== undefined ? { cursoTitulo: f.evidencia.cursoTitulo } : {}),
+    ...(f.evidencia.motivo !== undefined ? { motivo: f.evidencia.motivo } : {}),
+  },
   atencion: f.atendidaEn === null ? null : {
     fecha: f.atendidaEn.toISOString(), nota: f.nota,
     por: f.idAtendio === null ? null : { id: f.idAtendio, nombre: f.atendio ?? 'Cuenta eliminada' },
@@ -174,6 +182,30 @@ export const supervisionService = {
     if (resultado === 'no') throw AppError.noEncontrado('La alerta no existe.');
     if (resultado === 'ya') throw AppError.conflicto('Esta alerta ya fue atendida.', 'ALERTA_ATENDIDA');
     return alerta((await repo.alertaPorId(id))!);
+  },
+
+  async reportarCurso(idCurso: number, motivo: string, usuario: UsuarioSesion): Promise<{ mensaje: string }> {
+    const estado = await enTransaccion(
+      (cliente) => repo.reportarCurso(cliente, usuario.idUsuario, idCurso, motivo),
+      { actor: usuario.idPersona },
+    );
+    if (estado === 'NO_ENCONTRADO') {
+      throw AppError.noEncontrado('El curso no existe o no está publicado.');
+    }
+    if (estado === 'NO_AUTORIZADO') {
+      throw AppError.noAutenticado();
+    }
+    if (estado === 'MOTIVO_INVALIDO') {
+      throw AppError.solicitudInvalida('Describe brevemente el motivo del reporte (al menos 5 caracteres).');
+    }
+    if (estado === 'DUPLICADO') {
+      throw AppError.conflicto(
+        'Ya tienes un reporte pendiente de revisión para este curso.',
+        'REPORTE_CURSO_DUPLICADO',
+      );
+    }
+    registrarEvento('curso_reportado', { idCurso, idUsuario: usuario.idUsuario });
+    return { mensaje: 'Reporte enviado al equipo de administración.' };
   },
 
   // -------------------------------------------------------------- sesiones

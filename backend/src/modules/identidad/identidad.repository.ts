@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { consultar, pool } from '../../shared/database/pool.js';
+import { calcularEdad, guardarRespaldo041, leerRespaldo041, tieneMigracion041 } from '../../shared/database/respaldo-041.js';
 import type { Rol } from '../../shared/auth/tipos.js';
 
 // Capa repository: SOLO consultas a PostgreSQL. Sin reglas del negocio.
@@ -26,9 +28,14 @@ export interface Perfil {
   idUsuario: number;
   idPersona: number;
   correo: string;
+  correoPendiente: string | null;
   nombres: string;
   apellidos: string;
+  pais: string | null;
+  provincia: string | null;
   ciudad: string | null;
+  fechaNacimiento: string | null;
+  edad: number | null;
   biografia: string | null;
   fotoUrl: string | null;
   roles: Rol[];
@@ -204,7 +211,42 @@ export const identidadRepository = {
   },
 
   async obtenerPerfil(idUsuario: number): Promise<Perfil | null> {
-    const { rows } = await consultar<Perfil>(
+    if (await tieneMigracion041(pool)) {
+      const { rows } = await consultar<Omit<Perfil, 'edad'>>(
+        `SELECT u.id_usuario AS "idUsuario", p.id_persona AS "idPersona", u.correo,
+                (SELECT tr.nuevo_correo FROM token_recuperacion tr
+                  WHERE tr.id_usuario = u.id_usuario AND tr.proposito = 'CAMBIO_CORREO'
+                    AND tr.usado_en IS NULL AND tr.expira_en > now()
+                  ORDER BY tr.creado_en DESC LIMIT 1) AS "correoPendiente",
+                p.nombres, p.apellidos, p.pais, p.provincia, p.ciudad,
+                to_char(p.fecha_nacimiento, 'YYYY-MM-DD') AS "fechaNacimiento",
+                p.biografia, p.foto_url AS "fotoUrl", p.creado_en AS "creadoEn",
+                COALESCE(array_agg(r.nombre ORDER BY r.id_rol) FILTER (WHERE r.nombre IS NOT NULL), '{}') AS roles
+           FROM usuario u
+           JOIN persona p ON p.id_persona = u.id_persona
+           LEFT JOIN usuario_rol ur ON ur.id_usuario = u.id_usuario
+           LEFT JOIN rol r ON r.id_rol = ur.id_rol
+          WHERE u.id_usuario = $1
+          GROUP BY u.id_usuario, p.id_persona`,
+        [idUsuario],
+      );
+      const fila = rows[0];
+      if (!fila) return null;
+      return { ...fila, edad: calcularEdad(fila.fechaNacimiento) };
+    }
+
+    const { rows } = await consultar<{
+      idUsuario: number;
+      idPersona: number;
+      correo: string;
+      nombres: string;
+      apellidos: string;
+      ciudad: string | null;
+      biografia: string | null;
+      fotoUrl: string | null;
+      roles: Rol[];
+      creadoEn: Date;
+    }>(
       `SELECT u.id_usuario AS "idUsuario", p.id_persona AS "idPersona", u.correo,
               p.nombres, p.apellidos, p.ciudad, p.biografia, p.foto_url AS "fotoUrl", p.creado_en AS "creadoEn",
               COALESCE(array_agg(r.nombre ORDER BY r.id_rol) FILTER (WHERE r.nombre IS NOT NULL), '{}') AS roles
@@ -216,18 +258,75 @@ export const identidadRepository = {
         GROUP BY u.id_usuario, p.id_persona`,
       [idUsuario],
     );
-    return rows[0] ?? null;
+    const base = rows[0];
+    if (!base) return null;
+    const estado = leerRespaldo041();
+    const extra = estado.personas[String(base.idPersona)];
+    const ahoraIso = new Date().toISOString();
+    const tokenPendiente = estado.tokensCorreo
+      .filter((t) => t.idUsuario === base.idUsuario && !t.usadoEn && t.expiraEn > ahoraIso)
+      .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn))[0];
+    const fechaNacimiento = extra?.fechaNacimiento ?? null;
+    return {
+      ...base,
+      correoPendiente: tokenPendiente?.nuevoCorreo ?? null,
+      pais: extra?.pais ?? null,
+      provincia: extra?.provincia ?? null,
+      fechaNacimiento,
+      edad: calcularEdad(fechaNacimiento),
+    };
   },
 
   async actualizarPersona(
     idPersona: number,
-    datos: { nombres: string; apellidos: string; ciudad?: string | null; biografia?: string | null },
+    datos: {
+      nombres: string;
+      apellidos: string;
+      pais?: string | null;
+      provincia?: string | null;
+      ciudad?: string | null;
+      fechaNacimiento?: string | null;
+      biografia?: string | null;
+    },
     cliente: Ejecutor = pool,
   ): Promise<void> {
+    if (await tieneMigracion041(cliente)) {
+      await cliente.query(
+        `UPDATE persona
+            SET nombres = $2,
+                apellidos = $3,
+                pais = $4,
+                provincia = $5,
+                ciudad = $6,
+                fecha_nacimiento = $7::date,
+                biografia = $8
+          WHERE id_persona = $1`,
+        [
+          idPersona,
+          datos.nombres,
+          datos.apellidos,
+          datos.pais ?? null,
+          datos.provincia ?? null,
+          datos.ciudad ?? null,
+          datos.fechaNacimiento ?? null,
+          datos.biografia ?? null,
+        ],
+      );
+      return;
+    }
+
     await cliente.query(
       'UPDATE persona SET nombres = $2, apellidos = $3, ciudad = $4, biografia = $5 WHERE id_persona = $1',
       [idPersona, datos.nombres, datos.apellidos, datos.ciudad ?? null, datos.biografia ?? null],
     );
+    guardarRespaldo041((estado) => {
+      const actual = estado.personas[String(idPersona)];
+      estado.personas[String(idPersona)] = {
+        pais: datos.pais !== undefined ? datos.pais : (actual?.pais ?? null),
+        provincia: datos.provincia !== undefined ? datos.provincia : (actual?.provincia ?? null),
+        fechaNacimiento: datos.fechaNacimiento !== undefined ? datos.fechaNacimiento : (actual?.fechaNacimiento ?? null),
+      };
+    });
   },
 
   /** Cambia la foto y devuelve la anterior, para borrar su archivo después del commit. */
@@ -557,5 +656,113 @@ export const identidadRepository = {
       [idUsuario],
     );
     return (rowCount ?? 0) > 0;
+  },
+
+  // ───────────────────────────────────────────────────────────── cambio privado de correo con confirmación (041)
+  async reemplazarTokenCambioCorreo(
+    cliente: pg.PoolClient,
+    datos: { idUsuario: number; tokenHash: string; nuevoCorreo: string; horas: number; ip?: string },
+  ): Promise<Date> {
+    if (await tieneMigracion041(cliente)) {
+      await cliente.query(
+        `UPDATE token_recuperacion SET usado_en = now()
+          WHERE id_usuario = $1 AND proposito = 'CAMBIO_CORREO' AND usado_en IS NULL`,
+        [datos.idUsuario],
+      );
+      const { rows } = await cliente.query<{ expiraEn: Date }>(
+        `INSERT INTO token_recuperacion (id_usuario, token_hash, expira_en, proposito, nuevo_correo, ip)
+         VALUES ($1, $2, now() + make_interval(hours => $3), 'CAMBIO_CORREO', $4, $5)
+         RETURNING expira_en AS "expiraEn"`,
+        [datos.idUsuario, datos.tokenHash, datos.horas, datos.nuevoCorreo, datos.ip ?? null],
+      );
+      return rows[0]!.expiraEn;
+    }
+
+    const ahora = new Date();
+    const expiraEn = new Date(ahora.getTime() + datos.horas * 3_600_000);
+    guardarRespaldo041((estado) => {
+      for (const t of estado.tokensCorreo) {
+        if (t.idUsuario === datos.idUsuario && !t.usadoEn) {
+          t.usadoEn = ahora.toISOString();
+        }
+      }
+      estado.tokensCorreo.push({
+        idToken: randomUUID(),
+        idUsuario: datos.idUsuario,
+        tokenHash: datos.tokenHash,
+        nuevoCorreo: datos.nuevoCorreo,
+        creadoEn: ahora.toISOString(),
+        expiraEn: expiraEn.toISOString(),
+        usadoEn: null,
+      });
+    });
+    return expiraEn;
+  },
+
+  async buscarTokenCambioCorreoVigente(
+    tokenHash: string,
+  ): Promise<{ idToken: string; idUsuario: number; nuevoCorreo: string } | null> {
+    if (await tieneMigracion041(pool)) {
+      const { rows } = await consultar<{ idToken: string; idUsuario: number; nuevoCorreo: string }>(
+        `SELECT id_token AS "idToken", id_usuario AS "idUsuario", nuevo_correo AS "nuevoCorreo"
+           FROM token_recuperacion
+          WHERE token_hash = $1
+            AND proposito = 'CAMBIO_CORREO'
+            AND usado_en IS NULL
+            AND expira_en > now()
+            AND nuevo_correo IS NOT NULL`,
+        [tokenHash],
+      );
+      return rows[0] ?? null;
+    }
+
+    const estado = leerRespaldo041();
+    const ahoraIso = new Date().toISOString();
+    const encontrado = estado.tokensCorreo.find(
+      (t) => t.tokenHash === tokenHash && !t.usadoEn && t.expiraEn > ahoraIso,
+    );
+    if (!encontrado) return null;
+    return {
+      idToken: encontrado.idToken,
+      idUsuario: encontrado.idUsuario,
+      nuevoCorreo: encontrado.nuevoCorreo,
+    };
+  },
+
+  async consumirTokenCambioCorreo(
+    cliente: pg.PoolClient,
+    idToken: string,
+    idUsuario: number,
+    nuevoCorreo: string,
+  ): Promise<boolean> {
+    if (await tieneMigracion041(cliente)) {
+      const { rowCount } = await cliente.query(
+        `UPDATE token_recuperacion
+            SET usado_en = now()
+          WHERE id_token = $1
+            AND proposito = 'CAMBIO_CORREO'
+            AND usado_en IS NULL
+            AND expira_en > now()`,
+        [idToken],
+      );
+      if ((rowCount ?? 0) === 0) return false;
+      await cliente.query('UPDATE usuario SET correo = $2 WHERE id_usuario = $1', [idUsuario, nuevoCorreo]);
+      return true;
+    }
+
+    let consumido = false;
+    const ahoraIso = new Date().toISOString();
+    guardarRespaldo041((estado) => {
+      const token = estado.tokensCorreo.find(
+        (t) => t.idToken === idToken && !t.usadoEn && t.expiraEn > ahoraIso,
+      );
+      if (token) {
+        token.usadoEn = ahoraIso;
+        consumido = true;
+      }
+    });
+    if (!consumido) return false;
+    await cliente.query('UPDATE usuario SET correo = $2 WHERE id_usuario = $1', [idUsuario, nuevoCorreo]);
+    return true;
   },
 };

@@ -6,6 +6,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './shared/config/env.js';
 import { registrarVerificadorSesion } from './shared/auth/middlewares.js';
 import { verificarOrigen } from './shared/http/cookies-sesion.js';
+import { comprimirRespuestas } from './shared/http/compresion.js';
 import { correlacion, ENCABEZADO_ID_PETICION } from './shared/http/correlacion.js';
 import { manejadorErrores, rutaNoEncontrada } from './shared/http/manejador-errores.js';
 import { comprobarConexion } from './shared/database/salud.repository.js';
@@ -64,6 +65,7 @@ export function crearApp() {
   app.use((req, res, next) =>
     env.NODE_ENV === 'development' && req.path.startsWith('/api/docs') ? helmetDocs(req, res, next) : helmetApi(req, res, next));
   app.use(cors({ origin: env.ORIGENES, credentials: true, exposedHeaders: [ENCABEZADO_ID_PETICION] }));
+  app.use(comprimirRespuestas);
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 

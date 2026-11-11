@@ -326,9 +326,40 @@ textarea.control {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px 20px;
 
-  .campo:has(textarea) {
+  .campo:has(textarea),
+  .campo-correo {
     grid-column: 1 / -1;
   }
+}
+
+.fila-correo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+
+  .control {
+    flex: 1 1 220px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+}
+
+.chip-edad {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--acento-suave, #e8f0fe);
+  color: var(--acento, #1a73e8);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .lateral .foto {

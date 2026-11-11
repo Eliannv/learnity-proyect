@@ -327,6 +327,20 @@ export class AdminUsuarios {
     }
   }
 
+  protected async cambiarCorreo(u: Pick<UsuarioAdmin, 'id' | 'nombre'>, nuevoCorreo: string): Promise<void> {
+    this.accionFicha.set('correo');
+    this.ocupadoId.set(u.id);
+    try {
+      const msg = await this.api.solicitarCambioCorreo(u.id, nuevoCorreo);
+      this.toast.exito(msg);
+    } catch (error) {
+      this.toast.error(mensajeDeError(error, 'Solicitar el cambio de correo'));
+    } finally {
+      this.accionFicha.set(null);
+      this.ocupadoId.set(null);
+    }
+  }
+
   /** Los conteos por rol cambian al editar roles: se recargan sin perder la página. */
   private reemplazar(actualizado: UsuarioAdmin): void {
     this.datos.update((d) => d && { ...d, items: d.items.map((x) => x.id === actualizado.id ? actualizado : x) });

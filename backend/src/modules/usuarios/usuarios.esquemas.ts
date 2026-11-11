@@ -75,6 +75,23 @@ export const cambioRolesUsuario = z.strictObject({
   roles: z.array(z.enum(ROLES_VALIDOS)).min(1, 'La cuenta debe tener al menos un rol.'),
 });
 
+const correoAdmin = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email('Correo no válido.').max(120, 'El correo debe tener como máximo 120 caracteres.'));
+
+export const cambioCorreoUsuarioAdmin = z
+  .strictObject({
+    correo: correoAdmin.optional(),
+    nuevoCorreo: correoAdmin.optional(),
+  })
+  .refine((d) => Boolean(d.correo ?? d.nuevoCorreo), {
+    path: ['correo'],
+    message: 'Correo no válido.',
+  })
+  .transform((d) => ({ correo: (d.correo ?? d.nuevoCorreo)! }));
+
 /** Alta por un administrador (D1): la persona recibe un enlace de invitación para crear su contraseña. */
 export const nuevoUsuarioAdmin = z.strictObject({
   nombres: textoSeguro().trim().min(1, 'Escribe los nombres.').max(80, 'Los nombres deben tener como máximo 80 caracteres.'),
@@ -97,3 +114,4 @@ export type NuevoUsuarioAdmin = z.infer<typeof nuevoUsuarioAdmin>;
 export type FiltroUsuariosAdmin = z.infer<typeof filtroUsuariosAdmin>;
 export type CambioEstadoUsuario = z.infer<typeof cambioEstadoUsuario>;
 export type CambioRolesUsuario = z.infer<typeof cambioRolesUsuario>;
+export type CambioCorreoUsuarioAdmin = z.infer<typeof cambioCorreoUsuarioAdmin>;

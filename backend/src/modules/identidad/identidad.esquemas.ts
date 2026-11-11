@@ -47,11 +47,61 @@ export const restablecerSchema = z.object({
   contrasena: contrasenaNueva,
 });
 
+function fechaNacimientoValida(valor: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
+  const [anioStr, mesStr, diaStr] = valor.split('-');
+  const anio = Number(anioStr);
+  const mes = Number(mesStr);
+  const dia = Number(diaStr);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  if (
+    fecha.getUTCFullYear() !== anio ||
+    fecha.getUTCMonth() !== mes - 1 ||
+    fecha.getUTCDate() !== dia
+  ) {
+    return false;
+  }
+  const hoy = new Date().toISOString().slice(0, 10);
+  return valor >= '1900-01-01' && valor <= hoy;
+}
+
+const fechaNacimientoOpcional = z
+  .string()
+  .trim()
+  .nullable()
+  .optional()
+  .transform((valor) => (valor && valor.length > 0 ? valor : null))
+  .refine((valor) => valor === null || fechaNacimientoValida(valor), {
+    message: 'Ingresa una fecha de nacimiento válida y no futura (AAAA-MM-DD).',
+  });
+
 export const actualizarPerfilSchema = z.object({
   nombres: nombre('nombres'),
   apellidos: nombre('apellidos'),
+  pais: textoSeguro().trim().max(60).nullable().optional(),
+  provincia: textoSeguro().trim().max(60).nullable().optional(),
   ciudad: textoSeguro().trim().max(60).nullable().optional(),
+  fechaNacimiento: fechaNacimientoOpcional,
   biografia: textoSeguro().trim().max(300).nullable().optional(),
+});
+
+export const solicitarCambioCorreoSchema = z
+  .object({
+    correo: correo.optional(),
+    nuevoCorreo: correo.optional(),
+    contrasenaActual: contrasenaEscrita.optional(),
+  })
+  .refine((d) => Boolean(d.correo ?? d.nuevoCorreo), {
+    path: ['nuevoCorreo'],
+    message: 'Correo no válido',
+  })
+  .transform((d) => ({
+    correo: (d.correo ?? d.nuevoCorreo)!,
+    contrasenaActual: d.contrasenaActual,
+  }));
+
+export const confirmarCambioCorreoSchema = z.object({
+  token: z.string().trim().min(1, 'El enlace de confirmación no es válido.').max(120),
 });
 
 /** Foto de perfil por enlace: solo `https://` externo (ver `esUrlFotoExterna`). */
@@ -70,3 +120,5 @@ export type RecuperarDto = z.infer<typeof recuperarSchema>;
 export type RestablecerDto = z.infer<typeof restablecerSchema>;
 export type ActualizarPerfilDto = z.infer<typeof actualizarPerfilSchema>;
 export type CambiarContrasenaDto = z.infer<typeof cambiarContrasenaSchema>;
+export type SolicitarCambioCorreoDto = z.infer<typeof solicitarCambioCorreoSchema>;
+export type ConfirmarCambioCorreoDto = z.infer<typeof confirmarCambioCorreoSchema>;

@@ -101,7 +101,14 @@ export class ReproductorYoutube implements OnDestroy {
       this.reproductor = new sdk.Player(destino, {
         videoId: id,
         width: '100%', height: '100%', host: 'https://www.youtube-nocookie.com',
-        playerVars: { origin: origen, autoplay: 0, controls: 1, playsinline: 1, rel: 0 },
+        playerVars: {
+          origin: origen,
+          autoplay: 0,
+          controls: 1,
+          playsinline: 1,
+          rel: 0,
+          ...(this.guardada() > 0 ? { start: Math.floor(this.guardada()) } : {}),
+        },
         events: {
           onReady: ({ target }) => {
             if (!vigente()) return;
@@ -145,6 +152,11 @@ export class ReproductorYoutube implements OnDestroy {
     clearTimeout(this.limiteBuffer);
     this.lenta.set(false);
     if (estado === 1) {
+      if (!this.huboReproduccion && this.guardada() > 0 && this.reproductor && this.reproductor.getCurrentTime() < 2) {
+        const duracion = this.reproductor.getDuration();
+        const destino = duracion > 0 ? Math.min(this.guardada(), Math.max(0, duracion - 1)) : this.guardada();
+        this.reproductor.seekTo(destino, true);
+      }
       this.huboReproduccion = true;
       if (this.observarPosicion()) {
         this.intervalo = setInterval(() => this.muestrear('intervalo'), 15_000);

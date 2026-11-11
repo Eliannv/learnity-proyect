@@ -1,10 +1,11 @@
 import type { Request, Response } from 'express';
+import { verificarAccessToken } from '../../shared/auth/jwt.js';
 import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { datosValidados } from '../../shared/http/validar.js';
 import type {
-  DatosOcultacion, DatosReporte, DatosResena, DatosRespuesta, DecisionReporte, FiltrosBandeja, FiltrosReportes, FiltrosResenasAdmin,
-  PaginacionResenas,
+  DatosOcultacion, DatosReporte, DatosResena, DatosRespuesta, DatosRespuestaHilo, DecisionReporte, FiltrosBandeja,
+  FiltrosReportes, FiltrosResenasAdmin, PaginacionResenas,
 } from './resenas.esquemas.js';
 import { resenasService as service } from './resenas.service.js';
 
@@ -13,10 +14,21 @@ function usuario(req: Request): UsuarioSesion {
   return req.usuario;
 }
 
+function idPersonaOpcional(req: Request): number | undefined {
+  const encabezado = req.headers.authorization ?? '';
+  const [tipo, token] = encabezado.split(' ');
+  if (tipo !== 'Bearer' || !token) return undefined;
+  try {
+    return verificarAccessToken(token).idPersona;
+  } catch {
+    return undefined;
+  }
+}
+
 export const resenasController = {
-  async listar(_req: Request, res: Response): Promise<void> {
+  async listar(req: Request, res: Response): Promise<void> {
     const { parametros: id, consulta } = datosValidados<number, PaginacionResenas>(res);
-    res.json(await service.listar(id, consulta));
+    res.json(await service.listar(id, consulta, idPersonaOpcional(req)));
   },
   async mia(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
@@ -29,6 +41,15 @@ export const resenasController = {
   async eliminar(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
     await service.eliminar(id, usuario(req));
+    res.status(204).end();
+  },
+  async crearRespuestaHilo(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res.status(201).json(await service.crearRespuestaHilo(id, req.body as DatosRespuestaHilo, usuario(req)));
+  },
+  async eliminarRespuestaHilo(req: Request, res: Response): Promise<void> {
+    const { parametros } = datosValidados<{ id: number; idRespuesta: number }>(res);
+    await service.eliminarRespuestaHilo(parametros.id, parametros.idRespuesta, usuario(req));
     res.status(204).end();
   },
 
@@ -53,10 +74,12 @@ export const resenasController = {
   },
   async todas(req: Request, res: Response): Promise<void> {
     const { consulta } = datosValidados<unknown, FiltrosResenasAdmin>(res);
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json(await service.todas(consulta, usuario(req)));
   },
   async reportes(req: Request, res: Response): Promise<void> {
     const { consulta } = datosValidados<unknown, FiltrosReportes>(res);
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json(await service.reportes(consulta, usuario(req)));
   },
   async resolverReporte(req: Request, res: Response): Promise<void> {

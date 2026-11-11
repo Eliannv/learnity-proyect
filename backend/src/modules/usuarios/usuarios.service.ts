@@ -6,6 +6,7 @@ import { AppError } from '../../shared/http/app-error.js';
 import { registrarEvento } from '../../shared/log/registro.js';
 import { HORAS_INVITACION, identidadApi } from '../identidad/index.js';
 import type {
+  CambioCorreoUsuarioAdmin,
   CambioEstadoUsuario,
   CambioRolesUsuario,
   DecisionSolicitud,
@@ -46,6 +47,19 @@ export const usuariosService = {
 
   /** La última solicitud de la cuenta, para mostrar su estado en el perfil (o null si nunca envió una). */
   miSolicitud: (usuario: UsuarioSesion) => repo.ultimaSolicitud(usuario.idPersona),
+
+  /** Permite a un docente activo postular a una especialidad/categoría adicional para revisión del administrador. */
+  async solicitarEspecialidadAdicional(usuario: UsuarioSesion, datos: NuevaSolicitudDocente): Promise<SolicitudDocente> {
+    const id = await enTransaccion(async (cliente) => {
+      await repo.bloquearUsuario(cliente, usuario.idUsuario);
+      if (await repo.existePendiente(cliente, usuario.idPersona)) {
+        throw AppError.conflicto('Ya tienes una solicitud de especialidad pendiente de revisión.', 'SOLICITUD_PENDIENTE');
+      }
+      return repo.crearSolicitud(cliente, usuario.idPersona, datos.especialidad, datos.motivo);
+    }, { actor: usuario.idPersona });
+    registrarEvento('solicitud_especialidad_docente_enviada', { idSolicitud: id, idUsuario: usuario.idUsuario });
+    return (await repo.buscarSolicitud(id))!;
+  },
 
   listarSolicitudes: (estado: EstadoSolicitud) => repo.listarSolicitudes(estado),
 
@@ -317,5 +331,13 @@ export const usuariosService = {
 
     registrarEvento('usuario_roles_actualizados', { idUsuario, roles, idAdmin: admin.idUsuario });
     return (await repo.buscarUsuarioAdmin(idUsuario))!;
+  },
+
+  async solicitarCambioCorreoUsuario(
+    idUsuario: number,
+    datos: CambioCorreoUsuarioAdmin,
+    admin: UsuarioSesion,
+  ): Promise<{ mensaje: string; correoPendiente: string; enlaceConfirmacion?: string }> {
+    return identidadApi.solicitarCambioCorreoPorAdmin(idUsuario, admin.idPersona, datos.correo);
   },
 };

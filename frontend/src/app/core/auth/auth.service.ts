@@ -128,6 +128,11 @@ export class AuthService {
     this._sesion.update((s) => (s ? { ...s, usuario: { ...s.usuario, fotoUrl } } : s));
   }
 
+  /** Tras confirmar un nuevo correo electrónico: actualiza la sesión en memoria al instante. */
+  actualizarCorreo(correo: string): void {
+    this._sesion.update((s) => (s ? { ...s, usuario: { ...s.usuario, correo } } : s));
+  }
+
   /** Modo demostración: entra con una cuenta simulada (solo en memoria; se pierde al recargar). */
   iniciarDemo(rol: Rol): void {
     this.establecer(SESIONES_DEMO[rol]);

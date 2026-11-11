@@ -44,7 +44,7 @@ export function convertirErrorApi(error: unknown): ErrorApi | null {
 export function mensajeDeError(error: unknown, accion: string): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 0 || error.status === 502 || error.status === 504) {
-      return 'No se pudo conectar con el servidor. Verifica que el backend esté encendido (npm run dev).';
+      return 'No pudimos conectarnos con el servidor en este momento. Revisa tu conexión a internet e inténtalo de nuevo en unos segundos.';
     }
     if (error.status === 429) {
       return 'Hiciste demasiados intentos seguidos. Espera unos minutos y vuelve a intentarlo.';

@@ -1,8 +1,9 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 /** Tarjeta de indicador (StatTile): etiqueta, valor grande y nota. */
 @Component({
   selector: 'app-indicador',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="indicador">
       <span class="etiqueta">{{ etiqueta() }}</span>

@@ -1,4 +1,4 @@
-import { Component, effect, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, signal } from '@angular/core';
 
 /**
  * Foto de perfil o, si no hay (o no carga), círculo con iniciales.
@@ -7,6 +7,7 @@ import { Component, effect, input, signal } from '@angular/core';
  */
 @Component({
   selector: 'app-avatar',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (imagen() && !fallida()) {
       <img class="avatar foto" [src]="imagen()" alt="" [style.--t.px]="tamano()" [width]="tamano()" [height]="tamano()"

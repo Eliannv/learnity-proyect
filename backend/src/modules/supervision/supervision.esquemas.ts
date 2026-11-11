@@ -52,7 +52,7 @@ export const filtroAlertas = z.strictObject({
   /** recientes: la detectada más recientemente primero; antiguas: al revés. */
   orden: z.enum(['recientes', 'antiguas']).default('recientes'),
   severidad: opcional(z.enum(['ALTA', 'MEDIA', 'BAJA'])),
-  tipo: opcional(z.enum(['INTENTOS_FALLIDOS', 'CAMBIO_PRIVILEGIOS', 'RAFAGA_RESENAS', 'MODIFICACION_MASIVA'])),
+  tipo: opcional(z.enum(['INTENTOS_FALLIDOS', 'CAMBIO_PRIVILEGIOS', 'RAFAGA_RESENAS', 'MODIFICACION_MASIVA', 'REPORTE_CURSO'])),
   pagina: z.coerce.number().int().min(1).max(10_000).default(1),
   limite: z.coerce.number().int().min(1).max(50).default(20),
 });
@@ -60,6 +60,21 @@ export const filtroAlertas = z.strictObject({
 export const idAlerta = z.object({
   id: z.string().regex(/^[1-9][0-9]{0,15}$/, 'Debe ser un entero positivo en decimal.').transform(Number),
 }).transform(({ id }) => id);
+
+export const idCursoReporte = z.object({
+  id: z.string().regex(/^[1-9][0-9]{0,9}$/, 'Debe ser un entero positivo en decimal.').transform(Number),
+}).transform(({ id }) => id);
+
+export const datosReporteCurso = z.strictObject({
+  motivo: z.string()
+    .refine((v) => !v.includes('\u0000'), 'No puede contener caracteres nulos.')
+    .transform((v) => v.normalize('NFC').trim())
+    .pipe(
+      z.string()
+        .min(5, 'Describe brevemente el motivo del reporte (al menos 5 caracteres).')
+        .max(500, 'El motivo debe tener como máximo 500 caracteres.'),
+    ),
+});
 
 /** Nota opcional al marcar una alerta como atendida: vacía o solo espacios se guarda como null. */
 export const atencionAlerta = z.strictObject({
@@ -74,6 +89,7 @@ export const atencionAlerta = z.strictObject({
 export type FiltroAccesosAdmin = z.infer<typeof filtroAccesos>;
 export type FiltroAlertasAdmin = z.infer<typeof filtroAlertas>;
 export type AtencionAlerta = z.infer<typeof atencionAlerta>;
+export type DatosReporteCurso = z.infer<typeof datosReporteCurso>;
 export type FiltroAuditoriaAdmin = z.infer<typeof filtroAuditoria>;
 export type FiltroSesionesAdmin = z.infer<typeof filtroSesiones>;
 export type RevocacionSesion = z.infer<typeof revocacionSesion>;

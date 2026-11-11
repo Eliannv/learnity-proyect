@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { Avatar } from '../../../../shared/ui/marca/avatar';
 import { EstadoVistaComponent } from '../../../../shared/ui/retroalimentacion/estado-vista';
@@ -14,7 +15,7 @@ const ESTADO_CURSO: Record<DetalleUsuarioAdmin['cursosCreados'][number]['estado'
 };
 
 /** Acción de la ficha en curso, para deshabilitar su botón mientras responde la API. */
-export type AccionFicha = 'desbloquear' | 'sesiones' | 'invitacion' | 'eliminar' | null;
+export type AccionFicha = 'desbloquear' | 'sesiones' | 'invitacion' | 'eliminar' | 'correo' | null;
 
 /**
  * Ficha de una cuenta (presentación): datos, bloqueo, sesiones abiertas, inscripciones y cursos creados.
@@ -22,7 +23,7 @@ export type AccionFicha = 'desbloquear' | 'sesiones' | 'invitacion' | 'eliminar'
  */
 @Component({
   selector: 'app-ficha-usuario',
-  imports: [DatePipe, LucideAngularModule, Avatar, EstadoVistaComponent, Modal],
+  imports: [DatePipe, FormsModule, LucideAngularModule, Avatar, EstadoVistaComponent, Modal],
   template: `
     <app-modal [titulo]="titulo()" icono="user" [ancho]="760" (cerrar)="cerrar.emit()">
       @if (error()) {
@@ -53,13 +54,37 @@ export type AccionFicha = 'desbloquear' | 'sesiones' | 'invitacion' | 'eliminar'
               <div><dt>Invitación</dt><dd>Vencida o usada sin entrar</dd></div>
             }
           </dl>
-          @if (!u.ultimoAcceso && u.activo) {
-            <div class="acciones-ficha">
+          <div class="acciones-ficha">
+            @if (!u.ultimoAcceso && u.activo) {
               <button type="button" class="btn btn-contorno btn-sm" [disabled]="ocupado() === 'invitacion'" (click)="reenviarInvitacion.emit()">
                 <lucide-icon name="mail" [size]="16" aria-hidden="true" />
                 {{ ocupado() === 'invitacion' ? 'Enviando…' : 'Reenviar invitación' }}
               </button>
-            </div>
+            }
+            <button type="button" class="btn btn-contorno btn-sm" (click)="editandoCorreo.set(!editandoCorreo())">
+              <lucide-icon name="mail" [size]="16" aria-hidden="true" />
+              Cambiar correo
+            </button>
+          </div>
+
+          @if (editandoCorreo()) {
+            <form class="form-correo-admin" (submit)="$event.preventDefault(); enviarNuevoCorreo()">
+              <label class="etiqueta" for="nuevo-correo-admin">Nuevo correo electrónico (se enviará enlace de confirmación)</label>
+              <div class="fila-correo-admin">
+                <input
+                  id="nuevo-correo-admin"
+                  type="email"
+                  class="control"
+                  name="nuevoCorreo"
+                  [(ngModel)]="nuevoCorreoTexto"
+                  placeholder="nuevo.correo@ejemplo.com"
+                  required
+                />
+                <button type="submit" class="btn btn-primario btn-sm" [disabled]="!nuevoCorreoTexto.trim() || ocupado() === 'correo'">
+                  {{ ocupado() === 'correo' ? 'Enviando…' : 'Enviar enlace' }}
+                </button>
+              </div>
+            </form>
           }
 
           <section aria-labelledby="ficha-seguridad">
@@ -188,6 +213,10 @@ export type AccionFicha = 'desbloquear' | 'sesiones' | 'invitacion' | 'eliminar'
     }
     .bloque { height: 280px; border-radius: var(--radio); }
     .acciones-ficha { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .form-correo-admin {
+      display: grid; gap: 6px; padding: 12px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--elevado);
+    }
+    .fila-correo-admin { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; .control { flex: 1 1 200px; } }
     .zona-eliminar {
       display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
       margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--borde);
@@ -204,9 +233,21 @@ export class FichaUsuario {
   readonly desbloquear = output<void>();
   readonly cerrarSesiones = output<void>();
   readonly reenviarInvitacion = output<void>();
+  readonly cambiarCorreo = output<string>();
   readonly eliminar = output<void>();
   readonly reintentar = output<void>();
   readonly cerrar = output<void>();
+
+  protected readonly editandoCorreo = signal(false);
+  protected nuevoCorreoTexto = '';
+
+  protected enviarNuevoCorreo(): void {
+    const correo = this.nuevoCorreoTexto.trim();
+    if (!correo) return;
+    this.cambiarCorreo.emit(correo);
+    this.nuevoCorreoTexto = '';
+    this.editandoCorreo.set(false);
+  }
 
   protected readonly nombreRol = NOMBRE_ROL;
   protected readonly estadoCurso = ESTADO_CURSO;

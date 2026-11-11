@@ -81,21 +81,44 @@ export type DatosCategoria = Esquemas['DatosCategoria'];
 
 export type InstructorPublico = CursoPublicoDetalle['instructor'];
 export type CalificacionCurso = Esquemas['CalificacionCurso'];
-export type Resena = Esquemas['Resena'];
-export type PaginaResenas = Esquemas['PaginaResenas'];
+
+export interface HiloRespuesta {
+  id: number;
+  autor: { nombre: string; fotoUrl: string | null; esDocenteCurso: boolean };
+  comentario: string;
+  creadoEn: string;
+  propia: boolean;
+}
+
+export type Resena = Omit<Esquemas['Resena'], 'respuestas'> & {
+  respuestas?: HiloRespuesta[];
+};
+export type PaginaResenas = Omit<Esquemas['PaginaResenas'], 'items'> & {
+  items: Resena[];
+};
 export type MiResena = Esquemas['MiResena'];
 export type DatosResena = Esquemas['DatosResena'];
 export type RecursoLeccion = Esquemas['RecursoLeccion'];
-export type ResenaDocente = Esquemas['ResenaDocente'];
-export type BandejaResenas = Esquemas['BandejaResenas'];
+export type ResenaDocente = Omit<Esquemas['ResenaDocente'], 'respuestas'> & {
+  respuestas?: HiloRespuesta[];
+};
+export type BandejaResenas = Omit<Esquemas['BandejaResenas'], 'items'> & {
+  items: ResenaDocente[];
+};
 export type FiltrosBandejaResenas = NonNullable<paths['/docente/resenas']['get']['parameters']['query']>;
 export type DatosReporteResena = Esquemas['DatosReporteResena'];
 export type MotivoReporte = DatosReporteResena['motivo'];
 export type ReporteResena = Esquemas['ReporteResena'];
 export type EstadoReporte = ReporteResena['estado'];
 export type EntradaHistorialResena = Esquemas['EntradaHistorialResena'];
-export type ResenaAdmin = Esquemas['ResenaAdmin'];
-export type PaginaResenasAdmin = Esquemas['PaginaResenasAdmin'];
+export type ResenaAdmin = Omit<Esquemas['ResenaAdmin'], 'respuestas'> & {
+  esAutor?: boolean;
+  esDocenteCurso?: boolean;
+  respuestas?: HiloRespuesta[];
+};
+export type PaginaResenasAdmin = Omit<Esquemas['PaginaResenasAdmin'], 'items'> & {
+  items: ResenaAdmin[];
+};
 export type Analiticas = Esquemas['Analiticas'];
 export type RecursoAprendizaje = LeccionAprendizaje['recursos'][number];
 export type AccesoAdmin = Esquemas['AccesoAdmin'];
@@ -110,8 +133,20 @@ export type ConsultaAuditoria = NonNullable<paths['/admin/auditoria']['get']['pa
 export type EstadoBaseDatos = Esquemas['EstadoBaseDatos'];
 export type SesionAdmin = Esquemas['SesionAdmin'];
 export type PaginaSesiones = Esquemas['PaginaSesiones'];
-export type AlertaSeguridad = Esquemas['AlertaSeguridad'];
-export type PaginaAlertas = Esquemas['PaginaAlertas'];
+export type TipoAlertaSeguridad = Esquemas['AlertaSeguridad']['tipo'] | 'REPORTE_CURSO';
+export type AlertaSeguridad = Omit<Esquemas['AlertaSeguridad'], 'tipo' | 'evidencia'> & {
+  tipo: TipoAlertaSeguridad;
+  evidencia: Esquemas['AlertaSeguridad']['evidencia'] & {
+    curso?: number | null;
+    cursoTitulo?: string | null;
+    motivo?: string | null;
+  };
+};
+export type PaginaAlertas = Omit<Esquemas['PaginaAlertas'], 'items'> & {
+  items: AlertaSeguridad[];
+};
 export type ResultadoAnalisisAlertas = Esquemas['ResultadoAnalisisAlertas'];
-export type ConsultaAlertas = NonNullable<paths['/admin/alertas']['get']['parameters']['query']>;
+export type ConsultaAlertas = Omit<NonNullable<paths['/admin/alertas']['get']['parameters']['query']>, 'tipo'> & {
+  tipo?: TipoAlertaSeguridad;
+};
 export type ResumenAdmin = Esquemas['ResumenAdmin'];

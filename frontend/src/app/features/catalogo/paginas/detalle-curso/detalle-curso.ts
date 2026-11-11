@@ -1,7 +1,10 @@
 import { Esqueleto } from '../../../../shared/ui/retroalimentacion/esqueleto';
+import { Modal } from '../../../../shared/ui/retroalimentacion/modal';
+import { ToastService } from '../../../../shared/ui/retroalimentacion/toast.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import {
@@ -28,7 +31,7 @@ function plural(n: number, uno: string, varios: string): string {
 
 @Component({
   selector: 'app-detalle-curso',
-  imports: [Esqueleto,
+  imports: [Esqueleto, Modal, FormsModule,
     NgTemplateOutlet, DecimalPipe, RouterLink, LucideAngularModule, Avatar, PortadaCurso,
     Estrellas, ResenasCurso,
   ],
@@ -38,8 +41,9 @@ function plural(n: number, uno: string, varios: string): string {
 export class DetalleCurso {
   private readonly api = inject(CatalogoApi);
   private readonly aprendizaje = inject(AprendizajeApi);
-  private readonly auth = inject(AuthService);
+  protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
   private solicitud = 0;
 
   readonly id = input.required<string>();
@@ -54,6 +58,10 @@ export class DetalleCurso {
   protected readonly consultandoInscripcion = signal(false);
   protected readonly procesando = signal(false);
   protected readonly errorInscripcion = signal('');
+  protected readonly modalReporteAbierto = signal(false);
+  protected readonly motivoReporte = signal('');
+  protected readonly enviandoReporte = signal(false);
+  protected readonly errorReporte = signal('');
   protected readonly puedeInscribirse = computed(() => this.auth.tieneRol('ESTUDIANTE'));
   protected readonly todosAbiertos = computed(() => {
     const temario = this.curso()?.temario ?? [];
@@ -219,5 +227,44 @@ export class DetalleCurso {
   protected irAResenas(evento: Event): void {
     evento.preventDefault();
     document.getElementById('resenas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  protected async compartirCurso(): Promise<void> {
+    const c = this.curso();
+    if (!c) return;
+    const url = `${window.location.origin}/cursos/${c.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.toast.exito('Enlace del curso copiado al portapapeles.');
+    } catch {
+      this.toast.info(`Enlace del curso: ${url}`);
+    }
+  }
+
+  protected abrirModalReporte(): void {
+    this.motivoReporte.set('');
+    this.errorReporte.set('');
+    this.modalReporteAbierto.set(true);
+  }
+
+  protected async enviarReporteCurso(): Promise<void> {
+    const c = this.curso();
+    const motivo = this.motivoReporte().trim();
+    if (!c || this.enviandoReporte()) return;
+    if (motivo.length < 5) {
+      this.errorReporte.set('Describe brevemente el motivo del reporte (al menos 5 caracteres).');
+      return;
+    }
+    this.enviandoReporte.set(true);
+    this.errorReporte.set('');
+    try {
+      await this.api.reportarCurso(c.id, motivo);
+      this.modalReporteAbierto.set(false);
+      this.toast.exito('Reporte enviado al equipo de administración.');
+    } catch (error) {
+      this.errorReporte.set(mensajeDeError(error, 'Enviar el reporte'));
+    } finally {
+      this.enviandoReporte.set(false);
+    }
   }
 }

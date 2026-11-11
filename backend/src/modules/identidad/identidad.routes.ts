@@ -9,10 +9,12 @@ import { recibirFoto } from './identidad.multipart.js';
 import {
   actualizarPerfilSchema,
   cambiarContrasenaSchema,
+  confirmarCambioCorreoSchema,
   loginSchema,
   recuperarSchema,
   registroSchema,
   restablecerSchema,
+  solicitarCambioCorreoSchema,
 } from './identidad.esquemas.js';
 
 // Capa routes: URL, verbo HTTP, middlewares (origen, límite por IP, CSRF, sesión, validación) y controller.
@@ -28,11 +30,24 @@ auth.post('/refresh', limitarPorIp('refresh', env.REFRESH_MAX_POR_IP, 15), exigi
 auth.post('/logout', limitarPorIp('logout', 60, 15), exigirCsrf, identidadController.cerrarSesion);
 auth.post('/recuperar', limitarPorIp('recuperar', 5, 15), validarCuerpo(recuperarSchema), identidadController.solicitarRecuperacion);
 auth.post('/restablecer', limitarPorIp('restablecer', 10, 15), validarCuerpo(restablecerSchema), identidadController.restablecerContrasena);
+auth.post(
+  '/confirmar-correo',
+  limitarPorIp('confirmar-correo', 15, 15),
+  validarCuerpo(confirmarCambioCorreoSchema),
+  identidadController.confirmarCambioCorreo,
+);
 
 identidadRoutes.use('/auth', auth);
 
 identidadRoutes.get('/perfil', autenticar, identidadController.obtenerPerfil);
 identidadRoutes.put('/perfil', autenticar, validarCuerpo(actualizarPerfilSchema), identidadController.actualizarPerfil);
+identidadRoutes.post(
+  '/perfil/correo',
+  limitarPorIp('cambiar-correo', 5, 15),
+  autenticar,
+  validarCuerpo(solicitarCambioCorreoSchema),
+  identidadController.solicitarCambioCorreo,
+);
 identidadRoutes.put('/perfil/foto', limitarPorIp('foto-perfil', 20, 15), autenticar, recibirFoto, identidadController.cambiarFoto);
 identidadRoutes.delete('/perfil/foto', autenticar, identidadController.quitarFoto);
 identidadRoutes.get('/fotos/:nombre', identidadController.foto);

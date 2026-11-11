@@ -201,7 +201,7 @@
 @if (fichaDe(); as u) {
 <app-ficha-usuario [titulo]="'Ficha de ' + u.nombre" [detalle]="ficha()" [error]="errorFicha()" [esYo]="esYo(u)"
   [ocupado]="accionFicha()" (desbloquear)="desbloquear(u)" (cerrarSesiones)="cerrarSesiones(u)"
-  (reenviarInvitacion)="reenviarInvitacion(u)" (eliminar)="eliminar(u)" (reintentar)="cargarFicha()"
+  (reenviarInvitacion)="reenviarInvitacion(u)" (cambiarCorreo)="cambiarCorreo(u, $event)" (eliminar)="eliminar(u)" (reintentar)="cargarFicha()"
   (cerrar)="cerrarFicha()" />
 }
 

@@ -88,6 +88,20 @@
   gap: 8px;
 }
 
+.categorias-movil {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0 -16px;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  > * {
+    flex: none;
+  }
+}
+
 /* Una fila por curso, separadas por una línea; el primer resultado no lleva línea encima. */
 .lista-cursos {
   display: flex;

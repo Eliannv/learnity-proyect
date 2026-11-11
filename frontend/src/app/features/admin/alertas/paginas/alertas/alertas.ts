@@ -20,6 +20,7 @@ const TIPO: Record<Tipo, string> = {
   CAMBIO_PRIVILEGIOS: 'Cambio de privilegios',
   RAFAGA_RESENAS: 'Ráfaga de reseñas',
   MODIFICACION_MASIVA: 'Modificación masiva de cursos publicados',
+  REPORTE_CURSO: 'Reporte de curso por estudiante',
 };
 const SEVERIDAD: Record<Severidad, string> = { ALTA: 'Alta', MEDIA: 'Media', BAJA: 'Baja' };
 const LIMITE = 20;

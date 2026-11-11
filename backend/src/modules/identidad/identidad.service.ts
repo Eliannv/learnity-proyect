@@ -8,14 +8,20 @@ import { esTokenOpaco, generarTokenOpaco, hashToken } from '../../shared/auth/to
 import type { Rol, UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { ocultarCorreo, registrarEvento } from '../../shared/log/registro.js';
-import { correoContrasenaCambiada, correoRecuperacion } from './identidad.correos.js';
+import {
+  correoConfirmacionCambioCorreo,
+  correoContrasenaCambiada,
+  correoRecuperacion,
+} from './identidad.correos.js';
 import type {
   ActualizarPerfilDto,
   CambiarContrasenaDto,
+  ConfirmarCambioCorreoDto,
   LoginDto,
   RecuperarDto,
   RegistroDto,
   RestablecerDto,
+  SolicitarCambioCorreoDto,
 } from './identidad.esquemas.js';
 import {
   type CuentaBloqueada,
@@ -488,6 +494,113 @@ export const identidadService = {
     return { mensaje: 'Tu contraseña se actualizó. Cerramos tus sesiones en otros dispositivos.' };
   },
 
+  /**
+   * Solicita cambiar el correo electrónico de una cuenta (por el propio titular o por un administrador).
+   * Envía un enlace de confirmación al nuevo correo y no altera `usuario.correo` hasta que se confirme.
+   */
+  async solicitarCambioCorreo(
+    idUsuarioObjetivo: number,
+    idPersonaActor: number,
+    datos: SolicitarCambioCorreoDto,
+    ctx: Contexto = {},
+  ): Promise<{ mensaje: string; correoPendiente: string; enlaceConfirmacion?: string }> {
+    const nuevoCorreo = datos.correo.trim().toLowerCase();
+    const cuenta = await repo.buscarCuentaPorId(idUsuarioObjetivo);
+    if (!cuenta) throw AppError.noEncontrado('La cuenta no existe.');
+    if (datos.contrasenaActual !== undefined && !(await compararContrasena(datos.contrasenaActual, cuenta.contrasenaHash))) {
+      const mensaje = 'La contraseña actual no es correcta.';
+      throw AppError.solicitudInvalida(mensaje, [{ campo: 'contrasenaActual', mensaje }]);
+    }
+    if (cuenta.correo.toLowerCase() === nuevoCorreo) {
+      const mensaje = 'El nuevo correo debe ser diferente al actual.';
+      throw AppError.solicitudInvalida(mensaje, [{ campo: 'correo', mensaje }]);
+    }
+    if (await repo.existeCorreo(nuevoCorreo)) {
+      throw AppError.conflicto('Ya existe una cuenta registrada con ese correo electrónico.', 'CORREO_DUPLICADO');
+    }
+
+    const token = generarTokenOpaco();
+    const horas = 24;
+    await enTransaccion(
+      async (cliente) => {
+        await repo.reemplazarTokenCambioCorreo(cliente, {
+          idUsuario: cuenta.idUsuario,
+          tokenHash: hashToken(token),
+          nuevoCorreo,
+          horas,
+          ip: ctx.ip,
+        });
+      },
+      { actor: idPersonaActor },
+    );
+
+    const baseFrontend = env.FRONTEND_URL.replace(/\/$/, '');
+    const enlace = `${baseFrontend}/perfil?confirmarCorreo=${token}`;
+    enSegundoPlano('confirmar_cambio_correo', () =>
+      enviarCorreo(
+        correoConfirmacionCambioCorreo({
+          para: nuevoCorreo,
+          nombres: cuenta.nombres,
+          nuevoCorreo,
+          enlace,
+          horas,
+        }),
+      ),
+    );
+    registrarEvento('cambio_correo_solicitado', {
+      idUsuario: cuenta.idUsuario,
+      actor: idPersonaActor,
+      nuevoCorreo: ocultarCorreo(nuevoCorreo),
+    });
+
+    return {
+      mensaje: `Enviamos un enlace de confirmación a ${nuevoCorreo}. El correo actual se mantendrá activo hasta que lo confirmes.`,
+      correoPendiente: nuevoCorreo,
+      ...(env.NODE_ENV !== 'production' ? { enlaceConfirmacion: enlace } : {}),
+    };
+  },
+
+  /** Confirma el cambio de correo con el token recibido en el buzón del nuevo correo. */
+  async confirmarCambioCorreo(datos: ConfirmarCambioCorreoDto): Promise<{ mensaje: string; correo: string }> {
+    const invalido = () =>
+      AppError.solicitudInvalida(MENSAJE_ENLACE_INVALIDO, [{ campo: 'token', mensaje: MENSAJE_ENLACE_INVALIDO }]);
+    if (!esTokenOpaco(datos.token)) throw invalido();
+
+    const vigente = await repo.buscarTokenCambioCorreoVigente(hashToken(datos.token));
+    if (!vigente) throw invalido();
+
+    const cuenta = await repo.buscarCuentaPorId(vigente.idUsuario);
+    if (!cuenta || cuenta.estado !== 'ACTIVO') throw invalido();
+
+    if (await repo.existeCorreo(vigente.nuevoCorreo)) {
+      throw AppError.conflicto('Ese correo electrónico ya fue registrado por otra cuenta.', 'CORREO_DUPLICADO');
+    }
+
+    let actualizado = false;
+    try {
+      actualizado = await enTransaccion(
+        (cliente) =>
+          repo.consumirTokenCambioCorreo(cliente, vigente.idToken, cuenta.idUsuario, vigente.nuevoCorreo),
+        { actor: cuenta.idPersona },
+      );
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw AppError.conflicto('Ese correo electrónico ya fue registrado por otra cuenta.', 'CORREO_DUPLICADO');
+      }
+      throw error;
+    }
+    if (!actualizado) throw invalido();
+
+    registrarEvento('cambio_correo_confirmado', {
+      idUsuario: cuenta.idUsuario,
+      correo: ocultarCorreo(vigente.nuevoCorreo),
+    });
+    return {
+      mensaje: 'Tu correo electrónico ha sido confirmado y actualizado correctamente.',
+      correo: vigente.nuevoCorreo,
+    };
+  },
+
   /** Para pruebas y para el cierre ordenado: espera los correos en curso. */
   async esperarTareas(): Promise<void> {
     await Promise.all([...tareas]);
@@ -532,6 +645,12 @@ export interface ServicioIdentidad {
   listarSesionesActivas(filtro: FiltroSesiones): Promise<{ items: SesionActivaDeCuenta[]; total: number }>;
   /** Cierra una sesión abierta (por su id, la familia) con el motivo ADMIN. Devuelve la cuenta, o null si no estaba abierta. */
   revocarSesionPorAdmin(familia: string): Promise<number | null>;
+  /** Solicita el cambio de correo de una cuenta desde el panel de administración (envía enlace de confirmación). */
+  solicitarCambioCorreoPorAdmin(
+    idUsuario: number,
+    idPersonaAdmin: number,
+    correo: string,
+  ): Promise<{ mensaje: string; correoPendiente: string; enlaceConfirmacion?: string }>;
 }
 
 /** Validez del enlace de invitación (migración 032: como mucho 72 horas). */
@@ -565,4 +684,6 @@ export const identidadApi: ServicioIdentidad = {
   cerrarSesionesPorAdmin: (idUsuario) => repo.revocarSesionesUsuario(idUsuario, 'ADMIN'),
   listarSesionesActivas: (filtro) => repo.listarSesionesActivas(filtro),
   revocarSesionPorAdmin: (familia) => repo.revocarSesionAbierta(familia),
+  solicitarCambioCorreoPorAdmin: (idUsuario, idPersonaAdmin, correo) =>
+    identidadService.solicitarCambioCorreo(idUsuario, idPersonaAdmin, { correo, contrasenaActual: undefined }),
 };

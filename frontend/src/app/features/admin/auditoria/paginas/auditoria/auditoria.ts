@@ -76,6 +76,7 @@ export class AdminAuditoria {
   protected readonly textoActor = signal('');
   protected readonly sugerenciasActor = signal<{ id: number; etiqueta: string }[]>([]);
   private esperaActor: ReturnType<typeof setTimeout> | undefined;
+  private versionActor = 0;
   private readonly usuarios = inject(AdminUsuariosApi);
 
   /** Registro abierto en el modal de detalle. */
@@ -84,11 +85,12 @@ export class AdminAuditoria {
   protected readonly errorDetalle = signal('');
 
   constructor() {
-    void this.cargarOpciones();
-    void this.cargar();
-    // Las alertas de seguridad enlazan con ?ver=<id> para abrir directamente ese registro.
     const ver = Number(inject(ActivatedRoute).snapshot.queryParamMap.get('ver'));
-    if (Number.isSafeInteger(ver) && ver > 0) void this.abrirPorId(ver);
+    void Promise.all([
+      this.cargarOpciones(),
+      this.cargar(),
+      Number.isSafeInteger(ver) && ver > 0 ? this.abrirPorId(ver) : Promise.resolve(),
+    ]);
   }
 
   protected filtrar(cambio: Partial<Filtros>): void {
@@ -100,6 +102,7 @@ export class AdminAuditoria {
   protected buscarActor(texto: string): void {
     this.textoActor.set(texto);
     clearTimeout(this.esperaActor);
+    const actual = ++this.versionActor;
     if (!texto.trim()) {
       this.sugerenciasActor.set([]);
       if (this.filtros().actor) this.filtrar({ actor: '' });
@@ -109,9 +112,11 @@ export class AdminAuditoria {
     this.esperaActor = setTimeout(async () => {
       try {
         const r = await this.usuarios.listar({ q: texto.trim(), pagina: 1, limite: 8 });
-        this.sugerenciasActor.set(r.items.map((u) => ({ id: u.idPersona, etiqueta: `${u.nombre} · ${u.correo}` })));
+        if (actual === this.versionActor) {
+          this.sugerenciasActor.set(r.items.map((u) => ({ id: u.idPersona, etiqueta: `${u.nombre} · ${u.correo}` })));
+        }
       } catch {
-        this.sugerenciasActor.set([]);
+        if (actual === this.versionActor) this.sugerenciasActor.set([]);
       }
     }, 250);
   }

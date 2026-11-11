@@ -131,13 +131,30 @@
             @if (r.respuesta; as respuesta) {
               <p class="respuesta"><strong>Respuesta del docente:</strong> {{ respuesta.texto }}</p>
             }
+            @if (r.respuestas?.length) {
+              <ul class="hilo-respuestas" aria-label="Hilo de conversación">
+                @for (h of r.respuestas; track h.id) {
+                  <li class="hilo-item">
+                    <div class="hilo-cabecera">
+                      <strong>{{ h.autor.nombre }}</strong>
+                      @if (h.autor.esDocenteCurso) {
+                        <span class="chip-docente">Docente</span>
+                      }
+                      <time class="texto-suave" [attr.datetime]="h.creadoEn">{{ h.creadoEn | date: 'd MMM y' }}</time>
+                      <button type="button" class="btn-borrar-hilo" (click)="eliminarRespuestaHilo(r.id, h.id)">Borrar</button>
+                    </div>
+                    <p class="comentario">{{ h.comentario }}</p>
+                  </li>
+                }
+              </ul>
+            }
           </div>
           @if (r.ocultacion; as o) {
             <ng-container *ngTemplateOutlet="ocultada; context: { $implicit: o }" />
           }
           <ng-container *ngTemplateOutlet="historial; context: { $implicit: r.historial, autor: r.estudiante }" />
           @if (r.propia) {
-            <p class="nota-propia" role="note"><lucide-icon name="info" [size]="16" aria-hidden="true" /> Es de tu curso o la escribiste tú: debe moderarla otro administrador.</p>
+            <p class="nota-propia" role="note"><lucide-icon name="info" [size]="16" aria-hidden="true" /> {{ motivoConflicto(r) }}</p>
           } @else {
           <footer class="acciones">
             @if (r.respuesta) {

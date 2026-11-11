@@ -133,7 +133,7 @@ import { BuscadorCurso, type OpcionCursoBusqueda } from '../../shared/ui/cursos/
 
     <!-- Fila de categorías como en Udemy: fuera del header fijo para no cambiar su altura -->
     @if (mostrarCategorias() && categorias().length) {
-      <nav class="barra-categorias oculto-movil" aria-label="Categorías">
+      <nav class="barra-categorias" aria-label="Categorías">
         @for (c of categorias(); track c) {
           <a routerLink="/cursos" [queryParams]="{ categoria: c }">{{ c }}</a>
         }

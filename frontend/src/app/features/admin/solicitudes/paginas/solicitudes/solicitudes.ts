@@ -9,8 +9,10 @@ import {
   type SolicitudDocente,
   SolicitudesDocenteService,
 } from '../../../../../core/solicitudes/solicitudes-docente.service';
+import { BuscadorCurso } from '../../../../../shared/ui/cursos/buscador-curso';
 import { Avatar } from '../../../../../shared/ui/marca/avatar';
 import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
+import { CatalogoApi } from '../../../../catalogo/catalogo.api';
 
 const PESTANAS: { estado: EstadoSolicitud; texto: string }[] = [
   { estado: 'PENDIENTE', texto: 'Pendientes' },
@@ -27,7 +29,7 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
 
 @Component({
   selector: 'app-solicitudes',
-  imports: [Esqueleto, FormsModule, LucideAngularModule, Avatar, Modal],
+  imports: [Esqueleto, FormsModule, LucideAngularModule, Avatar, Modal, BuscadorCurso],
   template: `
     <header class="encabezado">
       <div>
@@ -36,9 +38,24 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
           Revisa las solicitudes de estudiantes que desean enseñar. Al aprobar, la cuenta obtiene el rol Docente y conserva el de Estudiante.
         </p>
       </div>
-      <button type="button" class="btn btn-contorno" [disabled]="cargando()" (click)="cargar()">
-        <lucide-icon name="rotate-ccw" [size]="16" /> Actualizar
-      </button>
+      <div class="acciones-encabezado">
+        <div class="filtro-especialidad">
+          <app-buscador-curso
+            etiqueta="Filtrar por categoría o especialidad"
+            placeholder="Filtrar por categoría…"
+            textoTodos="Todas las categorías"
+            [cursos]="categorias()"
+            [cursoId]="idCategoria()"
+            [listarAlEnfocar]="true"
+            [nombre]="{ singular: 'categoría', plural: 'categorías' }"
+            (seleccion)="elegirCategoria($event)"
+            (terminoCambio)="filtroEspecialidad.set($event)"
+          />
+        </div>
+        <button type="button" class="btn btn-contorno" [disabled]="cargando()" (click)="cargar()">
+          <lucide-icon name="rotate-ccw" [size]="16" /> Actualizar
+        </button>
+      </div>
     </header>
 
     @if (aviso(); as a) {
@@ -58,7 +75,7 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
           [class.activa]="estado() === p.estado"
           (click)="cambiarEstado(p.estado)"
         >
-          {{ p.texto }}@if (estado() === p.estado && !cargando()) { <span class="num">({{ solicitudes().length }})</span> }
+          {{ p.texto }}@if (estado() === p.estado && !cargando()) { <span class="num">({{ solicitudesFiltradas().length }})</span> }
         </button>
       }
     </div>
@@ -75,7 +92,7 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
           </div>
         } @else {
           <ul>
-            @for (s of solicitudes(); track s.id) {
+            @for (s of solicitudesFiltradas(); track s.id) {
               <li>
                 <button type="button" class="item" [class.seleccionado]="s.id === idActual()" (click)="seleccionar(s.id)">
                   <app-avatar [texto]="iniciales(s)" [tamano]="44" />
@@ -246,6 +263,15 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
       .subtitulo {
         max-width: 720px;
       }
+    }
+    .acciones-encabezado {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .filtro-especialidad {
+      min-width: 240px;
     }
     /* Maestro-detalle a lo alto de la pantalla: la lista se estira junto al detalle y desplaza sus filas por dentro. */
     .distribucion {
@@ -472,13 +498,25 @@ const hora = new Intl.DateTimeFormat('es-EC', { hour: '2-digit', minute: '2-digi
 })
 export class Solicitudes {
   private readonly api = inject(SolicitudesDocenteService);
+  private readonly catalogo = inject(CatalogoApi, { optional: true });
 
   protected readonly pestanas = PESTANAS;
   protected readonly estado = signal<EstadoSolicitud>('PENDIENTE');
   protected readonly solicitudes = signal<SolicitudDocente[]>([]);
+  protected readonly categorias = signal<{ id: number; titulo: string; iconoCategoria: string }[]>([]);
+  protected readonly idCategoria = signal<number | null>(null);
+  protected readonly filtroEspecialidad = signal('');
+  protected readonly solicitudesFiltradas = computed(() => {
+    const lista = this.solicitudes();
+    const idCat = this.idCategoria();
+    const catNombre = idCat !== null ? this.categorias().find((c) => c.id === idCat)?.titulo : null;
+    const termino = (catNombre ?? this.filtroEspecialidad()).trim().toLowerCase();
+    if (!termino) return lista;
+    return lista.filter((s) => s.especialidad.toLowerCase().includes(termino));
+  });
   protected readonly seleccionada = signal<number | null>(null);
   protected readonly actual = computed(
-    () => this.solicitudes().find((s) => s.id === this.seleccionada()) ?? this.solicitudes()[0] ?? null,
+    () => this.solicitudesFiltradas().find((s) => s.id === this.seleccionada()) ?? this.solicitudesFiltradas()[0] ?? null,
   );
   protected readonly idActual = computed(() => this.actual()?.id ?? null);
   protected readonly cargando = signal(true);
@@ -505,7 +543,16 @@ export class Solicitudes {
   protected readonly fecha = fechaCorta;
 
   constructor() {
+    this.catalogo?.categorias().then(
+      (lista) => this.categorias.set(lista.map((c) => ({ id: c.id, titulo: c.nombre, iconoCategoria: c.icono }))),
+      () => undefined,
+    );
     void this.cargar();
+  }
+
+  protected elegirCategoria(id: number | null): void {
+    this.idCategoria.set(id);
+    if (id === null) this.filtroEspecialidad.set('');
   }
 
   protected async cargar() {

@@ -76,4 +76,23 @@ describe('CatalogoApi', () => {
       .flush({ ...publicado, estado: 'EN_REVISION', temario: [] } as unknown as DetalleCursoPublico);
     expect(await detalle).toBeNull();
   });
+
+  it('deduplica peticiones simultáneas a categorías y permite invalidar la caché', async () => {
+    const p1 = servicio.categorias();
+    const p2 = servicio.categorias();
+    const peticion = http.expectOne('/api/categorias');
+    peticion.flush([{ id: 2, nombre: 'Programación', icono: 'code', cursosPublicados: 3 }]);
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(r1).toEqual(r2);
+
+    // Siguiente llamada usa caché sin disparar otra petición HTTP
+    const r3 = await servicio.categorias();
+    expect(r3).toEqual(r1);
+
+    // Al invalidar, vuelve a consultar al servidor
+    servicio.invalidarCategorias();
+    const p4 = servicio.categorias();
+    http.expectOne('/api/categorias').flush([]);
+    expect(await p4).toEqual([]);
+  });
 });

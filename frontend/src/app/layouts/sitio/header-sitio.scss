@@ -324,6 +324,17 @@ header {
       text-decoration: underline;
     }
   }
+
+  @media (max-width: 900px) {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 18px;
+    padding: 10px 16px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--borde);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

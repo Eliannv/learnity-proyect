@@ -83,6 +83,49 @@
     background: var(--pill-neutro-fondo);
     color: var(--pill-neutro-tinta);
   }
+
+  &.especialidad {
+    background: var(--acento-suave);
+    color: var(--acento-tinta);
+  }
+}
+
+.fila-especialidad-extra {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.btn-enlace-especialidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--acento);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.form-especialidad-modal {
+  display: grid;
+  gap: 14px;
+
+  p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  textarea.control {
+    min-height: 96px;
+  }
 }
 
 .contador-campo {

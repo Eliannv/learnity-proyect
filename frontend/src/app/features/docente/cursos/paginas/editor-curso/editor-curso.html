@@ -25,7 +25,7 @@
   } @else if (carga.error()) {
     <div class="mensaje error" role="alert">
       <p>{{ carga.error() }}</p>
-      <button type="button" class="btn btn-contorno" (click)="cargar()">
+      <button type="button" class="btn btn-contorno" (click)="recargar()">
         Reintentar
       </button>
     </div>
@@ -54,7 +54,7 @@
       <p class="mensaje exito" role="status">{{ p.exito() }}</p>
     }
     @if (p.requiereRecarga()) {
-      <button type="button" class="btn btn-contorno" (click)="cargar()">
+      <button type="button" class="btn btn-contorno" (click)="recargar()">
         Actualizar curso
       </button>
     }
@@ -96,6 +96,7 @@
             [form]="form"
             [curso]="curso()"
             [categorias]="categorias()"
+            [especialidadDocente]="especialidadDocente()"
             [editable]="editable()"
             [deshabilitado]="bloqueado() || formularioContenido()"
             [guardando]="p.ocupada()"
@@ -130,7 +131,7 @@
               (actualizado)="aplicar($event)"
               (ocupado)="contenidoOcupado.set($event)"
               (formularioAbierto)="formularioContenido.set($event)"
-              (recargar)="cargar()"
+              (recargar)="recargar()"
               (volver)="cambiarPaso(1)"
             />
           </div>

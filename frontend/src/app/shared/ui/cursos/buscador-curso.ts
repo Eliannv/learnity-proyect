@@ -187,6 +187,7 @@ export class BuscadorCurso {
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly campoRef = viewChild<ElementRef<HTMLInputElement>>('campo');
   private espera: ReturnType<typeof setTimeout> | undefined;
+  private versionBusqueda = 0;
 
   constructor() {
     effect(() => {
@@ -322,6 +323,7 @@ export class BuscadorCurso {
     const buscarFn = this.buscarRemoto();
     if (buscarFn) {
       clearTimeout(this.espera);
+      const actual = ++this.versionBusqueda;
       const termino = valor.trim();
       if (termino.length < 2) {
         this.resultadosRemotos.set([]);
@@ -332,11 +334,11 @@ export class BuscadorCurso {
       this.espera = setTimeout(async () => {
         try {
           const res = await buscarFn(termino);
-          this.resultadosRemotos.set(res);
+          if (actual === this.versionBusqueda) this.resultadosRemotos.set(res);
         } catch {
-          this.resultadosRemotos.set([]);
+          if (actual === this.versionBusqueda) this.resultadosRemotos.set([]);
         } finally {
-          this.cargando.set(false);
+          if (actual === this.versionBusqueda) this.cargando.set(false);
         }
       }, 250);
     }

@@ -1,5 +1,11 @@
 import type { PoolClient } from 'pg';
 import { consultar } from '../../shared/database/pool.js';
+import {
+  guardarRespaldo041,
+  leerRespaldo041,
+  tieneMigracion041,
+  type ReporteCurso041,
+} from '../../shared/database/respaldo-041.js';
 import type { FiltroAlertasAdmin, FiltroAuditoriaAdmin } from './supervision.esquemas.js';
 import type { SeveridadAlerta, TipoAlerta } from './supervision.modelo.js';
 
@@ -34,7 +40,14 @@ export interface FilaAlerta {
   idUsuario: number | null;
   nombre: string | null;
   correo: string | null;
-  evidencia: { auditoria?: number[]; accesos?: number[] };
+  evidencia: {
+    auditoria?: number[];
+    accesos?: number[];
+    curso?: number | null;
+    idCurso?: number | null;
+    cursoTitulo?: string | null;
+    motivo?: string | null;
+  };
   atendidaEn: Date | null;
   idAtendio: number | null;
   atendio: string | null;
@@ -153,31 +166,124 @@ export const supervisionRepository = {
   async listarAlertas(filtro: FiltroAlertasAdmin): Promise<{
     items: FilaAlerta[]; total: number; pendientes: number; atendidas: number; todas: number;
   }> {
-    const condiciones = ['($1::varchar IS NULL OR a.severidad = $1)', '($2::varchar IS NULL OR a.tipo = $2)'];
-    const params: unknown[] = [filtro.severidad ?? null, filtro.tipo ?? null];
-    const where = `WHERE ${condiciones.join(' AND ')}`;
-    const [conteo, filas] = await Promise.all([
-      consultar<{ pendientes: number; atendidas: number; todas: number }>(
-        `SELECT count(*) FILTER (WHERE a.atendida_en IS NULL)::int AS pendientes,
-                count(*) FILTER (WHERE a.atendida_en IS NOT NULL)::int AS atendidas, count(*)::int AS todas
-           FROM alerta_seguridad a ${where}`,
-        params,
-      ),
-      consultar<FilaAlerta>(
-        `${SELECT_ALERTA} ${where} ${ESTADO_ALERTA[filtro.estado]}
-          ORDER BY ${filtro.orden === 'antiguas' ? 'a.detectada_en ASC, a.id_alerta ASC' : 'a.detectada_en DESC, a.id_alerta DESC'}
-          LIMIT $3 OFFSET $4`,
-        [...params, filtro.limite, (filtro.pagina - 1) * filtro.limite],
-      ),
-    ]);
-    const { pendientes, atendidas, todas } = conteo.rows[0]!;
-    const total = { pendientes, atendidas, todas }[filtro.estado];
-    return { items: filas.rows, total, pendientes, atendidas, todas };
+    const tiene041 = await tieneMigracion041({ query: consultar });
+    const reportesRespaldo = tiene041 ? [] : leerRespaldo041().reportesCurso;
+    if (tiene041 || (reportesRespaldo.length === 0 && filtro.tipo !== 'REPORTE_CURSO')) {
+      const condiciones = ['($1::varchar IS NULL OR a.severidad = $1)', '($2::varchar IS NULL OR a.tipo = $2)'];
+      const params: unknown[] = [filtro.severidad ?? null, filtro.tipo ?? null];
+      const where = `WHERE ${condiciones.join(' AND ')}`;
+      const [conteo, filas] = await Promise.all([
+        consultar<{ pendientes: number; atendidas: number; todas: number }>(
+          `SELECT count(*) FILTER (WHERE a.atendida_en IS NULL)::int AS pendientes,
+                  count(*) FILTER (WHERE a.atendida_en IS NOT NULL)::int AS atendidas, count(*)::int AS todas
+             FROM alerta_seguridad a ${where}`,
+          params,
+        ),
+        consultar<FilaAlerta>(
+          `${SELECT_ALERTA} ${where} ${ESTADO_ALERTA[filtro.estado]}
+            ORDER BY ${filtro.orden === 'antiguas' ? 'a.detectada_en ASC, a.id_alerta ASC' : 'a.detectada_en DESC, a.id_alerta DESC'}
+            LIMIT $3 OFFSET $4`,
+          [...params, filtro.limite, (filtro.pagina - 1) * filtro.limite],
+        ),
+      ]);
+      const { pendientes, atendidas, todas } = conteo.rows[0]!;
+      const total = { pendientes, atendidas, todas }[filtro.estado];
+      return { items: filas.rows, total, pendientes, atendidas, todas };
+    }
+
+    const dbFilas =
+      filtro.tipo === 'REPORTE_CURSO'
+        ? []
+        : (
+            await consultar<FilaAlerta>(
+              `${SELECT_ALERTA}
+                WHERE ($1::varchar IS NULL OR a.severidad = $1)
+                  AND ($2::varchar IS NULL OR a.tipo = $2)`,
+              [filtro.severidad ?? null, filtro.tipo ?? null],
+            )
+          ).rows;
+    const idsUsuarios = [...new Set(reportesRespaldo.map((r) => r.idUsuario))];
+    const mapaNombres = new Map<number, string>();
+    if (idsUsuarios.length > 0) {
+      const { rows: uRows } = await consultar<{ idUsuario: number; nombre: string }>(
+        `SELECT u.id_usuario AS "idUsuario", concat_ws(' ', p.nombres, p.apellidos) AS nombre
+           FROM usuario u JOIN persona p ON p.id_persona = u.id_persona
+          WHERE u.id_usuario = ANY($1::int[])`,
+        [idsUsuarios],
+      );
+      for (const u of uRows) mapaNombres.set(u.idUsuario, u.nombre);
+    }
+    const convertirReporte = (r: ReporteCurso041): FilaAlerta => ({
+      id: String(r.idAlerta),
+      tipo: 'REPORTE_CURSO',
+      severidad: 'MEDIA',
+      descripcion: `Curso reportado («${r.cursoTitulo}»): ${r.motivo}`.slice(0, 300),
+      detectadaEn: new Date(r.detectadaEn),
+      idUsuario: r.idUsuario,
+      nombre: mapaNombres.get(r.idUsuario) ?? '',
+      correo: r.correo,
+      evidencia: { auditoria: [], accesos: [], curso: r.idCurso, cursoTitulo: r.cursoTitulo, motivo: r.motivo },
+      atendidaEn: r.atendidaEn ? new Date(r.atendidaEn) : null,
+      idAtendio: r.atendidaPor,
+      atendio: r.atendidaPorNombre,
+      nota: r.nota,
+    });
+    const extras = reportesRespaldo
+      .filter(() => !filtro.severidad || filtro.severidad === 'MEDIA')
+      .filter(() => !filtro.tipo || filtro.tipo === 'REPORTE_CURSO')
+      .map(convertirReporte);
+    const combinadas = [...dbFilas, ...extras];
+    const pendientes = combinadas.filter((a) => a.atendidaEn === null).length;
+    const atendidas = combinadas.filter((a) => a.atendidaEn !== null).length;
+    const todas = combinadas.length;
+    const filtradas = combinadas.filter((a) =>
+      filtro.estado === 'pendientes'
+        ? a.atendidaEn === null
+        : filtro.estado === 'atendidas'
+          ? a.atendidaEn !== null
+          : true,
+    );
+    filtradas.sort((a, b) => {
+      const diff = a.detectadaEn.getTime() - b.detectadaEn.getTime() || Number(a.id) - Number(b.id);
+      return filtro.orden === 'antiguas' ? diff : -diff;
+    });
+    const inicio = (filtro.pagina - 1) * filtro.limite;
+    return {
+      items: filtradas.slice(inicio, inicio + filtro.limite),
+      total: filtradas.length,
+      pendientes,
+      atendidas,
+      todas,
+    };
   },
 
   async alertaPorId(id: number): Promise<FilaAlerta | null> {
     const { rows } = await consultar<FilaAlerta>(`${SELECT_ALERTA} WHERE a.id_alerta = $1`, [id]);
-    return rows[0] ?? null;
+    if (rows[0]) return rows[0];
+    if (await tieneMigracion041({ query: consultar })) return null;
+    const r = leerRespaldo041().reportesCurso.find((item) => item.idAlerta === id);
+    if (!r) return null;
+    const { rows: uRows } = await consultar<{ nombre: string }>(
+      `SELECT concat_ws(' ', p.nombres, p.apellidos) AS nombre
+         FROM usuario u JOIN persona p ON p.id_persona = u.id_persona
+        WHERE u.id_usuario = $1`,
+      [r.idUsuario],
+    );
+    return {
+      id: String(r.idAlerta),
+      tipo: 'REPORTE_CURSO',
+      severidad: 'MEDIA',
+      descripcion: `Curso reportado («${r.cursoTitulo}»): ${r.motivo}`.slice(0, 300),
+      detectadaEn: new Date(r.detectadaEn),
+      idUsuario: r.idUsuario,
+      nombre: uRows[0]?.nombre ?? '',
+      correo: r.correo,
+      evidencia: { auditoria: [], accesos: [], curso: r.idCurso, cursoTitulo: r.cursoTitulo, motivo: r.motivo },
+      atendidaEn: r.atendidaEn ? new Date(r.atendidaEn) : null,
+      idAtendio: r.atendidaPor,
+      atendio: r.atendidaPorNombre,
+      nota: r.nota,
+    };
   },
 
   /** Ejecuta las reglas de la 038 desde `desde`; devuelve cuántas alertas nuevas creó. */
@@ -191,13 +297,80 @@ export const supervisionRepository = {
   async atenderAlerta(cliente: PoolClient, id: number, idAdmin: number, nota: string | null): Promise<'ok' | 'ya' | 'no'> {
     const { rows } = await cliente.query<{ atendida: boolean }>(
       'SELECT atendida_en IS NOT NULL AS atendida FROM alerta_seguridad WHERE id_alerta = $1 FOR UPDATE', [id]);
-    if (!rows[0]) return 'no';
-    if (rows[0].atendida) return 'ya';
-    await cliente.query(
-      'UPDATE alerta_seguridad SET atendida_en = now(), atendida_por = $2, nota = $3 WHERE id_alerta = $1',
-      [id, idAdmin, nota],
+    if (rows[0]) {
+      if (rows[0].atendida) return 'ya';
+      await cliente.query(
+        'UPDATE alerta_seguridad SET atendida_en = now(), atendida_por = $2, nota = $3 WHERE id_alerta = $1',
+        [id, idAdmin, nota],
+      );
+      return 'ok';
+    }
+    if (await tieneMigracion041(cliente)) return 'no';
+    const actual = leerRespaldo041().reportesCurso.find((item) => item.idAlerta === id);
+    if (!actual) return 'no';
+    if (actual.atendidaEn !== null) return 'ya';
+    const { rows: pRows } = await cliente.query<{ nombre: string }>(
+      `SELECT concat_ws(' ', nombres, apellidos) AS nombre FROM persona WHERE id_persona = $1`,
+      [idAdmin],
     );
+    guardarRespaldo041((estado) => {
+      const objetivo = estado.reportesCurso.find((item) => item.idAlerta === id);
+      if (objetivo) {
+        objetivo.atendidaEn = new Date().toISOString();
+        objetivo.atendidaPor = idAdmin;
+        objetivo.atendidaPorNombre = pRows[0]?.nombre ?? null;
+        objetivo.nota = nota;
+      }
+    });
     return 'ok';
+  },
+
+  async reportarCurso(
+    cliente: PoolClient,
+    idUsuario: number,
+    idCurso: number,
+    motivo: string,
+  ): Promise<'REGISTRADO' | 'DUPLICADO' | 'NO_ENCONTRADO' | 'NO_AUTORIZADO' | 'MOTIVO_INVALIDO'> {
+    if (await tieneMigracion041(cliente)) {
+      const { rows } = await cliente.query<{ estado: 'REGISTRADO' | 'DUPLICADO' | 'NO_ENCONTRADO' | 'NO_AUTORIZADO' | 'MOTIVO_INVALIDO' }>(
+        'SELECT registrar_reporte_curso($1, $2, $3) AS estado',
+        [idUsuario, idCurso, motivo],
+      );
+      return rows[0]?.estado ?? 'NO_ENCONTRADO';
+    }
+    const { rows: uRows } = await cliente.query<{ correo: string }>(
+      `SELECT correo FROM usuario WHERE id_usuario = $1 AND estado = 'ACTIVO'`,
+      [idUsuario],
+    );
+    if (!uRows[0]) return 'NO_AUTORIZADO';
+    const { rows: cRows } = await cliente.query<{ titulo: string }>(
+      `SELECT titulo FROM curso WHERE id_curso = $1 AND estado = 'PUBLICADO'`,
+      [idCurso],
+    );
+    if (!cRows[0]) return 'NO_ENCONTRADO';
+    const clave = `REPORTE_CURSO:${idCurso}:${idUsuario}`;
+    const estadoActual = leerRespaldo041();
+    if (estadoActual.reportesCurso.some((r) => r.clave === clave && r.atendidaEn === null)) {
+      return 'DUPLICADO';
+    }
+    guardarRespaldo041((estado) => {
+      const idAlerta = estado.secuenciaAlerta++;
+      estado.reportesCurso.push({
+        idAlerta,
+        idUsuario,
+        correo: uRows[0]!.correo,
+        idCurso,
+        cursoTitulo: cRows[0]!.titulo,
+        motivo,
+        clave,
+        detectadaEn: new Date().toISOString(),
+        atendidaEn: null,
+        atendidaPor: null,
+        atendidaPorNombre: null,
+        nota: null,
+      });
+    });
+    return 'REGISTRADO';
   },
 
   async estadoBaseDatos(): Promise<{

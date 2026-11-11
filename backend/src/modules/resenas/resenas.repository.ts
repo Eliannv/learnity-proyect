@@ -1,8 +1,9 @@
 import type { PoolClient } from 'pg';
-import { consultar } from '../../shared/database/pool.js';
+import { consultar, pool } from '../../shared/database/pool.js';
+import { guardarRespaldo041, leerRespaldo041, tieneMigracion041 } from '../../shared/database/respaldo-041.js';
 import type { DatosReporte, FiltrosBandeja, FiltrosReportes, FiltrosResenasAdmin } from './resenas.esquemas.js';
 import type {
-  AccionHistorial, EntradaHistorial, EstadoReporte, EvolucionMes, MotivoReporte, Ocultacion, ReporteAdmin, Resena,
+  AccionHistorial, EntradaHistorial, EstadoReporte, EvolucionMes, HiloRespuesta, MotivoReporte, Ocultacion, ReporteAdmin, Resena,
   ResenaAdmin, ResenaDocente, ResumenResenas, ValoracionDocente,
 } from './resenas.modelo.js';
 
@@ -361,7 +362,7 @@ export const resenasRepository = {
            FROM mensual
        )
        SELECT to_char(mes, 'YYYY-MM') AS mes, total, promedio, "promedioAcumulado"
-         FROM (SELECT * FROM acumulado ORDER BY mes DESC LIMIT 12) ultimos
+         FROM (SELECT mes, total, promedio, "promedioAcumulado" FROM acumulado ORDER BY mes DESC LIMIT 12) ultimos
         ORDER BY mes`,
       [idPersona, idCurso ?? null],
     );
@@ -632,5 +633,241 @@ export const resenasRepository = {
         WHERE id_resena = $1 AND respuesta_docente IS NOT NULL`,
       [idResena],
     );
+  },
+
+  // ---------------------------------------------------------------- hilos de conversación en reseñas (041)
+
+  async respuestasDeResenas(idsResena: readonly number[], idPersonaActual: number | null): Promise<Map<number, HiloRespuesta[]>> {
+    const mapa = new Map<number, HiloRespuesta[]>();
+    if (!idsResena.length) return mapa;
+
+    if (await tieneMigracion041(pool)) {
+      const { rows } = await consultar<{
+        id: number;
+        idResena: number;
+        idPersona: number;
+        autor: string;
+        fotoUrl: string | null;
+        comentario: string;
+        creadoEn: Date;
+        esDocente: boolean;
+      }>(
+        `SELECT rr.id_respuesta AS id,
+                rr.id_resena AS "idResena",
+                rr.id_persona AS "idPersona",
+                trim(p.nombres || ' ' || COALESCE(left(p.apellidos, 1) || '.', '')) AS autor,
+                p.foto_url AS "fotoUrl",
+                rr.comentario,
+                rr.creado_en AS "creadoEn",
+                (rr.id_persona = d.id_persona) AS "esDocente"
+           FROM resena_respuesta rr
+           JOIN persona p ON p.id_persona = rr.id_persona
+           JOIN resena r ON r.id_resena = rr.id_resena
+           JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+           JOIN curso c ON c.id_curso = i.id_curso
+           JOIN docente d ON d.id_docente = c.id_docente
+          WHERE rr.id_resena = ANY($1::int[])
+            AND rr.eliminado_en IS NULL
+          ORDER BY rr.creado_en ASC, rr.id_respuesta ASC`,
+        [idsResena],
+      );
+      for (const f of rows) {
+        const lista = mapa.get(f.idResena) ?? [];
+        const esDoc = Boolean(f.esDocente);
+        lista.push({
+          id: f.id,
+          autor: { nombre: f.autor, fotoUrl: f.fotoUrl, esDocenteCurso: esDoc },
+          fotoUrl: f.fotoUrl,
+          comentario: f.comentario,
+          creadoEn: f.creadoEn.toISOString(),
+          esDocente: esDoc,
+          esDocenteCurso: esDoc,
+          propia: idPersonaActual !== null && Number(f.idPersona) === Number(idPersonaActual),
+        });
+        mapa.set(f.idResena, lista);
+      }
+      return mapa;
+    }
+
+    const estado = leerRespaldo041();
+    const vigentes = estado.respuestasResena.filter(
+      (rr) => !rr.eliminadoEn && idsResena.includes(rr.idResena),
+    );
+    if (!vigentes.length) return mapa;
+
+    const idsPersona = [...new Set(vigentes.map((v) => v.idPersona))];
+    const [{ rows: personas }, { rows: docentes }] = await Promise.all([
+      consultar<{ idPersona: number; autor: string; fotoUrl: string | null }>(
+        `SELECT p.id_persona AS "idPersona",
+                trim(p.nombres || ' ' || COALESCE(left(p.apellidos, 1) || '.', '')) AS autor,
+                p.foto_url AS "fotoUrl"
+           FROM persona p
+          WHERE p.id_persona = ANY($1::int[])`,
+        [idsPersona],
+      ),
+      consultar<{ idResena: number; docentePersona: number }>(
+        `SELECT r.id_resena AS "idResena", d.id_persona AS "docentePersona"
+           FROM resena r
+           JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+           JOIN curso c ON c.id_curso = i.id_curso
+           JOIN docente d ON d.id_docente = c.id_docente
+          WHERE r.id_resena = ANY($1::int[])`,
+        [idsResena],
+      ),
+    ]);
+    const mapaPersonas = new Map(personas.map((p) => [Number(p.idPersona), p]));
+    const mapaDocentes = new Map(docentes.map((d) => [Number(d.idResena), Number(d.docentePersona)]));
+
+    for (const rr of vigentes) {
+      const p = mapaPersonas.get(Number(rr.idPersona));
+      const idDocentePersona = mapaDocentes.get(Number(rr.idResena));
+      const esDoc = idDocentePersona !== undefined && Number(rr.idPersona) === idDocentePersona;
+      const lista = mapa.get(rr.idResena) ?? [];
+      lista.push({
+        id: rr.id,
+        autor: { nombre: p?.autor ?? 'Usuario', fotoUrl: p?.fotoUrl ?? null, esDocenteCurso: esDoc },
+        fotoUrl: p?.fotoUrl ?? null,
+        comentario: rr.comentario,
+        creadoEn: rr.creadoEn,
+        esDocente: esDoc,
+        esDocenteCurso: esDoc,
+        propia: idPersonaActual !== null && Number(rr.idPersona) === Number(idPersonaActual),
+      });
+      mapa.set(rr.idResena, lista);
+    }
+    return mapa;
+  },
+
+  async contextoHiloResena(
+    idResena: number,
+    idPersona: number,
+  ): Promise<{ idResena: number; idCurso: number; visible: boolean; esDocente: boolean; estaInscrito: boolean } | null> {
+    const { rows } = await consultar<{
+      idResena: number;
+      idCurso: number;
+      visible: boolean;
+      esDocente: boolean;
+      estaInscrito: boolean;
+    }>(
+      `SELECT r.id_resena AS "idResena",
+              i.id_curso AS "idCurso",
+              (${VISIBLE}) AS visible,
+              (d.id_persona = $2) AS "esDocente",
+              EXISTS (
+                SELECT 1 FROM inscripcion ins
+                 WHERE ins.id_curso = i.id_curso AND ins.id_persona = $2
+              ) AS "estaInscrito"
+         FROM resena r
+         JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
+         JOIN curso c ON c.id_curso = i.id_curso
+         JOIN docente d ON d.id_docente = c.id_docente
+        WHERE r.id_resena = $1`,
+      [idResena, idPersona],
+    );
+    return rows[0] ?? null;
+  },
+
+  async crearRespuestaHilo(
+    cliente: PoolClient,
+    idResena: number,
+    idPersona: number,
+    comentario: string,
+    esDocente: boolean,
+  ): Promise<HiloRespuesta> {
+    const { rows: [autorFila] } = await cliente.query<{ autor: string; fotoUrl: string | null }>(
+      `SELECT trim(p.nombres || ' ' || COALESCE(left(p.apellidos, 1) || '.', '')) AS autor,
+              p.foto_url AS "fotoUrl"
+         FROM persona p WHERE p.id_persona = $1`,
+      [idPersona],
+    );
+
+    if (await tieneMigracion041(cliente)) {
+      const { rows } = await cliente.query<{ id: number; creadoEn: Date }>(
+        `INSERT INTO resena_respuesta (id_resena, id_persona, comentario)
+         VALUES ($1, $2, $3)
+         RETURNING id_respuesta AS id, creado_en AS "creadoEn"`,
+        [idResena, idPersona, comentario],
+      );
+      const fila = rows[0]!;
+      return {
+        id: fila.id,
+        autor: {
+          nombre: autorFila?.autor ?? 'Usuario',
+          fotoUrl: autorFila?.fotoUrl ?? null,
+          esDocenteCurso: esDocente,
+        },
+        fotoUrl: autorFila?.fotoUrl ?? null,
+        comentario,
+        creadoEn: fila.creadoEn.toISOString(),
+        esDocente,
+        esDocenteCurso: esDocente,
+        propia: true,
+      };
+    }
+
+    let creada!: HiloRespuesta;
+    const ahoraIso = new Date().toISOString();
+    guardarRespaldo041((estado) => {
+      const id = estado.secuenciaRespuesta++;
+      estado.respuestasResena.push({
+        id,
+        idResena,
+        idPersona,
+        comentario,
+        creadoEn: ahoraIso,
+        eliminadoEn: null,
+      });
+      creada = {
+        id,
+        autor: {
+          nombre: autorFila?.autor ?? 'Usuario',
+          fotoUrl: autorFila?.fotoUrl ?? null,
+          esDocenteCurso: esDocente,
+        },
+        fotoUrl: autorFila?.fotoUrl ?? null,
+        comentario,
+        creadoEn: ahoraIso,
+        esDocente,
+        esDocenteCurso: esDocente,
+        propia: true,
+      };
+    });
+    return creada;
+  },
+
+  async eliminarRespuestaHilo(
+    cliente: PoolClient,
+    idResena: number,
+    idRespuesta: number,
+  ): Promise<{ idPersonaAutor: number } | null> {
+    if (await tieneMigracion041(cliente)) {
+      const { rows } = await cliente.query<{ idPersonaAutor: number }>(
+        `SELECT id_persona AS "idPersonaAutor"
+           FROM resena_respuesta
+          WHERE id_respuesta = $1 AND id_resena = $2 AND eliminado_en IS NULL
+            FOR UPDATE`,
+        [idRespuesta, idResena],
+      );
+      const fila = rows[0];
+      if (!fila) return null;
+      await cliente.query(
+        'UPDATE resena_respuesta SET eliminado_en = now() WHERE id_respuesta = $1',
+        [idRespuesta],
+      );
+      return fila;
+    }
+
+    let idPersonaAutor: number | null = null;
+    const ahoraIso = new Date().toISOString();
+    guardarRespaldo041((estado) => {
+      const r = estado.respuestasResena.find(
+        (x) => x.id === idRespuesta && x.idResena === idResena && !x.eliminadoEn,
+      );
+      if (r) {
+        r.eliminadoEn = ahoraIso;
+        idPersonaAutor = r.idPersona;
+      }
+    });
+    return idPersonaAutor === null ? null : { idPersonaAutor };
   },
 };

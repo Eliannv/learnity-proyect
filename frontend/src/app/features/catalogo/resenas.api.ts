@@ -2,9 +2,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { DatosResena, MiResena, PaginaResenas, Resena } from '../../core/api/contrato';
+import type { DatosResena, HiloRespuesta, MiResena, PaginaResenas, Resena } from '../../core/api/contrato';
 
-export type { DatosResena, MiResena, PaginaResenas, Resena } from '../../core/api/contrato';
+export type { DatosResena, HiloRespuesta, MiResena, PaginaResenas, Resena } from '../../core/api/contrato';
 
 /** Reseñas de un curso: lectura pública; escribir exige estar inscrito. */
 @Injectable({ providedIn: 'root' })
@@ -27,5 +27,17 @@ export class ResenasApi {
 
   eliminar(cursoId: number): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`${this.base}/cursos/${cursoId}/resena`));
+  }
+
+  crearRespuestaHilo(resenaId: number, comentario: string): Promise<HiloRespuesta> {
+    return firstValueFrom(
+      this.http.post<HiloRespuesta>(`${this.base}/resenas/${resenaId}/respuestas`, { comentario }),
+    );
+  }
+
+  eliminarRespuestaHilo(resenaId: number, respuestaId: number): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(`${this.base}/resenas/${resenaId}/respuestas/${respuestaId}`),
+    );
   }
 }

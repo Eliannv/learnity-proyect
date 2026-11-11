@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import type { Tono } from '../tipos-ui';
 
@@ -9,6 +9,7 @@ import type { Tono } from '../tipos-ui';
  */
 @Component({
   selector: 'app-portada-curso',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [LucideAngularModule],
   template: `
     <div class="portada" [class]="'portada tono-' + tono()" aria-hidden="true">

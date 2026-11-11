@@ -18,6 +18,7 @@ import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.s
 import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
 import { DocenteResenasApi } from '../../resenas.api';
 import { CatalogoApi } from '../../../../catalogo/catalogo.api';
+import { ResenasApi } from '../../../../catalogo/resenas.api';
 
 import { BuscadorCurso } from '../../../../../shared/ui/cursos/buscador-curso';
 
@@ -41,6 +42,7 @@ const MOTIVOS: { valor: MotivoReporte; texto: string; ayuda: string }[] = [
 })
 export class ResenasDocente {
   private readonly api = inject(DocenteResenasApi);
+  private readonly resenasApi = inject(ResenasApi);
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
@@ -56,6 +58,9 @@ export class ResenasDocente {
   protected readonly respondiendo = signal<number | null>(null);
   protected readonly borrador = signal('');
   protected readonly enviando = signal<number | null>(null);
+  protected readonly respondiendoHiloId = signal<number | null>(null);
+  protected readonly textoHilo = signal('');
+  protected readonly enviandoHilo = signal(false);
 
   /** Reseña que se está reportando, con el motivo y el detalle elegidos. */
   protected readonly reportando = signal<ResenaDocente | null>(null);
@@ -192,6 +197,59 @@ export class ResenasDocente {
       this.toasts.error(mensajeDeError(error, 'Retirar la respuesta'));
     } finally {
       this.enviando.set(null);
+    }
+  }
+
+  protected abrirFormularioHilo(resenaId: number): void {
+    if (this.respondiendoHiloId() === resenaId) {
+      this.respondiendoHiloId.set(null);
+      this.textoHilo.set('');
+      return;
+    }
+    this.respondiendoHiloId.set(resenaId);
+    this.textoHilo.set('');
+  }
+
+  protected async enviarRespuestaHilo(r: ResenaDocente): Promise<void> {
+    const comentario = this.textoHilo().trim();
+    if (!comentario || this.enviandoHilo()) return;
+    this.enviandoHilo.set(true);
+    try {
+      const nueva = await this.resenasApi.crearRespuestaHilo(r.id, comentario);
+      this.datos.update((d) =>
+        d && {
+          ...d,
+          items: d.items.map((item) =>
+            item.id === r.id ? { ...item, respuestas: [...(item.respuestas ?? []), nueva] } : item,
+          ),
+        },
+      );
+      this.respondiendoHiloId.set(null);
+      this.textoHilo.set('');
+      this.toasts.exito('Comentario publicado en el hilo.');
+    } catch (error) {
+      this.toasts.error(mensajeDeError(error, 'Publicar en el hilo'));
+    } finally {
+      this.enviandoHilo.set(false);
+    }
+  }
+
+  protected async eliminarRespuestaHilo(r: ResenaDocente, idRespuesta: number): Promise<void> {
+    try {
+      await this.resenasApi.eliminarRespuestaHilo(r.id, idRespuesta);
+      this.datos.update((d) =>
+        d && {
+          ...d,
+          items: d.items.map((item) =>
+            item.id === r.id
+              ? { ...item, respuestas: (item.respuestas ?? []).filter((x) => x.id !== idRespuesta) }
+              : item,
+          ),
+        },
+      );
+      this.toasts.exito('Comentario eliminado del hilo.');
+    } catch (error) {
+      this.toasts.error(mensajeDeError(error, 'Eliminar el comentario'));
     }
   }
 

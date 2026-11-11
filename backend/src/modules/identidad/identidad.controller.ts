@@ -71,8 +71,15 @@ export const identidadController = {
 
   /** Público: las fotos se ven en el catálogo y en las reseñas. El nombre es un UUID validado. */
   async foto(req: Request, res: Response) {
-    const foto = await almacenFotos.leer(String(req.params['nombre']));
+    const nombre = String(req.params['nombre']);
+    const foto = await almacenFotos.leer(nombre);
+    const etag = `"${nombre}-${foto.bytes.byteLength}"`;
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('ETag', etag);
+    if (req.headers['if-none-match'] === etag) {
+      res.status(304).end();
+      return;
+    }
     res.type(foto.tipo).send(foto.bytes);
   },
 
@@ -82,5 +89,22 @@ export const identidadController = {
 
   async cambiarContrasena(req: Request, res: Response) {
     res.json(await identidadService.cambiarContrasena(req.usuario!, req.body, contexto(req)));
+  },
+
+  async solicitarCambioCorreo(req: Request, res: Response) {
+    res
+      .status(202)
+      .json(
+        await identidadService.solicitarCambioCorreo(
+          req.usuario!.idUsuario,
+          req.usuario!.idPersona,
+          req.body,
+          contexto(req),
+        ),
+      );
+  },
+
+  async confirmarCambioCorreo(req: Request, res: Response) {
+    res.json(await identidadService.confirmarCambioCorreo(req.body));
   },
 };

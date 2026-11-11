@@ -94,6 +94,11 @@
               {{ a.evidencia.accesos.length }} {{ a.evidencia.accesos.length === 1 ? 'acceso fallido' : 'accesos fallidos' }} en el registro
             </a>
           }
+          @if (a.evidencia.curso) {
+            <a [routerLink]="['/admin/revision', a.evidencia.curso]">
+              Inspeccionar curso reportado ({{ a.evidencia.cursoTitulo ?? 'Curso #' + a.evidencia.curso }})
+            </a>
+          }
         </div>
 
         @if (a.atencion; as at) {
@@ -169,6 +174,13 @@
           (click)="alertaMenuMovil.set(null)">
           <lucide-icon name="lock" [size]="18" aria-hidden="true" />
           <span>Ver accesos fallidos en el registro</span>
+        </a>
+      }
+      @if (a.evidencia.curso) {
+        <a class="opcion-accion-movil" [routerLink]="['/admin/revision', a.evidencia.curso]"
+          (click)="alertaMenuMovil.set(null)">
+          <lucide-icon name="book-open" [size]="18" aria-hidden="true" />
+          <span>Inspeccionar curso reportado</span>
         </a>
       }
     </div>

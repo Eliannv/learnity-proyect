@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { crearFixtures, type Fixtures } from '../ayudas/bd-fixtures.js';
 import { crearMarca } from '../ayudas/datos.js';
 import { iniciarServidor, type Servidor } from '../ayudas/servidor.js';
@@ -73,8 +73,8 @@ describe('Auditoría · cabeceras de la API', () => {
 
 describe('Auditoría · fail-fast de la configuración en producción', () => {
   const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-  const tsx = path.join(raiz, 'node_modules', '.bin', 'tsx');
-  const modulo = path.join(raiz, 'src', 'shared', 'config', 'env.ts');
+  const tsx = path.join(raiz, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+  const modulo = pathToFileURL(path.join(raiz, 'src', 'shared', 'config', 'env.ts')).href;
   const base = {
     NODE_ENV: 'production', DB_HOST: 'db.ejemplo', DB_NAME: 'learnity', DB_USER: 'learnity_app', DB_PASSWORD: 'x',
     DB_SSL: 'true', CORS_ORIGIN: 'https://learnity.ejemplo', FRONTEND_URL: 'https://learnity.ejemplo',
@@ -87,7 +87,7 @@ describe('Auditoría · fail-fast de la configuración en producción', () => {
     const vacia = mkdtempSync(path.join(os.tmpdir(), 'learnity-env-'));
     try {
       const entorno = Object.fromEntries(Object.entries({ ...base, ...extra }).filter(([, v]) => v !== undefined)) as Record<string, string>;
-      return spawnSync(tsx, ['-e', `import(${JSON.stringify(modulo)})`], {
+      return spawnSync(process.execPath, [tsx, '-e', `import(${JSON.stringify(modulo)})`], {
         cwd: vacia, env: { PATH: process.env['PATH'] ?? '', ...entorno }, encoding: 'utf8',
       });
     } finally {
@@ -96,11 +96,11 @@ describe('Auditoría · fail-fast de la configuración en producción', () => {
   }
 
   it('TLS hacia PostgreSQL: verifica el certificado salvo que se desactive explícitamente', () => {
-    const pool = path.join(raiz, 'src', 'shared', 'database', 'pool.ts');
+    const pool = pathToFileURL(path.join(raiz, 'src', 'shared', 'database', 'pool.ts')).href;
     const tls = (extra: Record<string, string>) => {
       const vacia = mkdtempSync(path.join(os.tmpdir(), 'learnity-tls-'));
       try {
-        const r = spawnSync(tsx, ['-e', `import(${JSON.stringify(pool)}).then(({ pool }) => { console.log(JSON.stringify(pool.options.ssl)); return pool.end(); })`], {
+        const r = spawnSync(process.execPath, [tsx, '-e', `import(${JSON.stringify(pool)}).then(({ pool }) => { console.log(JSON.stringify(pool.options.ssl)); return pool.end(); })`], {
           cwd: vacia, env: { PATH: process.env['PATH'] ?? '', ...base, ...extra }, encoding: 'utf8',
         });
         assert.equal(r.status, 0, r.stderr);

@@ -32,6 +32,8 @@ import { FormularioFicha } from '../../componentes/formulario-ficha';
 import { PanelPublicacion } from '../../componentes/panel-publicacion';
 import { DocenteCursosApi } from '../../cursos.api';
 import { ConfirmacionService } from '../../../../../shared/ui/retroalimentacion/confirmacion.service';
+import { SolicitudesDocenteService } from '../../../../../core/solicitudes/solicitudes-docente.service';
+import { AuthService } from '../../../../../core/auth/auth.service';
 
 const RUTA_IMG = /^\/img(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)+$/;
 const RUTA_FOTO_SUBIDA = /^\/api\/fotos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png|webp)$/;
@@ -114,7 +116,14 @@ export class EditorCurso {
   private readonly catalogoApi = inject(CatalogoApi);
   private readonly router = inject(Router);
   private readonly confirmacion = inject(ConfirmacionService);
+  private readonly solicitudes = inject(SolicitudesDocenteService, { optional: true });
+  private readonly auth = inject(AuthService, { optional: true });
   private version = 0;
+
+  protected readonly especialidadDocente = computed(() => {
+    const s = this.solicitudes?.solicitudActual();
+    return s?.estado === 'APROBADA' ? s.especialidad : null;
+  });
 
   protected readonly guardarModuloFn = (
     cursoId: number,
@@ -165,6 +174,11 @@ export class EditorCurso {
     });
   }
 
+  protected recargar(): void {
+    this.catalogoApi.invalidarCategorias();
+    void this.cargar();
+  }
+
   protected async cargar(): Promise<void> {
     const version = ++this.version;
     const id = this.id();
@@ -189,6 +203,9 @@ export class EditorCurso {
         idNum === null
           ? Promise.resolve(null)
           : this.api.detalleDocente(idNum),
+        this.auth?.esDocente?.() && this.solicitudes && !this.solicitudes.solicitudActual()
+          ? this.solicitudes.miSolicitud().catch(() => null)
+          : Promise.resolve(null),
       ]);
 
       if (version !== this.version) return;
@@ -198,11 +215,15 @@ export class EditorCurso {
       if (detalle) {
         this.aplicar(detalle);
       } else {
+        const esp = this.especialidadDocente()?.trim().toLowerCase();
+        const catEsp = esp
+          ? categorias.find((c) => c.nombre.toLowerCase() === esp || esp.includes(c.nombre.toLowerCase()))
+          : undefined;
         this.form.reset({
           titulo: '',
           subtitulo: '',
           descripcion: '',
-          categoriaId: categorias[0]?.id ?? 0,
+          categoriaId: catEsp?.id ?? categorias[0]?.id ?? 0,
           nivel: 'PRINCIPIANTE',
           portadaUrl: '',
           objetivos: '',

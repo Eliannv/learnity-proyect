@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 /** Una estrella de 24×24 (viewBox 0 0 24 24); las cinco se separan 26 unidades (2 de aire). */
 export const TRAZO_ESTRELLA = 'M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.5L12 17.5l-5.8 3.05 1.1-6.5L2.6 9.45l6.5-.95z';
@@ -12,6 +12,7 @@ const POSICIONES = [0, 26, 52, 78, 104];
  */
 @Component({
   selector: 'app-estrellas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   host: { role: 'img', '[attr.aria-label]': 'etiqueta()' },
   template: `
     <svg class="pista" viewBox="0 0 128 24" aria-hidden="true" focusable="false">

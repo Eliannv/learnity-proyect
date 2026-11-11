@@ -162,10 +162,49 @@
           </div>
         }
 
+        @if (r.respuestas?.length) {
+          <ul class="hilo-respuestas" aria-label="Hilo de conversación">
+            @for (h of r.respuestas; track h.id) {
+              <li class="hilo-item">
+                <div class="hilo-cabecera">
+                  <strong>{{ h.autor.nombre }}</strong>
+                  @if (h.autor.esDocenteCurso) {
+                    <span class="chip-docente">Docente</span>
+                  }
+                  <time class="texto-suave" [attr.datetime]="h.creadoEn">{{ h.creadoEn | date: 'd MMM y' }}</time>
+                  @if (h.propia) {
+                    <button type="button" class="btn-borrar-hilo" (click)="eliminarRespuestaHilo(r, h.id)">Borrar</button>
+                  }
+                </div>
+                <p class="comentario">{{ h.comentario }}</p>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (respondiendoHiloId() === r.id) {
+          <form class="responder" (ngSubmit)="enviarRespuestaHilo(r)">
+            <label class="campo">
+              <span>Comentar en el hilo</span>
+              <textarea class="control" [name]="'hilo-' + r.id" rows="2" maxlength="1000" [ngModel]="textoHilo()"
+                (ngModelChange)="textoHilo.set($event)" placeholder="Responde a los comentarios de este hilo…"></textarea>
+            </label>
+            <div class="acciones">
+              <button type="button" class="btn btn-contorno btn-sm" (click)="abrirFormularioHilo(r.id)">Cancelar</button>
+              <button type="submit" class="btn btn-primario btn-sm" [disabled]="!textoHilo().trim() || enviandoHilo()">
+                {{ enviandoHilo() ? 'Publicando…' : 'Publicar en hilo' }}
+              </button>
+            </div>
+          </form>
+        }
+
         @if (respondiendo() !== r.id) {
           <footer class="acciones">
             <button type="button" class="btn btn-suave btn-sm" (click)="abrirRespuesta(r)">
               <lucide-icon name="reply" [size]="16" aria-hidden="true" /> {{ r.respuesta ? 'Editar respuesta' : 'Responder' }}
+            </button>
+            <button type="button" class="btn btn-texto btn-sm" (click)="abrirFormularioHilo(r.id)">
+              Comentar en hilo
             </button>
             @if (r.respuesta) {
               <button type="button" class="btn btn-texto btn-sm" [disabled]="enviando() === r.id" (click)="retirarRespuesta(r)">Retirar respuesta</button>

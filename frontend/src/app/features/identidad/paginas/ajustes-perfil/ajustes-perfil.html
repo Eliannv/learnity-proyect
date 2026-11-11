@@ -23,6 +23,38 @@
             }
           </div>
           <div class="campo">
+            <label class="etiqueta" for="pais">País</label>
+            <input id="pais" class="control" formControlName="pais" autocomplete="country-name" placeholder="Ej.: Ecuador" />
+          </div>
+          <div class="campo">
+            <label class="etiqueta" for="provincia">Provincia / Estado</label>
+            <input id="provincia" class="control" formControlName="provincia" autocomplete="address-level1" placeholder="Ej.: Pichincha" />
+          </div>
+          <div class="campo">
+            <label class="etiqueta" for="ciudad">Ciudad</label>
+            <input id="ciudad" class="control" formControlName="ciudad" autocomplete="address-level2" placeholder="Ej.: Quito" />
+          </div>
+          <div class="campo">
+            <label class="etiqueta" for="fechaNacimiento">
+              Fecha de nacimiento
+              @if (edadCalculada() !== null) {
+                <span class="chip-edad num">{{ edadCalculada() }} {{ edadCalculada() === 1 ? 'año' : 'años' }}</span>
+              }
+            </label>
+            <input id="fechaNacimiento" type="date" class="control" formControlName="fechaNacimiento" autocomplete="bday" />
+          </div>
+          <div class="campo campo-correo">
+            <label class="etiqueta" for="correo">Correo electrónico</label>
+            <div class="fila-correo">
+              <input id="correo" class="control" [value]="auth.usuario()?.correo" readonly />
+              <button type="button" class="btn btn-contorno btn-sm" (click)="abrirModalCorreo()">
+                <lucide-icon name="mail" [size]="16" aria-hidden="true" />
+                Cambiar correo
+              </button>
+            </div>
+            <span class="ayuda">Con este correo inicias sesión. Para cambiarlo te enviaremos un enlace de confirmación a tu nuevo correo.</span>
+          </div>
+          <div class="campo">
             <label class="etiqueta" for="biografia">Biografía</label>
             <textarea id="biografia" class="control" formControlName="biografia" maxlength="300" placeholder="Cuéntanos algo sobre ti"></textarea>
             <span class="ayuda">
@@ -33,15 +65,6 @@
               }
               {{ valores().biografia?.length ?? 0 }}/300
             </span>
-          </div>
-          <div class="campo">
-            <label class="etiqueta" for="correo">Correo electrónico</label>
-            <input id="correo" class="control" [value]="auth.usuario()?.correo" readonly />
-            <span class="ayuda">Con este correo inicias sesión y recuperas tu contraseña. No se puede cambiar.</span>
-          </div>
-          <div class="campo">
-            <label class="etiqueta" for="ciudad">Ciudad</label>
-            <input id="ciudad" class="control" formControlName="ciudad" autocomplete="address-level2" />
           </div>
       </div>
       <div class="pie">
@@ -127,10 +150,11 @@
 
     <section class="tarjeta seccion-perfil cuenta" aria-labelledby="t-roles">
       <h2 id="t-roles">Tus roles</h2>
-      <p class="texto-suave">
-        @if (activaDesde()) { Cuenta activa desde el <span class="num">{{ activaDesde() }}</span>. }
-        Los roles se suman: toda cuenta es Estudiante.
-      </p>
+      @if (activaDesde()) {
+        <p class="texto-suave">
+          Cuenta activa desde el <span class="num">{{ activaDesde() }}</span>.
+        </p>
+      }
       <ul class="roles">
         @for (r of roles(); track r.nombre) {
           <li>
@@ -215,5 +239,70 @@
   </aside>
 </div>
 </div>
+
+@if (modalCorreoAbierto()) {
+  <app-modal titulo="Cambiar correo electrónico" icono="mail" [ancho]="480" (cerrar)="cerrarModalCorreo()">
+    <form class="form-solicitud" [formGroup]="formCorreo" (ngSubmit)="solicitarCambioCorreo()" novalidate>
+      <p class="texto-suave intro">
+        Enviaremos un enlace de confirmación a tu nuevo correo electrónico. Tu correo actual (<strong>{{ auth.usuario()?.correo }}</strong>) seguirá activo hasta que confirmes el enlace.
+      </p>
+      <div class="campo">
+        <label class="etiqueta" for="nuevo-correo">Nuevo correo electrónico</label>
+        <input
+          id="nuevo-correo"
+          type="email"
+          class="control"
+          formControlName="nuevoCorreo"
+          autocomplete="email"
+          placeholder="nuevo.correo@ejemplo.com"
+          [class.invalido]="invalido(formCorreo.controls.nuevoCorreo)"
+        />
+        @if (invalido(formCorreo.controls.nuevoCorreo)) {
+          <span class="error-campo" role="alert">
+            {{ formCorreo.controls.nuevoCorreo.errors?.['servidor'] ?? 'Escribe un correo electrónico válido.' }}
+          </span>
+        }
+      </div>
+      <div class="campo">
+        <label class="etiqueta" for="contrasena-correo">Tu contraseña actual</label>
+        <input
+          id="contrasena-correo"
+          type="password"
+          class="control"
+          formControlName="contrasenaActual"
+          autocomplete="current-password"
+          [class.invalido]="invalido(formCorreo.controls.contrasenaActual)"
+        />
+        @if (invalido(formCorreo.controls.contrasenaActual)) {
+          <span class="error-campo" role="alert">
+            {{ formCorreo.controls.contrasenaActual.errors?.['servidor'] ?? 'Escribe tu contraseña actual para confirmar tu identidad.' }}
+          </span>
+        }
+      </div>
+      @if (correoMensaje()) {
+        <div class="aviso exito" role="status">
+          <lucide-icon name="circle-check" [size]="18" />
+          <span>{{ correoMensaje() }}</span>
+        </div>
+      }
+      @if (correoError()) {
+        <div class="aviso error" role="alert">
+          <lucide-icon name="circle-alert" [size]="18" />
+          <span>{{ correoError() }}</span>
+        </div>
+      }
+      <div class="acciones-modal">
+        <button type="button" class="btn btn-suave" [disabled]="enviandoCorreo()" (click)="cerrarModalCorreo()">
+          {{ correoMensaje() ? 'Cerrar' : 'Cancelar' }}
+        </button>
+        @if (!correoMensaje()) {
+          <button type="submit" class="btn btn-primario" [disabled]="enviandoCorreo()">
+            {{ enviandoCorreo() ? 'Enviando enlace…' : 'Enviar enlace de confirmación' }}
+          </button>
+        }
+      </div>
+    </form>
+  </app-modal>
+}
 
 <app-modal-solicitud-docente />

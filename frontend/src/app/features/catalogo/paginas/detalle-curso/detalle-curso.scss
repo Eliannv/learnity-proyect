@@ -106,6 +106,52 @@
   color: #d1d5db;
 }
 
+.acciones-curso-banda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-banda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: var(--radio-sm);
+  border: 1px solid rgb(255 255 255 / 24%);
+  background: rgb(255 255 255 / 8%);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--t-micro) var(--curva-salida), border-color var(--t-micro) var(--curva-salida);
+  &:hover {
+    background: rgb(255 255 255 / 16%);
+    border-color: rgb(255 255 255 / 40%);
+  }
+}
+
+.form-reporte-curso {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+.acciones-modal-reporte {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 /* ---------------------------------------------------------------- tarjeta lateral */
 .lateral {
   grid-row: 1 / span 2;

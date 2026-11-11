@@ -3,6 +3,7 @@ import type { UsuarioSesion } from '../../shared/auth/tipos.js';
 import { AppError } from '../../shared/http/app-error.js';
 import { datosValidados } from '../../shared/http/validar.js';
 import type {
+  CambioCorreoUsuarioAdmin,
   CambioEstadoUsuario,
   CambioRolesUsuario,
   DecisionSolicitud,
@@ -24,6 +25,10 @@ function usuario(req: Request): UsuarioSesion {
 export const usuariosController = {
   async solicitarDocencia(req: Request, res: Response): Promise<void> {
     res.status(201).json(await service.solicitarDocencia(usuario(req), req.body as NuevaSolicitudDocente));
+  },
+
+  async solicitarEspecialidadAdicional(req: Request, res: Response): Promise<void> {
+    res.status(201).json(await service.solicitarEspecialidadAdicional(usuario(req), req.body as NuevaSolicitudDocente));
   },
 
   async miSolicitud(req: Request, res: Response): Promise<void> {
@@ -89,5 +94,12 @@ export const usuariosController = {
   async cambiarRoles(req: Request, res: Response): Promise<void> {
     const { parametros: id } = datosValidados<number>(res);
     res.json(await service.cambiarRoles(id, req.body as CambioRolesUsuario, usuario(req)));
+  },
+
+  async solicitarCambioCorreo(req: Request, res: Response): Promise<void> {
+    const { parametros: id } = datosValidados<number>(res);
+    res
+      .status(202)
+      .json(await service.solicitarCambioCorreoUsuario(id, req.body as CambioCorreoUsuarioAdmin, usuario(req)));
   },
 };
