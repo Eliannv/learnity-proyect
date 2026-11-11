@@ -88,7 +88,7 @@ type SeccionInformativa = 'ayuda' | 'sobre' | 'privacidad' | 'contacto';
               </p>
               <div class="tarjeta-contacto">
                 <p><strong>Soporte y atención a la comunidad:</strong></p>
-                <p>Correo electrónico: <a href="mailto:kevin.valarezo.1848@gmail.com">kevin.valarezo.1848@gmail.com</a></p>
+                <p>Correo electrónico: <a href="mailto:info@hoppersoft.site">info@hoppersoft.site</a></p>
                 <p class="texto-suave">Horario de atención: lunes a viernes de 08:00 a 18:00 (GMT-5).</p>
               </div>
             }
