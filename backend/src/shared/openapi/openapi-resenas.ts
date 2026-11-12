@@ -44,6 +44,9 @@ const ocultacion = {
   },
 };
 const idResena = { in: 'path', name: 'id', required: true, description: 'ID de la reseña', schema: { type: 'integer', minimum: 1 } };
+const idRespuesta = {
+  in: 'path', name: 'idRespuesta', required: true, description: 'ID de la respuesta del hilo', schema: { type: 'integer', minimum: 1 },
+};
 const resenaAjena = error('La reseña no existe, está borrada o no es de un curso propio');
 const sinInscripcion = error('Sin rol ESTUDIANTE, o no está inscrito en el curso publicado (NO_INSCRITO)');
 
@@ -144,7 +147,9 @@ export const esquemasResenas = {
       'motivo'],
     properties: {
       accion: { type: 'string', enum: ['CREADA', 'EDITADA', 'ELIMINADA', 'REPUBLICADA', 'RESPONDIDA_POR_DOCENTE',
-        'OCULTADA', 'RESTAURADA', 'RESPUESTA_RETIRADA'] },
+        'OCULTADA', 'RESTAURADA', 'RESPUESTA_RETIRADA', 'HILO_PUBLICADA', 'HILO_OCULTADA', 'HILO_RESTAURADA',
+        'HILO_ELIMINADA'],
+        description: 'Las acciones HILO_* son de las respuestas del hilo: comentarioNuevo lleva el texto de la respuesta.' },
       fecha,
       actor: {
         type: 'object', nullable: true, required: ['id', 'nombre'],
@@ -417,6 +422,27 @@ export const rutasResenas = {
       responses: {
         200: json(ref('ResenaAdmin')), 400: error(idInvalido), 401: error('Sin sesión'), 403: error('Sin rol ADMIN'),
         404: error('La reseña no existe'), 409: error('No está oculta (RESENA_NO_OCULTADA)'), 500: errorInterno,
+      },
+    },
+  },
+  '/admin/resenas/{id}/respuestas/{idRespuesta}/ocultacion': {
+    post: {
+      tags: ['Reseñas'], summary: 'Ocultar una respuesta del hilo de la reseña (queda en el historial como HILO_OCULTADA)',
+      description: 'La respuesta deja de verse en el curso y en el panel del docente, pero se conserva para el historial.',
+      security: seguridad, parameters: [idResena, idRespuesta],
+      responses: {
+        200: json(ref('ResenaAdmin')), 400: error(idInvalido), 401: error('Sin sesión'), 403: error('Sin rol ADMIN'),
+        404: error('La respuesta no existe en esa reseña'), 409: error('Ya está oculta (RESPUESTA_YA_OCULTADA)'),
+        500: errorInterno,
+      },
+    },
+    delete: {
+      tags: ['Reseñas'], summary: 'Restaurar una respuesta ocultada del hilo (queda en el historial como HILO_RESTAURADA)',
+      security: seguridad, parameters: [idResena, idRespuesta],
+      responses: {
+        200: json(ref('ResenaAdmin')), 400: error(idInvalido), 401: error('Sin sesión'), 403: error('Sin rol ADMIN'),
+        404: error('La respuesta no existe en esa reseña'), 409: error('No está oculta (RESPUESTA_NO_OCULTADA)'),
+        500: errorInterno,
       },
     },
   },

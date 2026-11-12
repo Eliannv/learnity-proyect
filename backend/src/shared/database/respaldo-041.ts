@@ -55,6 +55,31 @@ export async function tieneMigracion041(ejecutor: EjecutorConsulta041): Promise<
   }
 }
 
+let cacheTiene042: boolean | null = null;
+
+/**
+ * La 042 (moderación de hilos) añade `resena_respuesta.ocultada_en` y la función `historial_hilo_resena`.
+ * Sin ella, el hilo funciona igual pero el administrador no puede ocultar respuestas ni ver sus eventos.
+ */
+export async function tieneMigracion042(ejecutor: EjecutorConsulta041): Promise<boolean> {
+  if (cacheTiene042 !== null) return cacheTiene042;
+  if (!(await tieneMigracion041(ejecutor))) return false;
+  try {
+    const { rows } = await ejecutor.query<{ ok: boolean | null }>(
+      `SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = 'resena_respuesta'
+                          AND column_name = 'ocultada_en')
+          AND COALESCE(has_function_privilege(
+                to_regprocedure('public.historial_hilo_resena(integer[])'), 'EXECUTE'), false)
+          AS ok`,
+    );
+    cacheTiene042 = Boolean(rows[0]?.ok);
+    return cacheTiene042;
+  } catch {
+    return false;
+  }
+}
+
 /** Errores que indican que la 041 falta o no es utilizable (tabla, columna, función o permiso/RLS). */
 const CODIGOS_ESQUEMA_041 = new Set(['42P01', '42703', '42883', '42501']);
 
@@ -65,6 +90,7 @@ export function esFaltaMigracion041(error: unknown): boolean {
 
 function marcar041NoDisponible(error: unknown): void {
   cacheTiene041 = false;
+  cacheTiene042 = false;
   const e = error as { code?: string; message?: string } | null;
   registrarEvento('bd.migracion_041_no_disponible', { motivo: 'error', codigo: e?.code, mensaje: e?.message }, 'aviso');
 }
@@ -279,6 +305,7 @@ export async function guardarRespaldo041(
 /** Solo para pruebas: olvida la detección cacheada. */
 export function reiniciarDeteccion041(valor: boolean | null = null): void {
   cacheTiene041 = valor;
+  cacheTiene042 = null;
 }
 
 export function calcularEdad(fechaNacimiento: string | null | undefined): number | null {

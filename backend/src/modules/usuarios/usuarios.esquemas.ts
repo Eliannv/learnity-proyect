@@ -16,7 +16,7 @@ export const nuevaSolicitudDocente = z.strictObject({
   motivo: z
     .string()
     .trim()
-    .min(50, 'Cuéntanos tu motivación en al menos 50 caracteres.')
+    .min(20, 'Cuéntanos tu motivación en al menos 20 caracteres.')
     .max(2000, 'La motivación debe tener como máximo 2000 caracteres.'),
 });
 

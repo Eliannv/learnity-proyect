@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { consultar, pool } from '../../shared/database/pool.js';
-import { con041, guardarRespaldo041, leerRespaldo041 } from '../../shared/database/respaldo-041.js';
+import { con041, guardarRespaldo041, leerRespaldo041, tieneMigracion041, tieneMigracion042 } from '../../shared/database/respaldo-041.js';
 import type { DatosReporte, FiltrosBandeja, FiltrosReportes, FiltrosResenasAdmin } from './resenas.esquemas.js';
 import type {
   AccionHistorial, EntradaHistorial, EstadoReporte, EvolucionMes, HiloRespuesta, MotivoReporte, Ocultacion, ReporteAdmin, Resena,
@@ -59,7 +59,19 @@ interface FilaDocente {
 }
 
 /** Filtros de la bandeja como condiciones parametrizadas a partir de $2 ($1 es el docente). */
-function condicionesBandeja(filtros: FiltrosBandeja): { sql: string; valores: unknown[] } {
+/**
+ * La reseña cuenta como respondida si el docente ($1) tiene la respuesta clásica o comentó en el hilo
+ * (041) con una respuesta vigente y, desde la 042, no ocultada por moderación.
+ */
+async function expresionRespondida(): Promise<string> {
+  if (!(await tieneMigracion041(pool))) return 'r.respuesta_docente IS NOT NULL';
+  const visible = (await tieneMigracion042(pool)) ? ' AND rd.ocultada_en IS NULL' : '';
+  return `(r.respuesta_docente IS NOT NULL OR EXISTS (
+            SELECT 1 FROM resena_respuesta rd
+             WHERE rd.id_resena = r.id_resena AND rd.id_persona = $1 AND rd.eliminado_en IS NULL${visible}))`;
+}
+
+function condicionesBandeja(filtros: FiltrosBandeja, respondida: string): { sql: string; valores: unknown[] } {
   const partes: string[] = [];
   const valores: unknown[] = [];
   const agregar = (sql: (n: number) => string, valor: unknown) => {
@@ -70,8 +82,8 @@ function condicionesBandeja(filtros: FiltrosBandeja): { sql: string; valores: un
   if (filtros.estrellas !== undefined) agregar((n) => `r.estrellas = $${n}`, filtros.estrellas);
   if (filtros.comentario === 'con') partes.push('r.comentario IS NOT NULL');
   if (filtros.comentario === 'sin') partes.push('r.comentario IS NULL');
-  if (filtros.respuesta === 'respondidas') partes.push('r.respuesta_docente IS NOT NULL');
-  if (filtros.respuesta === 'sin-responder') partes.push('r.respuesta_docente IS NULL');
+  if (filtros.respuesta === 'respondidas') partes.push(respondida);
+  if (filtros.respuesta === 'sin-responder') partes.push(`NOT ${respondida}`);
   if (filtros.categoria !== undefined) {
     agregar((n) => `EXISTS (SELECT 1 FROM curso cc JOIN categoria cat ON cat.id_categoria = cc.id_categoria
                              WHERE cc.id_curso = i.id_curso AND cat.nombre ILIKE $${n})`, literalLike(filtros.categoria));
@@ -307,7 +319,7 @@ export const resenasRepository = {
   },
 
   async bandeja(idPersona: number, filtros: FiltrosBandeja): Promise<{ items: ResenaDocente[]; total: number }> {
-    const { sql, valores } = condicionesBandeja(filtros);
+    const { sql, valores } = condicionesBandeja(filtros, await expresionRespondida());
     const n = valores.length + 2;
     const [{ rows }, conteo] = await Promise.all([
       consultar<FilaDocente>(
@@ -332,12 +344,13 @@ export const resenasRepository = {
 
   /** Resumen de las reseñas vigentes del docente (de un curso, si se indica). */
   async resumenDocente(idPersona: number, idCurso?: number): Promise<ResumenResenas & { sinResponder: number }> {
+    const respondida = await expresionRespondida();
     const { rows } = await consultar<{ promedio: string | null; total: number; distribucion: number[]; sinResponder: number }>(
       `SELECT round(avg(r.estrellas), 1) AS promedio, count(*)::int AS total,
               ARRAY[count(*) FILTER (WHERE r.estrellas = 1), count(*) FILTER (WHERE r.estrellas = 2),
                     count(*) FILTER (WHERE r.estrellas = 3), count(*) FILTER (WHERE r.estrellas = 4),
                     count(*) FILTER (WHERE r.estrellas = 5)]::int[] AS distribucion,
-              count(*) FILTER (WHERE r.respuesta_docente IS NULL)::int AS "sinResponder"
+              count(*) FILTER (WHERE NOT ${respondida})::int AS "sinResponder"
          FROM resena r JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
         WHERE i.id_curso IN (${CURSOS_DEL_DOCENTE}) AND ${VISIBLE}
           AND ($2::int IS NULL OR i.id_curso = $2)`,
@@ -461,6 +474,31 @@ export const resenasRepository = {
         comentarioAnterior: f.comentarioAnterior, comentarioNuevo: f.comentarioNuevo, motivo: f.motivo,
       });
       mapa.set(f.idResena, lista);
+    }
+
+    // Eventos del hilo (042): quién publicó cada respuesta y quién la ocultó, restauró o borró.
+    if (await tieneMigracion042(pool)) {
+      const { rows: hilo } = await consultar<{
+        idResena: number; accion: AccionHistorial; actorId: number | null; actorNombre: string | null; fecha: Date;
+        comentario: string | null;
+      }>(
+        `SELECT h.id_resena AS "idResena", h.accion, h.id_persona_actor AS "actorId",
+                concat_ws(' ', p.nombres, p.apellidos) AS "actorNombre", h.fecha, h.comentario
+           FROM historial_hilo_resena($1::int[]) h
+           LEFT JOIN persona p ON p.id_persona = h.id_persona_actor`,
+        [ids],
+      );
+      for (const f of hilo) {
+        const lista = mapa.get(f.idResena) ?? [];
+        lista.push({
+          accion: f.accion, fecha: f.fecha.toISOString(),
+          actor: f.actorId === null ? null : { id: f.actorId, nombre: f.actorNombre || 'Cuenta eliminada' },
+          estrellasAnterior: null, estrellasNueva: null,
+          comentarioAnterior: null, comentarioNuevo: f.comentario, motivo: null,
+        });
+        mapa.set(f.idResena, lista);
+      }
+      for (const lista of mapa.values()) lista.sort((a, b) => a.fecha.localeCompare(b.fecha));
     }
     return mapa;
   },
@@ -637,11 +675,26 @@ export const resenasRepository = {
 
   // ---------------------------------------------------------------- hilos de conversación en reseñas (041)
 
-  async respuestasDeResenas(idsResena: readonly number[], idPersonaActual: number | null): Promise<Map<number, HiloRespuesta[]>> {
+  /**
+   * Respuestas vigentes del hilo de cada reseña. Las ocultadas por moderación (042) solo se incluyen con
+   * `incluirOcultas` (vista del administrador), marcadas en `ocultada`.
+   */
+  async respuestasDeResenas(
+    idsResena: readonly number[],
+    idPersonaActual: number | null,
+    { incluirOcultas = false }: { incluirOcultas?: boolean } = {},
+  ): Promise<Map<number, HiloRespuesta[]>> {
     const mapa = new Map<number, HiloRespuesta[]>();
     if (!idsResena.length) return mapa;
 
     return con041(pool, async () => {
+      const con042 = await tieneMigracion042(pool);
+      const camposOcultacion = con042
+        ? `rr.ocultada_en AS "ocultadaEn", po.id_persona AS "ocultadaPorId",
+           concat_ws(' ', po.nombres, po.apellidos) AS "ocultadaPorNombre"`
+        : `NULL::timestamptz AS "ocultadaEn", NULL::int AS "ocultadaPorId", NULL::text AS "ocultadaPorNombre"`;
+      const unionOcultacion = con042 ? 'LEFT JOIN persona po ON po.id_persona = rr.ocultada_por' : '';
+      const filtroOcultas = con042 && !incluirOcultas ? 'AND rr.ocultada_en IS NULL' : '';
       const { rows } = await consultar<{
         id: number;
         idResena: number;
@@ -651,6 +704,9 @@ export const resenasRepository = {
         comentario: string;
         creadoEn: Date;
         esDocente: boolean;
+        ocultadaEn: Date | null;
+        ocultadaPorId: number | null;
+        ocultadaPorNombre: string | null;
       }>(
         `SELECT rr.id_respuesta AS id,
                 rr.id_resena AS "idResena",
@@ -659,15 +715,18 @@ export const resenasRepository = {
                 p.foto_url AS "fotoUrl",
                 rr.comentario,
                 rr.creado_en AS "creadoEn",
-                (rr.id_persona = d.id_persona) AS "esDocente"
+                (rr.id_persona = d.id_persona) AS "esDocente",
+                ${camposOcultacion}
            FROM resena_respuesta rr
            JOIN persona p ON p.id_persona = rr.id_persona
            JOIN resena r ON r.id_resena = rr.id_resena
            JOIN inscripcion i ON i.id_inscripcion = r.id_inscripcion
            JOIN curso c ON c.id_curso = i.id_curso
            JOIN docente d ON d.id_docente = c.id_docente
+           ${unionOcultacion}
           WHERE rr.id_resena = ANY($1::int[])
             AND rr.eliminado_en IS NULL
+            ${filtroOcultas}
           ORDER BY rr.creado_en ASC, rr.id_respuesta ASC`,
         [idsResena],
       );
@@ -683,6 +742,16 @@ export const resenasRepository = {
           esDocente: esDoc,
           esDocenteCurso: esDoc,
           propia: idPersonaActual !== null && Number(f.idPersona) === Number(idPersonaActual),
+          ...(incluirOcultas
+            ? {
+                ocultada: f.ocultadaEn === null ? null : {
+                  fecha: f.ocultadaEn.toISOString(),
+                  por: f.ocultadaPorId === null
+                    ? null
+                    : { id: f.ocultadaPorId, nombre: f.ocultadaPorNombre || 'Cuenta eliminada' },
+                },
+              }
+            : {}),
         });
         mapa.set(f.idResena, lista);
       }
@@ -876,5 +945,39 @@ export const resenasRepository = {
       });
       return idPersonaAutor === null ? null : { idPersonaAutor };
     }, { transaccion: true });
+  },
+
+  /**
+   * Bloquea una respuesta vigente del hilo para moderarla: null si no existe en esa reseña y 'SIN_042' si la
+   * base aún no tiene la migración que permite ocultarla.
+   */
+  async bloquearRespuestaHilo(
+    cliente: PoolClient,
+    idResena: number,
+    idRespuesta: number,
+  ): Promise<{ ocultada: boolean } | null | 'SIN_042'> {
+    if (!(await tieneMigracion042(cliente))) return 'SIN_042';
+    const { rows } = await cliente.query<{ ocultada: boolean }>(
+      `SELECT ocultada_en IS NOT NULL AS ocultada
+         FROM resena_respuesta
+        WHERE id_respuesta = $1 AND id_resena = $2 AND eliminado_en IS NULL
+          FOR UPDATE`,
+      [idRespuesta, idResena],
+    );
+    return rows[0] ?? null;
+  },
+
+  async ocultarRespuestaHilo(cliente: PoolClient, idRespuesta: number, idAdmin: number): Promise<void> {
+    await cliente.query(
+      'UPDATE resena_respuesta SET ocultada_en = now(), ocultada_por = $2 WHERE id_respuesta = $1 AND ocultada_en IS NULL',
+      [idRespuesta, idAdmin],
+    );
+  },
+
+  async restaurarRespuestaHilo(cliente: PoolClient, idRespuesta: number): Promise<void> {
+    await cliente.query(
+      'UPDATE resena_respuesta SET ocultada_en = NULL, ocultada_por = NULL WHERE id_respuesta = $1 AND ocultada_en IS NOT NULL',
+      [idRespuesta],
+    );
   },
 };

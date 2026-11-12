@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { consultar, pool } from '../../shared/database/pool.js';
-import { calcularEdad, con041, guardarRespaldo041, leerRespaldo041, tieneMigracion041 } from '../../shared/database/respaldo-041.js';
+import { calcularEdad, con041, esFaltaMigracion041, guardarRespaldo041, leerRespaldo041, tieneMigracion041 } from '../../shared/database/respaldo-041.js';
+
+/** Token de cambio de correo vigente y dónde está guardado (tabla token_recuperacion o respaldo de la 041). */ interface TokenCambioCorreoVigente {
+  idToken: string;
+  idUsuario: number;
+  nuevoCorreo: string;
+  origen: 'bd' | 'respaldo';
+}
 import type { Rol } from '../../shared/auth/tipos.js';
 
 // Capa repository: SOLO consultas a PostgreSQL. Sin reglas del negocio.
@@ -708,21 +715,27 @@ export const identidadRepository = {
     }, { transaccion: true, codigosExtra: ['23514', '22001'] });
   },
 
-  async buscarTokenCambioCorreoVigente(
-    tokenHash: string,
-  ): Promise<{ idToken: string; idUsuario: number; nuevoCorreo: string } | null> {
+  /**
+   * Token de cambio de correo vigente. Se busca en la tabla y, si no está, en el respaldo de la 041: un token
+   * que se guardó en el respaldo (p. ej. con el CHECK antiguo de Supabase) sigue valiendo tras reiniciar la API.
+   */
+  async buscarTokenCambioCorreoVigente(tokenHash: string): Promise<TokenCambioCorreoVigente | null> {
     if (await tieneMigracion041(pool)) {
-      const { rows } = await consultar<{ idToken: string; idUsuario: number; nuevoCorreo: string }>(
-        `SELECT id_token AS "idToken", id_usuario AS "idUsuario", nuevo_correo AS "nuevoCorreo"
-           FROM token_recuperacion
-          WHERE token_hash = $1
-            AND proposito = 'CAMBIO_CORREO'
-            AND usado_en IS NULL
-            AND expira_en > now()
-            AND nuevo_correo IS NOT NULL`,
-        [tokenHash],
-      );
-      return rows[0] ?? null;
+      try {
+        const { rows } = await consultar<{ idToken: string; idUsuario: number; nuevoCorreo: string }>(
+          `SELECT id_token::text AS "idToken", id_usuario AS "idUsuario", nuevo_correo AS "nuevoCorreo"
+             FROM token_recuperacion
+            WHERE token_hash = $1
+              AND proposito = 'CAMBIO_CORREO'
+              AND usado_en IS NULL
+              AND expira_en > now()
+              AND nuevo_correo IS NOT NULL`,
+          [tokenHash],
+        );
+        if (rows[0]) return { ...rows[0], origen: 'bd' };
+      } catch (error) {
+        if (!esFaltaMigracion041(error)) throw error;
+      }
     }
 
     const estado = await leerRespaldo041();
@@ -735,43 +748,40 @@ export const identidadRepository = {
       idToken: encontrado.idToken,
       idUsuario: encontrado.idUsuario,
       nuevoCorreo: encontrado.nuevoCorreo,
+      origen: 'respaldo',
     };
   },
 
+  /** Marca el token como usado donde se encontró (tabla o respaldo) y cambia `usuario.correo` en la misma transacción. */
   async consumirTokenCambioCorreo(
     cliente: pg.PoolClient,
-    idToken: string,
+    token: TokenCambioCorreoVigente,
     idUsuario: number,
-    nuevoCorreo: string,
   ): Promise<boolean> {
-    return con041(cliente, async () => {
+    let consumido = false;
+    if (token.origen === 'bd') {
       const { rowCount } = await cliente.query(
         `UPDATE token_recuperacion
             SET usado_en = now()
-          WHERE id_token = $1
+          WHERE id_token = $1::bigint
             AND proposito = 'CAMBIO_CORREO'
             AND usado_en IS NULL
             AND expira_en > now()`,
-        [idToken],
+        [token.idToken],
       );
-      if ((rowCount ?? 0) === 0) return false;
-      await cliente.query('UPDATE usuario SET correo = $2 WHERE id_usuario = $1', [idUsuario, nuevoCorreo]);
-      return true;
-    }, async () => {
-      let consumido = false;
+      consumido = (rowCount ?? 0) > 0;
+    } else {
       const ahoraIso = new Date().toISOString();
       await guardarRespaldo041((estado) => {
-        const token = estado.tokensCorreo.find(
-          (t) => t.idToken === idToken && !t.usadoEn && t.expiraEn > ahoraIso,
-        );
-        if (token) {
-          token.usadoEn = ahoraIso;
+        const t = estado.tokensCorreo.find((x) => x.idToken === token.idToken && !x.usadoEn && x.expiraEn > ahoraIso);
+        if (t) {
+          t.usadoEn = ahoraIso;
           consumido = true;
         }
       });
-      if (!consumido) return false;
-      await cliente.query('UPDATE usuario SET correo = $2 WHERE id_usuario = $1', [idUsuario, nuevoCorreo]);
-      return true;
-    }, { transaccion: true });
+    }
+    if (!consumido) return false;
+    await cliente.query('UPDATE usuario SET correo = $2 WHERE id_usuario = $1', [idUsuario, token.nuevoCorreo]);
+    return true;
   },
 };

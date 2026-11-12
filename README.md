@@ -920,7 +920,7 @@ El registro de una cuenta nueva guarda al estudiante en PostgreSQL. Sin embargo,
 
 ### Solicitudes para ser docente
 
-1. El estudiante abre **Mi perfil → Solicitar ser docente** (o el enlace "Enseña en Learnity"), escribe su especialidad y su motivación (50 caracteres o más) y la envía (`POST /api/solicitudes-docente`). Su perfil muestra el estado: *En revisión*, *No fue aprobada* (con la observación del administrador) o el acceso a su panel.
+1. El estudiante abre **Mi perfil → Solicitar ser docente** (o el enlace "Enseña en Learnity"), escribe su especialidad y su motivación (20 caracteres o más) y la envía (`POST /api/solicitudes-docente`). Su perfil muestra el estado: *En revisión*, *No fue aprobada* (con la observación del administrador) o el acceso a su panel.
 2. El administrador la ve en **Panel de administración → Solicitudes de docente**, en la pestaña *Pendientes* (`GET /api/admin/solicitudes`).
 3. Al **aprobar** (`PUT /api/admin/solicitudes/:id`), la cuenta recibe el rol Docente, conserva el de Estudiante y se crea su perfil docente. Al **rechazar**, la observación es obligatoria y el estudiante puede enviar una nueva solicitud.
 4. El estudiante ve su panel de docente al recargar la página o en la siguiente renovación automática de la sesión (máximo 15 minutos), sin volver a iniciar sesión.

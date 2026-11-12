@@ -52,3 +52,7 @@ resenasRoutes.delete('/admin/resenas/:id/ocultacion', autenticar, autorizar('ADM
   validarParametros(idResena), controller.restaurar);
 resenasRoutes.delete('/admin/resenas/:id/respuesta', autenticar, autorizar('ADMIN'),
   validarParametros(idResena), controller.retirarRespuestaAdmin);
+resenasRoutes.post('/admin/resenas/:id/respuestas/:idRespuesta/ocultacion', autenticar, autorizar('ADMIN'),
+  validarParametros(idResenaRespuesta), controller.ocultarRespuestaHilo);
+resenasRoutes.delete('/admin/resenas/:id/respuestas/:idRespuesta/ocultacion', autenticar, autorizar('ADMIN'),
+  validarParametros(idResenaRespuesta), controller.restaurarRespuestaHilo);

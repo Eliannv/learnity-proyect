@@ -98,8 +98,8 @@ describe('Sprint 4 · Perfil extendido, cambio de correo, hilos en reseñas, rep
     );
     const enviados = mensajes.filter((m) => m.para === nuevoCorreo);
     assert.equal(enviados.length, 1);
-    const match = enviados[0]!.texto.match(/confirmarCorreo=([A-Za-z0-9_-]+)/);
-    assert.ok(match?.[1], 'El correo debe incluir el token confirmarCorreo');
+    const match = enviados[0]!.texto.match(/\/confirmar-correo#token=([A-Za-z0-9_-]+)/);
+    assert.ok(match?.[1], 'El correo debe enlazar a /confirmar-correo#token=');
 
     const conf = await srv.pedir('/api/auth/confirmar-correo', {
       metodo: 'POST',
@@ -110,6 +110,28 @@ describe('Sprint 4 · Perfil extendido, cambio de correo, hilos en reseñas, rep
 
     const perfil = await c.como(ana, 'GET', '/api/perfil');
     assert.equal(perfil.json.correo, nuevoCorreo);
+
+    // El enlace es de un solo uso.
+    const otraVez = await srv.pedir('/api/auth/confirmar-correo', { metodo: 'POST', cuerpo: { token: match[1] } });
+    assert.equal(otraVez.status, 400);
+  });
+
+  it('rechaza al instante un correo que ya pertenece a otra cuenta, con el mensaje junto al campo', async () => {
+    const correoDeBeto = (await c.como(beto, 'GET', '/api/perfil')).json.correo as string;
+    const r = await c.como(docente, 'POST', '/api/perfil/correo', {
+      nuevoCorreo: correoDeBeto.toUpperCase(),
+      contrasenaActual: CONTRASENA_PRUEBA,
+    });
+    assert.equal(r.status, 409, r.texto);
+    assert.equal(r.json.error.codigo, 'CORREO_DUPLICADO');
+    assert.equal(r.json.error.mensaje, 'Este correo electrónico ya está asociado a otra cuenta.');
+    assert.deepEqual(r.json.error.detalles, [
+      { campo: 'nuevoCorreo', mensaje: 'Este correo electrónico ya está asociado a otra cuenta.' },
+    ]);
+
+    const porAdmin = await c.como(admin, 'POST', `/api/admin/usuarios/${docente.idUsuario}/correo`, { nuevoCorreo: correoDeBeto });
+    assert.equal(porAdmin.status, 409, porAdmin.texto);
+    assert.equal(porAdmin.json.error.mensaje, 'Este correo electrónico ya está asociado a otra cuenta.');
   });
 
   it('crea y elimina respuestas en el hilo de una reseña identificando al docente del curso', async () => {
@@ -142,6 +164,59 @@ describe('Sprint 4 · Perfil extendido, cambio de correo, hilos en reseñas, rep
 
     const del = await c.como(beto, 'DELETE', `/api/resenas/${resenaId}/respuestas/${rEst.json.id}`);
     assert.equal(del.status, 204);
+  });
+
+  it('el administrador oculta y restaura respuestas del hilo, y el historial completo registra cada evento', async () => {
+    const r = await c.como(beto, 'POST', `/api/resenas/${resenaId}/respuestas`, { comentario: 'Respuesta para moderar.' });
+    assert.equal(r.status, 201, r.texto);
+    const ruta = `/api/admin/resenas/${resenaId}/respuestas/${r.json.id}/ocultacion`;
+    const publicas = async () =>
+      ((await srv.pedir(`/api/cursos/${cursoId}/resenas`)).json.items as { id: number; respuestas: { id: number }[] }[])
+        .find((x) => x.id === resenaId)!.respuestas.map((x) => x.id);
+
+    const oculta = await c.como(admin, 'POST', ruta);
+    assert.equal(oculta.status, 200, oculta.texto);
+    const enAdmin = oculta.json.respuestas.find((x: { id: number }) => x.id === r.json.id);
+    assert.ok(enAdmin?.ocultada?.fecha, 'el administrador sigue viendo la respuesta, marcada como oculta');
+    assert.equal(enAdmin.ocultada.por.id, admin.idPersona);
+    assert.ok(!(await publicas()).includes(r.json.id), 'la respuesta oculta no se ve en el curso');
+    assert.equal((await c.como(admin, 'POST', ruta)).status, 409);
+    assert.equal((await c.como(docente, 'POST', ruta)).status, 403);
+
+    const restaurada = await c.como(admin, 'DELETE', ruta);
+    assert.equal(restaurada.status, 200, restaurada.texto);
+    assert.equal(restaurada.json.respuestas.find((x: { id: number }) => x.id === r.json.id).ocultada, null);
+    assert.ok((await publicas()).includes(r.json.id));
+    assert.equal((await c.como(admin, 'DELETE', ruta)).status, 409);
+
+    const historial = (await c.como(admin, 'GET', `/api/admin/resenas/${resenaId}/historial`)).json as {
+      accion: string; actor: { id: number } | null; comentarioNuevo: string | null;
+    }[];
+    const delHilo = historial.filter((e) => e.accion.startsWith('HILO_') && e.comentarioNuevo === 'Respuesta para moderar.');
+    assert.deepEqual(delHilo.map((e) => e.accion), ['HILO_PUBLICADA', 'HILO_OCULTADA', 'HILO_RESTAURADA']);
+    assert.equal(delHilo[0]!.actor?.id, beto.idPersona);
+    assert.equal(delHilo[1]!.actor?.id, admin.idPersona);
+    assert.ok(historial.some((e) => e.accion === 'CREADA'), 'también conserva los eventos de la reseña');
+    assert.ok(historial.length > delHilo.length);
+
+    const inexistente = await c.como(admin, 'POST', `/api/admin/resenas/${resenaId}/respuestas/2147483000/ocultacion`);
+    assert.equal(inexistente.status, 404);
+  });
+
+  it('la respuesta del docente en el hilo cuenta como respondida en su bandeja', async () => {
+    const sinResponder = async () =>
+      ((await c.como(docente, 'GET', `/api/docente/resenas?curso=${cursoId}&respuesta=sin-responder`)).json.items as { id: number }[])
+        .map((x) => x.id);
+    const respondidas = async () =>
+      ((await c.como(docente, 'GET', `/api/docente/resenas?curso=${cursoId}&respuesta=respondidas`)).json.items as { id: number }[])
+        .map((x) => x.id);
+
+    const bandeja = await c.como(docente, 'GET', `/api/docente/resenas?curso=${cursoId}`);
+    assert.equal(bandeja.status, 200, bandeja.texto);
+    // La prueba anterior del hilo ya dejó una respuesta del docente en esta reseña.
+    assert.ok((await respondidas()).includes(resenaId));
+    assert.ok(!(await sinResponder()).includes(resenaId));
+    assert.equal(bandeja.json.resumen.sinResponder, 0);
   });
 
   it('permite a un estudiante reportar un curso publicado y genera una alerta REPORTE_CURSO con enlace a revisión', async () => {

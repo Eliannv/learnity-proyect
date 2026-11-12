@@ -106,14 +106,15 @@ describe('GET /mia y POST (CAR-SOL-01..06, 13)', () => {
     reiniciar();
     const est = await estudiante();
     const malos: Array<Record<string, unknown>> = [
-      { especialidad: 'ab' }, { especialidad: 'x'.repeat(101) }, { motivo: 'x'.repeat(49) }, { motivo: 'x'.repeat(2001) }, { extra: 1 },
+      { especialidad: 'ab' }, { especialidad: 'x'.repeat(101) }, { motivo: 'x'.repeat(19) }, { motivo: 'x'.repeat(2001) }, { extra: 1 },
     ];
     for (const m of malos) {
       const r = await solicitar(est, m);
       assert.equal(r.status, 400, JSON.stringify(m).slice(0, 40));
       assert.equal(r.json.error.codigo, 'SOLICITUD_INVALIDA');
     }
-    const limites = await solicitar(est, { especialidad: 'abc', motivo: 'x'.repeat(50) });
+    // Cambio intencional (042): el mínimo de la motivación bajó de 50 a 20 caracteres.
+    const limites = await solicitar(est, { especialidad: 'abc', motivo: 'x'.repeat(20) });
     assert.equal(limites.status, 201);
     const est2 = await estudiante();
     assert.equal((await solicitar(est2, { especialidad: 'x'.repeat(100), motivo: 'x'.repeat(2000) })).status, 201);

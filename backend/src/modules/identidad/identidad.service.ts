@@ -513,11 +513,9 @@ export const identidadService = {
     }
     if (cuenta.correo.toLowerCase() === nuevoCorreo) {
       const mensaje = 'El nuevo correo debe ser diferente al actual.';
-      throw AppError.solicitudInvalida(mensaje, [{ campo: 'correo', mensaje }]);
+      throw AppError.solicitudInvalida(mensaje, [{ campo: 'nuevoCorreo', mensaje }]);
     }
-    if (await repo.existeCorreo(nuevoCorreo)) {
-      throw AppError.conflicto('Ya existe una cuenta registrada con ese correo electrónico.', 'CORREO_DUPLICADO');
-    }
+    if (await repo.existeCorreo(nuevoCorreo)) throw correoDeOtraCuenta();
 
     const token = generarTokenOpaco();
     const horas = 24;
@@ -535,7 +533,8 @@ export const identidadService = {
     );
 
     const baseFrontend = env.FRONTEND_URL.replace(/\/$/, '');
-    const enlace = `${baseFrontend}/perfil?confirmarCorreo=${token}`;
+    // En el fragmento (#): el token no viaja al servidor del frontend ni queda en sus registros ni en el Referer.
+    const enlace = `${baseFrontend}/confirmar-correo#token=${token}`;
     enSegundoPlano('confirmar_cambio_correo', () =>
       enviarCorreo(
         correoConfirmacionCambioCorreo({
@@ -572,21 +571,17 @@ export const identidadService = {
     const cuenta = await repo.buscarCuentaPorId(vigente.idUsuario);
     if (!cuenta || cuenta.estado !== 'ACTIVO') throw invalido();
 
-    if (await repo.existeCorreo(vigente.nuevoCorreo)) {
-      throw AppError.conflicto('Ese correo electrónico ya fue registrado por otra cuenta.', 'CORREO_DUPLICADO');
-    }
+    if (await repo.existeCorreo(vigente.nuevoCorreo)) throw correoDeOtraCuenta();
 
     let actualizado = false;
     try {
       actualizado = await enTransaccion(
         (cliente) =>
-          repo.consumirTokenCambioCorreo(cliente, vigente.idToken, cuenta.idUsuario, vigente.nuevoCorreo),
+          repo.consumirTokenCambioCorreo(cliente, vigente, cuenta.idUsuario),
         { actor: cuenta.idPersona },
       );
     } catch (error) {
-      if ((error as { code?: string }).code === '23505') {
-        throw AppError.conflicto('Ese correo electrónico ya fue registrado por otra cuenta.', 'CORREO_DUPLICADO');
-      }
+      if ((error as { code?: string }).code === '23505') throw correoDeOtraCuenta();
       throw error;
     }
     if (!actualizado) throw invalido();
@@ -687,3 +682,9 @@ export const identidadApi: ServicioIdentidad = {
   solicitarCambioCorreoPorAdmin: (idUsuario, idPersonaAdmin, correo) =>
     identidadService.solicitarCambioCorreo(idUsuario, idPersonaAdmin, { correo, contrasenaActual: undefined }),
 };
+
+/** El correo pedido ya es de otra cuenta: 409 con el campo, para mostrarlo junto al formulario. */
+function correoDeOtraCuenta(): AppError {
+  const mensaje = 'Este correo electrónico ya está asociado a otra cuenta.';
+  return new AppError(409, mensaje, 'CORREO_DUPLICADO', [{ campo: 'nuevoCorreo', mensaje }]);
+}

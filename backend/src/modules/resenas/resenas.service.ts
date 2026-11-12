@@ -166,7 +166,7 @@ export const resenasService = {
     const ids = items.map((r) => r.id);
     const [historial, hilos] = await Promise.all([
       repo.historial(ids),
-      repo.respuestasDeResenas(ids, usuario.idPersona),
+      repo.respuestasDeResenas(ids, usuario.idPersona, { incluirOcultas: true }),
     ]);
     return {
       cursos,
@@ -193,7 +193,7 @@ export const resenasService = {
     const ids = [...new Set(reportes.map((r) => r.resena.id))];
     const [historial, hilos] = await Promise.all([
       repo.historial(ids),
-      repo.respuestasDeResenas(ids, usuario.idPersona),
+      repo.respuestasDeResenas(ids, usuario.idPersona, { incluirOcultas: true }),
     ]);
     return reportes.map(({ participantes, ...r }) => {
       const [docentePersona, autorPersona] = participantes;
@@ -257,7 +257,40 @@ export const resenasService = {
     registrarEvento('resena_respuesta_retirada_admin', { idResena });
     return resenaAdmin(idResena, usuario);
   },
+
+  /** Oculta una respuesta del hilo sin borrarla: deja de verse y queda en el historial como HILO_OCULTADA. */
+  async ocultarRespuestaHilo(idResena: number, idRespuesta: number, usuario: UsuarioSesion): Promise<ResenaAdmin> {
+    await moderar(idResena, usuario, async (cliente) => {
+      const respuesta = await bloquearRespuestaHilo(cliente, idResena, idRespuesta);
+      if (respuesta.ocultada) throw AppError.conflicto('La respuesta ya está oculta.', 'RESPUESTA_YA_OCULTADA');
+      await repo.ocultarRespuestaHilo(cliente, idRespuesta, usuario.idPersona);
+    });
+    registrarEvento('resena_hilo_ocultado', { idResena, idRespuesta });
+    return resenaAdmin(idResena, usuario);
+  },
+
+  async restaurarRespuestaHilo(idResena: number, idRespuesta: number, usuario: UsuarioSesion): Promise<ResenaAdmin> {
+    await moderar(idResena, usuario, async (cliente) => {
+      const respuesta = await bloquearRespuestaHilo(cliente, idResena, idRespuesta);
+      if (!respuesta.ocultada) throw AppError.conflicto('La respuesta no está oculta.', 'RESPUESTA_NO_OCULTADA');
+      await repo.restaurarRespuestaHilo(cliente, idRespuesta);
+    });
+    registrarEvento('resena_hilo_restaurado', { idResena, idRespuesta });
+    return resenaAdmin(idResena, usuario);
+  },
 };
+
+async function bloquearRespuestaHilo(cliente: PoolClient, idResena: number, idRespuesta: number): Promise<{ ocultada: boolean }> {
+  const respuesta = await repo.bloquearRespuestaHilo(cliente, idResena, idRespuesta);
+  if (respuesta === 'SIN_042') {
+    throw AppError.conflicto(
+      'Todavía no se pueden ocultar respuestas del hilo: falta aplicar la migración 042 en la base de datos.',
+      'MODERACION_HILO_NO_DISPONIBLE',
+    );
+  }
+  if (!respuesta) throw AppError.noEncontrado('La respuesta no existe en esa reseña.');
+  return respuesta;
+}
 
 /** Acción del administrador sobre una reseña: transacción con la fila bloqueada y el administrador como actor. */
 async function moderar(
@@ -284,7 +317,7 @@ async function resenaAdmin(idResena: number, usuario: UsuarioSesion): Promise<Re
   const [fila, historial, hilos] = await Promise.all([
     repo.resenaAdminPorId(idResena),
     repo.historial([idResena]),
-    repo.respuestasDeResenas([idResena], usuario.idPersona),
+    repo.respuestasDeResenas([idResena], usuario.idPersona, { incluirOcultas: true }),
   ]);
   const { participantes, ...resena } = fila!;
   const [docentePersona, autorPersona] = participantes;

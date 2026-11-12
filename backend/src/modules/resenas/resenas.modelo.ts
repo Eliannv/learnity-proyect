@@ -12,6 +12,8 @@ export interface HiloRespuesta {
   esDocente: boolean;
   esDocenteCurso: boolean;
   propia: boolean;
+  /** Solo en la vista del administrador: ocultación por moderación (null si está visible). */
+  ocultada?: { fecha: string; por: { id: number; nombre: string } | null } | null;
 }
 
 export interface Resena {
@@ -117,7 +119,9 @@ export interface ValoracionDocente {
 
 export type AccionHistorial =
   | 'CREADA' | 'EDITADA' | 'ELIMINADA' | 'REPUBLICADA' | 'RESPONDIDA_POR_DOCENTE'
-  | 'OCULTADA' | 'RESTAURADA' | 'RESPUESTA_RETIRADA';
+  | 'OCULTADA' | 'RESTAURADA' | 'RESPUESTA_RETIRADA'
+  /** Respuestas del hilo de la reseña (042): comentarioNuevo lleva el texto de la respuesta. */
+  | 'HILO_PUBLICADA' | 'HILO_OCULTADA' | 'HILO_RESTAURADA' | 'HILO_ELIMINADA';
 
 export interface EntradaHistorial {
   accion: AccionHistorial;

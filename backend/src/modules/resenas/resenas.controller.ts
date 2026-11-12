@@ -103,4 +103,12 @@ export const resenasController = {
     const { parametros: id } = datosValidados<number>(res);
     res.json(await service.retirarRespuesta(id, usuario(req)));
   },
+  async ocultarRespuestaHilo(req: Request, res: Response): Promise<void> {
+    const { parametros } = datosValidados<{ id: number; idRespuesta: number }>(res);
+    res.json(await service.ocultarRespuestaHilo(parametros.id, parametros.idRespuesta, usuario(req)));
+  },
+  async restaurarRespuestaHilo(req: Request, res: Response): Promise<void> {
+    const { parametros } = datosValidados<{ id: number; idRespuesta: number }>(res);
+    res.json(await service.restaurarRespuestaHilo(parametros.id, parametros.idRespuesta, usuario(req)));
+  },
 };

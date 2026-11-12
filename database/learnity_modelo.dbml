@@ -53,7 +53,7 @@ Table solicitud_docente {
   id_solicitud  integer      [pk, increment]
   id_persona    integer      [not null, ref: > persona.id_persona]
   especialidad  varchar(100) [not null]
-  motivo        text         [not null, note: 'CHECK mínimo 50 caracteres']
+  motivo        text         [not null, note: 'CHECK mínimo 20 caracteres (042; antes 50)']
   estado        varchar(10)  [not null, default: 'PENDIENTE', note: "CHECK IN ('PENDIENTE','APROBADA','RECHAZADA')"]
   observacion   varchar(300)
   revisada_por  integer      [ref: > persona.id_persona, note: 'Administrador']

@@ -103,12 +103,18 @@ describe('Solicitud para ser docente', () => {
     assert.equal((await enviar(null)).status, 401);
   });
 
-  it('valida especialidad y motivo (mínimo 50 caracteres)', async () => {
+  it('valida especialidad y motivo (mínimo 20 caracteres, también en la base de datos)', async () => {
     const est = await cuenta(['ESTUDIANTE']);
     const corto = await enviar(est, { especialidad: 'Programación', motivo: 'Quiero enseñar.' });
     assert.equal(corto.status, 400);
     assert.equal(corto.json.error.codigo, 'SOLICITUD_INVALIDA');
+    assert.match(corto.json.error.detalles[0].mensaje, /al menos 20 caracteres/);
     assert.equal((await enviar(est, { especialidad: 'Programación', motivo: MOTIVO, extra: 1 })).status, 400);
+    // 31 caracteres: antes el CHECK de la base exigía 50 y la solicitud de especialidad fallaba.
+    const justo = await enviar(await cuenta(['ESTUDIANTE']), {
+      especialidad: 'Programación', motivo: 'Tengo cinco años dando clases.',
+    });
+    assert.equal(justo.status, 201, justo.texto);
   });
 
   it('crea la solicitud PENDIENTE y no permite otra mientras siga pendiente', async () => {
