@@ -47,3 +47,11 @@
   font-size: 12px;
   text-align: center;
 }
+
+/* Móvil: la sub-barra Cursos | Categorías queda pegada al título, con la misma distancia al navbar que Alertas. */
+@media (max-width: 768px) {
+  :host {
+    padding-top: 0;
+    gap: 12px;
+  }
+}

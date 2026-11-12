@@ -1,6 +1,5 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { Logo } from '../../shared/ui/marca/logo';
 import { Modal } from '../../shared/ui/retroalimentacion/modal';
 
 type SeccionInformativa = 'ayuda' | 'sobre' | 'privacidad' | 'contacto';
@@ -12,12 +11,12 @@ type SeccionInformativa = 'ayuda' | 'sobre' | 'privacidad' | 'contacto';
  */
 @Component({
   selector: 'app-footer-sitio',
-  imports: [RouterLink, Logo, Modal],
+  imports: [RouterLink, Modal],
   template: `
     <footer>
       <div class="contenedor interior">
         <div class="marca">
-          <app-logo [claro]="true" [tamano]="26" />
+          <a class="nombre-marca" routerLink="/" aria-label="Learnity, inicio">Learnity</a>
           <p>Learnity · Plataforma de cursos en línea. Una comunidad donde aprendes y también enseñas.</p>
         </div>
         <nav class="columnas" aria-label="Enlaces del pie de página">
@@ -44,9 +43,6 @@ type SeccionInformativa = 'ayuda' | 'sobre' | 'privacidad' | 'contacto';
             <button type="button" class="enlace-pie" (click)="seccionActiva.set('contacto')">Contacto</button>
           </div>
         </nav>
-      </div>
-      <div class="contenedor">
-        <p class="cierre" aria-hidden="true">Learnity</p>
       </div>
     </footer>
 
@@ -114,9 +110,9 @@ type SeccionInformativa = 'ayuda' | 'sobre' | 'privacidad' | 'contacto';
       gap: 48px;
     }
     .marca {
-      max-width: 340px;
+      max-width: 440px;
       p {
-        margin-top: 14px;
+        margin-top: 16px;
         font-size: 14px;
         line-height: 1.6;
         color: var(--cabecera-oscura-2);
@@ -193,17 +189,21 @@ type SeccionInformativa = 'ayuda' | 'sobre' | 'privacidad' | 'contacto';
       justify-content: flex-end;
       margin-top: 8px;
     }
-    /* El nombre a todo el ancho: decorativo (aria-hidden), gris de 3,9:1 sobre la banda. */
-    .cierre {
-      margin-top: 48px;
-      font-size: clamp(56px, 13vw, 184px);
+    /* El nombre en letras grandes encabeza el footer, en lugar del logo con icono. Gris de 3,9:1 sobre la banda:
+       suficiente para texto grande (AA pide 3:1). */
+    .nombre-marca {
+      display: block;
+      font-size: clamp(48px, 7vw, 96px);
       font-weight: 700;
-      line-height: 0.8;
+      line-height: 0.85;
       letter-spacing: -0.05em;
       color: #6b7280;
+      text-decoration: none;
       white-space: nowrap;
-      overflow: hidden;
-      user-select: none;
+      &:hover,
+      &:focus-visible {
+        color: #9ca3af;
+      }
     }
     @media (max-width: 900px) {
       footer {
@@ -219,9 +219,6 @@ type SeccionInformativa = 'ayuda' | 'sobre' | 'privacidad' | 'contacto';
         div {
           gap: 14px;
         }
-      }
-      .cierre {
-        margin-top: 32px;
       }
     }
   `,

@@ -5322,6 +5322,167 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/resenas/{id}/respuestas/{idRespuesta}/ocultacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ocultar una respuesta del hilo de la reseña (queda en el historial como HILO_OCULTADA)
+         * @description La respuesta deja de verse en el curso y en el panel del docente, pero se conserva para el historial.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                    /** @description ID de la respuesta del hilo */
+                    idRespuesta: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResenaAdmin"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La respuesta no existe en esa reseña */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Ya está oculta (RESPUESTA_YA_OCULTADA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        /** Restaurar una respuesta ocultada del hilo (queda en el historial como HILO_RESTAURADA) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ID de la reseña */
+                    id: number;
+                    /** @description ID de la respuesta del hilo */
+                    idRespuesta: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResenaAdmin"];
+                    };
+                };
+                /** @description `id` de la ruta inválido (SOLICITUD_INVALIDA, con el detalle en el campo `id`) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin sesión */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sin rol ADMIN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description La respuesta no existe en esa reseña */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description No está oculta (RESPUESTA_NO_OCULTADA) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                500: components["responses"]["ErrorInterno"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/resenas/{id}/respuesta": {
         parameters: {
             query?: never;
@@ -8219,8 +8380,11 @@ export interface components {
             detalle?: string | null;
         };
         EntradaHistorialResena: {
-            /** @enum {string} */
-            accion: "CREADA" | "EDITADA" | "ELIMINADA" | "REPUBLICADA" | "RESPONDIDA_POR_DOCENTE" | "OCULTADA" | "RESTAURADA" | "RESPUESTA_RETIRADA";
+            /**
+             * @description Las acciones HILO_* son de las respuestas del hilo: comentarioNuevo lleva el texto de la respuesta.
+             * @enum {string}
+             */
+            accion: "CREADA" | "EDITADA" | "ELIMINADA" | "REPUBLICADA" | "RESPONDIDA_POR_DOCENTE" | "OCULTADA" | "RESTAURADA" | "RESPUESTA_RETIRADA" | "HILO_PUBLICADA" | "HILO_OCULTADA" | "HILO_RESTAURADA" | "HILO_ELIMINADA";
             /** Format: date-time */
             fecha: string;
             actor: {

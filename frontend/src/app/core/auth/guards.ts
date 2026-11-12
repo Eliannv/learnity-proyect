@@ -32,5 +32,15 @@ export const perfilEstudianteGuard: CanActivateFn = () => {
   return auth.rutaPerfil() === '/perfil' ? true : inject(Router).parseUrl(auth.rutaPerfil());
 };
 
+/**
+ * Correos enviados antes de /confirmar-correo enlazaban a `/perfil?confirmarCorreo=<token>`. Esa ruta exige sesión y
+ * lleva a docentes y administradores a su panel, y el token se perdía por el camino. Se redirige a la página pública
+ * con el token en el fragmento, antes de los demás guards.
+ */
+export const enlaceCorreoLegadoGuard: CanActivateFn = (route) => {
+  const token = route.queryParamMap.get('confirmarCorreo')?.trim();
+  return token ? inject(Router).createUrlTree(['/confirmar-correo'], { fragment: `token=${token}` }) : true;
+};
+
 /** La ruta solo coincide si hay sesión (el inicio "/" muestra una página distinta al visitante). */
 export const conSesionMatch: CanMatchFn = () => inject(AuthService).autenticado();

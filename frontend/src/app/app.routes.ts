@@ -18,6 +18,10 @@ export const routes: Routes = [
     path: 'restablecer-contrasena',
     loadChildren: () => import('./features/identidad/identidad.routes').then((m) => m.rutasRestablecer),
   },
+  {
+    path: 'confirmar-correo',
+    loadChildren: () => import('./features/identidad/identidad.routes').then((m) => m.rutasConfirmarCorreo),
+  },
 
   // Sitio público y pantallas del estudiante.
   {

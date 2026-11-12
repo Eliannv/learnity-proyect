@@ -59,8 +59,6 @@ export class AjustesPerfil {
   readonly marco = input<'pagina' | 'panel'>('panel');
   /** `?solicitud=1` abre directamente el formulario para ser docente. */
   readonly solicitud = input<string>();
-  /** `?confirmarCorreo=<token>` confirma automáticamente el cambio de correo. */
-  readonly confirmarCorreo = input<string>();
   protected readonly fechaCorta = fechaCorta;
   protected readonly miSolicitud = this.solicitudes.solicitudActual;
   private readonly perfiles = inject(PerfilService);
@@ -111,21 +109,7 @@ export class AjustesPerfil {
       }
     });
 
-    effect(() => {
-      const token = this.confirmarCorreo()?.trim();
-      if (token) {
-        untracked(() => void this.ejecutarConfirmacionCorreo(token));
-      }
-    });
-  }
-
-  private async ejecutarConfirmacionCorreo(token: string) {
-    try {
-      const r = await this.perfiles.confirmarCambioCorreo(token);
-      this.perfilMensaje.set(r.mensaje);
-    } catch (error) {
-      this.perfilError.set(mensajeDeError(error, 'La confirmación del nuevo correo'));
-    }
+    // La confirmación del cambio de correo vive en /confirmar-correo (pública, con o sin sesión).
   }
 
   private async cargarSolicitud() {

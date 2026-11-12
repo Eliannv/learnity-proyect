@@ -1,5 +1,5 @@
 import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { type AbstractControl, FormBuilder, ReactiveFormsModule, type ValidationErrors, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/auth/auth.service';
 import { mensajeDeError } from '../../../core/http/error-api';
@@ -7,6 +7,12 @@ import { SolicitudesDocenteService } from '../../../core/solicitudes/solicitudes
 import { BuscadorCurso, type OpcionCursoBusqueda } from '../../../shared/ui/cursos/buscador-curso';
 import { Modal } from '../../../shared/ui/retroalimentacion/modal';
 import { CatalogoApi } from '../../catalogo/catalogo.api';
+
+/** Mínimo de caracteres sin contar los espacios de los extremos, igual que el trim() del backend. */
+function minimoSinEspacios(minimo: number) {
+  return (control: AbstractControl<string>): ValidationErrors | null =>
+    (control.value ?? '').trim().length < minimo ? { minlength: { requiredLength: minimo } } : null;
+}
 
 /**
  * Modal reutilizable «Solicitud para ser docente» (RF-05).
@@ -70,7 +76,7 @@ import { CatalogoApi } from '../../catalogo/catalogo.api';
                 formControlName="motivo"
                 placeholder="Describe tu experiencia y el curso que te gustaría publicar…"
               ></textarea>
-              <span class="ayuda">Mínimo 50 caracteres ({{ formSolicitud.controls.motivo.value.length }}/50).</span>
+              <span class="ayuda">Mínimo 20 caracteres ({{ formSolicitud.controls.motivo.value.trim().length }}/20).</span>
             </div>
             @if (errorSolicitud()) {
               <div class="aviso error" role="alert">
@@ -134,7 +140,7 @@ export class ModalSolicitudDocente {
 
   protected readonly formSolicitud = this.fb.group({
     especialidad: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
-    motivo: ['', [Validators.required, Validators.minLength(50), Validators.maxLength(2000)]],
+    motivo: ['', [Validators.required, minimoSinEspacios(20), Validators.maxLength(2000)]],
   });
 
   constructor() {

@@ -60,4 +60,15 @@ export class AdminResenasApi {
   retirarRespuesta(idResena: number): Promise<ResenaAdmin> {
     return firstValueFrom(this.http.delete<ResenaAdmin>(`${this.base}/${idResena}/respuesta`));
   }
+
+  /** Oculta una respuesta del hilo sin borrarla: deja de verse y queda en el historial. */
+  ocultarRespuestaHilo(idResena: number, idRespuesta: number): Promise<ResenaAdmin> {
+    return firstValueFrom(
+      this.http.post<ResenaAdmin>(`${this.base}/${idResena}/respuestas/${idRespuesta}/ocultacion`, null),
+    );
+  }
+
+  restaurarRespuestaHilo(idResena: number, idRespuesta: number): Promise<ResenaAdmin> {
+    return firstValueFrom(this.http.delete<ResenaAdmin>(`${this.base}/${idResena}/respuestas/${idRespuesta}/ocultacion`));
+  }
 }

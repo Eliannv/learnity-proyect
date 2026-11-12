@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { autenticadoGuard, invitadoGuard, perfilEstudianteGuard } from '../../core/auth/guards';
+import { autenticadoGuard, enlaceCorreoLegadoGuard, invitadoGuard, perfilEstudianteGuard } from '../../core/auth/guards';
 
 /** Cada export se monta en app.routes.ts bajo su URL; las rutas hijas usan path vacío. */
 
@@ -40,11 +40,22 @@ export const rutasRestablecer: Routes = [
   },
 ];
 
+/** Confirmación del cambio de correo: pública, con o sin sesión y para cualquier rol (/confirmar-correo#token=…). */
+export const rutasConfirmarCorreo: Routes = [
+  {
+    path: '',
+    title: 'Confirmar nuevo correo · Learnity',
+    loadComponent: () =>
+      import('./paginas/confirmar-correo/confirmar-correo').then((m) => m.ConfirmarCorreo),
+  },
+];
+
 /** Perfil del Estudiante (/perfil). */
 export const rutasPerfilEstudiante: Routes = [
   {
     path: '',
-    canActivate: [autenticadoGuard, perfilEstudianteGuard],
+    // El enlace antiguo (/perfil?confirmarCorreo=…) se lleva a /confirmar-correo antes de exigir sesión o rol.
+    canActivate: [enlaceCorreoLegadoGuard, autenticadoGuard, perfilEstudianteGuard],
     title: 'Mi perfil · Learnity',
     data: { marco: 'pagina' },
     loadComponent: () =>

@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import type {
   BandejaResenas, FiltrosBandejaResenas, MotivoReporte, ResenaDocente,
 } from '../../../../../core/api/contrato';
+import { AuthService } from '../../../../../core/auth/auth.service';
 import { Peticion } from '../../../../../core/estado/peticion';
 import { mensajeDeError } from '../../../../../core/http/error-api';
 import { Avatar } from '../../../../../shared/ui/marca/avatar';
@@ -47,6 +48,7 @@ export class ResenasDocente {
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
   private readonly confirmacion = inject(ConfirmacionService);
+  private readonly auth = inject(AuthService);
   private version = 0;
 
   protected readonly motivos = MOTIVOS;
@@ -54,10 +56,9 @@ export class ResenasDocente {
   protected readonly datos = signal<BandejaResenas | null>(null);
   protected readonly filtro = signal<Filtro>(this.filtroDeUrl());
 
-  /** Reseña con la respuesta abierta para escribir, y su borrador. */
-  protected readonly respondiendo = signal<number | null>(null);
-  protected readonly borrador = signal('');
+  /** Reseña con una acción en curso (borrar la respuesta clásica o reportar). */
   protected readonly enviando = signal<number | null>(null);
+  /** Reseña con el formulario de respuesta abierto: el docente responde siempre en el hilo. */
   protected readonly respondiendoHiloId = signal<number | null>(null);
   protected readonly textoHilo = signal('');
   protected readonly enviandoHilo = signal(false);
@@ -161,40 +162,35 @@ export class ResenasDocente {
     }
   }
 
-  // ------------------------------------------------------------ responder
+  // ------------------------------------------------------------ responder (siempre en el hilo)
 
-  protected abrirRespuesta(r: ResenaDocente): void {
-    this.respondiendo.set(r.id);
-    this.borrador.set(r.respuesta?.texto ?? '');
+  /** Nombre del docente con la inicial del apellido, como lo muestra el hilo («Ana P.»). */
+  protected readonly miNombre = computed(() => {
+    const u = this.auth.usuario();
+    if (!u) return 'Tú';
+    const inicial = u.apellidos?.trim().charAt(0);
+    return inicial ? `${u.nombres} ${inicial}.` : u.nombres;
+  });
+
+  /** Respondida: con la respuesta clásica o con algún comentario propio en el hilo (igual que el backend). */
+  private respondida(r: ResenaDocente): boolean {
+    return !!r.respuesta || (r.respuestas ?? []).some((h) => h.propia && h.autor.esDocenteCurso);
   }
 
-  protected async enviarRespuesta(r: ResenaDocente): Promise<void> {
-    const texto = this.borrador().trim();
-    if (!texto || this.enviando() !== null) return;
-    this.enviando.set(r.id);
-    try {
-      this.reemplazar(await this.api.responder(r.id, texto));
-      this.respondiendo.set(null);
-      this.toasts.exito(r.respuesta ? 'Respuesta actualizada.' : 'Respuesta publicada.');
-    } catch (error) {
-      this.toasts.error(mensajeDeError(error, 'Publicar la respuesta'));
-    } finally {
-      this.enviando.set(null);
-    }
-  }
-
+  /** Borra la respuesta clásica (anterior a los hilos), que se muestra como la primera del hilo. */
   protected async retirarRespuesta(r: ResenaDocente): Promise<void> {
     const ok = await this.confirmacion.confirmar({
-      titulo: '¿Retirar tu respuesta?', mensaje: 'Dejará de verse en la página del curso. La reseña no cambia.',
-      accion: 'Retirar respuesta', peligro: true, icono: 'reply',
+      titulo: '¿Borrar tu respuesta?', mensaje: 'Dejará de verse en la página del curso. La reseña no cambia.',
+      accion: 'Borrar respuesta', peligro: true, icono: 'reply',
     });
     if (!ok) return;
     this.enviando.set(r.id);
     try {
-      this.reemplazar(await this.api.retirarRespuesta(r.id));
-      this.toasts.exito('Respuesta retirada.');
+      const actualizada = await this.api.retirarRespuesta(r.id);
+      this.reemplazar({ ...actualizada, respuestas: actualizada.respuestas ?? r.respuestas });
+      this.toasts.exito('Respuesta borrada.');
     } catch (error) {
-      this.toasts.error(mensajeDeError(error, 'Retirar la respuesta'));
+      this.toasts.error(mensajeDeError(error, 'Borrar la respuesta'));
     } finally {
       this.enviando.set(null);
     }
@@ -216,19 +212,12 @@ export class ResenasDocente {
     this.enviandoHilo.set(true);
     try {
       const nueva = await this.resenasApi.crearRespuestaHilo(r.id, comentario);
-      this.datos.update((d) =>
-        d && {
-          ...d,
-          items: d.items.map((item) =>
-            item.id === r.id ? { ...item, respuestas: [...(item.respuestas ?? []), nueva] } : item,
-          ),
-        },
-      );
+      this.reemplazar({ ...r, respuestas: [...(r.respuestas ?? []), nueva] });
       this.respondiendoHiloId.set(null);
       this.textoHilo.set('');
-      this.toasts.exito('Comentario publicado en el hilo.');
+      this.toasts.exito('Respuesta publicada.');
     } catch (error) {
-      this.toasts.error(mensajeDeError(error, 'Publicar en el hilo'));
+      this.toasts.error(mensajeDeError(error, 'Publicar la respuesta'));
     } finally {
       this.enviandoHilo.set(false);
     }
@@ -237,19 +226,10 @@ export class ResenasDocente {
   protected async eliminarRespuestaHilo(r: ResenaDocente, idRespuesta: number): Promise<void> {
     try {
       await this.resenasApi.eliminarRespuestaHilo(r.id, idRespuesta);
-      this.datos.update((d) =>
-        d && {
-          ...d,
-          items: d.items.map((item) =>
-            item.id === r.id
-              ? { ...item, respuestas: (item.respuestas ?? []).filter((x) => x.id !== idRespuesta) }
-              : item,
-          ),
-        },
-      );
-      this.toasts.exito('Comentario eliminado del hilo.');
+      this.reemplazar({ ...r, respuestas: (r.respuestas ?? []).filter((x) => x.id !== idRespuesta) });
+      this.toasts.exito('Respuesta borrada.');
     } catch (error) {
-      this.toasts.error(mensajeDeError(error, 'Eliminar el comentario'));
+      this.toasts.error(mensajeDeError(error, 'Borrar la respuesta'));
     }
   }
 
@@ -292,15 +272,20 @@ export class ResenasDocente {
     return MOTIVOS.find((m) => m.valor === motivo)?.texto ?? motivo;
   }
 
+  /** Cambia una reseña de la lista y ajusta «Sin responder» si pasó de respondida a no respondida (o al revés). */
   private reemplazar(actualizada: ResenaDocente): void {
-    this.datos.update((d) => d && {
-      ...d,
-      items: d.items.map((r) => (r.id === actualizada.id ? actualizada : r)),
-      resumen: {
-        ...d.resumen,
-        sinResponder: d.resumen.sinResponder
-          + (d.items.find((r) => r.id === actualizada.id)?.respuesta ? 1 : 0) - (actualizada.respuesta ? 1 : 0),
-      },
+    this.datos.update((d) => {
+      if (!d) return d;
+      const anterior = d.items.find((r) => r.id === actualizada.id);
+      const antes = anterior ? this.respondida(anterior) : false;
+      return {
+        ...d,
+        items: d.items.map((r) => (r.id === actualizada.id ? actualizada : r)),
+        resumen: {
+          ...d.resumen,
+          sinResponder: Math.max(0, d.resumen.sinResponder + (antes ? 1 : 0) - (this.respondida(actualizada) ? 1 : 0)),
+        },
+      };
     });
   }
 

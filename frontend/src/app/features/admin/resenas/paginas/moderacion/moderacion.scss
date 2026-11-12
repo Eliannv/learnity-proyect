@@ -151,7 +151,23 @@
   cursor: pointer;
   padding: 0;
   &:hover { text-decoration: underline; }
+  &:disabled { opacity: 0.6; cursor: default; text-decoration: none; }
 }
+/* Respuesta ocultada: se sigue viendo para moderar, atenuada y con la marca de quién la ocultó. */
+.hilo-item.oculta {
+  background: var(--pill-aviso-fondo);
+  .comentario { color: var(--tinta-3); }
+  .btn-borrar-hilo { color: var(--acento); }
+}
+.hilo-ocultada {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--pill-aviso-tinta);
+}
+.texto-hilo-historial { font-size: 13px; color: var(--tinta-2); overflow-wrap: anywhere; white-space: pre-line; }
 
 .historial {
   summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--acento); }

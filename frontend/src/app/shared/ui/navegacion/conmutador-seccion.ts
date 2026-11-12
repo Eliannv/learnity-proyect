@@ -22,6 +22,9 @@ export interface EnlaceSeccion {
   `,
   styles: `
     :host { display: block; }
+    @media (max-width: 768px) {
+      .pestanas-linea > a { min-height: 40px; }
+    }
   `,
 })
 export class ConmutadorSeccion {

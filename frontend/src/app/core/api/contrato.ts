@@ -88,6 +88,8 @@ export interface HiloRespuesta {
   comentario: string;
   creadoEn: string;
   propia: boolean;
+  /** Solo en la vista del administrador: ocultación por moderación (null si está visible). */
+  ocultada?: { fecha: string; por: { id: number; nombre: string } | null } | null;
 }
 
 export type Resena = Omit<Esquemas['Resena'], 'respuestas'> & {

@@ -250,4 +250,46 @@ describe('reseñas del administrador', () => {
     expect(historial).toContain('Publicó la reseña · Beto Ruiz · 5 estrellas');
     expect(historial).not.toContain('Sin autor registrado');
   });
+
+  it('modera las respuestas del hilo con Ocultar / Restaurar y el historial cuenta sus eventos', async () => {
+    const respuestaHilo = {
+      id: 41, autor: { nombre: 'Ana T.', fotoUrl: null, esDocenteCurso: false }, comentario: '¿Tiene ejercicios?',
+      creadoEn: '2026-10-04T10:00:00.000Z', propia: false, ocultada: null,
+    };
+    const eventoHilo = (accion: 'HILO_PUBLICADA' | 'HILO_OCULTADA', fecha: string, actor: { id: number; nombre: string }) => ({
+      accion, fecha, actor, estrellasAnterior: null, estrellasNueva: null, comentarioAnterior: null,
+      comentarioNuevo: '¿Tiene ejercicios?', motivo: null,
+    });
+    const conHilo: ResenaAdmin = {
+      ...resena, respuestas: [respuestaHilo],
+      historial: [...resena.historial, eventoHilo('HILO_PUBLICADA', '2026-10-04T10:00:00.000Z', { id: 5, nombre: 'Ana Torres' })],
+    };
+    const tras = {
+      ...conHilo,
+      respuestas: [{ ...respuestaHilo, ocultada: { fecha: ocultadaEn, por: { id: 2, nombre: 'Ada Admin' } } }],
+      historial: [...conHilo.historial, eventoHilo('HILO_OCULTADA', ocultadaEn, { id: 2, nombre: 'Ada Admin' })],
+    };
+    const { fixture, api, toasts } = montar(true, [conHilo]);
+    (api as Record<string, unknown>)['ocultarRespuestaHilo'] = vi.fn().mockResolvedValue(tras);
+    await esperarTodas(fixture);
+
+    const hilo = fixture.nativeElement.querySelector('.hilo-item') as HTMLElement;
+    expect(boton(hilo, 'Ocultar')).toBeTruthy();
+    expect(boton(hilo, 'Borrar')).toBeUndefined();
+    const historial = () => fixture.nativeElement.querySelector('.historial')?.textContent?.replace(/\s+/g, ' ') as string;
+    expect(historial()).toContain('Historial completo (3)');
+    expect(historial()).toContain('Respondió en el hilo · Ana Torres');
+    expect(historial()).toContain('«¿Tiene ejercicios?»');
+
+    boton(hilo, 'Ocultar').click();
+    await vi.waitFor(() => expect(api['ocultarRespuestaHilo' as keyof typeof api]).toHaveBeenCalledWith(9, 41));
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.hilo-item.oculta')?.textContent).toContain('Oculta el');
+    });
+    expect(boton(fixture.nativeElement.querySelector('.hilo-item') as HTMLElement, 'Restaurar')).toBeTruthy();
+    expect(historial()).toContain('Historial completo (4)');
+    expect(historial()).toContain('Ocultó una respuesta del hilo · Ada Admin');
+    expect(toasts.exito).toHaveBeenCalledWith('Respuesta del hilo ocultada.');
+  });
 });

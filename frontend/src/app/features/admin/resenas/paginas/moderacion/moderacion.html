@@ -26,6 +26,9 @@
           @if (h.accion === 'EDITADA' && h.comentarioAnterior !== h.comentarioNuevo) {
             <span class="diff"><del>{{ h.comentarioAnterior ?? '(sin comentario)' }}</del> <ins>{{ h.comentarioNuevo ?? '(sin comentario)' }}</ins></span>
           }
+          @if (esDelHilo(h) && h.comentarioNuevo) {
+            <span class="texto-hilo-historial">«{{ h.comentarioNuevo }}»</span>
+          }
         </li>
       }
     </ol>
@@ -134,16 +137,30 @@
             @if (r.respuestas?.length) {
               <ul class="hilo-respuestas" aria-label="Hilo de conversación">
                 @for (h of r.respuestas; track h.id) {
-                  <li class="hilo-item">
+                  <li class="hilo-item" [class.oculta]="h.ocultada">
                     <div class="hilo-cabecera">
                       <strong>{{ h.autor.nombre }}</strong>
                       @if (h.autor.esDocenteCurso) {
                         <span class="chip-docente">Docente</span>
                       }
                       <time class="texto-suave" [attr.datetime]="h.creadoEn">{{ h.creadoEn | date: 'd MMM y' }}</time>
-                      <button type="button" class="btn-borrar-hilo" (click)="eliminarRespuestaHilo(r.id, h.id)">Borrar</button>
+                      @if (!r.propia) {
+                        @if (h.ocultada) {
+                          <button type="button" class="btn-borrar-hilo" [disabled]="actuando() === r.id"
+                            (click)="restaurarRespuestaHilo(r, h)">Restaurar</button>
+                        } @else {
+                          <button type="button" class="btn-borrar-hilo" [disabled]="actuando() === r.id"
+                            (click)="ocultarRespuestaHilo(r, h)">Ocultar</button>
+                        }
+                      }
                     </div>
                     <p class="comentario">{{ h.comentario }}</p>
+                    @if (h.ocultada; as o) {
+                      <p class="hilo-ocultada">
+                        <lucide-icon name="eye-off" [size]="14" aria-hidden="true" />
+                        Oculta el {{ o.fecha | date: 'd MMM y, HH:mm' }} por {{ o.por?.nombre ?? 'una cuenta eliminada' }}. No se ve en el curso.
+                      </p>
+                    }
                   </li>
                 }
               </ul>

@@ -290,12 +290,12 @@ test('el administrador busca una reseña, la oculta con motivo, retira la respue
   await expect(tarjeta).toContainText('Motivo: Publicidad de un canal externo.');
   await captura(page, 'admin-resena-ocultada');
 
-  // La alumna ve el aviso (sin el motivo interno) y ya no puede editarla ni volver a publicarla.
+  // La alumna no ve su reseña ni ningún aviso de moderación, y ya no puede editarla ni volver a publicarla.
   const { contexto, pagina } = await otroContexto(context);
   await iniciarSesionPorUI(pagina, alumna.correo);
   await pagina.goto(`/cursos/${cursoId}`);
   const resenas = pagina.getByRole('region', { name: 'Reseñas de estudiantes' });
-  await expect(resenas).toContainText('Tu reseña fue ocultada por moderación.');
+  await expect(resenas).not.toContainText('Tu reseña fue ocultada por moderación.');
   await expect(resenas).not.toContainText(comentario);
   await expect(resenas).not.toContainText('Publicidad de un canal externo.');
   await expect(resenas.getByRole('button', { name: /Editar|Escribir una reseña/ })).toHaveCount(0);

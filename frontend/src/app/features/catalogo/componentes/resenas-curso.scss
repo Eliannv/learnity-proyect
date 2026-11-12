@@ -225,10 +225,3 @@
   .resumen { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .propia, .invitacion { flex-direction: column; align-items: flex-start; }
 }
-
-.mi-resena.ocultada { border-color: transparent; background: var(--pill-aviso-fondo); }
-.aviso-ocultada {
-  margin: 0;
-  line-height: 1.5;
-  color: var(--pill-aviso-tinta);
-}

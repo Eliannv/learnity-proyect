@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type {
-  EntradaHistorialResena, EstadoReporte, MotivoReporte, PaginaResenasAdmin, ReporteResena, ResenaAdmin,
+  EntradaHistorialResena, EstadoReporte, HiloRespuesta, MotivoReporte, PaginaResenasAdmin, ReporteResena, ResenaAdmin,
 } from '../../../../../core/api/contrato';
 import { Peticion } from '../../../../../core/estado/peticion';
 import { mensajeDeError } from '../../../../../core/http/error-api';
@@ -15,7 +15,6 @@ import { Modal } from '../../../../../shared/ui/retroalimentacion/modal';
 import { Estrellas } from '../../../../../shared/ui/datos/estrellas';
 import { ToastService } from '../../../../../shared/ui/retroalimentacion/toast.service';
 import { CatalogoApi } from '../../../../catalogo/catalogo.api';
-import { ResenasApi } from '../../../../catalogo/resenas.api';
 import { AdminResenasApi, type EstadoResenasAdmin, type FiltrosResenasAdmin } from '../../resenas.api';
 
 type Vista = 'TODAS' | 'VIGENTES' | 'BORRADAS' | EstadoReporte;
@@ -46,6 +45,10 @@ const ACCION: Record<EntradaHistorialResena['accion'], string> = {
   OCULTADA: 'Ocultó la reseña',
   RESTAURADA: 'Restauró la reseña',
   RESPUESTA_RETIRADA: 'Retiró la respuesta del docente',
+  HILO_PUBLICADA: 'Respondió en el hilo',
+  HILO_OCULTADA: 'Ocultó una respuesta del hilo',
+  HILO_RESTAURADA: 'Restauró una respuesta del hilo',
+  HILO_ELIMINADA: 'Borró una respuesta del hilo',
 };
 
 const FILTROS_INICIALES: FiltrosResenasAdmin = { estado: 'todas', curso: null, estrellas: null, categoria: '', q: '' };
@@ -68,7 +71,6 @@ function estrellasTexto(n: number): string {
 })
 export class ModeracionResenas {
   private readonly api = inject(AdminResenasApi);
-  private readonly resenasApi = inject(ResenasApi);
   private readonly catalogo = inject(CatalogoApi);
   /** Categorías activas como opciones del selector buscable (el filtro envía su nombre). */
   protected readonly categorias = signal<{ id: number; titulo: string; iconoCategoria: string }[]>([]);
@@ -260,7 +262,13 @@ export class ModeracionResenas {
       return autorResena || 'Estudiante del curso';
     }
     if (h.accion === 'RESPONDIDA_POR_DOCENTE') return 'Docente del curso';
+    if (h.accion === 'HILO_PUBLICADA' || h.accion === 'HILO_ELIMINADA') return 'Participante del hilo';
     return 'Administración';
+  }
+
+  /** Las entradas HILO_* son de respuestas del hilo: muestran el texto de la respuesta. */
+  protected esDelHilo(h: EntradaHistorialResena): boolean {
+    return h.accion.startsWith('HILO_');
   }
 
   protected desdeMenuResena(accion: () => void): void {
@@ -294,22 +302,27 @@ export class ModeracionResenas {
     return 'Es de tu curso o la escribiste tú: debe moderarla otro administrador.';
   }
 
-  protected async eliminarRespuestaHilo(resenaId: number, idRespuesta: number): Promise<void> {
-    try {
-      await this.resenasApi.eliminarRespuestaHilo(resenaId, idRespuesta);
-      this.todas.update((t) =>
-        t && {
-          ...t,
-          items: t.items.map((item) =>
-            item.id === resenaId
-              ? { ...item, respuestas: (item.respuestas ?? []).filter((x) => x.id !== idRespuesta) }
-              : item,
-          ),
-        },
-      );
-      this.toasts.exito('Comentario eliminado del hilo.');
-    } catch (error) {
-      this.toasts.error(mensajeDeError(error, 'Eliminar el comentario'));
+  /** Moderación del hilo: ocultar o restaurar una respuesta, igual que la reseña principal (sin borrar nada). */
+  protected async ocultarRespuestaHilo(r: ResenaAdmin, h: HiloRespuesta): Promise<void> {
+    const ok = await this.confirmacion.confirmar({
+      titulo: '¿Ocultar esta respuesta del hilo?', accion: 'Ocultar respuesta', peligro: true, icono: 'eye-off',
+      mensaje: `La respuesta de ${h.autor.nombre} dejará de verse en el curso y en el panel del docente. `
+        + 'Se conserva, y quién la ocultó queda en el historial.',
+    });
+    if (ok) {
+      await this.actuar(r, () => this.api.ocultarRespuestaHilo(r.id, h.id), 'Respuesta del hilo ocultada.',
+        'Ocultar la respuesta del hilo');
+    }
+  }
+
+  protected async restaurarRespuestaHilo(r: ResenaAdmin, h: HiloRespuesta): Promise<void> {
+    const ok = await this.confirmacion.confirmar({
+      titulo: '¿Restaurar esta respuesta del hilo?', accion: 'Restaurar respuesta', icono: 'eye',
+      mensaje: `La respuesta de ${h.autor.nombre} volverá a verse en el curso. La ocultación queda en el historial.`,
+    });
+    if (ok) {
+      await this.actuar(r, () => this.api.restaurarRespuestaHilo(r.id, h.id), 'Respuesta del hilo restaurada.',
+        'Restaurar la respuesta del hilo');
     }
   }
 }
