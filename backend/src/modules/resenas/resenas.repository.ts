@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 import { consultar, pool } from '../../shared/database/pool.js';
-import { guardarRespaldo041, leerRespaldo041, tieneMigracion041 } from '../../shared/database/respaldo-041.js';
+import { con041, guardarRespaldo041, leerRespaldo041 } from '../../shared/database/respaldo-041.js';
 import type { DatosReporte, FiltrosBandeja, FiltrosReportes, FiltrosResenasAdmin } from './resenas.esquemas.js';
 import type {
   AccionHistorial, EntradaHistorial, EstadoReporte, EvolucionMes, HiloRespuesta, MotivoReporte, Ocultacion, ReporteAdmin, Resena,
@@ -641,7 +641,7 @@ export const resenasRepository = {
     const mapa = new Map<number, HiloRespuesta[]>();
     if (!idsResena.length) return mapa;
 
-    if (await tieneMigracion041(pool)) {
+    return con041(pool, async () => {
       const { rows } = await consultar<{
         id: number;
         idResena: number;
@@ -687,9 +687,15 @@ export const resenasRepository = {
         mapa.set(f.idResena, lista);
       }
       return mapa;
-    }
+    }, () => resenasRepository.respuestasDeResenasRespaldo(idsResena, idPersonaActual));
+  },
 
-    const estado = leerRespaldo041();
+  async respuestasDeResenasRespaldo(
+    idsResena: readonly number[],
+    idPersonaActual: number | null,
+  ): Promise<Map<number, HiloRespuesta[]>> {
+    const mapa = new Map<number, HiloRespuesta[]>();
+    const estado = await leerRespaldo041();
     const vigentes = estado.respuestasResena.filter(
       (rr) => !rr.eliminadoEn && idsResena.includes(rr.idResena),
     );
@@ -781,7 +787,7 @@ export const resenasRepository = {
       [idPersona],
     );
 
-    if (await tieneMigracion041(cliente)) {
+    return con041(cliente, async () => {
       const { rows } = await cliente.query<{ id: number; creadoEn: Date }>(
         `INSERT INTO resena_respuesta (id_resena, id_persona, comentario)
          VALUES ($1, $2, $3)
@@ -789,7 +795,7 @@ export const resenasRepository = {
         [idResena, idPersona, comentario],
       );
       const fila = rows[0]!;
-      return {
+      const respuesta: HiloRespuesta = {
         id: fila.id,
         autor: {
           nombre: autorFila?.autor ?? 'Usuario',
@@ -803,36 +809,37 @@ export const resenasRepository = {
         esDocenteCurso: esDocente,
         propia: true,
       };
-    }
-
-    let creada!: HiloRespuesta;
-    const ahoraIso = new Date().toISOString();
-    guardarRespaldo041((estado) => {
-      const id = estado.secuenciaRespuesta++;
-      estado.respuestasResena.push({
-        id,
-        idResena,
-        idPersona,
-        comentario,
-        creadoEn: ahoraIso,
-        eliminadoEn: null,
-      });
-      creada = {
-        id,
-        autor: {
-          nombre: autorFila?.autor ?? 'Usuario',
+      return respuesta;
+    }, async () => {
+      let creada!: HiloRespuesta;
+      const ahoraIso = new Date().toISOString();
+      await guardarRespaldo041((estado) => {
+        const id = estado.secuenciaRespuesta++;
+        estado.respuestasResena.push({
+          id,
+          idResena,
+          idPersona,
+          comentario,
+          creadoEn: ahoraIso,
+          eliminadoEn: null,
+        });
+        creada = {
+          id,
+          autor: {
+            nombre: autorFila?.autor ?? 'Usuario',
+            fotoUrl: autorFila?.fotoUrl ?? null,
+            esDocenteCurso: esDocente,
+          },
           fotoUrl: autorFila?.fotoUrl ?? null,
+          comentario,
+          creadoEn: ahoraIso,
+          esDocente,
           esDocenteCurso: esDocente,
-        },
-        fotoUrl: autorFila?.fotoUrl ?? null,
-        comentario,
-        creadoEn: ahoraIso,
-        esDocente,
-        esDocenteCurso: esDocente,
-        propia: true,
-      };
-    });
-    return creada;
+          propia: true,
+        };
+      });
+      return creada;
+    }, { transaccion: true });
   },
 
   async eliminarRespuestaHilo(
@@ -840,7 +847,7 @@ export const resenasRepository = {
     idResena: number,
     idRespuesta: number,
   ): Promise<{ idPersonaAutor: number } | null> {
-    if (await tieneMigracion041(cliente)) {
+    return con041(cliente, async () => {
       const { rows } = await cliente.query<{ idPersonaAutor: number }>(
         `SELECT id_persona AS "idPersonaAutor"
            FROM resena_respuesta
@@ -855,19 +862,19 @@ export const resenasRepository = {
         [idRespuesta],
       );
       return fila;
-    }
-
-    let idPersonaAutor: number | null = null;
-    const ahoraIso = new Date().toISOString();
-    guardarRespaldo041((estado) => {
-      const r = estado.respuestasResena.find(
-        (x) => x.id === idRespuesta && x.idResena === idResena && !x.eliminadoEn,
-      );
-      if (r) {
-        r.eliminadoEn = ahoraIso;
-        idPersonaAutor = r.idPersona;
-      }
-    });
-    return idPersonaAutor === null ? null : { idPersonaAutor };
+    }, async () => {
+      let idPersonaAutor: number | null = null;
+      const ahoraIso = new Date().toISOString();
+      await guardarRespaldo041((estado) => {
+        const r = estado.respuestasResena.find(
+          (x) => x.id === idRespuesta && x.idResena === idResena && !x.eliminadoEn,
+        );
+        if (r) {
+          r.eliminadoEn = ahoraIso;
+          idPersonaAutor = r.idPersona;
+        }
+      });
+      return idPersonaAutor === null ? null : { idPersonaAutor };
+    }, { transaccion: true });
   },
 };

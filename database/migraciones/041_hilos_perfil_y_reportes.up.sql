@@ -81,7 +81,12 @@ CREATE TRIGGER trg_auditoria_resena_respuesta
   AFTER INSERT OR UPDATE OR DELETE ON resena_respuesta
   FOR EACH ROW EXECUTE FUNCTION auditoria_registrar();
 
+-- Explícito como en la 040: Supabase puede activar RLS en tablas nuevas y, sin políticas, todo INSERT de
+-- learnity_app fallaría con 42501. El acceso se controla con GRANT y en la capa de servicio.
+ALTER TABLE resena_respuesta DISABLE ROW LEVEL SECURITY;
+
 REVOKE ALL ON resena_respuesta FROM PUBLIC;
+-- Sin DELETE: el borrado es lógico (eliminado_en). La columna IDENTITY no requiere USAGE sobre su secuencia.
 GRANT SELECT, INSERT, UPDATE ON resena_respuesta TO learnity_app;
 GRANT SELECT                 ON resena_respuesta TO learnity_lectura;
 

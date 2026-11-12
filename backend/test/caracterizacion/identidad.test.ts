@@ -200,7 +200,8 @@ describe('recuperación y perfil (CAR-IDE-32, 33, 37, 40..44, 47)', () => {
     const t = cuenta.token;
     const get = await srv.pedir('/api/perfil', { token: t });
     assert.equal(get.status, 200);
-    assert.deepEqual(claves(get.json), ['idUsuario', 'idPersona', 'correo', 'nombres', 'apellidos', 'ciudad', 'biografia', 'fotoUrl', 'creadoEn', 'roles', 'correoPendiente', 'pais', 'provincia', 'fechaNacimiento', 'edad']);
+    // Cambio intencional: con la 041 aplicada el orden lo marca la consulta SQL, y el respaldo sin 041 lo replica.
+    assert.deepEqual(claves(get.json), ['idUsuario', 'idPersona', 'correo', 'correoPendiente', 'nombres', 'apellidos', 'pais', 'provincia', 'ciudad', 'fechaNacimiento', 'biografia', 'fotoUrl', 'creadoEn', 'roles', 'edad']);
     assert.deepEqual(sinRutasPrivadas(get.json), []);
     const put = (cuerpo: unknown) => srv.pedir('/api/perfil', { token: t, metodo: 'PUT', cuerpo });
     const base = { nombres: marca, apellidos: 'Prueba' };

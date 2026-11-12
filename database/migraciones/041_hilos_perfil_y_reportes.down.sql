@@ -41,11 +41,10 @@ ALTER TABLE token_recuperacion
 ALTER TABLE token_recuperacion
   ADD CONSTRAINT token_recuperacion_proposito_check
     CHECK (proposito IN ('RECUPERACION', 'INVITACION')),
+  -- Idéntica a la de la 032, para que el down deje la huella del esquema igual a la de antes de la 041.
   ADD CONSTRAINT token_recuperacion_vigencia CHECK (
-    expira_en > creado_en AND (
-      (proposito = 'RECUPERACION' AND expira_en <= creado_en + INTERVAL '30 minutes')
-      OR (proposito = 'INVITACION' AND expira_en <= creado_en + INTERVAL '7 days')
-    )
+    expira_en > creado_en AND expira_en <= creado_en +
+      CASE proposito WHEN 'INVITACION' THEN INTERVAL '72 hours' ELSE INTERVAL '30 minutes' END
   );
 
 ALTER TABLE persona

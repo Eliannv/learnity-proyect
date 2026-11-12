@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { consultar } from '../../shared/database/pool.js';
 import {
+  con041,
   guardarRespaldo041,
   leerRespaldo041,
   tieneMigracion041,
@@ -167,7 +168,7 @@ export const supervisionRepository = {
     items: FilaAlerta[]; total: number; pendientes: number; atendidas: number; todas: number;
   }> {
     const tiene041 = await tieneMigracion041({ query: consultar });
-    const reportesRespaldo = tiene041 ? [] : leerRespaldo041().reportesCurso;
+    const reportesRespaldo = tiene041 ? [] : (await leerRespaldo041()).reportesCurso;
     if (tiene041 || (reportesRespaldo.length === 0 && filtro.tipo !== 'REPORTE_CURSO')) {
       const condiciones = ['($1::varchar IS NULL OR a.severidad = $1)', '($2::varchar IS NULL OR a.tipo = $2)'];
       const params: unknown[] = [filtro.severidad ?? null, filtro.tipo ?? null];
@@ -261,7 +262,7 @@ export const supervisionRepository = {
     const { rows } = await consultar<FilaAlerta>(`${SELECT_ALERTA} WHERE a.id_alerta = $1`, [id]);
     if (rows[0]) return rows[0];
     if (await tieneMigracion041({ query: consultar })) return null;
-    const r = leerRespaldo041().reportesCurso.find((item) => item.idAlerta === id);
+    const r = (await leerRespaldo041()).reportesCurso.find((item) => item.idAlerta === id);
     if (!r) return null;
     const { rows: uRows } = await consultar<{ nombre: string }>(
       `SELECT concat_ws(' ', p.nombres, p.apellidos) AS nombre
@@ -306,14 +307,14 @@ export const supervisionRepository = {
       return 'ok';
     }
     if (await tieneMigracion041(cliente)) return 'no';
-    const actual = leerRespaldo041().reportesCurso.find((item) => item.idAlerta === id);
+    const actual = (await leerRespaldo041()).reportesCurso.find((item) => item.idAlerta === id);
     if (!actual) return 'no';
     if (actual.atendidaEn !== null) return 'ya';
     const { rows: pRows } = await cliente.query<{ nombre: string }>(
       `SELECT concat_ws(' ', nombres, apellidos) AS nombre FROM persona WHERE id_persona = $1`,
       [idAdmin],
     );
-    guardarRespaldo041((estado) => {
+    await guardarRespaldo041((estado) => {
       const objetivo = estado.reportesCurso.find((item) => item.idAlerta === id);
       if (objetivo) {
         objetivo.atendidaEn = new Date().toISOString();
@@ -331,13 +332,22 @@ export const supervisionRepository = {
     idCurso: number,
     motivo: string,
   ): Promise<'REGISTRADO' | 'DUPLICADO' | 'NO_ENCONTRADO' | 'NO_AUTORIZADO' | 'MOTIVO_INVALIDO'> {
-    if (await tieneMigracion041(cliente)) {
-      const { rows } = await cliente.query<{ estado: 'REGISTRADO' | 'DUPLICADO' | 'NO_ENCONTRADO' | 'NO_AUTORIZADO' | 'MOTIVO_INVALIDO' }>(
+    type Estado = 'REGISTRADO' | 'DUPLICADO' | 'NO_ENCONTRADO' | 'NO_AUTORIZADO' | 'MOTIVO_INVALIDO';
+    return con041<Estado>(cliente, async () => {
+      const { rows } = await cliente.query<{ estado: Estado }>(
         'SELECT registrar_reporte_curso($1, $2, $3) AS estado',
         [idUsuario, idCurso, motivo],
       );
       return rows[0]?.estado ?? 'NO_ENCONTRADO';
-    }
+    }, () => supervisionRepository.reportarCursoRespaldo(cliente, idUsuario, idCurso, motivo), { transaccion: true });
+  },
+
+  async reportarCursoRespaldo(
+    cliente: PoolClient,
+    idUsuario: number,
+    idCurso: number,
+    motivo: string,
+  ): Promise<'REGISTRADO' | 'DUPLICADO' | 'NO_ENCONTRADO' | 'NO_AUTORIZADO' | 'MOTIVO_INVALIDO'> {
     const { rows: uRows } = await cliente.query<{ correo: string }>(
       `SELECT correo FROM usuario WHERE id_usuario = $1 AND estado = 'ACTIVO'`,
       [idUsuario],
@@ -349,11 +359,11 @@ export const supervisionRepository = {
     );
     if (!cRows[0]) return 'NO_ENCONTRADO';
     const clave = `REPORTE_CURSO:${idCurso}:${idUsuario}`;
-    const estadoActual = leerRespaldo041();
+    const estadoActual = await leerRespaldo041();
     if (estadoActual.reportesCurso.some((r) => r.clave === clave && r.atendidaEn === null)) {
       return 'DUPLICADO';
     }
-    guardarRespaldo041((estado) => {
+    await guardarRespaldo041((estado) => {
       const idAlerta = estado.secuenciaAlerta++;
       estado.reportesCurso.push({
         idAlerta,

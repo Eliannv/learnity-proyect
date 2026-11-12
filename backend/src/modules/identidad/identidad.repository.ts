@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { consultar, pool } from '../../shared/database/pool.js';
-import { calcularEdad, guardarRespaldo041, leerRespaldo041, tieneMigracion041 } from '../../shared/database/respaldo-041.js';
+import { calcularEdad, con041, guardarRespaldo041, leerRespaldo041, tieneMigracion041 } from '../../shared/database/respaldo-041.js';
 import type { Rol } from '../../shared/auth/tipos.js';
 
 // Capa repository: SOLO consultas a PostgreSQL. Sin reglas del negocio.
@@ -260,19 +260,29 @@ export const identidadRepository = {
     );
     const base = rows[0];
     if (!base) return null;
-    const estado = leerRespaldo041();
+    const estado = await leerRespaldo041();
     const extra = estado.personas[String(base.idPersona)];
     const ahoraIso = new Date().toISOString();
     const tokenPendiente = estado.tokensCorreo
       .filter((t) => t.idUsuario === base.idUsuario && !t.usadoEn && t.expiraEn > ahoraIso)
       .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn))[0];
     const fechaNacimiento = extra?.fechaNacimiento ?? null;
+    // Mismo orden de claves que la consulta con la 041, para que la respuesta no dependa de la ruta.
     return {
-      ...base,
+      idUsuario: base.idUsuario,
+      idPersona: base.idPersona,
+      correo: base.correo,
       correoPendiente: tokenPendiente?.nuevoCorreo ?? null,
+      nombres: base.nombres,
+      apellidos: base.apellidos,
       pais: extra?.pais ?? null,
       provincia: extra?.provincia ?? null,
+      ciudad: base.ciudad,
       fechaNacimiento,
+      biografia: base.biografia,
+      fotoUrl: base.fotoUrl,
+      creadoEn: base.creadoEn,
+      roles: base.roles,
       edad: calcularEdad(fechaNacimiento),
     };
   },
@@ -290,7 +300,7 @@ export const identidadRepository = {
     },
     cliente: Ejecutor = pool,
   ): Promise<void> {
-    if (await tieneMigracion041(cliente)) {
+    return con041(cliente, async () => {
       await cliente.query(
         `UPDATE persona
             SET nombres = $2,
@@ -312,21 +322,20 @@ export const identidadRepository = {
           datos.biografia ?? null,
         ],
       );
-      return;
-    }
-
-    await cliente.query(
-      'UPDATE persona SET nombres = $2, apellidos = $3, ciudad = $4, biografia = $5 WHERE id_persona = $1',
-      [idPersona, datos.nombres, datos.apellidos, datos.ciudad ?? null, datos.biografia ?? null],
-    );
-    guardarRespaldo041((estado) => {
-      const actual = estado.personas[String(idPersona)];
-      estado.personas[String(idPersona)] = {
-        pais: datos.pais !== undefined ? datos.pais : (actual?.pais ?? null),
-        provincia: datos.provincia !== undefined ? datos.provincia : (actual?.provincia ?? null),
-        fechaNacimiento: datos.fechaNacimiento !== undefined ? datos.fechaNacimiento : (actual?.fechaNacimiento ?? null),
-      };
-    });
+    }, async () => {
+      await cliente.query(
+        'UPDATE persona SET nombres = $2, apellidos = $3, ciudad = $4, biografia = $5 WHERE id_persona = $1',
+        [idPersona, datos.nombres, datos.apellidos, datos.ciudad ?? null, datos.biografia ?? null],
+      );
+      await guardarRespaldo041((estado) => {
+        const actual = estado.personas[String(idPersona)];
+        estado.personas[String(idPersona)] = {
+          pais: datos.pais !== undefined ? datos.pais : (actual?.pais ?? null),
+          provincia: datos.provincia !== undefined ? datos.provincia : (actual?.provincia ?? null),
+          fechaNacimiento: datos.fechaNacimiento !== undefined ? datos.fechaNacimiento : (actual?.fechaNacimiento ?? null),
+        };
+      });
+    }, { transaccion: cliente !== pool });
   },
 
   /** Cambia la foto y devuelve la anterior, para borrar su archivo después del commit. */
@@ -663,7 +672,7 @@ export const identidadRepository = {
     cliente: pg.PoolClient,
     datos: { idUsuario: number; tokenHash: string; nuevoCorreo: string; horas: number; ip?: string },
   ): Promise<Date> {
-    if (await tieneMigracion041(cliente)) {
+    return con041(cliente, async () => {
       await cliente.query(
         `UPDATE token_recuperacion SET usado_en = now()
           WHERE id_usuario = $1 AND proposito = 'CAMBIO_CORREO' AND usado_en IS NULL`,
@@ -676,27 +685,27 @@ export const identidadRepository = {
         [datos.idUsuario, datos.tokenHash, datos.horas, datos.nuevoCorreo, datos.ip ?? null],
       );
       return rows[0]!.expiraEn;
-    }
-
-    const ahora = new Date();
-    const expiraEn = new Date(ahora.getTime() + datos.horas * 3_600_000);
-    guardarRespaldo041((estado) => {
-      for (const t of estado.tokensCorreo) {
-        if (t.idUsuario === datos.idUsuario && !t.usadoEn) {
-          t.usadoEn = ahora.toISOString();
+    }, async () => {
+      const ahora = new Date();
+      const expiraEn = new Date(ahora.getTime() + datos.horas * 3_600_000);
+      await guardarRespaldo041((estado) => {
+        for (const t of estado.tokensCorreo) {
+          if (t.idUsuario === datos.idUsuario && !t.usadoEn) {
+            t.usadoEn = ahora.toISOString();
+          }
         }
-      }
-      estado.tokensCorreo.push({
-        idToken: randomUUID(),
-        idUsuario: datos.idUsuario,
-        tokenHash: datos.tokenHash,
-        nuevoCorreo: datos.nuevoCorreo,
-        creadoEn: ahora.toISOString(),
-        expiraEn: expiraEn.toISOString(),
-        usadoEn: null,
+        estado.tokensCorreo.push({
+          idToken: randomUUID(),
+          idUsuario: datos.idUsuario,
+          tokenHash: datos.tokenHash,
+          nuevoCorreo: datos.nuevoCorreo,
+          creadoEn: ahora.toISOString(),
+          expiraEn: expiraEn.toISOString(),
+          usadoEn: null,
+        });
       });
-    });
-    return expiraEn;
+      return expiraEn;
+    }, { transaccion: true, codigosExtra: ['23514', '22001'] });
   },
 
   async buscarTokenCambioCorreoVigente(
@@ -716,7 +725,7 @@ export const identidadRepository = {
       return rows[0] ?? null;
     }
 
-    const estado = leerRespaldo041();
+    const estado = await leerRespaldo041();
     const ahoraIso = new Date().toISOString();
     const encontrado = estado.tokensCorreo.find(
       (t) => t.tokenHash === tokenHash && !t.usadoEn && t.expiraEn > ahoraIso,
@@ -735,7 +744,7 @@ export const identidadRepository = {
     idUsuario: number,
     nuevoCorreo: string,
   ): Promise<boolean> {
-    if (await tieneMigracion041(cliente)) {
+    return con041(cliente, async () => {
       const { rowCount } = await cliente.query(
         `UPDATE token_recuperacion
             SET usado_en = now()
@@ -748,21 +757,21 @@ export const identidadRepository = {
       if ((rowCount ?? 0) === 0) return false;
       await cliente.query('UPDATE usuario SET correo = $2 WHERE id_usuario = $1', [idUsuario, nuevoCorreo]);
       return true;
-    }
-
-    let consumido = false;
-    const ahoraIso = new Date().toISOString();
-    guardarRespaldo041((estado) => {
-      const token = estado.tokensCorreo.find(
-        (t) => t.idToken === idToken && !t.usadoEn && t.expiraEn > ahoraIso,
-      );
-      if (token) {
-        token.usadoEn = ahoraIso;
-        consumido = true;
-      }
-    });
-    if (!consumido) return false;
-    await cliente.query('UPDATE usuario SET correo = $2 WHERE id_usuario = $1', [idUsuario, nuevoCorreo]);
-    return true;
+    }, async () => {
+      let consumido = false;
+      const ahoraIso = new Date().toISOString();
+      await guardarRespaldo041((estado) => {
+        const token = estado.tokensCorreo.find(
+          (t) => t.idToken === idToken && !t.usadoEn && t.expiraEn > ahoraIso,
+        );
+        if (token) {
+          token.usadoEn = ahoraIso;
+          consumido = true;
+        }
+      });
+      if (!consumido) return false;
+      await cliente.query('UPDATE usuario SET correo = $2 WHERE id_usuario = $1', [idUsuario, nuevoCorreo]);
+      return true;
+    }, { transaccion: true });
   },
 };
