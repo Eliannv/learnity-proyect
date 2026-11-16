@@ -17,31 +17,32 @@
     </div>
   </header>
 
-  <!-- Retomar: la última lección abierta de cada curso en curso -->
+  <!-- Retomar: misma tarjeta que el catálogo (portada, título, docente) con el avance debajo; abre la última lección -->
   @if (continuar().length) {
     <section class="seccion" aria-labelledby="t-continuar">
       <div class="cabecera-seccion">
         <h2 class="titulo-seccion" id="t-continuar">Continúa donde lo dejaste</h2>
         <a class="enlace oculto-movil" routerLink="/mi-aprendizaje">Mi aprendizaje</a>
       </div>
-      <app-carrusel [columnas]="3" [columnasTableta]="2" etiqueta="Lecciones para retomar">
+      <app-carrusel etiqueta="Cursos para retomar">
         @for (i of continuar(); track i.curso.id) {
-          <div role="listitem">
-          <button type="button" class="continuar" (click)="abrir(i)" [attr.aria-busy]="navegando() === i.curso.id">
-            <span class="continuar-portada">
-              <app-portada-curso [iconoCategoria]="i.curso.categoria.icono" [tono]="tonoDe(i.curso.categoria.id)" [compacta]="true" />
-            </span>
-            <span class="continuar-texto">
-              <small>{{ i.curso.categoria.nombre }}</small>
-              <strong>{{ i.curso.titulo }}</strong>
-              <span class="continuar-pie">
-                <span class="num">{{ i.leccionesCompletadas }} de {{ i.totalLecciones }} lecciones</span>
-                <span class="num texto-suave">{{ i.inscripcion.progresoPct === 0 ? 'Sin empezar' : i.inscripcion.progresoPct + ' %' }}</span>
-              </span>
+          <app-tarjeta-curso
+            role="listitem"
+            [titulo]="i.curso.titulo"
+            [iconoCategoria]="i.curso.categoria.icono"
+            [docente]="i.curso.docente"
+            [tono]="tonoDe(i.curso.categoria.id)"
+            [enlace]="enlaceRetomar(i)"
+            [imagen]="i.curso.portadaUrl"
+          >
+            <div class="avance">
               <app-barra-progreso [valor]="i.inscripcion.progresoPct" />
-            </span>
-          </button>
-          </div>
+              <span class="avance-texto num">
+                {{ i.leccionesCompletadas }} de {{ i.totalLecciones }} lecciones ·
+                {{ i.inscripcion.progresoPct === 0 ? 'Sin empezar' : i.inscripcion.progresoPct + ' %' }}
+              </span>
+            </div>
+          </app-tarjeta-curso>
         }
       </app-carrusel>
     </section>
