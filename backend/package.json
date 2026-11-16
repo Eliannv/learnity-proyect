@@ -22,6 +22,7 @@
         "correo:probar": "tsx scripts/probar-correo.ts",
         "crear-modulo": "node scripts/crear-modulos.mjs",
         "archivos:limpiar": "tsx scripts/limpiar-pdf.ts",
+        "contenido:generar": "tsx scripts/contenido-profesional/generar.mts",
         "test:pdf": "tsx --test test/pdf-validacion.test.ts",
         "test:integrante3": "tsx --env-file=.env.test --test --test-concurrency=1 test/pdf-validacion.test.ts test/administracion-contenido.test.ts",
         "test:local": "tsx --env-file=.env.test --test --test-concurrency=1 --test-skip-pattern=\"Have I Been Pwned\" \"test/**/*.test.ts\""
