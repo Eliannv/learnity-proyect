@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AprendizajeApi, type CursoInscrito } from '../../aprendizaje.api';
@@ -11,7 +11,6 @@ import {
 import { Avatar } from '../../../../shared/ui/marca/avatar';
 import { BarraProgreso } from '../../../../shared/ui/datos/barra-progreso';
 import { Carrusel } from '../../../../shared/ui/navegacion/carrusel';
-import { PortadaCurso } from '../../../../shared/ui/cursos/portada-curso';
 import { metaCurso } from '../../../../shared/ui/cursos/formato-curso';
 import { TarjetaCurso } from '../../../../shared/ui/cursos/tarjeta-curso';
 import type { Tono } from '../../../../shared/ui/tipos-ui';
@@ -25,7 +24,7 @@ type Pestana = 'populares' | 'nuevos' | 'avanzados';
  */
 @Component({
   selector: 'app-inicio-estudiante',
-  imports: [RouterLink, LucideAngularModule, Avatar, BarraProgreso, Carrusel, PortadaCurso, TarjetaCurso],
+  imports: [RouterLink, LucideAngularModule, Avatar, BarraProgreso, Carrusel, TarjetaCurso],
   templateUrl: './inicio-estudiante.html',
   styleUrl: './inicio-estudiante.scss',
 })
@@ -33,10 +32,7 @@ export class InicioEstudiante {
   protected readonly auth = inject(AuthService);
   private readonly aprendizajeApi = inject(AprendizajeApi);
   private readonly catalogoApi = inject(CatalogoApi);
-  private readonly router = inject(Router);
-
   protected readonly cargando = signal(true);
-  protected readonly navegando = signal<number | null>(null);
 
   protected readonly cursosInscritos = signal<CursoInscrito[]>([]);
   protected readonly categorias = signal<CategoriaPublica[]>([]);
@@ -111,19 +107,10 @@ export class InicioEstudiante {
     }
   }
 
-  protected async abrir(curso: CursoInscrito): Promise<void> {
-    if (this.navegando() !== null) return;
-    this.navegando.set(curso.curso.id);
-    try {
-      const detalle = await this.aprendizajeApi.detalle(curso.curso.id);
-      const primera = detalle.modulos.flatMap((modulo) => modulo.lecciones)[0];
-      const id = detalle.inscripcion.ultimaLeccionId ?? primera?.id;
-      await this.router.navigate(id ? ['/aprender', curso.curso.id, id] : ['/cursos', curso.curso.id]);
-    } catch {
-      await this.router.navigate(['/cursos', curso.curso.id]);
-    } finally {
-      this.navegando.set(null);
-    }
+  /** Retomar: la última lección abierta; sin ella (curso sin empezar), la ficha del curso con su botón «Empezar». */
+  protected enlaceRetomar(i: CursoInscrito): string {
+    const ultima = i.inscripcion.ultimaLeccionId;
+    return ultima ? `/aprender/${i.curso.id}/${ultima}` : `/cursos/${i.curso.id}`;
   }
 
   /** Nivel, lecciones y duración (sin «0 min»). */
