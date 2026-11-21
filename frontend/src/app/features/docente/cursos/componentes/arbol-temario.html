@@ -89,7 +89,7 @@
                   <strong>{{ l.titulo }}</strong>
                   <small>
                     @switch (l.tipo) {
-                      @case ('VIDEO') { Vídeo de YouTube }
+                      @case ('VIDEO') { {{ l.grabacionId ? 'Grabación privada' : 'Vídeo de YouTube' }} · {{ l.grupoNombre || 'Todos los inscritos' }} }
                       @case ('EVALUACION') { Evaluación de opción múltiple · {{ l.preguntas }} preguntas }
                       @default { Documento PDF }
                     }
@@ -108,7 +108,9 @@
               <!-- La vista del vídeo está siempre cargada; al lado, su PDF de apoyo opcional -->
               <div class="contenido-cuerpo">
                 <div class="contenido-vista">
-                  @if (l.youtubeVideoId) {
+                  @if (l.grabacionId) {
+                    <app-reproductor-privado [leccionId]="l.id" [grabacionId]="l.grabacionId" [titulo]="l.titulo" />
+                  } @else if (l.youtubeVideoId) {
                     <app-reproductor-youtube [videoId]="l.youtubeVideoId" [leccionId]="l.id" [titulo]="l.titulo" />
                   } @else {
                     <p class="contenido-sin-video">{{ editable() ? 'Falta el enlace de YouTube. Pulsa «Editar» para añadirlo.' : 'Sin enlace de YouTube configurado.' }}</p>
@@ -196,7 +198,30 @@
         </label>
       </fieldset>
       @if (l.tipo === 'VIDEO') {
+        <fieldset class="rejilla" [disabled]="deshabilitado()">
+          <label class="campo">Fuente del vídeo
+            <select class="control" name="origen" [(ngModel)]="l.origen"><option value="YOUTUBE">Enlace de YouTube</option><option value="ARCHIVO">Subir vídeo privado</option></select>
+          </label>
+          <label class="campo">Quién puede verlo
+            <select class="control" name="grupo" [(ngModel)]="l.grupoId">
+              <option [ngValue]="null">Todos los inscritos</option>
+              @for (g of grupos(); track g.id) {<option [ngValue]="g.id">Solo el grupo · {{ g.nombre }}</option>}
+            </select>
+            <small>Crea los grupos en Estudiantes de mis cursos.</small>
+          </label>
+        </fieldset>
+        @if(avisoGrupos()) {<p class="mensaje error">{{ avisoGrupos() }} <button type="button" class="btn btn-contorno" (click)="cargarGrupos()">Reintentar</button></p>}
+        @if (l.origen === 'YOUTUBE') {
         <app-campo-youtube [id]="'youtube-leccion-' + m.id" [(enlace)]="l.youtubeUrl" [bloqueado]="deshabilitado()" [errorServidor]="p.campos()['youtubeUrl'] || ''" />
+          <p class="texto-suave">Para un vídeo privado de YouTube, invita también a cada estudiante desde YouTube Studio.</p>
+        } @else {
+          <label class="campo">Grabación MP4 con vídeo H.264 (hasta 100 MiB)
+            <input class="control" type="file" accept="video/mp4,.mp4" [disabled]="deshabilitado()" (change)="seleccionarArchivo($event)" />
+            @if(l.grabacionId && !l.archivo) {<small>Grabación actual guardada. Selecciona un archivo para reemplazarla.</small>}
+            @if (p.campos()['grabacionId']) {<small role="alert">{{ p.campos()['grabacionId'] }}</small>}
+          </label>
+          @if(porcentajeCarga() !== null) {<p role="status">Subiendo grabación · {{ porcentajeCarga() }} %</p>}
+        }
       } @else if (l.id === null && l.tipo === 'EVALUACION') {
         <p class="texto-suave">Después de crearla escribirás aquí mismo sus preguntas: de 5 a 10, con cuatro opciones y una correcta.</p>
       } @else if (l.id === null) {

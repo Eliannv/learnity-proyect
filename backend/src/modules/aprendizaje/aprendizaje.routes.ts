@@ -7,6 +7,9 @@ import {
   filtrosEstudiantesDocenteSchema, idAprendizajeRuta, paginacionEstudiantesSchema, progresoLeccionSchema,
 } from './aprendizaje.esquemas.js';
 
+import { gruposController as grupos } from './grupos/grupos.controller.js';
+import { cursoGrupo, grupoRuta, grupoNuevo, grupoEditado } from './grupos/grupos.esquemas.js';
+
 export const aprendizajeRoutes = Router();
 
 aprendizajeRoutes.post('/cursos/:id/inscripcion', limitarPorIp('inscripcion', 30, 15),
@@ -23,3 +26,10 @@ aprendizajeRoutes.get('/docente/cursos/:id/estudiantes', autenticar, autorizar('
   validarParametros(idAprendizajeRuta), validarConsulta(paginacionEstudiantesSchema), controller.seguimiento);
 aprendizajeRoutes.get('/docente/cursos/:id/estudiantes/exportar', limitarPorIp('exportar_estudiantes', 30, 15),
   autenticar, autorizar('DOCENTE', 'ADMIN'), validarParametros(idAprendizajeRuta), controller.exportarEstudiantes);
+
+const gruposCurso = '/docente/cursos/:id/grupos';
+const docente = [autenticar, autorizar('DOCENTE')];
+aprendizajeRoutes.get(gruposCurso, ...docente, validarParametros(cursoGrupo), grupos.listar);
+aprendizajeRoutes.post(gruposCurso, ...docente, validarParametros(cursoGrupo), validarCuerpo(grupoNuevo), grupos.crear);
+aprendizajeRoutes.put(gruposCurso + '/:grupo', ...docente, validarParametros(grupoRuta), validarCuerpo(grupoEditado), grupos.editar);
+aprendizajeRoutes.delete(gruposCurso + '/:grupo', ...docente, validarParametros(grupoRuta), grupos.borrar);

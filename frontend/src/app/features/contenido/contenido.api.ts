@@ -2,12 +2,47 @@ import { HttpClient, HttpEvent } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { CursoDetalle } from '../../core/api/contrato';
+import type { CargaGrabacion, CursoDetalle } from '../../core/api/contrato';
 
 @Injectable({ providedIn: 'root' })
 export class ContenidoApi {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiUrl;
+
+  async subirGrabacion(
+    curso: number,
+    archivo: File,
+    operacion: string,
+    avance: (pct: number) => void,
+  ): Promise<string> {
+    const carga = await firstValueFrom(
+      this.http.post<CargaGrabacion>(`${this.base}/docente/cursos/${curso}/grabaciones`, {
+        operacion,
+        tamano: archivo.size,
+      }),
+    );
+    const base = `${this.base}/grabaciones/${carga.id}`;
+    const partes = Math.ceil(archivo.size / carga.tamanoParte);
+    if (!carga.lista) {
+      for (let i = carga.siguiente; i < partes; i++) {
+        const bloque = archivo.slice(
+          i * carga.tamanoParte,
+          (i + 1) * carga.tamanoParte,
+          'application/octet-stream',
+        );
+        await firstValueFrom(this.http.put<void>(`${base}/partes/${i}`, bloque));
+        avance(Math.floor((100 * (i + 1)) / partes));
+      }
+      await firstValueFrom(this.http.post(base + '/confirmar', {}));
+    }
+    return carga.id;
+  }
+
+  async autorizarVideo(leccion: number): Promise<string> {
+    const url = `${this.base}/lecciones/${leccion}/video`;
+    await firstValueFrom(this.http.post<void>(url + '/sesion', {}, { withCredentials: true }));
+    return url;
+  }
 
   subirPdf(
     leccionId: number,

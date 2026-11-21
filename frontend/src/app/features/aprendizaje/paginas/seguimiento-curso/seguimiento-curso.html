@@ -8,6 +8,8 @@
     <button type="button" class="btn btn-contorno" (click)="reintentar()">Reintentar</button>
   </section>
 </div>
+} @else if (detalle() && todas().length === 0) {
+<div class="contenedor pagina"><section class="estado-carga"><h1>Aún no tienes lecciones asignadas</h1><a routerLink="/mi-aprendizaje" class="btn btn-contorno">Volver a Mi aprendizaje</a></section></div>
 } @else if (noDisponible() || !leccion() || !detalle()) {
 <div class="contenedor pagina">
   <section class="estado-carga">
@@ -45,7 +47,10 @@
         }
 
         @if (l.tipo === 'VIDEO') {
-        @if (videoDisponible() && l.youtubeVideoId; as videoId) {
+        @if (l.grabacionId; as idGrabacion) {
+          <app-reproductor-privado [leccionId]="l.id" [grabacionId]="idGrabacion" [titulo]="l.titulo" [posicionGuardada]="l.progreso.segundosVistos"
+            (posicion)="registrarPosicion($event)" (terminado)="alTerminarVideo($event)" />
+        } @else if (videoDisponible() && l.youtubeVideoId; as videoId) {
         <app-reproductor-youtube [videoId]="videoId" [leccionId]="l.id" [titulo]="l.titulo" [oscuro]="true"
           [posicionGuardada]="posicionVideo(l)" [observarPosicion]="true"
           (posicion)="registrarPosicion($event)" (terminado)="alTerminarVideo($event)" />

@@ -177,8 +177,10 @@ export const temarioService = {
         ]);
       }
 
-      const youtubeVideoId = datos.tipo === 'VIDEO' ? extraerYoutubeVideoId(datos.youtubeUrl) : null;
+      await temarioRepository.validarOrigenYGrupo(cliente, base.id, usuario.idPersona, datos, null);
+      const youtubeVideoId = datos.tipo === 'VIDEO' && datos.youtubeUrl ? extraerYoutubeVideoId(datos.youtubeUrl) : null;
       await temarioRepository.crearLeccion(cliente, idModulo, datos, youtubeVideoId);
+      await temarioRepository.recalcularAvance(cliente, base.id);
       return exigirVigencia(previos, await detallePrivado(cliente, modulo.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
   },
@@ -223,17 +225,19 @@ export const temarioService = {
         ]);
       }
 
+      await temarioRepository.validarOrigenYGrupo(cliente, base.id, usuario.idPersona, datos, idLeccion);
       const actualizado = await temarioRepository.actualizarLeccion(
         cliente,
         idLeccion,
         leccion.idModulo,
         datos,
-        datos.tipo === 'VIDEO' ? extraerYoutubeVideoId(datos.youtubeUrl) : null,
+        datos.tipo === 'VIDEO' && datos.youtubeUrl ? extraerYoutubeVideoId(datos.youtubeUrl) : null,
       );
       if (!actualizado) {
         throw AppError.noEncontrado('Lección no disponible.');
       }
 
+      await temarioRepository.recalcularAvance(cliente, base.id);
       return exigirVigencia(previos, await detallePrivado(cliente, leccion.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
   },
@@ -273,6 +277,7 @@ export const temarioService = {
         await liberador.retirarSinUso(cliente, leccion.idCurso, idsPdf);
       }
 
+      await temarioRepository.recalcularAvance(cliente, base.id);
       return exigirVigencia(previos, await detallePrivado(cliente, leccion.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
 
@@ -313,6 +318,7 @@ export const temarioService = {
       const previos = await vigenciaPrevia(cliente, contexto.estado, contexto.id, prevalidados);
 
       await cuestionarioRepository.reemplazar(cliente, idLeccion, datos);
+      await temarioRepository.recalcularAvance(cliente, contexto.id);
       return exigirVigencia(previos, await detallePrivado(cliente, contexto.id, prevalidados));
     }, { actor: usuario.idPersona });
   },
@@ -370,6 +376,7 @@ export const temarioService = {
         await liberador.retirarSinUso(cliente, modulo.idCurso, idsPdf);
       }
 
+      await temarioRepository.recalcularAvance(cliente, base.id);
       return exigirVigencia(previos, await detallePrivado(cliente, modulo.idCurso, prevalidados));
     }, { actor: usuario.idPersona });
 

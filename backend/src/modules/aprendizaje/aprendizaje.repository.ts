@@ -36,6 +36,7 @@ export interface FilaLeccion {
   tipo: TipoLeccionAprendizaje | null;
   archivoId: number | null;
   youtubeVideoId: string | null;
+  grabacionId: string | null;
   evaluacionId: number | null;
   segundosVistos: number | null;
   completada: boolean | null;
@@ -67,22 +68,20 @@ const CAMPOS_INSCRIPCION = `
 // Un curso publicado se edita sin volver a revisión: el estudiante solo ve y cuenta lo que ya está listo
 // (un vídeo con su ID, un documento con su PDF o una evaluación con al menos 5 preguntas),
 // nunca un contenido a medio preparar.
-const LECCION_DISPONIBLE = `((l.tipo = 'VIDEO' AND l.youtube_video_id IS NOT NULL)
-  OR (l.tipo = 'DOCUMENTO' AND l.id_archivo IS NOT NULL)
-  OR (l.tipo = 'EVALUACION' AND (SELECT count(*) FROM evaluacion ev
-        JOIN pregunta pr ON pr.id_evaluacion = ev.id_evaluacion
-       WHERE ev.id_leccion = l.id_leccion) >= 5))`;
+function asignada(inscripcion: string): string {
+  return `EXISTS (SELECT 1 FROM leccion_asignada v WHERE v.id_inscripcion=${inscripcion} AND v.id_leccion=l.id_leccion)`;
+}
 
 const CAMPOS_CURSO = `
   c.titulo, c.subtitulo, c.portada_url AS "portadaUrl", c.nivel, (c.estado = 'SUSPENDIDO') AS suspendido,
   cat.id_categoria AS "categoriaId", cat.nombre AS "categoriaNombre", cat.icono AS "categoriaIcono",
   concat_ws(' ', p.nombres, p.apellidos) AS docente,
   (SELECT count(*)::int FROM modulo m JOIN leccion l ON l.id_modulo = m.id_modulo
-    WHERE m.id_curso = c.id_curso AND ${LECCION_DISPONIBLE}) AS "totalLecciones",
+    WHERE m.id_curso = c.id_curso AND ${asignada('i.id_inscripcion')}) AS "totalLecciones",
   (SELECT count(*)::int FROM progreso_leccion pl JOIN leccion l ON l.id_leccion = pl.id_leccion
     JOIN modulo m ON m.id_modulo = l.id_modulo
     WHERE pl.id_inscripcion = i.id_inscripcion AND m.id_curso = c.id_curso
-      AND ${LECCION_DISPONIBLE} AND pl.completada) AS "leccionesCompletadas"`;
+      AND ${asignada('i.id_inscripcion')} AND pl.completada) AS "leccionesCompletadas"`;
 
 /** Toda consulta SQL de Aprendizaje reside aquí; los valores externos siempre usan parámetros. */
 /** Filtros de la lista de estudiantes del docente (además del curso). */
@@ -182,11 +181,11 @@ export const aprendizajeRepository = {
     const { rows } = await consultar<FilaLeccion>(
       `SELECT m.id_modulo AS "moduloId", m.orden AS "moduloOrden", m.titulo AS "moduloTitulo",
               l.id_leccion AS id, l.orden, l.titulo, l.tipo,
-              a.id_archivo AS "archivoId", l.youtube_video_id AS "youtubeVideoId",
+              a.id_archivo AS "archivoId", l.youtube_video_id AS "youtubeVideoId", l.id_grabacion AS "grabacionId",
               e.id_evaluacion AS "evaluacionId",
               pl.segundos_vistos AS "segundosVistos", pl.completada
          FROM modulo m
-         LEFT JOIN leccion l ON l.id_modulo = m.id_modulo AND ${LECCION_DISPONIBLE}
+         LEFT JOIN leccion l ON l.id_modulo = m.id_modulo AND ${asignada('$1')}
          LEFT JOIN archivo a ON a.id_archivo = l.id_archivo AND a.id_curso = m.id_curso AND a.tipo = 'PDF'
          LEFT JOIN evaluacion e ON e.id_leccion = l.id_leccion AND l.tipo = 'EVALUACION'
          LEFT JOIN progreso_leccion pl ON pl.id_leccion = l.id_leccion AND pl.id_inscripcion = $1
@@ -197,7 +196,7 @@ export const aprendizajeRepository = {
     return rows;
   },
 
-  async recursosDelCurso(idCurso: number): Promise<(RecursoAprendizaje & { leccionId: number })[]> {
+  async recursosDelCurso(idCurso: number, idInscripcion: number): Promise<(RecursoAprendizaje & { leccionId: number })[]> {
     const { rows } = await consultar<RecursoAprendizaje & { leccionId: number }>(
       `SELECT ra.id_recurso AS id, ra.id_leccion AS "leccionId", ra.titulo, a.id_archivo AS "archivoId",
               a.tipo, a.nombre_original AS "nombreOriginal", a.tamano_bytes AS "tamanoBytes"
@@ -205,9 +204,9 @@ export const aprendizajeRepository = {
          JOIN archivo a ON a.id_archivo = ra.id_archivo AND a.tipo IN ('PDF', 'PPT', 'ZIP')
          JOIN leccion l ON l.id_leccion = ra.id_leccion
          JOIN modulo m ON m.id_modulo = l.id_modulo AND m.id_curso = a.id_curso
-        WHERE m.id_curso = $1
+        WHERE m.id_curso = $1 AND ${asignada('$2')}
         ORDER BY ra.id_leccion, ra.id_recurso`,
-      [idCurso],
+      [idCurso, idInscripcion],
     );
     return rows;
   },
@@ -216,12 +215,16 @@ export const aprendizajeRepository = {
   async inscripcionParaLeccion(cliente: PoolClient, idPersona: number, idLeccion: number, bloquear = true): Promise<{
     inscripcionId: number; cursoId: number; tipo: TipoLeccionAprendizaje;
   } | null> {
+    if (bloquear) {
+      // Mismo orden de bloqueo que los cambios de audiencia: curso, después inscripción.
+      await cliente.query('SELECT c.id_curso FROM curso c JOIN modulo m USING (id_curso) JOIN leccion l USING (id_modulo) WHERE l.id_leccion=$1 FOR SHARE OF c', [idLeccion]);
+    }
     const { rows } = await cliente.query<{ inscripcionId: number; cursoId: number; tipo: TipoLeccionAprendizaje }>(
       `SELECT i.id_inscripcion AS "inscripcionId", i.id_curso AS "cursoId", l.tipo
          FROM inscripcion i
          JOIN curso c ON c.id_curso = i.id_curso AND c.estado = 'PUBLICADO'
          JOIN modulo m ON m.id_curso = c.id_curso
-         JOIN leccion l ON l.id_modulo = m.id_modulo AND ${LECCION_DISPONIBLE}
+         JOIN leccion l ON l.id_modulo = m.id_modulo AND ${asignada('i.id_inscripcion')}
         WHERE i.id_persona = $1 AND l.id_leccion = $2
         ${bloquear ? 'FOR UPDATE OF i' : ''}`,
       [idPersona, idLeccion],
@@ -252,7 +255,7 @@ export const aprendizajeRepository = {
       `SELECT count(l.id_leccion)::int AS total,
               count(l.id_leccion) FILTER (WHERE pl.completada)::int AS completadas
          FROM modulo m
-         JOIN leccion l ON l.id_modulo = m.id_modulo AND ${LECCION_DISPONIBLE}
+         JOIN leccion l ON l.id_modulo = m.id_modulo AND ${asignada('$1')}
          LEFT JOIN progreso_leccion pl ON pl.id_leccion = l.id_leccion AND pl.id_inscripcion = $1
         WHERE m.id_curso = $2`,
       [idInscripcion, idCurso],

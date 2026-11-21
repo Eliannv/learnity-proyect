@@ -34,6 +34,9 @@ export interface LeccionPrivada {
   tipo: TipoLeccion;
   archivo: ArchivoPdf | null;
   youtubeVideoId: string | null;
+  grabacionId?: string | null;
+  grupoId?: number | null;
+  grupoNombre?: string | null;
   /** Preguntas guardadas de una EVALUACION; 0 en los demás tipos. */
   preguntas: number;
   /** Material descargable adicional (PDF, PPT o ZIP), en el orden en que se subió. */

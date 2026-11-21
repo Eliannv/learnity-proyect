@@ -10,6 +10,8 @@ export interface LeccionEmbudo {
   modulo: string;
   titulo: string;
   tipo: 'VIDEO' | 'DOCUMENTO' | 'EVALUACION';
+  /** Inscritos con la lección asignada. */
+  asignados?: number;
   /** Inscritos que completaron la lección. */
   completaron: number;
 }

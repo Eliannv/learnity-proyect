@@ -1,5 +1,5 @@
 import { crearApp } from './app.js';
-import { contenidoApi } from './modules/contenido/index.js';
+import { contenidoApi, grabacionesService } from './modules/contenido/index.js';
 import { identidadApi } from './modules/identidad/index.js';
 import { env } from './shared/config/env.js';
 import { pool } from './shared/database/pool.js';
@@ -55,6 +55,15 @@ void contenidoApi
     );
   });
 
+// Las cargas interrumpidas conservan sus bloques durante 24 horas para permitir reintentos.
+function limpiarGrabaciones() {
+  void grabacionesService.limpiarHuerfanas().catch(() => {
+    registrarEvento('limpieza_grabaciones_fallida', { ayuda: 'revisa la migración 044' }, 'aviso');
+  });
+}
+limpiarGrabaciones();
+const limpiezaGrabaciones = setInterval(limpiarGrabaciones, 60 * 60 * 1000).unref();
+
 // Cierre ordenado del servidor.
 for (
   const senal of [
@@ -63,6 +72,7 @@ for (
   ] as const
 ) {
   process.on(senal, () => {
+    clearInterval(limpiezaGrabaciones);
     servidor.close(() => {
       void identidadApi
         .esperarTareas()

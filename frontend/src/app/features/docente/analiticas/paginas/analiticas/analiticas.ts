@@ -67,9 +67,11 @@ export class AnaliticasDocente {
     if (!d?.embudo) return null;
     const base = d.resumen.inscritos;
     const grupos: GrupoEmbudo[] = [];
+    const audienciaUniforme = d.embudo.every(item => (item.asignados ?? base) === base);
     let anterior = base;
     for (const l of d.embudo) {
-      const fila = { ...l, pct: base ? Math.round((l.completaron / base) * 100) : 0, caida: Math.max(0, anterior - l.completaron) };
+      const asignados = l.asignados ?? base;
+      const fila = { ...l, asignados, pct: asignados ? Math.round((l.completaron / asignados) * 100) : 0, caida: audienciaUniforme ? Math.max(0, anterior - l.completaron) : 0 };
       anterior = l.completaron;
       const grupo = grupos.at(-1);
       if (grupo?.modulo === l.modulo) grupo.lecciones.push(fila);

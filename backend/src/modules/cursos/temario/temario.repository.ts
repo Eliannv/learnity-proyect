@@ -1,3 +1,4 @@
+import { AppError } from '../../../shared/http/app-error.js';
 import type { PoolClient } from 'pg';
 import { consultar } from '../../../shared/database/pool.js';
 
@@ -18,6 +19,9 @@ export interface FilaTemario {
   leccionOrden: number | null;
   leccionTipo: TipoLeccion | null;
   youtubeVideoId: string | null;
+  grabacionId: string | null;
+  grupoId: number | null;
+  grupoNombre: string | null;
   preguntas: number;
 
   archivoId: number | null;
@@ -256,6 +260,24 @@ export const temarioRepository = {
     return rows.length > 0;
   },
 
+  async validarOrigenYGrupo(cliente: PoolClient, curso: number, persona: number, datos: DatosLeccion, leccion: number | null) {
+    if (datos.tipo !== 'VIDEO') return;
+    if (datos.grupoId != null) {
+      const grupo = await cliente.query('SELECT 1 FROM grupo_curso WHERE id_curso=$1 AND id_grupo=$2', [curso, datos.grupoId]);
+      if (!grupo.rowCount) throw AppError.solicitudInvalida('Elige un grupo de este curso.');
+    }
+    if (datos.grabacionId) {
+      const video = await cliente.query(`SELECT 1 FROM grabacion g WHERE g.id=$1 AND g.id_curso=$2 AND g.lista
+        AND g.id_persona=$3 AND NOT EXISTS (SELECT FROM leccion l WHERE l.id_grabacion=g.id
+          AND l.id_leccion IS DISTINCT FROM $4::integer) FOR UPDATE`, [datos.grabacionId, curso, persona, leccion]);
+      if (!video.rowCount) throw AppError.solicitudInvalida('La grabación no está lista para esta lección.');
+    }
+  },
+
+  async recalcularAvance(cliente: PoolClient, idCurso: number) {
+    await cliente.query('SELECT recalcular_avance_curso($1)', [idCurso]);
+  },
+
   async crearLeccion(
     cliente: PoolClient,
     idModulo: number,
@@ -263,10 +285,11 @@ export const temarioRepository = {
     youtubeVideoId: string | null,
   ): Promise<number> {
     const { rows } = await cliente.query<{ id: number }>(
-      `INSERT INTO leccion (id_modulo, titulo, orden, tipo, youtube_video_id)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO leccion (id_modulo, titulo, orden, tipo, youtube_video_id, id_grupo, id_grabacion)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id_leccion AS id`,
-      [idModulo, datos.titulo, datos.orden, datos.tipo, youtubeVideoId],
+      [idModulo, datos.titulo, datos.orden, datos.tipo, youtubeVideoId, datos.tipo === 'VIDEO' ? datos.grupoId ?? null : null,
+        datos.tipo === 'VIDEO' ? datos.grabacionId ?? null : null],
     );
 
     return rows[0]!.id;
@@ -313,7 +336,8 @@ export const temarioRepository = {
         UPDATE leccion
         SET titulo = $3,
             orden = $4,
-            youtube_video_id = $6,
+            youtube_video_id = $6, id_grabacion = $7,
+            id_grupo = CASE WHEN $8::boolean THEN $9::integer ELSE id_grupo END,
             -- Sin vistas previas: el contenido solo se ve tras inscribirse.
             vista_previa = FALSE
         WHERE id_leccion = $1
@@ -327,6 +351,9 @@ export const temarioRepository = {
         datos.orden,
         datos.tipo,
         youtubeVideoId,
+        datos.tipo === 'VIDEO' ? datos.grabacionId ?? null : null,
+        datos.tipo === 'VIDEO' && datos.grupoId !== undefined,
+        datos.tipo === 'VIDEO' ? datos.grupoId ?? null : null,
       ],
     );
 
@@ -430,7 +457,8 @@ export const temarioRepository = {
           l.titulo AS "leccionTitulo",
           l.orden AS "leccionOrden",
           l.tipo AS "leccionTipo",
-          l.youtube_video_id AS "youtubeVideoId",
+          l.youtube_video_id AS "youtubeVideoId", l.id_grabacion AS "grabacionId", l.id_grupo AS "grupoId",
+          (SELECT g.nombre FROM grupo_curso g WHERE g.id_grupo=l.id_grupo) AS "grupoNombre",
           (SELECT count(*)::int
              FROM evaluacion e
              JOIN pregunta p ON p.id_evaluacion = e.id_evaluacion

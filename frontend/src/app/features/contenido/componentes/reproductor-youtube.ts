@@ -37,6 +37,7 @@ export class ReproductorYoutube implements OnDestroy {
   readonly terminado = output<{ leccionId: number; videoId: string }>();
 
   protected readonly estado = signal<'inicial' | 'cargando' | 'listo' | 'error'>('inicial');
+  protected readonly abrirExterno = signal(false);
   protected readonly error = signal('');
   protected readonly lenta = signal(false);
   protected readonly idValido = computed(() => esIdYoutube(this.videoId()));
@@ -86,6 +87,7 @@ export class ReproductorYoutube implements OnDestroy {
     const version = this.version;
     const vigente = () => !this.destruido && version === this.version;
     this.estado.set('cargando');
+    this.abrirExterno.set(false);
     this.error.set('');
     this.lenta.set(false);
     try {
@@ -119,7 +121,7 @@ export class ReproductorYoutube implements OnDestroy {
             this.listo.emit();
           },
           onStateChange: ({ data }) => { if (vigente()) this.cambioEstado(data); },
-          onError: ({ data }) => { if (vigente()) this.mostrarError(mensajeErrorYoutube(data)); },
+          onError: ({ data }) => { if (vigente()) { this.abrirExterno.set([100,101,150].includes(data)); this.mostrarError(mensajeErrorYoutube(data)); } },
         },
       });
     } catch (error) {

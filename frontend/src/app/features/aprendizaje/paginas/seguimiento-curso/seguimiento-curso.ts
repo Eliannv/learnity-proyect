@@ -10,6 +10,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { mensajeDeError } from '../../../../core/http/error-api';
 import { CatalogoApi } from '../../../catalogo/catalogo.api';
 import { ContenidoApi } from '../../../contenido/contenido.api';
+import { ReproductorPrivado } from '../../../contenido/componentes/reproductor-privado';
 import { ReproductorYoutube } from '../../../contenido/componentes/reproductor-youtube';
 import { esIdYoutube, type PosicionYoutube } from '../../../contenido/youtube';
 import {
@@ -35,7 +36,7 @@ const TIPO_TEXTO: Record<LeccionAprendizaje['tipo'], string> = {
  */
 @Component({
   selector: 'app-seguimiento-curso',
-  imports: [Esqueleto, Modal, FormsModule, RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube, EvaluacionEstudiante, RecursosEstudiante, ResenasCurso],
+  imports: [ReproductorPrivado, Esqueleto, Modal, FormsModule, RouterLink, LucideAngularModule, BarraProgreso, ReproductorYoutube, EvaluacionEstudiante, RecursosEstudiante, ResenasCurso],
   templateUrl: './seguimiento-curso.html',
   styleUrl: './seguimiento-curso.scss',
 })
@@ -128,7 +129,7 @@ export class SeguimientoCurso {
     this.confirmacion.set('');
     this.noDisponible.set(false);
     this.cargando.set(true);
-    if (!cursoId || !leccionId) {
+    if (!cursoId) {
       this.noDisponible.set(true);
       this.cargando.set(false);
       return;
@@ -138,7 +139,10 @@ export class SeguimientoCurso {
       if (actual !== this.solicitud) return;
       const modulo = detalle.modulos.find((m) => m.lecciones.some((l) => l.id === leccionId));
       if (!modulo) {
-        this.noDisponible.set(true);
+        this.detalle.set(detalle);
+        const visibles=detalle.modulos.flatMap(m=>m.lecciones);
+        const siguiente=visibles.find(l=>l.id===detalle.inscripcion.ultimaLeccionId) ?? visibles.find(l=>!l.progreso.completada) ?? visibles[0];
+        if(siguiente) await this.router.navigate(['/aprender',cursoId,siguiente.id],{replaceUrl:true});
         return;
       }
       this.detalle.set(detalle);
@@ -293,9 +297,11 @@ export class SeguimientoCurso {
   protected registrarPosicion(posicion: PosicionYoutube): void {
     // Puede llegar justo después de cambiar de lección (al salir del vídeo): vale si es de este curso.
     const leccion = this.todas().find((l) => l.id === posicion.leccionId);
-    if (!leccion || leccion.youtubeVideoId !== posicion.videoId) return;
+    if (!leccion || (leccion.grabacionId ?? leccion.youtubeVideoId) !== posicion.videoId) return;
     try {
-      localStorage.setItem(`learnity:video:${this.cursoId()}:${posicion.leccionId}`, String(posicion.segundos));
+      if (!leccion.grabacionId) {
+        localStorage.setItem(`learnity:video:${this.cursoId()}:${posicion.leccionId}`, String(posicion.segundos));
+      }
     } catch {
       // Ignorar si localStorage no está disponible.
     }
@@ -357,7 +363,7 @@ export class SeguimientoCurso {
   /** Ver el vídeo hasta el final completa la lección (sin deshacer nada si ya lo estaba). */
   protected async alTerminarVideo(fin: { leccionId: number; videoId: string }): Promise<void> {
     const leccion = this.todas().find((l) => l.id === fin.leccionId);
-    if (!leccion || leccion.tipo !== 'VIDEO' || leccion.youtubeVideoId !== fin.videoId || leccion.progreso.completada) return;
+    if (!leccion || leccion.tipo !== 'VIDEO' || (leccion.grabacionId ?? leccion.youtubeVideoId) !== fin.videoId || leccion.progreso.completada) return;
     try {
       const resultado = await this.api.guardarProgreso(leccion.id, { completada: true });
       this.aplicar(resultado);

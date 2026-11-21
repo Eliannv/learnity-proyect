@@ -58,7 +58,7 @@
       <section class="tarjeta" aria-labelledby="t-embudo">
         <div class="cabecera-seccion">
           <h2 id="t-embudo">Retención por lección</h2>
-          <span class="texto-suave">Estudiantes que completaron cada lección, sobre {{ d.resumen.inscritos }} inscritos</span>
+          <span class="texto-suave">Estudiantes que completaron cada lección de entre quienes la tienen asignada</span>
         </div>
         @if (mayorCaida(); as caida) {
           <p class="alerta">
@@ -82,7 +82,7 @@
                     <small class="texto-suave">{{ tipo[l.tipo].texto }}</small>
                   </span>
                   <span class="pista" aria-hidden="true"><span class="relleno" [style.width.%]="l.pct"></span></span>
-                  <span class="valor"><strong>{{ l.pct }} %</strong> <small class="texto-suave">({{ l.completaron }})</small></span>
+                  <span class="valor"><strong>{{ l.pct }} %</strong> <small class="texto-suave">({{ l.completaron }} de {{ l.asignados }})</small></span>
                 </li>
               }
             </ol>

@@ -50,6 +50,7 @@ function ordenarTemario(filas: FilaLeccion[], recursos: (RecursoAprendizaje & { 
         id: fila.id, orden: fila.orden, titulo: fila.titulo, tipo: fila.tipo,
         archivoId: fila.archivoId,
         youtubeVideoId: fila.tipo === 'VIDEO' ? fila.youtubeVideoId : null,
+        grabacionId: fila.grabacionId,
         evaluacionId: fila.tipo === 'EVALUACION' ? fila.evaluacionId : null,
         recursos: recursos.filter((r) => r.leccionId === fila.id).map(({ leccionId: _, ...r }) => r),
         progreso: { segundosVistos: fila.segundosVistos ?? 0, completada: fila.completada ?? false },
@@ -119,7 +120,7 @@ export const aprendizajeService = {
     if (!fila) throw AppError.noEncontrado('Curso no disponible.');
     const [temario, recursos] = await Promise.all([
       repo.temarioDelEstudiante(fila.id, idCurso),
-      repo.recursosDelCurso(idCurso),
+      repo.recursosDelCurso(idCurso, fila.id),
     ]);
     return { ...cursoInscrito(fila), modulos: ordenarTemario(temario, recursos) };
   },

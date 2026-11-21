@@ -47,6 +47,7 @@ export const esquemasAprendizaje = {
       id: { type: 'integer' }, orden: { type: 'integer' }, titulo: { type: 'string' },
       tipo: { type: 'string', enum: ['DOCUMENTO', 'VIDEO', 'EVALUACION'] },
       archivoId: idNulo,
+      grabacionId: {type:'string',format:'uuid',nullable:true},
       youtubeVideoId: { type: 'string', nullable: true, minLength: 11, maxLength: 11,
         description: 'ID de YouTube de la lección VIDEO; null en los demás tipos.' },
       evaluacionId: { type: 'integer', nullable: true,
