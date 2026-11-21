@@ -45,7 +45,7 @@ export const esquemasAnaliticas = {
         type: 'array', nullable: true, description: 'Solo con un curso elegido: lecciones en el orden del temario.',
         items: { type: 'object', required: ['leccionId', 'modulo', 'titulo', 'tipo', 'completaron'], properties: {
           leccionId: { type: 'integer' }, modulo: { type: 'string' }, titulo: { type: 'string' },
-          tipo: { type: 'string', enum: ['VIDEO', 'DOCUMENTO', 'EVALUACION'] }, completaron: entero,
+          tipo: { type: 'string', enum: ['VIDEO', 'DOCUMENTO', 'EVALUACION'] }, asignados: entero, completaron: entero,
         } },
       },
       porCurso: {

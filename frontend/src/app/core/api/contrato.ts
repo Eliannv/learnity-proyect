@@ -6,6 +6,10 @@ import type { components, paths } from './generado/esquema';
  */
 type Esquemas = components['schemas'];
 
+export type GruposCurso = Esquemas['GruposCurso'];
+export type GrupoCurso = Esquemas['GrupoCurso'];
+export type DatosGrupo = Esquemas['DatosGrupo'];
+export type CargaGrabacion = Esquemas['CargaGrabacion'];
 export type ProblemaCampo = Esquemas['ProblemaCampo'];
 export type CuerpoErrorApi = Esquemas['ErrorApi'];
 

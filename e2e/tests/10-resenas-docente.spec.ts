@@ -95,10 +95,10 @@ test('el docente gestiona sus reseñas, exporta, ve analíticas y el administrad
   await expect(deAna).toContainText('Calificó con 4 estrellas al llevar el 0 % del curso');
   await expect(deAna).toContainText('Reseña editada (antes 2 estrellas, ahora 4 estrellas)');
   await deAna.getByRole('button', { name: 'Responder' }).click();
-  await deAna.getByLabel('Tu respuesta pública').fill('¡Gracias! Añadí más ejemplos resueltos.');
+  await deAna.getByRole('textbox', { name: /^Tu respuesta/ }).fill('¡Gracias! Añadí más ejemplos resueltos.');
   await deAna.getByRole('button', { name: 'Publicar respuesta' }).click();
   await expect(page.getByText('Respuesta publicada.')).toBeVisible();
-  await expect(deAna).toContainText('Tu respuesta');
+  await expect(deAna).toContainText('¡Gracias! Añadí más ejemplos resueltos.');
 
   const deBeto = page.getByRole('article').filter({ hasText: 'Pésimo, una estafa total.' });
   await deBeto.getByRole('button', { name: 'Reportar' }).click();
@@ -106,7 +106,7 @@ test('el docente gestiona sus reseñas, exporta, ve analíticas y el administrad
   await dialogo.getByRole('radio', { name: /Lenguaje ofensivo/ }).check();
   await dialogo.getByRole('button', { name: 'Enviar reporte' }).click();
   await expect(deBeto).toContainText('Reportada · en revisión');
-  await page.getByLabel('Respuesta').selectOption('sin-responder');
+  await page.getByRole('combobox', { name: /^Respuesta/ }).selectOption('sin-responder');
   await expect(page.getByRole('heading', { name: /^1 reseña/ })).toBeVisible();
   await captura(page, '10-bandeja-resenas');
   await revisarAccesibilidad(page);
@@ -145,7 +145,8 @@ test('el docente gestiona sus reseñas, exporta, ve analíticas y el administrad
 
   await page.goto(`/cursos/${curso.id}`);
   const publicas = page.getByRole('region', { name: 'Reseñas de estudiantes' });
-  await expect(publicas).toContainText('Respuesta del docente');
+  const respuesta = publicas.getByRole('list', { name: 'Respuestas a la reseña' }).getByRole('listitem').filter({ hasText: '¡Gracias! Añadí más ejemplos resueltos.' });
+  await expect(respuesta).toContainText('Docente');
   await expect(publicas).toContainText('Editada');
   await expect(publicas).not.toContainText('Pésimo, una estafa total.');
   await expect(page.getByRole('link', { name: /\(1 reseña\)/ })).toBeVisible();

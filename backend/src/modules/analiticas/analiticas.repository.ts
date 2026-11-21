@@ -82,9 +82,11 @@ export const analiticasRepository = {
   async embudo(idPersona: number, idCurso: number): Promise<LeccionEmbudo[]> {
     const { rows } = await consultar<LeccionEmbudo>(
       `SELECT l.id_leccion AS "leccionId", m.titulo AS modulo, l.titulo, l.tipo,
+              (SELECT count(*)::int FROM leccion_asignada a WHERE a.id_leccion=l.id_leccion) AS asignados,
               (SELECT count(*)::int FROM progreso_leccion pl
                  JOIN inscripcion i ON i.id_inscripcion = pl.id_inscripcion
-                WHERE pl.id_leccion = l.id_leccion AND pl.completada AND i.id_curso = m.id_curso) AS completaron
+                WHERE pl.id_leccion = l.id_leccion AND pl.completada AND i.id_curso = m.id_curso
+                  AND EXISTS (SELECT FROM leccion_asignada a WHERE a.id_inscripcion=i.id_inscripcion AND a.id_leccion=l.id_leccion)) AS completaron
          FROM modulo m JOIN leccion l ON l.id_modulo = m.id_modulo
         WHERE m.id_curso IN (${CURSOS})
         ORDER BY m.orden, m.id_modulo, l.orden, l.id_leccion`,

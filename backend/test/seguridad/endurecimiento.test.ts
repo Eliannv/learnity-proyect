@@ -73,7 +73,7 @@ describe('Auditoría · cabeceras de la API', () => {
 
 describe('Auditoría · fail-fast de la configuración en producción', () => {
   const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-  const tsx = path.join(raiz, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+  const tsx = import.meta.resolve('tsx');
   const modulo = pathToFileURL(path.join(raiz, 'src', 'shared', 'config', 'env.ts')).href;
   const base = {
     NODE_ENV: 'production', DB_HOST: 'db.ejemplo', DB_NAME: 'learnity', DB_USER: 'learnity_app', DB_PASSWORD: 'x',
@@ -87,7 +87,7 @@ describe('Auditoría · fail-fast de la configuración en producción', () => {
     const vacia = mkdtempSync(path.join(os.tmpdir(), 'learnity-env-'));
     try {
       const entorno = Object.fromEntries(Object.entries({ ...base, ...extra }).filter(([, v]) => v !== undefined)) as Record<string, string>;
-      return spawnSync(process.execPath, [tsx, '-e', `import(${JSON.stringify(modulo)})`], {
+      return spawnSync(process.execPath, ['--import', tsx, '-e', `import(${JSON.stringify(modulo)})`], {
         cwd: vacia, env: { PATH: process.env['PATH'] ?? '', ...entorno }, encoding: 'utf8',
       });
     } finally {
@@ -100,7 +100,7 @@ describe('Auditoría · fail-fast de la configuración en producción', () => {
     const tls = (extra: Record<string, string>) => {
       const vacia = mkdtempSync(path.join(os.tmpdir(), 'learnity-tls-'));
       try {
-        const r = spawnSync(process.execPath, [tsx, '-e', `import(${JSON.stringify(pool)}).then(({ pool }) => { console.log(JSON.stringify(pool.options.ssl)); return pool.end(); })`], {
+        const r = spawnSync(process.execPath, ['--import', tsx, '-e', `import(${JSON.stringify(pool)}).then(({ pool }) => { console.log(JSON.stringify(pool.options.ssl)); return pool.end(); })`], {
           cwd: vacia, env: { PATH: process.env['PATH'] ?? '', ...base, ...extra }, encoding: 'utf8',
         });
         assert.equal(r.status, 0, r.stderr);
@@ -122,6 +122,8 @@ describe('Auditoría · fail-fast de la configuración en producción', () => {
   });
 
   for (const [caso, extra, variable] of [
+    ['Storage sin credencial de servidor', { VIDEO_ALMACEN: 'supabase', VIDEO_SUPABASE_URL:'https://storage.ejemplo' }, 'VIDEO_SUPABASE_CLAVE'],
+    ['Storage con origen inseguro', { VIDEO_ALMACEN: 'supabase', VIDEO_SUPABASE_URL:'http://storage.ejemplo', VIDEO_SUPABASE_CLAVE:'valor-de-prueba' }, 'VIDEO_SUPABASE_URL'],
     ['sin TLS hacia PostgreSQL', { DB_SSL: 'false' }, 'DB_SSL'],
     ['CORS con comodín', { CORS_ORIGIN: '*' }, 'CORS_ORIGIN'],
     ['CORS por http', { CORS_ORIGIN: 'http://learnity.ejemplo' }, 'CORS_ORIGIN'],

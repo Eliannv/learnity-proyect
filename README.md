@@ -567,6 +567,16 @@ La respuesta se entrega como archivo adjunto.
 
 En esta entrega pueden descargar el ADMIN y el DOCENTE propietario. El acceso del estudiante inscrito corresponde al recorrido previsto para Sprint 3.
 
+### Grabaciones privadas y grupos de estudiantes
+
+Aplica las migraciones 043 y 044 antes de iniciar esta versión. Las videolecciones existentes quedan asignadas a todos los inscritos. El docente crea sus grupos en **Estudiantes de mis cursos** al seleccionar un curso. En **Módulos y contenido → + Vídeo** elige la fuente y el grupo que puede verlo. Cada videolección admite un grupo y conserva su PDF de apoyo y sus descargables.
+
+El reproductor admite MP4 con vídeo H.264 de hasta 100 MiB por archivo. En desarrollo, PostgreSQL guarda bloques de 1 MiB con la configuración existente. La muestra `backend/test/fixtures/grabacion-h264.mp4` sirve para ensayar la carga, el avance y la retirada del acceso con dos estudiantes inscritos.
+
+El backend también admite un bucket privado en Supabase Storage. El encargado del despliegue puede definir `VIDEO_ALMACEN=supabase`, `VIDEO_SUPABASE_URL`, `VIDEO_SUPABASE_BUCKET` y `VIDEO_SUPABASE_CLAVE` en la API. Usa una clave de servidor y un bucket dedicado sin políticas de lectura o escritura para clientes. El backend comprueba que el bucket sea privado al iniciar una carga. Cada grabación guarda el almacén en el que se creó. Las cargas abandonadas se retiran después de 24 horas y la API reintenta la limpieza cada hora. Al retirar a un estudiante del grupo, la API deniega las nuevas peticiones de vídeo y de adjuntos. El navegador puede terminar de mostrar los segundos que ya recibió.
+
+Si YouTube indica que el vídeo es privado o que la inserción está bloqueada, el aula ofrece **Abrir en YouTube**. El propietario invita a las cuentas de Google desde YouTube por separado. El estudiante puede volver al aula y marcar la lección como completada.
+
 ### Formato de errores
 
 ```json

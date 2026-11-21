@@ -1,3 +1,4 @@
+import { GruposCursoPanel } from './grupos-curso';
 import { Esqueleto } from '../../../../../shared/ui/retroalimentacion/esqueleto';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
@@ -15,7 +16,7 @@ import { Estrellas } from '../../../../../shared/ui/datos/estrellas';
 /** Seguimiento paginado: permite filtrar por un curso específico o ver todos los estudiantes. */
 @Component({
   selector: 'app-estudiantes-curso',
-  imports: [Esqueleto, DatePipe, DecimalPipe, RouterLink, Avatar, BarraProgreso, BuscadorCurso, Indicador, Estrellas],
+  imports: [GruposCursoPanel, Esqueleto, DatePipe, DecimalPipe, RouterLink, Avatar, BarraProgreso, BuscadorCurso, Indicador, Estrellas],
   templateUrl: './estudiantes.html',
   styleUrl: './estudiantes.scss',
 })

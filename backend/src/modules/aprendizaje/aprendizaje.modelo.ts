@@ -40,6 +40,7 @@ export interface LeccionAprendizaje {
   tipo: TipoLeccionAprendizaje;
   archivoId: number | null;
   youtubeVideoId: string | null;
+  grabacionId?: string | null;
   /** Evaluación de una lección EVALUACION; null en los demás tipos. */
   evaluacionId: number | null;
   /** Material descargable de la lección; se descarga con GET /api/archivos/{archivoId}. */

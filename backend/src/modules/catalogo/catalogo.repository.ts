@@ -92,7 +92,7 @@ const CTE_CURSO = `
                   COUNT(l.id_leccion)::INT              AS lecciones,
                   COALESCE(SUM(a.duracion_seg), 0)::INT AS segundos
              FROM modulo m
-             LEFT JOIN leccion l ON l.id_modulo = m.id_modulo
+             LEFT JOIN leccion l ON l.id_modulo = m.id_modulo AND (to_jsonb(l)->>'id_grupo') IS NULL
              LEFT JOIN archivo a ON a.id_archivo = l.id_archivo
             WHERE m.id_curso = c.id_curso
       ) contenido ON TRUE
@@ -117,7 +117,7 @@ const CTE_TEMARIO = `
            a.duracion_seg   AS segundos
       FROM modulo m
       JOIN curso c        ON c.id_curso = m.id_curso AND c.estado = 'PUBLICADO'
-      LEFT JOIN leccion l ON l.id_modulo = m.id_modulo
+      LEFT JOIN leccion l ON l.id_modulo = m.id_modulo AND (to_jsonb(l)->>'id_grupo') IS NULL
       LEFT JOIN archivo a ON a.id_archivo = l.id_archivo
   )`;
 

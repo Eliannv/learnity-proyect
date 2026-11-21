@@ -58,6 +58,7 @@
         <button type="button" class="btn btn-texto btn-sm limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
       }
     </form>
+    @if (cursoId(); as seleccionado) { <app-grupos-curso [curso]="seleccionado" (actualizado)="reintentarEstudiantes()" /> }
 
     @if (cargaEstudiantes.ocupada()) {
       <app-esqueleto forma="filas" [cantidad]="5" [etiqueta]="'Cargando estudiantes' + (cursoSeleccionado() ? ' de ' + cursoSeleccionado()!.titulo : '') + '…'" />

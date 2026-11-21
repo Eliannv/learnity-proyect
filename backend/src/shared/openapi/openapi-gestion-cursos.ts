@@ -138,7 +138,7 @@ export const esquemasGestionCursos = {
   },
 
   DatosLeccion: {
-    description: 'Máximo 12 lecciones por módulo, con orden único. VIDEO guarda un ID normalizado de YouTube.',
+    description: 'Máximo 12 lecciones por módulo, con orden único. VIDEO acepta un enlace YouTube o una grabación confirmada. Omitir grupoId al editar conserva la audiencia.',
     oneOf: [{
       type: 'object', additionalProperties: false, required: ['titulo', 'orden', 'tipo'],
       properties: { titulo, orden: { type: 'integer', minimum: 1, maximum: 12 },
@@ -146,9 +146,13 @@ export const esquemasGestionCursos = {
     }, {
       type: 'object', additionalProperties: false, required: ['titulo', 'orden', 'tipo', 'youtubeUrl'],
       properties: { titulo, orden: { type: 'integer', minimum: 1, maximum: 12 },
-        tipo: { type: 'string', enum: ['VIDEO'] },
+        tipo: { type: 'string', enum: ['VIDEO'] }, grupoId: {type:'integer',nullable:true,minimum:1},
         youtubeUrl: { type: 'string', minLength: 1, maxLength: 255,
           description: 'Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID.' } },
+    }, {
+      type: 'object', additionalProperties: false, required: ['titulo','orden','tipo','grabacionId'],
+      properties: { titulo, orden: {type:'integer',minimum:1,maximum:12}, tipo:{type:'string',enum:['VIDEO']},
+        grabacionId:{type:'string',format:'uuid'}, grupoId:{type:'integer',nullable:true,minimum:1} },
     }, {
       type: 'object', additionalProperties: false, required: ['titulo', 'orden', 'tipo'],
       description: 'Las preguntas se guardan aparte, con `PUT /lecciones/{id}/evaluacion`.',
@@ -264,6 +268,7 @@ export const esquemasGestionCursos = {
         nullable: true,
         allOf: [ref('ArchivoPdf')],
       },
+      grabacionId: {type:'string',format:'uuid',nullable:true}, grupoId: {type:'integer',nullable:true}, grupoNombre:{type:'string',nullable:true},
       youtubeVideoId: { type: 'string', nullable: true, minLength: 11, maxLength: 11 },
       preguntas: {
         type: 'integer', minimum: 0, maximum: 10,

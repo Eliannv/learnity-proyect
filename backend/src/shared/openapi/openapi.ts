@@ -9,6 +9,7 @@ import { esquemasEvaluaciones, rutasEvaluaciones } from './openapi-evaluaciones.
 import { esquemasCategorias, rutasCategorias } from './openapi-categorias.js';
 import { esquemasResenas, rutasResenas } from './openapi-resenas.js';
 import { esquemasAnaliticas, rutasAnaliticas } from './openapi-analiticas.js';
+import { esquemasVideosGrupos, rutasVideosGrupos } from './openapi-videos-grupos.js';
 import { esquemasSupervision, rutasSupervision } from './openapi-supervision.js';
 
 const usuarioSesion = {
@@ -209,9 +210,11 @@ export const openApi = {
       ...esquemasResenas,
       ...esquemasAnaliticas,
       ...esquemasSupervision,
+      ...esquemasVideosGrupos,
     },
     responses: respuestasComunes,
     securitySchemes: {
+      reproduccion: { type: 'apiKey', in: 'cookie', name: 'learnity_video' },
       bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       cookieRefresh: { type: 'apiKey', in: 'cookie', name: 'learnity_rt' },
       csrf: { type: 'apiKey', in: 'header', name: 'X-XSRF-TOKEN' },
@@ -227,6 +230,7 @@ export const openApi = {
     ...rutasResenas,
     ...rutasAnaliticas,
     ...rutasSupervision,
+    ...rutasVideosGrupos,
     '/salud': {
       get: {
         tags: ['General'], summary: 'Estado del servidor y conexión a PostgreSQL',

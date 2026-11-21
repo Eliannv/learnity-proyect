@@ -32,7 +32,7 @@ function exigirEdicionLeccion(contexto: ContextoLeccion, usuario: UsuarioSesion)
 }
 
 const leccionDisponible = (l: CursoDetalle['modulos'][number]['lecciones'][number]): boolean =>
-  (l.tipo === 'VIDEO' && !!l.youtubeVideoId) || (l.tipo === 'DOCUMENTO' && l.archivo !== null)
+  (l.tipo === 'VIDEO' && !!(l.youtubeVideoId || l.grabacionId)) || (l.tipo === 'DOCUMENTO' && l.archivo !== null)
   || (l.tipo === 'EVALUACION' && l.preguntas >= MIN_PREGUNTAS);
 
 /** Lo que un curso publicado no puede perder: su ficha completa y al menos un contenido disponible. */
@@ -160,7 +160,7 @@ export function comprobarCompletitud(
         if (!l.archivo || !pdfValidos.has(l.archivo.id)) {
           agregar(prefijo + '.archivo', 'Sube un PDF válido para ' + l.titulo + '.');
         }
-      } else if (l.tipo === 'VIDEO' && !l.youtubeVideoId) {
+      } else if (l.tipo === 'VIDEO' && !l.youtubeVideoId && !l.grabacionId) {
         agregar(prefijo + '.youtubeUrl', 'Añade un enlace válido de YouTube para ' + l.titulo + '.');
       } else if (l.tipo === 'EVALUACION' && l.preguntas < MIN_PREGUNTAS) {
         agregar(prefijo + '.preguntas', `Añade entre ${MIN_PREGUNTAS} y ${MAX_PREGUNTAS} preguntas a ${l.titulo}.`);
@@ -218,6 +218,8 @@ export async function detallePrivado(
       orden: fila.leccionOrden!,
       tipo: fila.leccionTipo,
       archivo,
+      ...(fila.grabacionId ? { grabacionId: fila.grabacionId } : {}),
+      ...(fila.grupoId ? { grupoId: fila.grupoId, grupoNombre: fila.grupoNombre } : {}),
       youtubeVideoId: fila.leccionTipo === 'VIDEO' ? fila.youtubeVideoId : null,
       preguntas: fila.leccionTipo === 'EVALUACION' ? fila.preguntas : 0,
       recursos: recursos.filter((r) => r.leccionId === fila.leccionId).map(({ leccionId: _, ...r }) => r),
@@ -392,6 +394,9 @@ export const detallePrivadoService = {
     if (!asociado) {
       throw AppError.conflicto('No se pudo asociar el PDF a esta lección.');
     }
+    if (contexto.tipoLeccion === 'DOCUMENTO' && !contexto.archivoId) {
+      await temarioRepository.recalcularAvance(cliente, contexto.id);
+    }
   },
 
   async autorizarLectura(
@@ -413,7 +418,7 @@ export const detallePrivadoService = {
       const inscrito = usuario.roles.includes('ESTUDIANTE')
         && contexto.estado === 'PUBLICADO'
         && TIPOS_CON_PDF.has(contexto.tipoLeccion)
-        && await aprendizajeApi.estaInscritoEnCurso(usuario.idPersona, contexto.id);
+        && await aprendizajeApi.inscripcionParaLeccion(cliente, usuario.idPersona, idLeccion);
       if (!inscrito) throw AppError.sinPermiso('No puedes descargar este archivo.');
     });
   },

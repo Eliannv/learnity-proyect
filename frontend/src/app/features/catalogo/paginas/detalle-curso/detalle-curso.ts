@@ -161,9 +161,9 @@ export class DetalleCurso {
       if (!this.inscripcion()) await this.aprendizaje.inscribir(curso.id);
       const detalle = await this.aprendizaje.detalle(curso.id);
       this.inscripcion.set(detalle);
-      const primera = detalle.modulos.flatMap((modulo) => modulo.lecciones)[0];
-      const leccionId = detalle.inscripcion.ultimaLeccionId ?? primera?.id;
-      await this.router.navigate(leccionId ? ['/aprender', curso.id, leccionId] : ['/mi-aprendizaje']);
+      const visibles = detalle.modulos.flatMap(m => m.lecciones);
+      const leccionId = (visibles.find(l => l.id === detalle.inscripcion.ultimaLeccionId) ?? visibles.find(l => !l.progreso.completada) ?? visibles[0])?.id;
+      await this.router.navigate(leccionId ? ['/aprender', curso.id, leccionId] : ['/aprender', curso.id, 'inicio']);
     } catch (error) {
       this.errorInscripcion.set(mensajeDeError(error, 'La inscripción'));
     } finally {

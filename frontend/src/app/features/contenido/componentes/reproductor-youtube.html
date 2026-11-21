@@ -16,6 +16,10 @@
   @if (estado() === 'error' && idValido()) {
     <div class="fallo">
       <p class="aviso error" role="alert">{{ error() }}</p>
+      @if(abrirExterno()) {
+        <a class="btn btn-primario" [href]="'https://www.youtube.com/watch?v=' + videoId()" target="_blank" rel="noopener noreferrer">Abrir en YouTube</a>
+        <p>Si el vídeo es privado, entra en YouTube con la cuenta de Google invitada por el docente.</p>
+      }
       <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
     </div>
   }

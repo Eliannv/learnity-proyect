@@ -4,3 +4,4 @@ export { contenidoRoutes } from './contenido.routes.js';
 export { contenidoApi } from './contenido.service.js';
 export type { ServicioContenido } from './contenido.service.js';
 export { liberadorArchivos } from './contenido-limpieza.service.js';
+export { grabacionesService } from './grabaciones/grabaciones.service.js';

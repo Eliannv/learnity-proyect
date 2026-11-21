@@ -151,9 +151,9 @@ export class MiAprendizaje {
     this.errorNavegacion.set('');
     try {
       const detalle = await this.api.detalle(curso.curso.id);
-      const primera = detalle.modulos.flatMap((modulo) => modulo.lecciones)[0];
-      const id = detalle.inscripcion.ultimaLeccionId ?? primera?.id;
-      await this.router.navigate(id ? ['/aprender', curso.curso.id, id] : ['/cursos', curso.curso.id]);
+      const visibles = detalle.modulos.flatMap(m => m.lecciones);
+      const id = (visibles.find(l => l.id === detalle.inscripcion.ultimaLeccionId) ?? visibles.find(l => !l.progreso.completada) ?? visibles[0])?.id;
+      await this.router.navigate(id ? ['/aprender', curso.curso.id, id] : ['/aprender', curso.curso.id, 'inicio']);
     } catch (error) {
       this.errorNavegacion.set(mensajeDeError(error, 'Abrir el curso'));
     } finally {

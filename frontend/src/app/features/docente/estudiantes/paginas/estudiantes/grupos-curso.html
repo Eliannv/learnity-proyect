@@ -1,0 +1,161 @@
+<section class="grupos-panel tarjeta" aria-labelledby="titulo-grupos">
+  <header class="grupos-cabecera">
+    <div class="titulo-con-icono">
+      <span class="icono-cabecera" aria-hidden="true"><lucide-icon name="users" [size]="21" /></span>
+      <div>
+        <h2 id="titulo-grupos">Grupos del curso</h2>
+        <p>Organiza tus estudiantes y administra sus grupos de forma sencilla.</p>
+      </div>
+    </div>
+    @if (datos(); as d) {
+      <div class="resumen-cabecera" aria-label="Resumen de grupos">
+        <span class="etiqueta-cifra"><strong>{{ d.grupos.length }}</strong> {{ d.grupos.length === 1 ? 'grupo' : 'grupos' }}</span>
+        <span class="etiqueta-cifra"><strong>{{ d.inscritos.length }}</strong> {{ d.inscritos.length === 1 ? 'inscrito' : 'inscritos' }}</span>
+      </div>
+    }
+  </header>
+
+  @if (error()) {
+    <p class="mensaje error aviso-grupos" role="alert">{{ error() }}</p>
+  }
+
+  @if (datos(); as d) {
+    <fieldset class="grupos-contenido" [disabled]="ocupado()">
+      <aside class="lista-grupos" aria-label="Elegir un grupo">
+        <div class="lista-cabecera">
+          <h3>Mis grupos</h3>
+          <span class="contador-grupos">{{ d.grupos.length }}</span>
+        </div>
+        <button class="boton-nuevo" type="button" [class.activo]="!seleccion()"
+          [attr.aria-pressed]="!seleccion()" (click)="elegir(null)">
+          <span class="boton-nuevo-icono"><lucide-icon name="plus" [size]="19" aria-hidden="true" /></span>
+          <span>Nuevo grupo</span>
+          @if (!seleccion()) { <lucide-icon class="icono-activo" name="check" [size]="16" aria-hidden="true" /> }
+        </button>
+
+        @if (d.grupos.length) {
+          <div class="separador-grupos">GRUPOS CREADOS</div>
+          <div class="opciones-grupos">
+            @for (grupo of d.grupos; track grupo.id) {
+              <button class="opcion-grupo" type="button" [class.activo]="seleccion()?.id === grupo.id"
+                [attr.aria-pressed]="seleccion()?.id === grupo.id" (click)="elegir(grupo)">
+                <span class="icono-grupo"><lucide-icon name="users" [size]="17" aria-hidden="true" /></span>
+                <span class="nombre-grupo" [title]="grupo.nombre">{{ grupo.nombre }}</span>
+                <span class="miembros-grupo" [attr.aria-label]="grupo.miembros.length + ' miembros'">{{ grupo.miembros.length }}</span>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="grupos-vacios">
+            <lucide-icon name="layout-grid" [size]="23" aria-hidden="true" />
+            <p>Tus grupos aparecerán aquí cuando crees el primero.</p>
+          </div>
+        }
+      </aside>
+
+      <div class="editor-grupo">
+        <div class="editor-cabecera">
+          <div>
+            <span class="sobretitulo">{{ seleccion() ? 'EDITAR GRUPO' : 'CREAR UN GRUPO' }}</span>
+            <h3>{{ seleccion() ? 'Configura tu grupo' : 'Crea un nuevo grupo' }}</h3>
+            <p>{{ seleccion() ? 'Actualiza el nombre o los estudiantes asignados.' : 'Ponle un nombre y selecciona a sus integrantes.' }}</p>
+          </div>
+          @if (cambios()) {
+            <span class="cambios-pendientes"><span class="punto-cambio"></span>Sin guardar</span>
+          }
+        </div>
+
+        <label class="campo-nombre" for="nombre-grupo-curso">
+          <span>Nombre del grupo <span class="requerido">*</span></span>
+          <input id="nombre-grupo-curso" class="control" type="text" autocomplete="off"
+            maxlength="80" placeholder="Ej. Grupo de investigación A"
+            [ngModel]="nombre()" (ngModelChange)="nombre.set($event)" />
+        </label>
+
+        <div class="zona-estudiantes">
+          <div class="estudiantes-cabecera">
+            <div>
+              <h4>Selecciona los estudiantes</h4>
+              <p>Marca los estudiantes que formarán parte de este grupo.</p>
+            </div>
+            <span class="contador-seleccionados">{{ miembros().size }} {{ miembros().size === 1 ? 'seleccionado' : 'seleccionados' }}</span>
+          </div>
+
+          @if (d.inscritos.length) {
+            <div class="herramientas-estudiantes">
+              <label class="buscador-estudiantes">
+                <lucide-icon name="search" [size]="18" aria-hidden="true" />
+                <span class="sr-only">Buscar estudiante por nombre</span>
+                <input type="search" placeholder="Buscar estudiante..." autocomplete="off"
+                  [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+              </label>
+              <button type="button" class="seleccion-masiva" (click)="alternarVisibles()"
+                [disabled]="inscritosVisibles().length === 0">
+                <lucide-icon [name]="todosVisiblesSeleccionados() ? 'x' : 'check'" [size]="16" aria-hidden="true" />
+                {{ todosVisiblesSeleccionados() ? 'Quitar visibles' : 'Seleccionar visibles' }}
+              </button>
+            </div>
+
+            @if (inscritosVisibles().length) {
+              <div class="cuadricula-estudiantes" aria-label="Estudiantes inscritos">
+                @for (estudiante of inscritosVisibles(); track estudiante.id) {
+                  <label class="tarjeta-estudiante" [class.seleccionado]="miembros().has(estudiante.id)">
+                    <input type="checkbox" class="checkbox-estudiante"
+                      [checked]="miembros().has(estudiante.id)"
+                      (change)="marcar(estudiante.id, $any($event.target).checked)" />
+                    <span class="avatar-estudiante" aria-hidden="true">{{ iniciales(estudiante.nombre) }}</span>
+                    <span class="nombre-estudiante">{{ estudiante.nombre }}</span>
+                    @if (miembros().has(estudiante.id)) {
+                      <lucide-icon class="marca-seleccionado" name="check" [size]="16" aria-hidden="true" />
+                    }
+                  </label>
+                }
+              </div>
+            } @else {
+              <div class="sin-resultados">
+                <lucide-icon name="search" [size]="23" aria-hidden="true" />
+                <strong>Sin coincidencias</strong>
+                <p>Prueba con otro nombre para encontrar estudiantes.</p>
+                <button type="button" class="btn btn-texto" (click)="busqueda.set('')">Limpiar búsqueda</button>
+              </div>
+            }
+          } @else {
+            <div class="sin-resultados">
+              <lucide-icon name="users" [size]="25" aria-hidden="true" />
+              <strong>Todavía no hay estudiantes inscritos</strong>
+              <p>Puedes crear el grupo vacío y añadir integrantes más adelante.</p>
+            </div>
+          }
+        </div>
+
+        <footer class="acciones-grupo">
+          <div class="acciones-secundarias">
+            @if (seleccion()) {
+              <button class="btn btn-peligro" type="button" (click)="guardar(true)">
+                <lucide-icon name="trash-2" [size]="17" aria-hidden="true" /> Eliminar
+              </button>
+            }
+            @if (cambios()) {
+              <button class="btn btn-contorno" type="button" (click)="descartar()">Descartar cambios</button>
+            }
+          </div>
+          <button class="btn btn-primario guardar-grupo" type="button" (click)="guardar()"
+            [disabled]="!nombre().trim() || (!!seleccion() && !cambios())">
+            <lucide-icon [name]="seleccion() ? 'check' : 'plus'" [size]="18" aria-hidden="true" />
+            {{ ocupado() ? 'Guardando…' : (seleccion() ? 'Guardar cambios' : 'Crear grupo') }}
+          </button>
+        </footer>
+      </div>
+    </fieldset>
+  } @else if (ocupado()) {
+    <div class="estado-carga" role="status">
+      <lucide-icon name="loader-circle" [size]="22" class="girando" aria-hidden="true" />
+      Cargando los grupos del curso…
+    </div>
+  } @else {
+    <div class="estado-carga">
+      <p>No se pudieron mostrar los grupos del curso.</p>
+      <button type="button" class="btn btn-contorno" (click)="cargar()">Reintentar</button>
+    </div>
+  }
+</section>

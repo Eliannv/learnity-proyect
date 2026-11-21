@@ -39,10 +39,14 @@ const datosVideoSchema = z.strictObject({
   titulo: z.string().trim().min(1).max(150),
   orden: z.number().int().min(1).max(12),
   tipo: z.literal('VIDEO'),
+  grupoId: z.number().int().positive().nullable().optional(),
+  grabacionId: z.uuid().optional(),
   youtubeUrl: z.string().trim().min(1).max(255).refine(
     (valor) => extraerYoutubeVideoId(valor) !== null,
     'Indica un enlace válido de YouTube o su ID.',
-  ),
+  ).optional(),
+}).refine((v) => Boolean(v.youtubeUrl) !== Boolean(v.grabacionId), {
+  message: 'Elige una grabación o un enlace de YouTube.', path: ['youtubeUrl'],
 });
 
 /** Las preguntas se guardan aparte, con `PUT /lecciones/:id/evaluacion`. */

@@ -77,6 +77,13 @@ BEGIN
   IF to_regclass('public.archivo_binario') IS NOT NULL THEN
     GRANT SELECT, INSERT, UPDATE, DELETE ON archivo_binario TO learnity_pruebas;
   END IF;
+  -- 043/044: los fixtures de cursos ejercitan los mismos triggers al borrar su marca.
+  IF to_regclass('public.grupo_curso') IS NOT NULL THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON grupo_curso, grupo_miembro TO learnity_pruebas;
+  END IF;
+  IF to_regclass('public.grabacion') IS NOT NULL THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON grabacion, grabacion_parte, grabacion_retirada TO learnity_pruebas;
+  END IF;
   -- 041: hilos de respuestas en reseñas.
   IF to_regclass('public.resena_respuesta') IS NOT NULL THEN
     GRANT SELECT, INSERT, UPDATE, DELETE ON resena_respuesta TO learnity_pruebas;

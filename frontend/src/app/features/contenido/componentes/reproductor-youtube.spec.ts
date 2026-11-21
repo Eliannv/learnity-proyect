@@ -190,6 +190,18 @@ describe('reproductor compartido YouTube', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
     expect(boton('Reintentar')).toBeDefined();
+    const enlace = fixture.nativeElement.querySelector('a[target="_blank"]') as HTMLAnchorElement | null;
+    if ([100, 101, 150].includes(codigo)) {
+      expect(enlace?.href).toBe('https://www.youtube.com/watch?v=' + id);
+      expect(fixture.nativeElement.textContent).toContain('cuenta de Google invitada');
+      const terminado = vi.fn();
+      fixture.componentInstance.terminado.subscribe(terminado);
+      enlace?.addEventListener('click', e => e.preventDefault());
+      enlace?.click();
+      expect(terminado).not.toHaveBeenCalled();
+    } else {
+      expect(enlace).toBeNull();
+    }
     expect(jugadores[0].destroy).toHaveBeenCalledOnce();
   });
 

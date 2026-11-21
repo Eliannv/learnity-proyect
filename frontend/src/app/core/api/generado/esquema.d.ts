@@ -6529,6 +6529,884 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docente/cursos/{id}/grupos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Grupos e inscritos del curso */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GruposCurso"];
+                    };
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Crear grupo del curso */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DatosGrupo"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GruposCurso"];
+                    };
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/cursos/{id}/grupos/{grupo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Actualizar nombre y miembros */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                    grupo: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ActualizarGrupo"];
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GruposCurso"];
+                    };
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Eliminar un grupo sin lecciones */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                    grupo: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GruposCurso"];
+                    };
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docente/cursos/{id}/grabaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Iniciar o reanudar la carga privada */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        operacion: string;
+                        tamano: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Correcto */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CargaGrabacion"];
+                    };
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grabaciones/{carga}/partes/{parte}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Guardar un bloque de hasta 1 MiB */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    carga: string;
+                    parte: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            responses: {
+                /** @description Bloque recibido */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Bloque demasiado grande */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grabaciones/{carga}/confirmar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validar MP4 y confirmar la carga */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    carga: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correcto */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                        };
+                    };
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Se requiere MP4 con vídeo H.264 */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lecciones/{id}/video/sesion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Autorizar la reproducción durante diez minutos */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Cookie HttpOnly de reproducción, ligada a sesión y lección */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lecciones/{id}/video": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leer una grabación privada */
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    Range?: string;
+                };
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description MP4 autorizado */
+                200: {
+                    headers: {
+                        "Accept-Ranges"?: string;
+                        "Content-Range"?: string;
+                        "Content-Length"?: number;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                    };
+                };
+                /** @description MP4 autorizado */
+                206: {
+                    headers: {
+                        "Accept-Ranges"?: string;
+                        "Content-Range"?: string;
+                        "Content-Length"?: number;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                    };
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Rango fuera del archivo */
+                416: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        /** Consultar cabeceras de la grabación */
+        head: {
+            parameters: {
+                query?: never;
+                header?: {
+                    Range?: string;
+                };
+                path: {
+                    /** @description Entero decimal canónico de 1 a 2 147 483 647: solo dígitos, sin signo, sin ceros a la izquierda, sin espacios, sin parte decimal, exponente ni hexadecimal (`007`, `+7`, ` 7 `, `7.0`, `1e3` y `0x10` se rechazan). Si no cumple, responde 400 SOLICITUD_INVALIDA ("Revisa los datos enviados.") con `detalles: [{ campo: "id", mensaje: "Debe ser un entero positivo en decimal." }]`, o con el mensaje "Es demasiado grande." si tiene 10 cifras y supera 2 147 483 647. En las operaciones con sesión, el 401 y el 403 se comprueban antes. */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description MP4 autorizado */
+                200: {
+                    headers: {
+                        "Accept-Ranges"?: string;
+                        "Content-Range"?: string;
+                        "Content-Length"?: number;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                    };
+                };
+                /** @description MP4 autorizado */
+                206: {
+                    headers: {
+                        "Accept-Ranges"?: string;
+                        "Content-Range"?: string;
+                        "Content-Length"?: number;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                    };
+                };
+                /** @description Datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Sesión necesaria */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Contenido no disponible */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Estado incompatible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorApi"];
+                    };
+                };
+                /** @description Rango fuera del archivo */
+                416: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        patch?: never;
+        trace?: never;
+    };
     "/salud": {
         parameters: {
             query?: never;
@@ -7754,7 +8632,7 @@ export interface components {
             titulo: string;
             orden: number;
         };
-        /** @description Máximo 12 lecciones por módulo, con orden único. VIDEO guarda un ID normalizado de YouTube. */
+        /** @description Máximo 12 lecciones por módulo, con orden único. VIDEO acepta un enlace YouTube o una grabación confirmada. Omitir grupoId al editar conserva la audiencia. */
         DatosLeccion: {
             /** @description Se recortan los espacios de los extremos antes de validar. */
             titulo: string;
@@ -7767,8 +8645,18 @@ export interface components {
             orden: number;
             /** @enum {string} */
             tipo: "VIDEO";
+            grupoId?: number | null;
             /** @description Enlace HTTPS de YouTube o ID de 11 caracteres; se almacena solo el ID. */
             youtubeUrl: string;
+        } | {
+            /** @description Se recortan los espacios de los extremos antes de validar. */
+            titulo: string;
+            orden: number;
+            /** @enum {string} */
+            tipo: "VIDEO";
+            /** Format: uuid */
+            grabacionId: string;
+            grupoId?: number | null;
         } | {
             /** @description Se recortan los espacios de los extremos antes de validar. */
             titulo: string;
@@ -7818,6 +8706,10 @@ export interface components {
             /** @enum {string} */
             tipo: "DOCUMENTO" | "VIDEO" | "EVALUACION";
             archivo: components["schemas"]["ArchivoPdf"] | null;
+            /** Format: uuid */
+            grabacionId?: string | null;
+            grupoId?: number | null;
+            grupoNombre?: string | null;
             youtubeVideoId: string | null;
             /** @description Preguntas guardadas de una EVALUACION (necesita 5 para estar completa); 0 en los demás tipos. */
             preguntas: number;
@@ -8109,6 +9001,8 @@ export interface components {
             /** @enum {string} */
             tipo: "DOCUMENTO" | "VIDEO" | "EVALUACION";
             archivoId: number | null;
+            /** Format: uuid */
+            grabacionId?: string | null;
             /** @description ID de YouTube de la lección VIDEO; null en los demás tipos. */
             youtubeVideoId: string | null;
             /** @description Para `GET /evaluaciones/{id}` en una lección EVALUACION; null en los demás tipos. */
@@ -8534,6 +9428,7 @@ export interface components {
                 titulo: string;
                 /** @enum {string} */
                 tipo: "VIDEO" | "DOCUMENTO" | "EVALUACION";
+                asignados?: number;
                 completaron: number;
             }[] | null;
             /** @description Solo sin curso elegido. */
@@ -8806,6 +9701,35 @@ export interface components {
         DatosAtencionAlerta: {
             /** @description Vacía o solo espacios se guarda como null. */
             nota?: string | null;
+        };
+        GrupoCurso: {
+            id: number;
+            nombre: string;
+            revision: number;
+            miembros: number[];
+        };
+        GruposCurso: {
+            grupos: components["schemas"]["GrupoCurso"][];
+            inscritos: {
+                id: number;
+                nombre: string;
+            }[];
+        };
+        DatosGrupo: {
+            nombre: string;
+            miembros: number[];
+        };
+        ActualizarGrupo: {
+            nombre: string;
+            miembros: number[];
+            revision: number;
+        };
+        CargaGrabacion: {
+            /** Format: uuid */
+            id: string;
+            siguiente: number;
+            lista: boolean;
+            tamanoParte: number;
         };
     };
     responses: {

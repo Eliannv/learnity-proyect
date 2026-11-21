@@ -51,6 +51,10 @@ const esquema = z
     /** Solo como último recurso: TLS sin verificar el certificado (cifra, pero no protege de un intermediario). */
     DB_SSL_SIN_VERIFICAR: booleano('false'),
     PDF_DIR: z.string().trim().min(1).default('uploads/pdf'),
+    VIDEO_ALMACEN: z.enum(['postgres', 'supabase']).default('postgres'),
+    VIDEO_SUPABASE_URL: opcional,
+    VIDEO_SUPABASE_CLAVE: opcional,
+    VIDEO_SUPABASE_BUCKET: z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/).default('learnity-videos'),
 
     JWT_SECRET: z.string().min(32, 'JWT_SECRET debe tener al menos 32 caracteres aleatorios'),
     /** Vida del access token (JWT que el navegador guarda solo en memoria). */
@@ -80,6 +84,14 @@ const esquema = z
     GMAIL_NOMBRE_REMITENTE: z.string().default('Learnity'),
   })
   .superRefine((e, ctx) => {
+    if (e.VIDEO_ALMACEN === 'supabase' || e.VIDEO_SUPABASE_URL || e.VIDEO_SUPABASE_CLAVE) {
+      if (!e.VIDEO_SUPABASE_URL || !esOrigenHttps(e.VIDEO_SUPABASE_URL)) {
+        ctx.addIssue({code:'custom',path:['VIDEO_SUPABASE_URL'],message:'indica el origen HTTPS de tu proyecto de Storage'});
+      }
+      if (!e.VIDEO_SUPABASE_CLAVE) {
+        ctx.addIssue({code:'custom',path:['VIDEO_SUPABASE_CLAVE'],message:'configura la clave de servidor para Storage'});
+      }
+    }
     if (e.CORREO_TRANSPORTE === 'gmail') {
       for (const clave of ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'GMAIL_REMITENTE'] as const) {
         if (!e[clave]) ctx.addIssue({ code: 'custom', path: [clave], message: 'obligatorio con CORREO_TRANSPORTE=gmail' });

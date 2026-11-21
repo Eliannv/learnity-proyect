@@ -6,7 +6,10 @@ import { contenidoController as controller } from './contenido.controller.js';
 import { idContenidoRuta } from './contenido.esquemas.js';
 import { recibirPdf, recibirRecurso } from './contenido.multipart.js';
 
+import { grabacionesRoutes } from './grabaciones/grabaciones.routes.js';
+
 export const contenidoRoutes = Router();
+contenidoRoutes.use(grabacionesRoutes);
 
 // Orden de middlewares (PLANTILLA_MODULO §3, ADR-011 11.4):
 // limitarPorIp → autenticar → autorizar → validarParametros → autorizarCarga (verifica propiedad/estado antes de leer el multipart) → recibirPdf → subir.

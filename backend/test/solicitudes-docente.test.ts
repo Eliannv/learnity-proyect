@@ -114,7 +114,7 @@ describe('Solicitud para ser docente', () => {
     const justo = await enviar(await cuenta(['ESTUDIANTE']), {
       especialidad: 'Programación', motivo: 'Tengo cinco años dando clases.',
     });
-    assert.equal(justo.status, 201, justo.texto);
+    assert.equal(justo.status, 201, JSON.stringify(justo.json));
   });
 
   it('crea la solicitud PENDIENTE y no permite otra mientras siga pendiente', async () => {
